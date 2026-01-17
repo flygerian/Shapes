@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
 #include "tensor.h"
@@ -65,7 +66,11 @@ static u64 getIdx(Tensor *t, Dim idx) {
   u64 result = 0;
 
   for (u8 x = 0; x < t->shape.numOfDims; x++) {
-    result += idx.dims[x] * t->shape.multipliers[x];
+    u64 coord = idx.dims[x];
+    if (t->isView) {
+      coord += t->boundary[x].start;
+    }
+    result += coord * t->shape.multipliers[x];
   }
 
   return result;
@@ -101,7 +106,7 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
 
 Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   // Guards check the dimensions
-// MAybe check the datatypes?
+// Maybe check the datatypes?
   return OK;
 }
 
@@ -142,8 +147,53 @@ Result AssignValue(Context *ctx, Tensor *t, Dim dim, Value value) {
     return ERR_OUT_OF_BOUNDS;
   }
 
+  // Apply offset here if viewH
   u64 idx = getIdx(t, dim);
   VALUE_SET(t->values, idx, value);
+
+  return OK;
+}
+
+Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
+  Range *ranges = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+
+  va_list args;
+  va_start(args, dest);
+
+  for(u8 x=0; x < source->shape.numOfDims; x++) {
+    // Worried about this
+    ranges[x] = va_arg(args, Range);
+
+    if (ranges[x].end < ranges[x].start) {
+      va_end(args);
+      return ERR_INVALID_RANGE;
+    }
+
+    if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 || ranges[x].end > source->shape.dims[x]) {
+      va_end(args);
+      return ERR_DIM_MISMATCH;
+    }
+  }
+  va_end(args);
+
+  // Compute the new shape
+  // Since this would be a view and views indexes are converted to the base tensors index range using the boundaries. We keep the old multiplier
+  Dim newShape = {.dims=allocate(ctx->memory, sizeof(Dim)* source->shape.numOfDims), .numOfDims=source->shape.numOfDims, .multipliers=source->shape.multipliers}; 
+  Range *boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+
+  for(u8 x=0; x < source->shape.numOfDims; x++) {
+    Range r = ranges[x];
+    u32 dimsize = (r.end - r.start) + 1; // (Range 1-5 should yeild 5)
+    newShape.dims[x] = dimsize;
+
+    if (source->isView) {
+      boundary[x] = (Range) {.start=source->boundary->start + ranges[x].start, .end=source->boundary->start + ranges[x].end };
+    } else {
+      boundary[x] = ranges[x];
+    }
+  }
+
+  *dest = ((Tensor) {.isView = true, .values=source->values, .shape=newShape, .dtype=source->dtype, .boundary=boundary});
 
   return OK;
 }

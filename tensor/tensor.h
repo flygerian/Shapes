@@ -56,10 +56,18 @@ typedef struct {
 } Dim;
 
 typedef struct {
+  u64 start;
+  u64 end;
+} Range;
+
+typedef struct {
   Dtype dtype;
   void *values;
   Dim shape;
+  bool isView;
+  Range *boundary;
 } Tensor;
+
 
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Subtract(Context *ctx, Tensor *a, Tensor *b,Tensor *destination);
@@ -69,9 +77,9 @@ Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result GetAt(Tensor *t, Dim dim, Value *result);
 
 Result AssignValue(Context *ctx, Tensor *t, Dim dim, Value value); 
+Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 
 // Tensor creation
-
 Tensor T_Zeros(Context *ctx, Dim shape);
 
 #endif
