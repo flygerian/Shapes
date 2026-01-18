@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include <__stdarg_va_list.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
@@ -54,14 +55,9 @@ static Tensor t_Zeros(Context *ctx, Dim shape, Dtype type) {
 
   size_t bytesRequired = size * getBytesForDtype(type);
 
-  Tensor t = (Tensor){.dtype = type, .values=allocate(ctx->memory, bytesRequired), .shape=tShape, .size=size};
+  Tensor t = (Tensor){.dtype = type, .values=allocate(ctx->memory, bytesRequired), .shape=tShape, .size=size, .isContigous=true};
   memset(t.values, 0, bytesRequired);
   return t;
-}
-
-static bool doTensorShapesMatch(Tensor *a, Tensor *b) {
-   
-  return true;
 }
 
 static u64 getIdx(Tensor *t, Dim idx) {
@@ -136,7 +132,7 @@ Result GetAt(Tensor *t, Dim dim, Value *result) {
   return OK;
 }
 
-Result AssignValue(Context *ctx, Tensor *t, Dim dim, Value value) {
+Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -204,7 +200,16 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
   }
   
   tensor_size_t size = calculateNumValuesAndMultipliers(newShape, NULL);
-  *dest = ((Tensor) {.isView = true, .values=source->values, .shape=newShape, .dtype=source->dtype, .boundary=boundary, .size=size });
+  *dest = ((Tensor) {
+      .isView = true, 
+      .values=source->values, 
+      .shape=newShape, 
+      .dtype=source->dtype, 
+      .boundary=boundary, 
+      .size=size,
+      .isContigous=false,
+      // TODO: Probably need to comback to this, a slice does not autmattically mean discontingous
+    });
 
   return OK;
 }
@@ -229,7 +234,7 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
   bool isView = source->isView;
   Range *boundary = source->boundary;
 
-  if (source->isView && source->boundary) {
+  if (!source->isContigous) {
     size_t bytesPerElement = getBytesForDtype(source->dtype);
     size_t bytesRequired = source->size * bytesPerElement;
     values = allocate(ctx->memory, bytesRequired);
@@ -261,6 +266,58 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
   *dest = ((Tensor) {.isView = isView, .values = values, .dtype = source->dtype, .boundary = boundary, .size = source->size });
   dest->shape = (Dim) {.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = multipliers};
   return OK;
+}
+
+Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
+  dim_t transposeDims[2];
+  u8 expectedDims = 2;
+
+  if (isInvalidTensor(source)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (source->size < 2) {
+    return ERR_NO_OP;
+  }
+  
+  va_list args;
+  va_start(args, dest);
+
+  for (u8 x = 0; x < expectedDims; x++) {
+    transposeDims[x] = va_arg(args, dim_t);
+  }
+  va_end(args);
+
+  if (transposeDims[0] >= source->shape.numOfDims || transposeDims[1] >= source->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+  
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
+ 
+  dim_t temp = newDims[transposeDims[0]]; // dim0
+  newDims[transposeDims[0]] = newDims[transposeDims[1]];
+  newDims[transposeDims[1]] = temp;
+
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
+
+  multiplier_t tempMultiplier = newMultipliers[transposeDims[0]];
+  newMultipliers[transposeDims[0]] = newMultipliers[transposeDims[1]];
+  newMultipliers[transposeDims[1]] = tempMultiplier;
+
+  *dest = (Tensor) {
+    .dtype  =source->dtype,
+    .values =source->values,
+    .size = source->size,
+    .isView = true,
+    .isContigous = false,
+    .shape = {.dims=newDims, .numOfDims=source->shape.numOfDims, .multipliers=newMultipliers},
+    .boundary=source->boundary
+  };
+
+  return OK;
+
 }
 
 // Creation

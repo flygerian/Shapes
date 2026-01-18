@@ -121,7 +121,7 @@ static void test_assign_value_success(void) {
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U8, .as.u8 = 42};
 
-  Result r = AssignValue(&ctx, &tt.tensor, idx, val);
+  Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, OK, "AssignValue should return OK");
 
   u8 *values = (u8 *)tt.tensor.values;
@@ -140,7 +140,7 @@ static void test_assign_value_dtype_mismatch(void) {
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U32, .as.u32 = 100};
 
-  Result r = AssignValue(&ctx, &tt.tensor, idx, val);
+  Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "should return ERR_DTYPE_MISMATCH");
 
   freeMemory(mem);
@@ -156,7 +156,7 @@ static void test_assign_value_dim_mismatch(void) {
   Dim idx = {.dims = idx_dims, .numOfDims = 3};
   Value val = {.dtype = U8, .as.u8 = 10};
 
-  Result r = AssignValue(&ctx, &tt.tensor, idx, val);
+  Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH");
 
   freeMemory(mem);
@@ -172,7 +172,7 @@ static void test_assign_value_out_of_bounds(void) {
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U8, .as.u8 = 10};
 
-  Result r = AssignValue(&ctx, &tt.tensor, idx, val);
+  Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "should return ERR_OUT_OF_BOUNDS");
 
   freeMemory(mem);
@@ -186,7 +186,7 @@ static void test_assign_value_null_tensor(void) {
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U8, .as.u8 = 10};
 
-  Result r = AssignValue(&ctx, NULL, idx, val);
+  Result r = AssignValueAt(&ctx, NULL, idx, val);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "should return ERR_NULL_TENSOR_PROVIDED for null tensor");
 
   freeMemory(mem);
@@ -201,7 +201,7 @@ static void test_assign_value_only_modifies_target_index(void) {
   u32 idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U8, .as.u8 = 77};
-  AssignValue(&ctx, &tt.tensor, idx, val);
+  AssignValueAt(&ctx, &tt.tensor, idx, val);
 
   u8 *values = (u8 *)tt.tensor.values;
   int target_idx = 1 * 4 + 2;  // = 6
@@ -235,9 +235,9 @@ static void test_assign_value_multiple_indices(void) {
   u32 idx1[] = {0, 2};
   u32 idx2[] = {1, 1};
 
-  AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 10});
-  AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 20});
-  AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 30});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 10});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 20});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 30});
 
   u8 *values = (u8 *)tt.tensor.values;
   ASSERT_EQ(values[0 * 3 + 0], 10, "[0,0] should be 10");
@@ -260,7 +260,7 @@ static void test_get_at_success(void) {
   u32 idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U8, .as.u8 = 99};
-  AssignValue(&ctx, &tt.tensor, idx, val);
+  AssignValueAt(&ctx, &tt.tensor, idx, val);
 
   Value result;
   Result r = GetAt(&tt.tensor, idx, &result);
@@ -333,7 +333,7 @@ static void test_slice_basic_2d(void) {
     for (u32 j = 0; j < 5; j++) {
       u32 idx_dims[] = {i, j};
       Value val = {.dtype = U8, .as.u8 = (u8)(i * 5 + j)};
-      AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
@@ -357,7 +357,7 @@ static void test_slice_shares_data_with_source(void) {
   // Set a value in source
   u32 idx_dims[] = {1, 2};
   Value val = {.dtype = U8, .as.u8 = 42};
-  AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
   Tensor slice;
   Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
@@ -378,7 +378,7 @@ static void test_slice_get_at_correct_values(void) {
     for (u32 j = 0; j < 5; j++) {
       u32 idx_dims[] = {i, j};
       Value val = {.dtype = U8, .as.u8 = (u8)(i * 5 + j)};
-      AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
@@ -438,7 +438,7 @@ static void test_slice_single_element_range(void) {
   // Set value at [2,3]
   u32 idx_dims[] = {2, 3};
   Value val = {.dtype = U8, .as.u8 = 99};
-  AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
   Tensor slice;
   // Single element slice at [2,3] (exclusive end: 2:3 gives 1 element, 3:4 gives 1 element)
@@ -481,7 +481,7 @@ static void test_slice_1d_tensor(void) {
   for (u32 i = 0; i < 10; i++) {
     u32 idx_dims[] = {i};
     Value val = {.dtype = U8, .as.u8 = (u8)i};
-    AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 1}, val);
+    AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 1}, val);
   }
 
   Tensor slice;
@@ -515,7 +515,7 @@ static void test_slice_modify_reflects_in_source(void) {
   // Modify slice[0,1] which maps to source[1,2]
   u32 slice_idx[] = {0, 1};
   Value val = {.dtype = U8, .as.u8 = 77};
-  AssignValue(&ctx, &slice, (Dim){.dims = slice_idx, .numOfDims = 2}, val);
+  AssignValueAt(&ctx, &slice, (Dim){.dims = slice_idx, .numOfDims = 2}, val);
 
   // Check source[1,2]
   u32 src_idx[] = {1, 2};
@@ -537,7 +537,7 @@ static void test_slice_of_slice(void) {
     for (u32 j = 0; j < 6; j++) {
       u32 idx_dims[] = {i, j};
       Value val = {.dtype = U8, .as.u8 = (u8)(i * 6 + j)};
-      AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
@@ -576,7 +576,7 @@ static void test_slice_large_4d_tensor(void) {
           u32 idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 10 * 12 * 6 + j * 12 * 6 + k * 6 + l) % 256);
           Value val = {.dtype = U8, .as.u8 = val_num};
-          AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
+          AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
       }
     }
@@ -687,7 +687,7 @@ static void test_reshape_preserves_data(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx_dims[] = {i, j};
       Value val = {.dtype = U8, .as.u8 = (u8)(i * 3 + j)};
-      AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
@@ -725,7 +725,7 @@ static void test_reshape_shares_data_with_source(void) {
   // Modify via reshaped, check source
   u32 r_idx[] = {0, 0};
   Value val = {.dtype = U8, .as.u8 = 55};
-  AssignValue(&ctx, &reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, val);
+  AssignValueAt(&ctx, &reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, val);
 
   u32 s_idx[] = {0, 0};
   Value result;
@@ -792,7 +792,7 @@ static void test_reshape_3d_to_2d(void) {
       for (u32 k = 0; k < 4; k++) {
         u32 idx_dims[] = {i, j, k};
         Value val = {.dtype = U8, .as.u8 = (u8)(i * 12 + j * 4 + k)};
-        AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
+        AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
   }
@@ -830,7 +830,7 @@ static void test_reshape_view(void) {
     for (u32 j = 0; j < 6; j++) {
       u32 idx_dims[] = {i, j};
       Value val = {.dtype = U8, .as.u8 = (u8)(i * 6 + j)};
-      AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
@@ -864,7 +864,7 @@ static void test_reshape_3d_view(void) {
       for (u32 k = 0; k < 6; k++) {
         u32 idx_dims[] = {i, j, k};
         Value val = {.dtype = U8, .as.u8 = (u8)((i * 30 + j * 6 + k) % 256)};
-        AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
+        AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
   }
@@ -914,7 +914,7 @@ static void test_reshape_4d_view(void) {
           u32 idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 120 + j * 30 + k * 6 + l) % 256);
           Value val = {.dtype = U8, .as.u8 = val_num};
-          AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
+          AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
       }
     }
@@ -963,7 +963,7 @@ static void test_reshape_4d_view_to_1d(void) {
         for (u32 l = 0; l < 5; l++) {
           u32 idx_dims[] = {i, j, k, l};
           Value val = {.dtype = U8, .as.u8 = counter++};
-          AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
+          AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
       }
     }
@@ -1009,7 +1009,7 @@ static void test_reshape_then_access_elements(void) {
       for (u32 k = 0; k < 3; k++) {
         u32 idx_dims[] = {i, j, k};
         Value val = {.dtype = U8, .as.u8 = counter++};
-        AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
+        AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
   }
@@ -1042,6 +1042,233 @@ static void test_reshape_then_access_elements(void) {
   freeMemory(mem);
 }
 
+// Transpose tests
+static void test_transpose_basic_2d(void) {
+  u32 dims[] = {3, 4};  // 3 rows, 4 cols
+  TestTensor tt = createZerosTensor(dims, 2);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  Tensor transposed;
+  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+  ASSERT_EQ(r, OK, "Transpose should return OK");
+  ASSERT(transposed.isView, "transposed should be a view");
+  ASSERT(!transposed.isContigous, "transposed should not be contiguous");
+  ASSERT_EQ(transposed.shape.dims[0], 4, "transposed dim[0] should be 4");
+  ASSERT_EQ(transposed.shape.dims[1], 3, "transposed dim[1] should be 3");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_swaps_dims_and_multipliers(void) {
+  u32 dims[] = {3, 4};
+  TestTensor tt = createZerosTensor(dims, 2);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  u8 orig_mult_0 = tt.tensor.shape.multipliers[0];
+  u8 orig_mult_1 = tt.tensor.shape.multipliers[1];
+
+  Tensor transposed;
+  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+
+  ASSERT_EQ(transposed.shape.multipliers[0], orig_mult_1, "multiplier[0] should be swapped");
+  ASSERT_EQ(transposed.shape.multipliers[1], orig_mult_0, "multiplier[1] should be swapped");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_shares_data(void) {
+  u32 dims[] = {3, 4};
+  TestTensor tt = createZerosTensor(dims, 2);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  Tensor transposed;
+  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+
+  ASSERT_EQ(transposed.values, tt.tensor.values, "transposed should share values pointer");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_access_elements(void) {
+  u32 dims[] = {2, 3};
+  TestTensor tt = createZerosTensor(dims, 2);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  // Populate: source[i,j] = i*3 + j
+  // source[0,0]=0, source[0,1]=1, source[0,2]=2
+  // source[1,0]=3, source[1,1]=4, source[1,2]=5
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value val = {.dtype = U8, .as.u8 = (u8)(i * 3 + j)};
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 2}, val);
+    }
+  }
+
+  Tensor transposed;
+  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+
+  // transposed[j,i] should equal source[i,j]
+  // transposed[0,0] = source[0,0] = 0
+  // transposed[0,1] = source[1,0] = 3
+  // transposed[1,0] = source[0,1] = 1
+  // transposed[2,1] = source[1,2] = 5
+  Value result;
+
+  u32 idx1[] = {0, 0};
+  GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.u8, 0, "transposed[0,0] should be 0");
+
+  u32 idx2[] = {0, 1};
+  GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.u8, 3, "transposed[0,1] should be 3");
+
+  u32 idx3[] = {1, 0};
+  GetAt(&transposed, (Dim){.dims = idx3, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.u8, 1, "transposed[1,0] should be 1");
+
+  u32 idx4[] = {2, 1};
+  GetAt(&transposed, (Dim){.dims = idx4, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.u8, 5, "transposed[2,1] should be 5");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor transposed;
+  Result r = Transpose(&ctx, NULL, &transposed, (dim_t)0, (dim_t)1);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "should return ERR_NULL_TENSOR_PROVIDED");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_dim_out_of_bounds(void) {
+  u32 dims[] = {3, 4};
+  TestTensor tt = createZerosTensor(dims, 2);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  Tensor transposed;
+  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)5);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH for out of bounds dim");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_size_less_than_2(void) {
+  u32 dims[] = {1};
+  TestTensor tt = createZerosTensor(dims, 1);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  Tensor transposed;
+  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)0);
+  ASSERT_EQ(r, ERR_NO_OP, "should return ERR_NO_OP for tensor with size < 2");
+
+  freeMemory(mem);
+}
+
+static void test_transpose_3d(void) {
+  u32 dims[] = {2, 3, 4};  // 2x3x4
+  TestTensor tt = createZerosTensor(dims, 3);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  // Populate: source[i,j,k] = i*12 + j*4 + k
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      for (u32 k = 0; k < 4; k++) {
+        u32 idx[] = {i, j, k};
+        Value val = {.dtype = U8, .as.u8 = (u8)(i * 12 + j * 4 + k)};
+        AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 3}, val);
+      }
+    }
+  }
+
+  // Transpose dims 0 and 2: shape becomes 4x3x2
+  Tensor transposed;
+  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)2);
+  ASSERT_EQ(r, OK, "Transpose 3D should return OK");
+  ASSERT_EQ(transposed.shape.dims[0], 4, "transposed dim[0] should be 4");
+  ASSERT_EQ(transposed.shape.dims[1], 3, "transposed dim[1] should be 3");
+  ASSERT_EQ(transposed.shape.dims[2], 2, "transposed dim[2] should be 2");
+
+  // transposed[k,j,i] = source[i,j,k]
+  // transposed[0,0,0] = source[0,0,0] = 0
+  // transposed[3,2,1] = source[1,2,3] = 1*12 + 2*4 + 3 = 23
+  Value result;
+
+  u32 idx1[] = {0, 0, 0};
+  GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 0, "transposed[0,0,0] should be 0");
+
+  u32 idx2[] = {3, 2, 1};
+  GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 23, "transposed[3,2,1] should be 23");
+
+  freeMemory(mem);
+}
+
+static void test_reshape_after_transpose_copies(void) {
+  u32 dims[] = {3, 4};
+  TestTensor tt = createZerosTensor(dims, 2);
+  Memory *mem = tt.mem;
+  Context ctx = {.memory = mem};
+
+  // Populate
+  for (u32 i = 0; i < 3; i++) {
+    for (u32 j = 0; j < 4; j++) {
+      u32 idx[] = {i, j};
+      Value val = {.dtype = U8, .as.u8 = (u8)(i * 4 + j)};
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 2}, val);
+    }
+  }
+
+  // Transpose: 3x4 -> 4x3
+  Tensor transposed;
+  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+
+  // Reshape transposed to 1D: 12 elements
+  u32 new_dims[] = {12};
+  Dim newShape = {.dims = new_dims, .numOfDims = 1};
+
+  Tensor reshaped;
+  Result r = Reshape(&ctx, &transposed, &reshaped, newShape);
+  ASSERT_EQ(r, OK, "Reshape after transpose should return OK");
+  ASSERT(!reshaped.isContigous || reshaped.values != transposed.values, 
+         "reshape should copy non-contiguous data");
+
+  // Verify data is correctly copied in transposed order
+  // Original source: 3x4, source[i,j] = i*4+j
+  // Transposed: 4x3, transposed[j,i] = source[i,j]
+  // Row-major iteration of transposed:
+  //   transposed[0,0]=source[0,0]=0, transposed[0,1]=source[1,0]=4, transposed[0,2]=source[2,0]=8
+  //   transposed[1,0]=source[0,1]=1, transposed[1,1]=source[1,1]=5, transposed[1,2]=source[2,1]=9
+  //   ...
+  // So reshaped = [0,4,8, 1,5,9, 2,6,10, 3,7,11]
+  Value result;
+  u32 idx0[] = {0};
+  GetAt(&reshaped, (Dim){.dims = idx0, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.u8, 0, "reshaped[0] should be 0");
+
+  u32 idx1[] = {1};
+  GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.u8, 4, "reshaped[1] should be 4 (transposed[0,1])");
+
+  u32 idx3[] = {3};
+  GetAt(&reshaped, (Dim){.dims = idx3, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.u8, 1, "reshaped[3] should be 1 (transposed[1,0])");
+
+  freeMemory(mem);
+}
+
 static void test_slice_boundary_access(void) {
   u32 dims[] = {5, 5};
   TestTensor tt = createZerosTensor(dims, 2);
@@ -1053,7 +1280,7 @@ static void test_slice_boundary_access(void) {
     for (u32 j = 0; j < 5; j++) {
       u32 idx_dims[] = {i, j};
       Value val = {.dtype = U8, .as.u8 = (u8)(i * 5 + j)};
-      AssignValue(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
+      AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
@@ -1135,4 +1362,14 @@ void run_tensor_tests(void) {
   test_reshape_4d_view();
   test_reshape_4d_view_to_1d();
   test_reshape_then_access_elements();
+  // Transpose tests
+  test_transpose_basic_2d();
+  test_transpose_swaps_dims_and_multipliers();
+  test_transpose_shares_data();
+  test_transpose_access_elements();
+  test_transpose_null_tensor();
+  test_transpose_dim_out_of_bounds();
+  test_transpose_size_less_than_2();
+  test_transpose_3d();
+  test_reshape_after_transpose_copies();
 }

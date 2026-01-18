@@ -15,9 +15,9 @@ int main(int argc, char *argv[]) {
   u32 idx1[] = {1, 2};
   u32 idx2[] = {2, 3};
 
-  AssignValue(&ctx, &t, (Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 10});
-  AssignValue(&ctx, &t, (Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 20});
-  AssignValue(&ctx, &t, (Dim){.dims = idx2, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 30});
+  AssignValueAt(&ctx, &t, (Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 10});
+  AssignValueAt(&ctx, &t, (Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 20});
+  AssignValueAt(&ctx, &t, (Dim){.dims = idx2, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 30});
   printf("Assigned values: [0,0]=10, [1,2]=20, [2,3]=30\n");
 
   // Read values back

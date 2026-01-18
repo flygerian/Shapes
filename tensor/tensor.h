@@ -48,8 +48,11 @@ typedef struct {
 } while(0)
 
 typedef u64 tensor_size_t;
+typedef u32 dim_t;
+typedef u8 multiplier_t;
+
 typedef struct {
-  u32 *dims;
+  dim_t *dims;
   u8 numOfDims;
 
   u8 *multipliers;
@@ -66,6 +69,7 @@ typedef struct {
   tensor_size_t size;
   Dim shape;
   bool isView;
+  bool isContigous;
   Range *boundary;
 } Tensor;
 
@@ -75,10 +79,10 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
 Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination); 
 
 Result GetAt(Tensor *t, Dim dim, Value *result);
-
-Result AssignValue(Context *ctx, Tensor *t, Dim dim, Value value); 
+Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value); 
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
+Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);
 
 // Tensor creation
 Tensor T_Zeros(Context *ctx, Dim shape);
