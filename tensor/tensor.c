@@ -89,7 +89,7 @@ return t == NULL || t->values == NULL || t->shape.dims == NULL;
 }
 
 // Ops
-Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {  // Guards check the dimensions
+Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) { // Guards check the dimensions
   // MAybe check the datatypes?
  return OK; 
 }
