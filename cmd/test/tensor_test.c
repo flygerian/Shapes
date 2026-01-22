@@ -1469,6 +1469,223 @@ static void test_add_1d_tensors(void) {
   freeMemory(mem);
 }
 
+// Subtract tests
+static void test_subtract_basic_same_shape(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor dest;
+
+  // a = [[10,20,30], [40,50,60]]
+  // b = [[1,2,3], [4,5,6]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value va = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      Value vb = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+    }
+  }
+
+  Result r = Subtract(&ctx, &a, &b, &dest);
+  ASSERT_EQ(r, OK, "Subtract should return OK");
+
+  // result = [[9,18,27], [36,45,54]]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 9, "result[0,0] should be 9");
+  ASSERT_EQ(values[1], 18, "result[0,1] should be 18");
+  ASSERT_EQ(values[5], 54, "result[1,2] should be 54");
+
+  freeMemory(mem);
+}
+
+static void test_subtract_broadcast(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims_a[] = {2, 3};
+  u32 dims_b[] = {1, 3};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor dest;
+
+  // a = [[10,20,30], [40,50,60]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // b = [[1, 2, 3]]
+  for (u32 j = 0; j < 3; j++) {
+    u32 idx[] = {0, j};
+    Value v = {.dtype = U8, .as.u8 = (u8)(j + 1)};
+    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+  }
+
+  Result r = Subtract(&ctx, &a, &b, &dest);
+  ASSERT_EQ(r, OK, "Subtract with broadcast should return OK");
+
+  // result = [[9,18,27], [39,48,57]]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 9, "result[0,0] should be 9");
+  ASSERT_EQ(values[3], 39, "result[1,0] should be 39");
+
+  freeMemory(mem);
+}
+
+// Multiply tests
+static void test_multiply_basic_same_shape(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor dest;
+
+  // a = [[1,2,3], [4,5,6]]
+  // b = [[2,2,2], [3,3,3]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value va = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value vb = {.dtype = U8, .as.u8 = (u8)(i + 2)};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+    }
+  }
+
+  Result r = Multiply(&ctx, &a, &b, &dest);
+  ASSERT_EQ(r, OK, "Multiply should return OK");
+
+  // result = [[2,4,6], [12,15,18]]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 2, "result[0,0] should be 2");
+  ASSERT_EQ(values[2], 6, "result[0,2] should be 6");
+  ASSERT_EQ(values[3], 12, "result[1,0] should be 12");
+  ASSERT_EQ(values[5], 18, "result[1,2] should be 18");
+
+  freeMemory(mem);
+}
+
+static void test_multiply_broadcast_scalar(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims_a[] = {2, 3};
+  u32 dims_b[] = {1, 1};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor dest;
+
+  // a = [[1,2,3], [4,5,6]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // b = [[5]]
+  u32 idx_b[] = {0, 0};
+  Value vb = {.dtype = U8, .as.u8 = 5};
+  AssignValueAt(&ctx, &b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
+
+  Result r = Multiply(&ctx, &a, &b, &dest);
+  ASSERT_EQ(r, OK, "Multiply with scalar should return OK");
+
+  // result = [[5,10,15], [20,25,30]]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 5, "result[0,0] should be 5");
+  ASSERT_EQ(values[2], 15, "result[0,2] should be 15");
+  ASSERT_EQ(values[5], 30, "result[1,2] should be 30");
+
+  freeMemory(mem);
+}
+
+// Divide tests
+static void test_divide_basic_same_shape(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor dest;
+
+  // a = [[10,20,30], [40,50,60]]
+  // b = [[2,4,5], [8,10,12]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value va = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      Value vb = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 2)};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+    }
+  }
+
+  Result r = Divide(&ctx, &a, &b, &dest);
+  ASSERT_EQ(r, OK, "Divide should return OK");
+
+  // result = [[5,5,5], [5,5,5]] (integer division)
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 5, "result[0,0] should be 5");
+  ASSERT_EQ(values[5], 5, "result[1,2] should be 5");
+
+  freeMemory(mem);
+}
+
+static void test_divide_broadcast(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims_a[] = {2, 3};
+  u32 dims_b[] = {1, 3};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor dest;
+
+  // a = [[10,20,30], [40,50,60]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // b = [[2, 5, 10]]
+  u8 divisors[] = {2, 5, 10};
+  for (u32 j = 0; j < 3; j++) {
+    u32 idx[] = {0, j};
+    Value v = {.dtype = U8, .as.u8 = divisors[j]};
+    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+  }
+
+  Result r = Divide(&ctx, &a, &b, &dest);
+  ASSERT_EQ(r, OK, "Divide with broadcast should return OK");
+
+  // result = [[5,4,3], [20,10,6]]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 5, "result[0,0] should be 5");
+  ASSERT_EQ(values[1], 4, "result[0,1] should be 4");
+  ASSERT_EQ(values[2], 3, "result[0,2] should be 3");
+  ASSERT_EQ(values[3], 20, "result[1,0] should be 20");
+  ASSERT_EQ(values[4], 10, "result[1,1] should be 10");
+  ASSERT_EQ(values[5], 6, "result[1,2] should be 6");
+
+  freeMemory(mem);
+}
+
 static void test_add_non_contiguous_transposed(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -1674,4 +1891,13 @@ void run_tensor_tests(void) {
   test_add_1d_tensors();
   test_add_2d_plus_1d_broadcast();
   test_add_non_contiguous_transposed();
+  // Subtract tests
+  test_subtract_basic_same_shape();
+  test_subtract_broadcast();
+  // Multiply tests
+  test_multiply_basic_same_shape();
+  test_multiply_broadcast_scalar();
+  // Divide tests
+  test_divide_basic_same_shape();
+  test_divide_broadcast();
 }

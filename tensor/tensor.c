@@ -142,18 +142,23 @@ static bool areBroadcastable(Tensor* a, Tensor* b) {
   return true;
 }
 
-// Ops
-Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) { 
+// Binary ops
+typedef enum {
+  OP_ADD,
+  OP_SUBTRACT,
+  OP_MULTIPLY,
+  OP_DIVIDE
+} BinaryOpType;
+
+static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, BinaryOpType opType) {
   if (a->dtype != b->dtype) {
     return ERR_DTYPE_MISMATCH;
   }
 
-  // Check broadcastability before any allocations
   if (!areBroadcastable(a, b)) {
     return ERR_DIM_MISMATCH;
   }
 
-  // Reshape lower-dim tensor to match higher-dim by prepending 1s
   Tensor reshapedA, reshapedB;
   Tensor *opA = a;
   Tensor *opB = b;
@@ -185,7 +190,6 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
     }
   }
 
-  // If either tensor is not contiguous, copy it
   Tensor contiguousA, contiguousB;
   if (!opA->isContigous) {
     contiguousA = copyToContiguous(ctx, opA);
@@ -197,7 +201,6 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   }
 
   Dim outputShape;
-
   if (opA->size > opB->size) {
     outputShape = opA->shape;
   } else {
@@ -206,12 +209,11 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
 
   Tensor output = t_Zeros(ctx, outputShape, opA->dtype);
 
-  for (tensor_size_t x = 0; x < output.size; x++) {
-    dim_t currentCoord[output.shape.numOfDims];
-    dim_t aCoords[output.shape.numOfDims];
-    dim_t bCoords[output.shape.numOfDims];
+  dim_t currentCoord[output.shape.numOfDims];
+  dim_t aCoords[output.shape.numOfDims];
+  dim_t bCoords[output.shape.numOfDims];
 
-    // conver the index from the single layout dimension space to the dimanesion space of the shape.
+  for (tensor_size_t x = 0; x < output.size; x++) {
     unravel_index(x, &outputShape, currentCoord);
 
     for (u8 d = 0; d < output.shape.numOfDims; d++) {
@@ -228,30 +230,33 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
     VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
 
     Value result;
-    VALUE_BINOP(result, aVal, bVal, +);
+    switch (opType) {
+      case OP_ADD:      VALUE_BINOP(result, aVal, bVal, +); break;
+      case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
+      case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
+      case OP_DIVIDE:   VALUE_BINOP(result, aVal, bVal, /); break;
+    }
     VALUE_SET(output.values, x, result);
   }
 
   *destination = output;
-  return OK; 
+  return OK;
+}
+
+Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
+  return binaryOp(ctx, a, b, destination, OP_ADD);
 }
 
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  // Guards check the dimensions
-  // MAybe check the datatypes?
-  return OK;
-}
-
-Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination) {
-  // Guards check the dimensions
-  // MAybe check the datatypes?
-  return OK;
+  return binaryOp(ctx, a, b, destination, OP_SUBTRACT);
 }
 
 Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  // Guards check the dimensions
-// Maybe check the datatypes?
-  return OK;
+  return binaryOp(ctx, a, b, destination, OP_MULTIPLY);
+}
+
+Result Divide(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
+  return binaryOp(ctx, a, b, destination, OP_DIVIDE);
 }
 
 Result GetAt(Tensor *t, Dim dim, Value *result) {
