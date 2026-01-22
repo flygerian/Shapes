@@ -1,10 +1,14 @@
 #include "tensor.h"
 #include <__stdarg_va_list.h>
+#include <assert.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
+#include "common.h"
+#include "result/result.h"
 #include "tensor.h"
 #include "stdbool.h"
+#include "cblas.h"
 
 static size_t getBytesForDtype(Dtype type){
   switch(type) {
@@ -52,7 +56,6 @@ static Tensor t_Zeros(Context *ctx, Dim shape, Dtype type) {
 
   memcpy(tShape.dims, shape.dims, sizeof(u32) * shape.numOfDims); 
   tensor_size_t size = calculateNumValuesAndMultipliers(tShape, tShape.multipliers);
-
   size_t bytesRequired = size * getBytesForDtype(type);
 
   Tensor t = (Tensor){.dtype = type, .values=allocate(ctx->memory, bytesRequired), .shape=tShape, .size=size, .isContigous=true};
@@ -60,11 +63,11 @@ static Tensor t_Zeros(Context *ctx, Dim shape, Dtype type) {
   return t;
 }
 
-static u64 getIdx(Tensor *t, Dim idx) {
+static u64 getIdx(Tensor *t, dim_t* idx) {
   u64 result = 0;
 
   for (u8 x = 0; x < t->shape.numOfDims; x++) {
-    u64 coord = idx.dims[x];
+    u64 coord = idx[x];
     if (t->isView && t->boundary) {
       coord += t->boundary[x].start;
     }
@@ -85,13 +88,152 @@ static bool isOutOfBounds(Tensor *t, Dim dim) {
 }
 
 static bool isInvalidTensor(Tensor *t) {
-return t == NULL || t->values == NULL || t->shape.dims == NULL;
+  return t == NULL || t->values == NULL || t->shape.dims == NULL;
+}
+
+static void unravel_index(tensor_size_t flatIdx, Dim* shape, dim_t* destCoords) {
+  for (int d = shape->numOfDims -1; d >= 0; d--) {
+    destCoords[d] = flatIdx % shape->dims[d];
+    flatIdx /= shape->dims[d];
+  }
+}
+
+static Tensor copyToContiguous(Context *ctx, Tensor *source) {
+  Tensor copy = t_Zeros(ctx, source->shape, source->dtype);
+
+  u32 *indices = allocate(ctx->memory, sizeof(u32) * source->shape.numOfDims);
+  memset(indices, 0, sizeof(u32) * source->shape.numOfDims);
+
+  for (tensor_size_t i = 0; i < source->size; i++) {
+    Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
+    Value val;
+    GetAt(source, idx, &val);
+    VALUE_SET(copy.values, i, val);
+
+    for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
+      indices[d]++;
+      if (indices[d] < source->shape.dims[d]) {
+        break;
+      }
+      indices[d] = 0;
+    }
+  }
+
+  return copy;
+}
+
+static bool areBroadcastable(Tensor* a, Tensor* b) {
+  u8 maxDims = a->shape.numOfDims > b->shape.numOfDims ? a->shape.numOfDims : b->shape.numOfDims;
+  
+  // Compare from the trailing dimensions, virtually prepending 1s
+  for (int d = 0; d < maxDims; d++) {
+    int aIdx = a->shape.numOfDims - 1 - d;
+    int bIdx = b->shape.numOfDims - 1 - d;
+    
+    // Virtual dimension is 1 if out of bounds
+    dim_t aDim = aIdx >= 0 ? a->shape.dims[aIdx] : 1;
+    dim_t bDim = bIdx >= 0 ? b->shape.dims[bIdx] : 1;
+    
+    if (aDim != bDim && aDim != 1 && bDim != 1) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 // Ops
-Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) { // Guards check the dimensions
-  // MAybe check the datatypes?
- return OK; 
+Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) { 
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  // Check broadcastability before any allocations
+  if (!areBroadcastable(a, b)) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  // Reshape lower-dim tensor to match higher-dim by prepending 1s
+  Tensor reshapedA, reshapedB;
+  Tensor *opA = a;
+  Tensor *opB = b;
+
+  if (a->shape.numOfDims != b->shape.numOfDims) {
+    Tensor *smaller = a->shape.numOfDims < b->shape.numOfDims ? a : b;
+    Tensor *larger = a->shape.numOfDims < b->shape.numOfDims ? b : a;
+    u8 diff = larger->shape.numOfDims - smaller->shape.numOfDims;
+
+    dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * larger->shape.numOfDims);
+    for (u8 i = 0; i < diff; i++) {
+      newDims[i] = 1;
+    }
+    for (u8 i = 0; i < smaller->shape.numOfDims; i++) {
+      newDims[diff + i] = smaller->shape.dims[i];
+    }
+
+    Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
+    Tensor *reshapedSmaller = (smaller == a) ? &reshapedA : &reshapedB;
+    Result r = Reshape(ctx, smaller, reshapedSmaller, newShape);
+    if (r != OK) return r;
+
+    if (smaller == a) {
+      opA = &reshapedA;
+      opB = b;
+    } else {
+      opA = a;
+      opB = &reshapedB;
+    }
+  }
+
+  // If either tensor is not contiguous, copy it
+  Tensor contiguousA, contiguousB;
+  if (!opA->isContigous) {
+    contiguousA = copyToContiguous(ctx, opA);
+    opA = &contiguousA;
+  }
+  if (!opB->isContigous) {
+    contiguousB = copyToContiguous(ctx, opB);
+    opB = &contiguousB;
+  }
+
+  Dim outputShape;
+
+  if (opA->size > opB->size) {
+    outputShape = opA->shape;
+  } else {
+    outputShape = opB->shape;
+  }
+
+  Tensor output = t_Zeros(ctx, outputShape, opA->dtype);
+
+  for (tensor_size_t x = 0; x < output.size; x++) {
+    dim_t currentCoord[output.shape.numOfDims];
+    dim_t aCoords[output.shape.numOfDims];
+    dim_t bCoords[output.shape.numOfDims];
+
+    // conver the index from the single layout dimension space to the dimanesion space of the shape.
+    unravel_index(x, &outputShape, currentCoord);
+
+    for (u8 d = 0; d < output.shape.numOfDims; d++) {
+      aCoords[d] = currentCoord[d] % opA->shape.dims[d];
+      bCoords[d] = currentCoord[d] % opB->shape.dims[d];
+    }
+
+    Value aVal;
+    u64 idx = getIdx(opA, aCoords);
+    VALUE_GET_FROM_ARR(opA->values, idx, &aVal, opA->dtype);
+
+    Value bVal;
+    idx = getIdx(opB, bCoords);
+    VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
+
+    Value result;
+    VALUE_BINOP(result, aVal, bVal, +);
+    VALUE_SET(output.values, x, result);
+  }
+
+  *destination = output;
+  return OK; 
 }
 
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
@@ -125,9 +267,8 @@ Result GetAt(Tensor *t, Dim dim, Value *result) {
     return ERR_OUT_OF_BOUNDS;
   }
 
-  *result = (Value){.dtype = t->dtype};
-  u64 idx = getIdx(t, dim);
-  VALUE_GET_FROM_ARR(t->values, idx, result);
+  u64 idx = getIdx(t, dim.dims);
+  VALUE_GET_FROM_ARR(t->values, idx, result, t->dtype);
 
   return OK;
 }
@@ -154,7 +295,7 @@ Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
   }
 
   // Apply offset here if view
-  u64 idx = getIdx(t, dim);
+  u64 idx = getIdx(t, dim.dims);
   VALUE_SET(t->values, idx, value);
 
   return OK;
@@ -235,35 +376,15 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
   Range *boundary = source->boundary;
 
   if (!source->isContigous) {
-    size_t bytesPerElement = getBytesForDtype(source->dtype);
-    size_t bytesRequired = source->size * bytesPerElement;
-    values = allocate(ctx->memory, bytesRequired);
-
-    u32 *indices = allocate(ctx->memory, sizeof(u32) * source->shape.numOfDims);
-    memset(indices, 0, sizeof(u32) * source->shape.numOfDims);
-
-    for (tensor_size_t i = 0; i < source->size; i++) {
-      Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
-      Value val;
-      GetAt(source, idx, &val);
-      VALUE_SET(values, i, val);
-
-      for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
-        indices[d]++;
-        if (indices[d] < source->shape.dims[d]) {
-          break;
-        }
-        indices[d] = 0;
-      }
-    }
-
+    Tensor contiguous = copyToContiguous(ctx, source);
+    values = contiguous.values;
     isView = false;
     boundary = NULL;
   } else {
     values = source->values;
   }
 
-  *dest = ((Tensor) {.isView = isView, .values = values, .dtype = source->dtype, .boundary = boundary, .size = source->size });
+  *dest = ((Tensor) {.isView = isView, .values = values, .dtype = source->dtype, .boundary = boundary, .size = source->size, .isContigous = true});
   dest->shape = (Dim) {.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = multipliers};
   return OK;
 }

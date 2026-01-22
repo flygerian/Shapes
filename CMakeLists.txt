@@ -15,6 +15,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_link_options(-fsanitize=address)
 endif()
 
+find_library(OPENBLAS_LIB
+  NAMES openblas
+  PATHS ${CMAKE_SOURCE_DIR}/OpenBLAS/install/lib
+  NO_DEFAULT_PATH
+)
+
+include_directories (${CMAKE_SOURCE_DIR}/OpenBLAS/install/include)
+
 # Memory library
 add_library(shapes_memory
     memory.c

@@ -1,1 +1,7 @@
 build
+.cache
+*.a
+*.o
+*.so
+*.dylib
+OpenBLAS/install
