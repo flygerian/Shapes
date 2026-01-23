@@ -85,6 +85,136 @@ int main(int argc, char *argv[]) {
   }
   printf("\n");
 
+  // Binary operations
+  printf("\n=== Binary Operations ===\n");
+
+  // Create two 2x3 tensors
+  u32 op_dims[] = {2, 3};
+  Tensor a = T_Zeros(&ctx, (Dim){.dims = op_dims, .numOfDims = 2});
+  Tensor b = T_Zeros(&ctx, (Dim){.dims = op_dims, .numOfDims = 2});
+
+  // a = [[1,2,3], [4,5,6]], b = [[10,20,30], [40,50,60]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2},
+                    (Value){.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)});
+      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2},
+                    (Value){.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)});
+    }
+  }
+
+  printf("Tensor A:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&a, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
+  printf("\nTensor B:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&b, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
+  // Add
+  Tensor sum;
+  Add(&ctx, &a, &b, &sum);
+  printf("\nA + B:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&sum, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
+  // Subtract
+  Tensor diff;
+  Subtract(&ctx, &b, &a, &diff);
+  printf("\nB - A:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&diff, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
+  // Multiply with scalar broadcast
+  printf("\n=== Broadcasting: A * scalar ===\n");
+  u32 scalar_dims[] = {1, 1};
+  Tensor scalar = T_Zeros(&ctx, (Dim){.dims = scalar_dims, .numOfDims = 2});
+  u32 scalar_idx[] = {0, 0};
+  AssignValueAt(&ctx, &scalar, (Dim){.dims = scalar_idx, .numOfDims = 2},
+                (Value){.dtype = U8, .as.u8 = 5});
+
+  Tensor product;
+  Multiply(&ctx, &a, &scalar, &product);
+  printf("A * 5:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&product, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
+  // Divide with row broadcast
+  printf("\n=== Broadcasting: B / row_vector ===\n");
+  u32 row_dims[] = {1, 3};
+  Tensor row = T_Zeros(&ctx, (Dim){.dims = row_dims, .numOfDims = 2});
+  u8 divisors[] = {10, 10, 10};
+  for (u32 j = 0; j < 3; j++) {
+    u32 idx[] = {0, j};
+    AssignValueAt(&ctx, &row, (Dim){.dims = idx, .numOfDims = 2},
+                  (Value){.dtype = U8, .as.u8 = divisors[j]});
+  }
+
+  Tensor quotient;
+  Divide(&ctx, &b, &row, &quotient);
+  printf("B / [10,10,10]:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&quotient, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
+  // 2D + 1D broadcast
+  printf("\n=== Broadcasting: 2D + 1D ===\n");
+  u32 vec_dims[] = {3};
+  Tensor vec = T_Zeros(&ctx, (Dim){.dims = vec_dims, .numOfDims = 1});
+  for (u32 j = 0; j < 3; j++) {
+    u32 idx[] = {j};
+    AssignValueAt(&ctx, &vec, (Dim){.dims = idx, .numOfDims = 1},
+                  (Value){.dtype = U8, .as.u8 = (u8)(100)});
+  }
+
+  Tensor broadcast_sum;
+  Add(&ctx, &a, &vec, &broadcast_sum);
+  printf("A + [100,100,100]:\n");
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      GetAt(&broadcast_sum, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      printf("%3d ", v.as.u8);
+    }
+    printf("\n");
+  }
+
   freeMemory(mem);
   return 0;
 }
