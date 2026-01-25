@@ -9,8 +9,8 @@ typedef struct {
 static TestTensor createZerosTensor(u32 *dims, u8 numOfDims) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = numOfDims});
-  return (TestTensor){.tensor = t, .mem = mem};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = numOfDims});
+  return (TestTensor){.tensor = *t, .mem = mem};
 }
 
 static void test_zeros_creates_tensor_with_correct_shape(void) {
@@ -1275,8 +1275,8 @@ static void test_add_basic_same_shape(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {2, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1286,12 +1286,12 @@ static void test_add_basic_same_shape(void) {
       u32 idx[] = {i, j};
       Value va = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
       Value vb = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
-      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
   }
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add should return OK");
 
   // Verify: result = [[11,22,33], [44,55,66]]
@@ -1308,12 +1308,12 @@ static void test_add_dtype_mismatch(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {2, 2};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  b.dtype = U32;  // Force dtype mismatch
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  b->dtype = U32;  // Force dtype mismatch
   Tensor dest;
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "Add should return ERR_DTYPE_MISMATCH");
 
   freeMemory(mem);
@@ -1326,8 +1326,8 @@ static void test_add_broadcast_row_vector(void) {
   // a: [2, 3], b: [1, 3] -> broadcast b across rows
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {1, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1335,7 +1335,7 @@ static void test_add_broadcast_row_vector(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
@@ -1343,10 +1343,10 @@ static void test_add_broadcast_row_vector(void) {
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
     Value v = {.dtype = U8, .as.u8 = (u8)((j + 1) * 10)};
-    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+    AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add with broadcast should return OK");
 
   // result = [[11,22,33], [14,25,36]]
@@ -1368,8 +1368,8 @@ static void test_add_broadcast_col_vector(void) {
   // a: [2, 3], b: [2, 1] -> broadcast b across cols
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {2, 1};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1377,7 +1377,7 @@ static void test_add_broadcast_col_vector(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
@@ -1385,10 +1385,10 @@ static void test_add_broadcast_col_vector(void) {
   for (u32 i = 0; i < 2; i++) {
     u32 idx[] = {i, 0};
     Value v = {.dtype = U8, .as.u8 = (u8)((i + 1) * 10)};
-    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+    AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add with col broadcast should return OK");
 
   // result = [[11,12,13], [24,25,26]]
@@ -1410,8 +1410,8 @@ static void test_add_broadcast_scalar(void) {
   // a: [2, 3], b: [1, 1] -> broadcast scalar b to all elements
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {1, 1};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1419,16 +1419,16 @@ static void test_add_broadcast_scalar(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[100]]
   u32 idx_b[] = {0, 0};
   Value vb = {.dtype = U8, .as.u8 = 100};
-  AssignValueAt(&ctx, &b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
+  AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add with scalar broadcast should return OK");
 
   // result = [[101,102,103], [104,105,106]]
@@ -1444,8 +1444,8 @@ static void test_add_1d_tensors(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {4};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
   Tensor dest;
 
   // a = [1, 2, 3, 4], b = [10, 20, 30, 40]
@@ -1453,11 +1453,11 @@ static void test_add_1d_tensors(void) {
     u32 idx[] = {i};
     Value va = {.dtype = U8, .as.u8 = (u8)(i + 1)};
     Value vb = {.dtype = U8, .as.u8 = (u8)((i + 1) * 10)};
-    AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 1}, va);
-    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 1}, vb);
+    AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 1}, va);
+    AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, vb);
   }
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add 1D should return OK");
 
   u8 *values = (u8 *)dest.values;
@@ -1475,8 +1475,8 @@ static void test_subtract_basic_same_shape(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {2, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
@@ -1486,12 +1486,12 @@ static void test_subtract_basic_same_shape(void) {
       u32 idx[] = {i, j};
       Value va = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
       Value vb = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
-      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
   }
 
-  Result r = Subtract(&ctx, &a, &b, &dest);
+  Result r = Subtract(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Subtract should return OK");
 
   // result = [[9,18,27], [36,45,54]]
@@ -1509,8 +1509,8 @@ static void test_subtract_broadcast(void) {
 
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {1, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
@@ -1518,7 +1518,7 @@ static void test_subtract_broadcast(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
@@ -1526,10 +1526,10 @@ static void test_subtract_broadcast(void) {
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
     Value v = {.dtype = U8, .as.u8 = (u8)(j + 1)};
-    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+    AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Subtract(&ctx, &a, &b, &dest);
+  Result r = Subtract(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Subtract with broadcast should return OK");
 
   // result = [[9,18,27], [39,48,57]]
@@ -1546,8 +1546,8 @@ static void test_multiply_basic_same_shape(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {2, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1557,12 +1557,12 @@ static void test_multiply_basic_same_shape(void) {
       u32 idx[] = {i, j};
       Value va = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
       Value vb = {.dtype = U8, .as.u8 = (u8)(i + 2)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
-      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
   }
 
-  Result r = Multiply(&ctx, &a, &b, &dest);
+  Result r = Multiply(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Multiply should return OK");
 
   // result = [[2,4,6], [12,15,18]]
@@ -1581,8 +1581,8 @@ static void test_multiply_broadcast_scalar(void) {
 
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {1, 1};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1590,16 +1590,16 @@ static void test_multiply_broadcast_scalar(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[5]]
   u32 idx_b[] = {0, 0};
   Value vb = {.dtype = U8, .as.u8 = 5};
-  AssignValueAt(&ctx, &b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
+  AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
-  Result r = Multiply(&ctx, &a, &b, &dest);
+  Result r = Multiply(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Multiply with scalar should return OK");
 
   // result = [[5,10,15], [20,25,30]]
@@ -1617,8 +1617,8 @@ static void test_divide_basic_same_shape(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {2, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
@@ -1628,12 +1628,12 @@ static void test_divide_basic_same_shape(void) {
       u32 idx[] = {i, j};
       Value va = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
       Value vb = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 2)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, va);
-      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, vb);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
+      AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
   }
 
-  Result r = Divide(&ctx, &a, &b, &dest);
+  Result r = Divide(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Divide should return OK");
 
   // result = [[5,5,5], [5,5,5]] (integer division)
@@ -1650,8 +1650,8 @@ static void test_divide_broadcast(void) {
 
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {1, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
@@ -1659,7 +1659,7 @@ static void test_divide_broadcast(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
@@ -1668,10 +1668,10 @@ static void test_divide_broadcast(void) {
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
     Value v = {.dtype = U8, .as.u8 = divisors[j]};
-    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+    AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Divide(&ctx, &a, &b, &dest);
+  Result r = Divide(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Divide with broadcast should return OK");
 
   // result = [[5,4,3], [20,10,6]]
@@ -1693,8 +1693,8 @@ static void test_add_non_contiguous_transposed(void) {
   // a: [2, 3], b: [3, 2] transposed to [2, 3]
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {3, 2};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1702,7 +1702,7 @@ static void test_add_non_contiguous_transposed(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
@@ -1711,17 +1711,17 @@ static void test_add_non_contiguous_transposed(void) {
     for (u32 j = 0; j < 2; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)((i * 2 + j + 1) * 10)};
-      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // Transpose b: [3, 2] -> [2, 3]
   // transposed b = [[10,30,50], [20,40,60]]
   Tensor bTransposed;
-  Transpose(&ctx, &b, &bTransposed, (dim_t)0, (dim_t)1);
+  Transpose(&ctx, b, &bTransposed, (dim_t)0, (dim_t)1);
   ASSERT(!bTransposed.isContigous, "transposed tensor should be non-contiguous");
 
-  Result r = Add(&ctx, &a, &bTransposed, &dest);
+  Result r = Add(&ctx, a, &bTransposed, &dest);
   ASSERT_EQ(r, OK, "Add with transposed tensor should return OK");
 
   // result = [[1+10, 2+30, 3+50], [4+20, 5+40, 6+60]]
@@ -1744,8 +1744,8 @@ static void test_add_2d_plus_1d_broadcast(void) {
   // a: [2, 3], b: [3] -> broadcast 1D across rows
   u32 dims_a[] = {2, 3};
   u32 dims_b[] = {3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 1});
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 1});
   Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
@@ -1753,7 +1753,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
       Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2}, v);
+      AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
@@ -1761,10 +1761,10 @@ static void test_add_2d_plus_1d_broadcast(void) {
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {j};
     Value v = {.dtype = U8, .as.u8 = (u8)((j + 1) * 10)};
-    AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 1}, v);
+    AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
-  Result r = Add(&ctx, &a, &b, &dest);
+  Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add 2D + 1D broadcast should return OK");
 
   // result = [[11,22,33], [14,25,36]]
@@ -1775,6 +1775,460 @@ static void test_add_2d_plus_1d_broadcast(void) {
   ASSERT_EQ(values[3], 14, "result[1,0] should be 14");
   ASSERT_EQ(values[4], 25, "result[1,1] should be 25");
   ASSERT_EQ(values[5], 36, "result[1,2] should be 36");
+
+  freeMemory(mem);
+}
+
+// Sum tests
+static void test_sum_dim0_2d(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x3 tensor: [[1,2,3], [4,5,6]]
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "Sum dim 0 should return OK");
+
+  // Sum along dim 0: [1+4, 2+5, 3+6] = [5, 7, 9], shape [1, 3]
+  ASSERT_EQ(dest.shape.numOfDims, 2, "result should have 2 dims");
+  ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(dest.shape.dims[1], 3, "dim 1 should be 3");
+
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 5, "result[0] should be 5");
+  ASSERT_EQ(values[1], 7, "result[1] should be 7");
+  ASSERT_EQ(values[2], 9, "result[2] should be 9");
+
+  freeMemory(mem);
+}
+
+static void test_sum_dim1_2d(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x3 tensor: [[1,2,3], [4,5,6]]
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 1);
+  ASSERT_EQ(r, OK, "Sum dim 1 should return OK");
+
+  // Sum along dim 1: [1+2+3, 4+5+6] = [6, 15], shape [2, 1]
+  ASSERT_EQ(dest.shape.numOfDims, 2, "result should have 2 dims");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
+
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 6, "result[0] should be 6");
+  ASSERT_EQ(values[1], 15, "result[1] should be 15");
+
+  freeMemory(mem);
+}
+
+static void test_sum_3d_middle_dim(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x3x2 tensor
+  u32 dims[] = {2, 3, 2};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
+
+  // Fill with sequential values 1-12
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      for (u32 k = 0; k < 2; k++) {
+        u32 idx[] = {i, j, k};
+        Value v = {.dtype = U8, .as.u8 = (u8)(i * 6 + j * 2 + k + 1)};
+        AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
+      }
+    }
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 1);
+  ASSERT_EQ(r, OK, "Sum 3D middle dim should return OK");
+
+  // Shape should be [2, 1, 2]
+  ASSERT_EQ(dest.shape.numOfDims, 3, "result should have 3 dims");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
+
+  // For batch 0: sum rows [1,2], [3,4], [5,6] along dim 1 = [1+3+5, 2+4+6] = [9, 12]
+  // For batch 1: sum rows [7,8], [9,10], [11,12] along dim 1 = [7+9+11, 8+10+12] = [27, 30]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 9, "result[0,0,0] should be 9");
+  ASSERT_EQ(values[1], 12, "result[0,0,1] should be 12");
+  ASSERT_EQ(values[2], 27, "result[1,0,0] should be 27");
+  ASSERT_EQ(values[3], 30, "result[1,0,1] should be 30");
+
+  freeMemory(mem);
+}
+
+static void test_sum_dim_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor dest;
+
+  Result r = Sum(&ctx, t, &dest, 2);
+  ASSERT_EQ(r, ERR_SUM_DIM_OUT_OF_BOUNDS, "Sum with dim >= numOfDims should fail");
+
+  freeMemory(mem);
+}
+
+static void test_sum_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor dest;
+
+  Result r = Sum(&ctx, NULL, &dest, 0);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Sum with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_sum_non_contiguous(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Create 3x2, transpose to 2x3, then sum
+  u32 dims[] = {3, 2};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  // t = [[1,2], [3,4], [5,6]]
+  for (u32 i = 0; i < 3; i++) {
+    for (u32 j = 0; j < 2; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 2 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // Transpose to 2x3: [[1,3,5], [2,4,6]]
+  Tensor transposed;
+  Transpose(&ctx, t, &transposed, (dim_t)0, (dim_t)1);
+  ASSERT(!transposed.isContigous, "transposed should be non-contiguous");
+
+  Tensor dest;
+  Result r = Sum(&ctx, &transposed, &dest, 1);
+  ASSERT_EQ(r, OK, "Sum on transposed tensor should return OK");
+
+  // Sum along dim 1: [1+3+5, 2+4+6] = [9, 12], shape [2, 1]
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 9, "result[0] should be 9");
+  ASSERT_EQ(values[1], 12, "result[1] should be 12");
+
+  freeMemory(mem);
+}
+
+static void test_sum_1d_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {5};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+
+  // t = [1, 2, 3, 4, 5]
+  for (u32 i = 0; i < 5; i++) {
+    u32 idx[] = {i};
+    Value v = {.dtype = U8, .as.u8 = (u8)(i + 1)};
+    AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "Sum 1D should return OK");
+
+  // Sum = 15, shape [1]
+  ASSERT_EQ(dest.shape.numOfDims, 1, "result should have 1 dim");
+  ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
+
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 15, "result should be 15");
+
+  freeMemory(mem);
+}
+
+static void test_sum_4d_dim0(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x2x2x3 tensor
+  u32 dims[] = {2, 2, 2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
+
+  // Fill with sequential values 1-24
+  u8 val = 1;
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 2; j++) {
+      for (u32 k = 0; k < 2; k++) {
+        for (u32 l = 0; l < 3; l++) {
+          u32 idx[] = {i, j, k, l};
+          Value v = {.dtype = U8, .as.u8 = val++};
+          AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
+        }
+      }
+    }
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "Sum 4D dim 0 should return OK");
+
+  // Shape should be [1, 2, 2, 3]
+  ASSERT_EQ(dest.shape.numOfDims, 4, "result should have 4 dims");
+  ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(dest.shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest.shape.dims[3], 3, "dim 3 should be 3");
+
+  // First batch [0,:,:,:] has values 1-12, second [1,:,:,:] has 13-24
+  // Sum along dim 0: element-wise 1+13=14, 2+14=16, ..., 12+24=36
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 14, "result[0,0,0,0] should be 14");
+  ASSERT_EQ(values[1], 16, "result[0,0,0,1] should be 16");
+  ASSERT_EQ(values[2], 18, "result[0,0,0,2] should be 18");
+  ASSERT_EQ(values[11], 36, "result[0,1,1,2] should be 36");
+
+  freeMemory(mem);
+}
+
+static void test_sum_4d_dim1(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x3x2x2 tensor
+  u32 dims[] = {2, 3, 2, 2};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
+
+  // Fill with sequential values 1-24
+  u8 val = 1;
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      for (u32 k = 0; k < 2; k++) {
+        for (u32 l = 0; l < 2; l++) {
+          u32 idx[] = {i, j, k, l};
+          Value v = {.dtype = U8, .as.u8 = val++};
+          AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
+        }
+      }
+    }
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 1);
+  ASSERT_EQ(r, OK, "Sum 4D dim 1 should return OK");
+
+  // Shape should be [2, 1, 2, 2]
+  ASSERT_EQ(dest.shape.numOfDims, 4, "result should have 4 dims");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest.shape.dims[3], 2, "dim 3 should be 2");
+
+  // Batch 0: sum j=0,1,2 for each (k,l)
+  // [0,0,0,0]: 1+5+9=15, [0,0,0,1]: 2+6+10=18, [0,0,1,0]: 3+7+11=21, [0,0,1,1]: 4+8+12=24
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 15, "result[0,0,0,0] should be 15");
+  ASSERT_EQ(values[1], 18, "result[0,0,0,1] should be 18");
+  ASSERT_EQ(values[2], 21, "result[0,0,1,0] should be 21");
+  ASSERT_EQ(values[3], 24, "result[0,0,1,1] should be 24");
+
+  freeMemory(mem);
+}
+
+static void test_sum_4d_dim3(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x2x2x4 tensor
+  u32 dims[] = {2, 2, 2, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
+
+  // Fill with sequential values 1-32
+  u8 val = 1;
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 2; j++) {
+      for (u32 k = 0; k < 2; k++) {
+        for (u32 l = 0; l < 4; l++) {
+          u32 idx[] = {i, j, k, l};
+          Value v = {.dtype = U8, .as.u8 = val++};
+          AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
+        }
+      }
+    }
+  }
+
+  Tensor dest;
+  Result r = Sum(&ctx, t, &dest, 3);
+  ASSERT_EQ(r, OK, "Sum 4D dim 3 should return OK");
+
+  // Shape should be [2, 2, 2, 1]
+  ASSERT_EQ(dest.shape.numOfDims, 4, "result should have 4 dims");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest.shape.dims[3], 1, "dim 3 should be 1");
+
+  // [0,0,0,:] = 1+2+3+4 = 10
+  // [0,0,1,:] = 5+6+7+8 = 26
+  // [0,1,0,:] = 9+10+11+12 = 42
+  u8 *values = (u8 *)dest.values;
+  ASSERT_EQ(values[0], 10, "result[0,0,0,0] should be 10");
+  ASSERT_EQ(values[1], 26, "result[0,0,1,0] should be 26");
+  ASSERT_EQ(values[2], 42, "result[0,1,0,0] should be 42");
+
+  freeMemory(mem);
+}
+
+static void test_sum_multiple_reduces_3d(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x3x4 tensor
+  u32 dims[] = {2, 3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
+
+  // Fill with sequential values 1-24
+  u8 val = 1;
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      for (u32 k = 0; k < 4; k++) {
+        u32 idx[] = {i, j, k};
+        Value v = {.dtype = U8, .as.u8 = val++};
+        AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
+      }
+    }
+  }
+
+  // First reduce dim 2: [2,3,4] -> [2,3,1]
+  Tensor after_dim2;
+  Result r = Sum(&ctx, t, &after_dim2, 2);
+  ASSERT_EQ(r, OK, "First reduce should return OK");
+  ASSERT_EQ(after_dim2.shape.dims[0], 2, "after dim2: dim 0 should be 2");
+  ASSERT_EQ(after_dim2.shape.dims[1], 3, "after dim2: dim 1 should be 3");
+  ASSERT_EQ(after_dim2.shape.dims[2], 1, "after dim2: dim 2 should be 1");
+
+  // Then reduce dim 1: [2,3,1] -> [2,1,1]
+  Tensor after_dim1;
+  r = Sum(&ctx, &after_dim2, &after_dim1, 1);
+  ASSERT_EQ(r, OK, "Second reduce should return OK");
+  ASSERT_EQ(after_dim1.shape.dims[0], 2, "after dim1: dim 0 should be 2");
+  ASSERT_EQ(after_dim1.shape.dims[1], 1, "after dim1: dim 1 should be 1");
+  ASSERT_EQ(after_dim1.shape.dims[2], 1, "after dim1: dim 2 should be 1");
+
+  // Finally reduce dim 0: [2,1,1] -> [1,1,1]
+  Tensor after_dim0;
+  r = Sum(&ctx, &after_dim1, &after_dim0, 0);
+  ASSERT_EQ(r, OK, "Third reduce should return OK");
+  ASSERT_EQ(after_dim0.shape.dims[0], 1, "after dim0: dim 0 should be 1");
+  ASSERT_EQ(after_dim0.shape.dims[1], 1, "after dim0: dim 1 should be 1");
+  ASSERT_EQ(after_dim0.shape.dims[2], 1, "after dim0: dim 2 should be 1");
+
+  // Total sum of 1+2+...+24 = 300
+  u8 *values = (u8 *)after_dim0.values;
+  ASSERT_EQ(values[0], 300 % 256, "final sum should be 300 mod 256 = 44");
+
+  freeMemory(mem);
+}
+
+static void test_sum_multiple_reduces_4d(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x2x3x2 tensor (24 elements)
+  u32 dims[] = {2, 2, 3, 2};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
+
+  // Fill with values 1-24
+  u8 val = 1;
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 2; j++) {
+      for (u32 k = 0; k < 3; k++) {
+        for (u32 l = 0; l < 2; l++) {
+          u32 idx[] = {i, j, k, l};
+          Value v = {.dtype = U8, .as.u8 = val++};
+          AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
+        }
+      }
+    }
+  }
+
+  // Reduce dim 3: [2,2,3,2] -> [2,2,3,1]
+  Tensor r1;
+  Result res = Sum(&ctx, t, &r1, 3);
+  ASSERT_EQ(res, OK, "Reduce dim 3 should return OK");
+
+  // Reduce dim 0: [2,2,3,1] -> [1,2,3,1]
+  Tensor r2;
+  res = Sum(&ctx, &r1, &r2, 0);
+  ASSERT_EQ(res, OK, "Reduce dim 0 should return OK");
+
+  ASSERT_EQ(r2.shape.dims[0], 1, "r2: dim 0 should be 1");
+  ASSERT_EQ(r2.shape.dims[1], 2, "r2: dim 1 should be 2");
+  ASSERT_EQ(r2.shape.dims[2], 3, "r2: dim 2 should be 3");
+  ASSERT_EQ(r2.shape.dims[3], 1, "r2: dim 3 should be 1");
+
+  // Verify size
+  ASSERT_EQ(r2.size, 6, "r2 size should be 6");
+
+  freeMemory(mem);
+}
+
+static void test_sum_reduce_to_scalar_2d(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 3x4 tensor
+  u32 dims[] = {3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  // Fill with 1-12
+  for (u32 i = 0; i < 3; i++) {
+    for (u32 j = 0; j < 4; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 4 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // Reduce dim 1: [3,4] -> [3,1]
+  Tensor r1;
+  Sum(&ctx, t, &r1, 1);
+
+  // Reduce dim 0: [3,1] -> [1,1]
+  Tensor r2;
+  Sum(&ctx, &r1, &r2, 0);
+
+  ASSERT_EQ(r2.shape.dims[0], 1, "final dim 0 should be 1");
+  ASSERT_EQ(r2.shape.dims[1], 1, "final dim 1 should be 1");
+
+  // Sum of 1-12 = 78
+  u8 *values = (u8 *)r2.values;
+  ASSERT_EQ(values[0], 78, "total sum should be 78");
 
   freeMemory(mem);
 }
@@ -1900,4 +2354,18 @@ void run_tensor_tests(void) {
   // Divide tests
   test_divide_basic_same_shape();
   test_divide_broadcast();
+  // Sum tests
+  test_sum_dim0_2d();
+  test_sum_dim1_2d();
+  test_sum_3d_middle_dim();
+  test_sum_dim_out_of_bounds();
+  test_sum_null_tensor();
+  test_sum_non_contiguous();
+  test_sum_1d_tensor();
+  test_sum_4d_dim0();
+  test_sum_4d_dim1();
+  test_sum_4d_dim3();
+  test_sum_multiple_reduces_3d();
+  test_sum_multiple_reduces_4d();
+  test_sum_reduce_to_scalar_2d();
 }

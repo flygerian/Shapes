@@ -1,20 +1,18 @@
 #include "../../tensor/tensor.h"
 #include <stdio.h>
 
-int main(int argc, char *argv[]) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+void showcase(Context *ctx) {
 
   // Create a 3x4 tensor
   u32 dims[] = {3, 4};
-  Tensor t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *t = T_Zeros(ctx, (Dim){.dims = dims, .numOfDims = 2});
   printf("=== Original 3x4 Tensor ===\n");
 
   // Populate with values: t[i,j] = i*4 + j
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
       u32 idx[] = {i, j};
-      AssignValueAt(&ctx, &t, (Dim){.dims = idx, .numOfDims = 2}, 
+      AssignValueAt(ctx, t, (Dim){.dims = idx, .numOfDims = 2}, 
                     (Value){.dtype = U8, .as.u8 = (u8)(i * 4 + j)});
     }
   }
@@ -24,7 +22,7 @@ int main(int argc, char *argv[]) {
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
       u32 idx[] = {i, j};
-      GetAt(&t, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      GetAt(t, (Dim){.dims = idx, .numOfDims = 2}, &v);
       printf("%3d ", v.as.u8);
     }
     printf("\n");
@@ -33,7 +31,7 @@ int main(int argc, char *argv[]) {
   // Transpose: swap dims 0 and 1 -> 4x3
   printf("\n=== Transposed (4x3) ===\n");
   Tensor transposed;
-  Transpose(&ctx, &t, &transposed, (dim_t)0, (dim_t)1);
+  Transpose(ctx, t, &transposed, (dim_t)0, (dim_t)1);
   printf("Shape: %dx%d\n", transposed.shape.dims[0], transposed.shape.dims[1]);
 
   for (u32 i = 0; i < 4; i++) {
@@ -49,7 +47,7 @@ int main(int argc, char *argv[]) {
   printf("\n=== Reshaped to 1D (12 elements) ===\n");
   u32 flat_dims[] = {12};
   Tensor flat;
-  Reshape(&ctx, &t, &flat, (Dim){.dims = flat_dims, .numOfDims = 1});
+  Reshape(ctx, t, &flat, (Dim){.dims = flat_dims, .numOfDims = 1});
 
   for (u32 i = 0; i < 12; i++) {
     u32 idx[] = {i};
@@ -62,7 +60,7 @@ int main(int argc, char *argv[]) {
   printf("\n=== Reshaped to 2x6 ===\n");
   u32 new_dims[] = {2, 6};
   Tensor reshaped;
-  Reshape(&ctx, &t, &reshaped, (Dim){.dims = new_dims, .numOfDims = 2});
+  Reshape(ctx, t, &reshaped, (Dim){.dims = new_dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 6; j++) {
@@ -76,7 +74,7 @@ int main(int argc, char *argv[]) {
   // Reshape after transpose (copies data)
   printf("\n=== Reshape Transposed to 1D (copies data) ===\n");
   Tensor trans_flat;
-  Reshape(&ctx, &transposed, &trans_flat, (Dim){.dims = flat_dims, .numOfDims = 1});
+  Reshape(ctx, &transposed, &trans_flat, (Dim){.dims = flat_dims, .numOfDims = 1});
 
   for (u32 i = 0; i < 12; i++) {
     u32 idx[] = {i};
@@ -90,16 +88,16 @@ int main(int argc, char *argv[]) {
 
   // Create two 2x3 tensors
   u32 op_dims[] = {2, 3};
-  Tensor a = T_Zeros(&ctx, (Dim){.dims = op_dims, .numOfDims = 2});
-  Tensor b = T_Zeros(&ctx, (Dim){.dims = op_dims, .numOfDims = 2});
+  Tensor *a = T_Zeros(ctx, (Dim){.dims = op_dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(ctx, (Dim){.dims = op_dims, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]], b = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      AssignValueAt(&ctx, &a, (Dim){.dims = idx, .numOfDims = 2},
+      AssignValueAt(ctx, a, (Dim){.dims = idx, .numOfDims = 2},
                     (Value){.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)});
-      AssignValueAt(&ctx, &b, (Dim){.dims = idx, .numOfDims = 2},
+      AssignValueAt(ctx, b, (Dim){.dims = idx, .numOfDims = 2},
                     (Value){.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)});
     }
   }
@@ -108,7 +106,7 @@ int main(int argc, char *argv[]) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      GetAt(&a, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      GetAt(a, (Dim){.dims = idx, .numOfDims = 2}, &v);
       printf("%3d ", v.as.u8);
     }
     printf("\n");
@@ -118,7 +116,7 @@ int main(int argc, char *argv[]) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      GetAt(&b, (Dim){.dims = idx, .numOfDims = 2}, &v);
+      GetAt(b, (Dim){.dims = idx, .numOfDims = 2}, &v);
       printf("%3d ", v.as.u8);
     }
     printf("\n");
@@ -126,7 +124,7 @@ int main(int argc, char *argv[]) {
 
   // Add
   Tensor sum;
-  Add(&ctx, &a, &b, &sum);
+  Add(ctx, a, b, &sum);
   printf("\nA + B:\n");
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -139,7 +137,7 @@ int main(int argc, char *argv[]) {
 
   // Subtract
   Tensor diff;
-  Subtract(&ctx, &b, &a, &diff);
+  Subtract(ctx, b, a, &diff);
   printf("\nB - A:\n");
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -153,13 +151,13 @@ int main(int argc, char *argv[]) {
   // Multiply with scalar broadcast
   printf("\n=== Broadcasting: A * scalar ===\n");
   u32 scalar_dims[] = {1, 1};
-  Tensor scalar = T_Zeros(&ctx, (Dim){.dims = scalar_dims, .numOfDims = 2});
+  Tensor *scalar = T_Zeros(ctx, (Dim){.dims = scalar_dims, .numOfDims = 2});
   u32 scalar_idx[] = {0, 0};
-  AssignValueAt(&ctx, &scalar, (Dim){.dims = scalar_idx, .numOfDims = 2},
+  AssignValueAt(ctx, scalar, (Dim){.dims = scalar_idx, .numOfDims = 2},
                 (Value){.dtype = U8, .as.u8 = 5});
 
   Tensor product;
-  Multiply(&ctx, &a, &scalar, &product);
+  Multiply(ctx, a, scalar, &product);
   printf("A * 5:\n");
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -173,16 +171,16 @@ int main(int argc, char *argv[]) {
   // Divide with row broadcast
   printf("\n=== Broadcasting: B / row_vector ===\n");
   u32 row_dims[] = {1, 3};
-  Tensor row = T_Zeros(&ctx, (Dim){.dims = row_dims, .numOfDims = 2});
+  Tensor *row = T_Zeros(ctx, (Dim){.dims = row_dims, .numOfDims = 2});
   u8 divisors[] = {10, 10, 10};
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
-    AssignValueAt(&ctx, &row, (Dim){.dims = idx, .numOfDims = 2},
+    AssignValueAt(ctx, row, (Dim){.dims = idx, .numOfDims = 2},
                   (Value){.dtype = U8, .as.u8 = divisors[j]});
   }
 
   Tensor quotient;
-  Divide(&ctx, &b, &row, &quotient);
+  Divide(ctx, b, row, &quotient);
   printf("B / [10,10,10]:\n");
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -196,15 +194,15 @@ int main(int argc, char *argv[]) {
   // 2D + 1D broadcast
   printf("\n=== Broadcasting: 2D + 1D ===\n");
   u32 vec_dims[] = {3};
-  Tensor vec = T_Zeros(&ctx, (Dim){.dims = vec_dims, .numOfDims = 1});
+  Tensor *vec = T_Zeros(ctx, (Dim){.dims = vec_dims, .numOfDims = 1});
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {j};
-    AssignValueAt(&ctx, &vec, (Dim){.dims = idx, .numOfDims = 1},
+    AssignValueAt(ctx, vec, (Dim){.dims = idx, .numOfDims = 1},
                   (Value){.dtype = U8, .as.u8 = (u8)(100)});
   }
 
   Tensor broadcast_sum;
-  Add(&ctx, &a, &vec, &broadcast_sum);
+  Add(ctx, a, vec, &broadcast_sum);
   printf("A + [100,100,100]:\n");
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -215,6 +213,32 @@ int main(int argc, char *argv[]) {
     printf("\n");
   }
 
-  freeMemory(mem);
+}
+
+int main(int argc, char *argv[]) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor t;
+  dim_t newTensorDims[] = { 5, 7, 4, 5};
+  Dim newTensorShape = {.numOfDims=4, .dims=newTensorDims };
+
+  Tensor *original = T_Zeros(&ctx, newTensorShape);
+  Tensor sliced;
+
+  // Slice (:, :, 0:2)
+  Slice(
+      &ctx, 
+      original, 
+      &sliced, 
+      (Range) {.start=0, .end=4}, // dim 0
+      (Range) {.start=0, .end=6}, // dim 1
+      (Range) {.start=0, .end=2}, // dim 2
+      (Range) {.start=0, .end=4} // dim 2
+  );
+
+  printf("Tensor has %d dims\n", sliced.shape.numOfDims);
+
+  freeMemory(ctx.memory);
   return 0;
 }

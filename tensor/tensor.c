@@ -1,10 +1,10 @@
-#include "tensor.h"
-#include <__stdarg_va_list.h>
 #include <assert.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "common.h"
+#include "memory.h"
 #include "result/result.h"
 #include "tensor.h"
 #include "stdbool.h"
@@ -47,7 +47,7 @@ static u64 calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
   return numberOfValues;
 }
 
-static Tensor t_Zeros(Context *ctx, Dim shape, Dtype type) {
+static Tensor* t_Zeros(Context *ctx, Dim shape, Dtype type) {
   Dim tShape = (Dim){.numOfDims=shape.numOfDims};
 
   // Dont want to hold on the the original memory space, so it can be freed
@@ -58,12 +58,15 @@ static Tensor t_Zeros(Context *ctx, Dim shape, Dtype type) {
   tensor_size_t size = calculateNumValuesAndMultipliers(tShape, tShape.multipliers);
   size_t bytesRequired = size * getBytesForDtype(type);
 
-  Tensor t = (Tensor){.dtype = type, .values=allocate(ctx->memory, bytesRequired), .shape=tShape, .size=size, .isContigous=true};
-  memset(t.values, 0, bytesRequired);
+  Tensor *t = allocate(ctx->memory, sizeof(Tensor));
+  *t = (Tensor){.dtype = type, .values=allocate(ctx->memory, bytesRequired), .shape=tShape, .size=size, .isContigous=true};
+  memset(t->values, 0, bytesRequired);
   return t;
 }
 
-static u64 getIdx(Tensor *t, dim_t* idx) {
+// Take a shape coord say (3, 4, 2) and retuns the index in the tensor's contingous memory space
+//
+static u64 getContigousIdxFromCoord(Tensor *t, dim_t* idx) {
   u64 result = 0;
 
   for (u8 x = 0; x < t->shape.numOfDims; x++) {
@@ -76,6 +79,7 @@ static u64 getIdx(Tensor *t, dim_t* idx) {
 
   return result;
 }
+
 
 static bool isOutOfBounds(Tensor *t, Dim dim) {
   for (u8 i = 0; i < dim.numOfDims; i++) {
@@ -98,8 +102,8 @@ static void unravel_index(tensor_size_t flatIdx, Dim* shape, dim_t* destCoords) 
   }
 }
 
-static Tensor copyToContiguous(Context *ctx, Tensor *source) {
-  Tensor copy = t_Zeros(ctx, source->shape, source->dtype);
+static Tensor* copyToContiguous(Context *ctx, Tensor *source) {
+  Tensor *copy = t_Zeros(ctx, source->shape, source->dtype);
 
   u32 *indices = allocate(ctx->memory, sizeof(u32) * source->shape.numOfDims);
   memset(indices, 0, sizeof(u32) * source->shape.numOfDims);
@@ -108,7 +112,7 @@ static Tensor copyToContiguous(Context *ctx, Tensor *source) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
     Value val;
     GetAt(source, idx, &val);
-    VALUE_SET(copy.values, i, val);
+    VALUE_SET(copy->values, i, val);
 
     for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
       indices[d]++;
@@ -190,14 +194,11 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
     }
   }
 
-  Tensor contiguousA, contiguousB;
   if (!opA->isContigous) {
-    contiguousA = copyToContiguous(ctx, opA);
-    opA = &contiguousA;
+    opA = copyToContiguous(ctx, opA);
   }
   if (!opB->isContigous) {
-    contiguousB = copyToContiguous(ctx, opB);
-    opB = &contiguousB;
+    opB = copyToContiguous(ctx, opB);
   }
 
   Dim outputShape;
@@ -207,26 +208,26 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
     outputShape = opB->shape;
   }
 
-  Tensor output = t_Zeros(ctx, outputShape, opA->dtype);
+  Tensor *output = t_Zeros(ctx, outputShape, opA->dtype);
 
-  dim_t currentCoord[output.shape.numOfDims];
-  dim_t aCoords[output.shape.numOfDims];
-  dim_t bCoords[output.shape.numOfDims];
+  dim_t currentCoord[output->shape.numOfDims];
+  dim_t aCoords[output->shape.numOfDims];
+  dim_t bCoords[output->shape.numOfDims];
 
-  for (tensor_size_t x = 0; x < output.size; x++) {
+  for (tensor_size_t x = 0; x < output->size; x++) {
     unravel_index(x, &outputShape, currentCoord);
 
-    for (u8 d = 0; d < output.shape.numOfDims; d++) {
+    for (u8 d = 0; d < output->shape.numOfDims; d++) {
       aCoords[d] = currentCoord[d] % opA->shape.dims[d];
       bCoords[d] = currentCoord[d] % opB->shape.dims[d];
     }
 
     Value aVal;
-    u64 idx = getIdx(opA, aCoords);
+    u64 idx = getContigousIdxFromCoord(opA, aCoords);
     VALUE_GET_FROM_ARR(opA->values, idx, &aVal, opA->dtype);
 
     Value bVal;
-    idx = getIdx(opB, bCoords);
+    idx = getContigousIdxFromCoord(opB, bCoords);
     VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
 
     Value result;
@@ -236,10 +237,92 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
       case OP_DIVIDE:   VALUE_BINOP(result, aVal, bVal, /); break;
     }
-    VALUE_SET(output.values, x, result);
+    VALUE_SET(output->values, x, result);
   }
 
-  *destination = output;
+  *destination = *output;
+  return OK;
+}
+
+Result straightSum(Context *ctx, Tensor *t, Tensor* dest) {
+  Value sums[MAX_PARALLEL_SUMS];
+
+  tensor_size_t x = 0;
+  while (x < t->size) {
+    u8 numComputations = 0;
+    for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
+      if (x + y >= t->size) {
+        break;
+      }
+
+      Value val;
+      VALUE_GET_FROM_ARR(t->values, x + y, &val, t->dtype);
+      VALUE_BINOP(sums[y], sums[y], val, +);
+      numComputations++;
+      x += numComputations;
+    }
+  }
+
+  Value sum = VALUE(t->dtype, 0);
+  for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
+    VALUE_BINOP(sum, sum, sums[y], +);
+  }
+
+  dim_t dims[] = {1};
+  Tensor *result = t_Zeros(ctx, (Dim) {.dims=dims, .numOfDims=1}, t->dtype);
+  VALUE_UNBOX(sum, result->values);
+  *dest = *result;
+  
+  return OK;
+}
+
+// Include offsets in calculation becuase you might be dealign with a view
+Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t* result) {
+  if (dim == 0) {
+    *result = 1;
+    return OK;
+  }
+
+  if(dim >= t->size) {
+    return ERR_OUT_OF_BOUNDS;
+  }
+
+  tensor_size_t totalElements = t->shape.dims[0];
+  dim_t totalOffset = 0;
+  for (dim_t d=1; d < t->shape.numOfDims; d++) {
+    if (d == dim) {
+      break;
+    }
+    
+    totalElements *= t->shape.dims[d];
+  }
+
+  *result = totalElements;
+
+  return OK;
+}
+
+
+Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t* result) {
+  if (dim == t->shape.numOfDims - 1) {
+    *result = 1;
+    return OK;
+  }
+
+  if(dim >= t->size) {
+    return ERR_OUT_OF_BOUNDS;
+  }
+
+  tensor_size_t numElements = t->shape.dims[dim + 1];
+  for (dim_t d=dim + 2; d < t->shape.numOfDims; d++) {
+    if (d >= t->shape.numOfDims) {
+      break;
+    }
+    
+    numElements *= t->shape.dims[d];
+  }
+
+  *result = numElements;
   return OK;
 }
 
@@ -272,7 +355,7 @@ Result GetAt(Tensor *t, Dim dim, Value *result) {
     return ERR_OUT_OF_BOUNDS;
   }
 
-  u64 idx = getIdx(t, dim.dims);
+  u64 idx = getContigousIdxFromCoord(t, dim.dims);
   VALUE_GET_FROM_ARR(t->values, idx, result, t->dtype);
 
   return OK;
@@ -300,7 +383,7 @@ Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
   }
 
   // Apply offset here if view
-  u64 idx = getIdx(t, dim.dims);
+  u64 idx = getContigousIdxFromCoord(t, dim.dims);
   VALUE_SET(t->values, idx, value);
 
   return OK;
@@ -381,8 +464,8 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
   Range *boundary = source->boundary;
 
   if (!source->isContigous) {
-    Tensor contiguous = copyToContiguous(ctx, source);
-    values = contiguous.values;
+    Tensor *contiguous = copyToContiguous(ctx, source);
+    values = contiguous->values;
     isView = false;
     boundary = NULL;
   } else {
@@ -443,10 +526,104 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   };
 
   return OK;
+}
 
+Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+ 
+  if (dim >= t->shape.numOfDims) {
+    return ERR_SUM_DIM_OUT_OF_BOUNDS;
+  }
+
+  Tensor *workingTensor = t;
+  if (!t->isContigous) {
+    workingTensor = copyToContiguous(ctx, t);
+  }
+
+  // Treate the tensor like a 3D (__, dim, __) shape
+  // Bassically by flattening all the dimensions before and after, treating them as contingous
+  tensor_size_t numBeforeDim = 0;
+  Result numBeforeResult = calculateNumElementsBeforeDim(workingTensor, dim, &numBeforeDim);
+  if (numBeforeResult != OK) {
+    return numBeforeResult;
+  }
+
+  dim_t reduce = workingTensor->shape.dims[dim];
+
+ tensor_size_t numAfterDim = 0;
+ Result numAfterResult = calculateNumElementsAfterDim(workingTensor, dim, &numAfterDim);
+ if (numAfterResult != OK) {
+   return numBeforeResult;
+ }
+
+ tensor_size_t resultSize = numBeforeDim * numAfterDim;
+ *dest = (Tensor) {
+    .dtype=workingTensor->dtype, 
+    .isContigous = true, 
+    .isView = false, 
+    .size = (resultSize), 
+    .values=allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize)
+ };
+
+ for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
+   for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
+     Value acc = VALUE(workingTensor->dtype, 0);
+     for (dim_t r=0; r < reduce; r++) {
+       tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
+      
+       Value v;
+       VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &v, workingTensor->dtype);
+        
+       VALUE_BINOP(acc, acc, v, +);
+     } 
+     // Indexing the outgoing tensor, we'll treat it as a tensor of shape (numBeforeResult, 1, numAfterResult)
+     VALUE_UNBOX(acc, dest->values + (outer * numAfterDim + inner));
+   }
+ }
+
+  dest->shape = (Dim) {.numOfDims = workingTensor->shape.numOfDims, .dims=allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims)};
+  memcpy(dest->shape.dims, workingTensor->shape.dims, sizeof(dim_t) * workingTensor->shape.numOfDims);
+  // Set the dimension reduced to 1. If the caller want's to the keep the dims as there where;
+  dest->shape.dims[dim] = 1;
+
+ if (!t->isContigous) {
+   // Means a working (contigous) tensor had to be created for this operation. 
+   // It has no use after this operation, so we free it.
+   Result freeRes = FreeTensor(ctx, workingTensor);
+   if (freeRes != OK) {
+     return freeRes;
+   }
+ }
+
+  return OK;
 }
 
 // Creation
-Tensor T_Zeros(Context *ctx, Dim shape) {
+Tensor* T_Zeros(Context *ctx, Dim shape) {
   return t_Zeros(ctx, shape, U8);
+}
+
+// Destruction
+Result FreeTensor(Context *ctx, Tensor *t) {
+  if (t == NULL) return ERR_NULL_TENSOR_PROVIDED;
+
+  if (t->isView) {
+   return ERR_CANNOT_FREE_VIEW_TENSOR; 
+  }
+
+  
+  if (t->values != NULL) {
+    freeAlloc(ctx->memory, t->values);
+  }
+  if (t->shape.dims != NULL) {
+    freeAlloc(ctx->memory, t->shape.dims);
+  }
+  if (t->shape.multipliers != NULL) {
+    freeAlloc(ctx->memory, t->shape.multipliers);
+  }
+
+  freeAlloc(ctx->memory, t);
+  return OK;
 }

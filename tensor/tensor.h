@@ -10,6 +10,10 @@ typedef enum  {
    F16, F32, F64, U8, U16, U32, U64 
 }Dtype;
 
+
+#define MAX_SUM_N_DIMS 2
+#define MAX_PARALLEL_SUMS 4
+
 typedef struct {
   Dtype dtype;
   union {
@@ -61,6 +65,28 @@ typedef struct {
   (dest).dtype = (a).dtype; \
 } while(0)
 
+#define VALUE_UNBOX(v, dest) do { \
+  switch ((v).dtype) { \
+    case U8:  *((u8*)(dest))     = (v).as.u8;  break; \
+    case U16: *((u16*)(dest))    = (v).as.u16; break; \
+    case U32: *((u32*)(dest))    = (v).as.u32; break; \
+    case U64: *((u64*)(dest))    = (v).as.u64; break; \
+    case F16: *((float*)(dest))  = (v).as.f16; break; \
+    case F32: *((float*)(dest))  = (v).as.f32; break; \
+    case F64: *((double*)(dest)) = (v).as.f64; break; \
+  } \
+} while(0)
+
+#define VALUE(type, data) \
+  ((type) == U8  ? (Value){.dtype = (type), .as.u8  = (u8) (data)} : \
+   (type) == U16 ? (Value){.dtype = (type), .as.u16 = (u16) (data)} : \
+   (type) == U32 ? (Value){.dtype = (type), .as.u32 = (u32) (data)} : \
+   (type) == U64 ? (Value){.dtype = (type), .as.u64 = (u64) (data)} : \
+   (type) == F16 ? (Value){.dtype = (type), .as.f16 = (float) (data)} : \
+   (type) == F32 ? (Value){.dtype = (type), .as.f32 = (float)(data)} : \
+                   (Value){.dtype = (type), .as.f64 = (double) (data)})
+
+
 typedef u64 tensor_size_t;
 typedef u32 dim_t;
 typedef u8 multiplier_t;
@@ -97,8 +123,12 @@ Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value);
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
 Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);
+Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 
 // Tensor creation
-Tensor T_Zeros(Context *ctx, Dim shape);
+Tensor* T_Zeros(Context *ctx, Dim shape);
+
+// Tensor destruction
+Result FreeTensor(Context *ctx, Tensor *t);
 
 #endif
