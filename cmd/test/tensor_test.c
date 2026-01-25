@@ -2233,6 +2233,499 @@ static void test_sum_reduce_to_scalar_2d(void) {
   freeMemory(mem);
 }
 
+// Squeeze tests
+static void test_squeeze_removes_single_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [1, 3, 1, 4] -> [3, 4]
+  u32 dims[] = {1, 3, 1, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
+
+  Tensor squeezed;
+  Result r = Squeeze(&ctx, t, &squeezed);
+  ASSERT_EQ(r, OK, "Squeeze should return OK");
+
+  ASSERT_EQ(squeezed.shape.numOfDims, 2, "squeezed should have 2 dims");
+  ASSERT_EQ(squeezed.shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(squeezed.shape.dims[1], 4, "dim 1 should be 4");
+  ASSERT_EQ(squeezed.size, 12, "size should remain 12");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_middle_dim(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [2, 1, 3] -> [2, 3]
+  u32 dims[] = {2, 1, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
+
+  Tensor squeezed;
+  Result r = Squeeze(&ctx, t, &squeezed);
+  ASSERT_EQ(r, OK, "Squeeze should return OK");
+
+  ASSERT_EQ(squeezed.shape.numOfDims, 2, "squeezed should have 2 dims");
+  ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(squeezed.shape.dims[1], 3, "dim 1 should be 3");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_no_single_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [2, 3, 4] -> [2, 3, 4] (unchanged)
+  u32 dims[] = {2, 3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
+
+  Tensor squeezed;
+  Result r = Squeeze(&ctx, t, &squeezed);
+  ASSERT_EQ(r, OK, "Squeeze should return OK");
+
+  ASSERT_EQ(squeezed.shape.numOfDims, 3, "squeezed should have 3 dims");
+  ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(squeezed.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(squeezed.shape.dims[2], 4, "dim 2 should be 4");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_all_ones(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [1, 1, 1] -> [1]
+  u32 dims[] = {1, 1, 1};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
+
+  Tensor squeezed;
+  Result r = Squeeze(&ctx, t, &squeezed);
+  ASSERT_EQ(r, OK, "Squeeze should return OK");
+
+  ASSERT_EQ(squeezed.shape.numOfDims, 1, "squeezed should have 1 dim");
+  ASSERT_EQ(squeezed.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(squeezed.size, 1, "size should be 1");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_shares_data(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {1, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  // Set a value
+  u32 idx[] = {0, 1};
+  Value v = {.dtype = U8, .as.u8 = 42};
+  AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+
+  Tensor squeezed;
+  Squeeze(&ctx, t, &squeezed);
+
+  // Check value is accessible in squeezed tensor
+  u32 sq_idx[] = {1};
+  Value result;
+  GetAt(&squeezed, (Dim){.dims = sq_idx, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.u8, 42, "squeezed should share data with source");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_after_sum(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 2x3 tensor
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // Sum dim 1: [2, 3] -> [2, 1]
+  Tensor summed;
+  Sum(&ctx, t, &summed, 1);
+
+  // Squeeze: [2, 1] -> [2]
+  Tensor squeezed;
+  Squeeze(&ctx, &summed, &squeezed);
+
+  ASSERT_EQ(squeezed.shape.numOfDims, 1, "squeezed should have 1 dim");
+  ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
+
+  u8 *values = (u8 *)squeezed.values;
+  ASSERT_EQ(values[0], 6, "result[0] should be 6");
+  ASSERT_EQ(values[1], 15, "result[1] should be 15");
+
+  freeMemory(mem);
+}
+
+// UnSqueeze tests
+static void test_unsqueeze_dim0(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [3, 4] -> [1, 3, 4]
+  u32 dims[] = {3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  Tensor unsqueezed;
+  Result r = UnSqueeze(&ctx, t, &unsqueezed, 0);
+  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+
+  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(unsqueezed.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(unsqueezed.shape.dims[2], 4, "dim 2 should be 4");
+  ASSERT_EQ(unsqueezed.size, 12, "size should remain 12");
+
+  freeMemory(mem);
+}
+
+static void test_unsqueeze_middle(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [3, 4] -> [3, 1, 4]
+  u32 dims[] = {3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  Tensor unsqueezed;
+  Result r = UnSqueeze(&ctx, t, &unsqueezed, 1);
+  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+
+  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed.shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(unsqueezed.shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(unsqueezed.shape.dims[2], 4, "dim 2 should be 4");
+
+  freeMemory(mem);
+}
+
+static void test_unsqueeze_end(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [3, 4] -> [3, 4, 1]
+  u32 dims[] = {3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  Tensor unsqueezed;
+  Result r = UnSqueeze(&ctx, t, &unsqueezed, 2);
+  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+
+  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed.shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(unsqueezed.shape.dims[1], 4, "dim 1 should be 4");
+  ASSERT_EQ(unsqueezed.shape.dims[2], 1, "dim 2 should be 1");
+
+  freeMemory(mem);
+}
+
+static void test_unsqueeze_1d(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [5] -> [1, 5]
+  u32 dims[] = {5};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+
+  Tensor unsqueezed;
+  Result r = UnSqueeze(&ctx, t, &unsqueezed, 0);
+  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+
+  ASSERT_EQ(unsqueezed.shape.numOfDims, 2, "should have 2 dims");
+  ASSERT_EQ(unsqueezed.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(unsqueezed.shape.dims[1], 5, "dim 1 should be 5");
+
+  freeMemory(mem);
+}
+
+static void test_unsqueeze_shares_data(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+
+  u32 idx[] = {1};
+  Value v = {.dtype = U8, .as.u8 = 42};
+  AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
+
+  Tensor unsqueezed;
+  UnSqueeze(&ctx, t, &unsqueezed, 0);
+
+  // Access via [0, 1]
+  u32 new_idx[] = {0, 1};
+  Value result;
+  GetAt(&unsqueezed, (Dim){.dims = new_idx, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.u8, 42, "unsqueezed should share data");
+
+  freeMemory(mem);
+}
+
+static void test_unsqueeze_dim_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor dest;
+
+  Result r = UnSqueeze(&ctx, t, &dest, 3);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "UnSqueeze with dim > numOfDims should fail");
+
+  freeMemory(mem);
+}
+
+static void test_unsqueeze_non_contiguous(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Create 2x3, transpose to 3x2, then unsqueeze
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  // [[1,2,3], [4,5,6]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // Transpose to 3x2: [[1,4], [2,5], [3,6]]
+  Tensor transposed;
+  Transpose(&ctx, t, &transposed, (dim_t)0, (dim_t)1);
+  ASSERT(!transposed.isContigous, "transposed should be non-contiguous");
+
+  // Unsqueeze to [1, 3, 2]
+  Tensor unsqueezed;
+  Result r = UnSqueeze(&ctx, &transposed, &unsqueezed, 0);
+  ASSERT_EQ(r, OK, "UnSqueeze non-contiguous should return OK");
+
+  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(unsqueezed.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(unsqueezed.shape.dims[2], 2, "dim 2 should be 2");
+
+  // Verify data access: [0, 0, 0] should be 1, [0, 0, 1] should be 4
+  Value result;
+  u32 idx1[] = {0, 0, 0};
+  GetAt(&unsqueezed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 1, "unsqueezed[0,0,0] should be 1");
+
+  u32 idx2[] = {0, 0, 1};
+  GetAt(&unsqueezed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 4, "unsqueezed[0,0,1] should be 4");
+
+  u32 idx3[] = {0, 1, 0};
+  GetAt(&unsqueezed, (Dim){.dims = idx3, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 2, "unsqueezed[0,1,0] should be 2");
+
+  u32 idx4[] = {0, 2, 1};
+  GetAt(&unsqueezed, (Dim){.dims = idx4, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 6, "unsqueezed[0,2,1] should be 6");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_unsqueeze_roundtrip(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [2, 3] -> squeeze (no change) -> unsqueeze dim 1 -> [2, 1, 3] -> squeeze -> [2, 3]
+  u32 dims[] = {2, 1, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
+
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 k = 0; k < 3; k++) {
+      u32 idx[] = {i, 0, k};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + k + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
+    }
+  }
+
+  Tensor squeezed;
+  Squeeze(&ctx, t, &squeezed);
+  ASSERT_EQ(squeezed.shape.numOfDims, 2, "squeezed should have 2 dims");
+
+  Tensor unsqueezed;
+  UnSqueeze(&ctx, &squeezed, &unsqueezed, 1);
+  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "unsqueezed should have 3 dims");
+  ASSERT_EQ(unsqueezed.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(unsqueezed.shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(unsqueezed.shape.dims[2], 3, "dim 2 should be 3");
+
+  // Verify data
+  u32 idx[] = {1, 0, 2};
+  Value result;
+  GetAt(&unsqueezed, (Dim){.dims = idx, .numOfDims = 3}, &result);
+  ASSERT_EQ(result.as.u8, 6, "data should be preserved");
+
+  freeMemory(mem);
+}
+
+// Clone tests
+static void test_clone_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  Tensor cloned;
+  Result r = Clone(&ctx, t, &cloned);
+  ASSERT_EQ(r, OK, "Clone should return OK");
+
+  ASSERT_EQ(cloned.shape.numOfDims, 2, "cloned should have 2 dims");
+  ASSERT_EQ(cloned.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(cloned.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(cloned.size, 6, "size should be 6");
+  ASSERT(!cloned.isView, "clone should not be a view");
+
+  u8 *values = (u8 *)cloned.values;
+  ASSERT_EQ(values[0], 1, "cloned[0] should be 1");
+  ASSERT_EQ(values[5], 6, "cloned[5] should be 6");
+
+  freeMemory(mem);
+}
+
+static void test_clone_independent_data(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+
+  u32 idx[] = {1};
+  Value v = {.dtype = U8, .as.u8 = 10};
+  AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
+
+  Tensor cloned;
+  Clone(&ctx, t, &cloned);
+
+  // Modify original
+  v.as.u8 = 99;
+  AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
+
+  // Clone should be unchanged
+  Value result;
+  GetAt(&cloned, (Dim){.dims = idx, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.u8, 10, "clone should be independent from source");
+
+  freeMemory(mem);
+}
+
+static void test_clone_slice(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {4, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  for (u32 i = 0; i < 4; i++) {
+    for (u32 j = 0; j < 4; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 4 + j)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  // Slice [1:3, 1:3] -> 2x2 region
+  Tensor slice;
+  Slice(&ctx, t, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+
+  Tensor cloned;
+  Result r = Clone(&ctx, &slice, &cloned);
+  ASSERT_EQ(r, OK, "Clone slice should return OK");
+
+  ASSERT_EQ(cloned.shape.numOfDims, 2, "cloned should have 2 dims");
+  ASSERT_EQ(cloned.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(cloned.shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT(!cloned.isView, "clone should not be a view");
+  ASSERT(cloned.isContigous, "clone should be contiguous");
+
+  // slice[0,0] = source[1,1] = 5
+  // slice[0,1] = source[1,2] = 6
+  // slice[1,0] = source[2,1] = 9
+  // slice[1,1] = source[2,2] = 10
+  u8 *values = (u8 *)cloned.values;
+  ASSERT_EQ(values[0], 5, "cloned[0,0] should be 5");
+  ASSERT_EQ(values[1], 6, "cloned[0,1] should be 6");
+  ASSERT_EQ(values[2], 9, "cloned[1,0] should be 9");
+  ASSERT_EQ(values[3], 10, "cloned[1,1] should be 10");
+
+  freeMemory(mem);
+}
+
+static void test_clone_transposed(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  // [[1,2,3], [4,5,6]]
+  for (u32 i = 0; i < 2; i++) {
+    for (u32 j = 0; j < 3; j++) {
+      u32 idx[] = {i, j};
+      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
+    }
+  }
+
+  Tensor transposed;
+  Transpose(&ctx, t, &transposed, (dim_t)0, (dim_t)1);
+
+  Tensor cloned;
+  Result r = Clone(&ctx, &transposed, &cloned);
+  ASSERT_EQ(r, OK, "Clone transposed should return OK");
+
+  ASSERT_EQ(cloned.shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(cloned.shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT(cloned.isContigous, "clone should be contiguous");
+
+  // Transposed: [[1,4], [2,5], [3,6]]
+  u8 *values = (u8 *)cloned.values;
+  ASSERT_EQ(values[0], 1, "cloned[0,0] should be 1");
+  ASSERT_EQ(values[1], 4, "cloned[0,1] should be 4");
+  ASSERT_EQ(values[2], 2, "cloned[1,0] should be 2");
+  ASSERT_EQ(values[3], 5, "cloned[1,1] should be 5");
+
+  freeMemory(mem);
+}
+
+static void test_clone_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor dest;
+
+  Result r = Clone(&ctx, NULL, &dest);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Clone null should fail");
+
+  freeMemory(mem);
+}
+
 static void test_slice_boundary_access(void) {
   u32 dims[] = {5, 5};
   TestTensor tt = createZerosTensor(dims, 2);
@@ -2368,4 +2861,26 @@ void run_tensor_tests(void) {
   test_sum_multiple_reduces_3d();
   test_sum_multiple_reduces_4d();
   test_sum_reduce_to_scalar_2d();
+  // Squeeze tests
+  test_squeeze_removes_single_dims();
+  test_squeeze_middle_dim();
+  test_squeeze_no_single_dims();
+  test_squeeze_all_ones();
+  test_squeeze_shares_data();
+  test_squeeze_after_sum();
+  // UnSqueeze tests
+  test_unsqueeze_dim0();
+  test_unsqueeze_middle();
+  test_unsqueeze_end();
+  test_unsqueeze_1d();
+  test_unsqueeze_shares_data();
+  test_unsqueeze_dim_out_of_bounds();
+  test_unsqueeze_non_contiguous();
+  test_squeeze_unsqueeze_roundtrip();
+  // Clone tests
+  test_clone_basic();
+  test_clone_independent_data();
+  test_clone_slice();
+  test_clone_transposed();
+  test_clone_null_tensor();
 }

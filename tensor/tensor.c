@@ -600,6 +600,164 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   return OK;
 }
 
+Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  // Count non-1 dimensions
+  u8 newNumDims = 0;
+  for (u8 i = 0; i < t->shape.numOfDims; i++) {
+    if (t->shape.dims[i] != 1) {
+      newNumDims++;
+    }
+  }
+
+  // Edge case: all dims are 1, keep at least one
+  if (newNumDims == 0) {
+    newNumDims = 1;
+  }
+
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  u8 destIdx = 0;
+
+  // If all dims were 1, just set single dim to 1
+  if (newNumDims == 1 && t->shape.dims[0] == 1) {
+    bool allOnes = true;
+    for (u8 i = 0; i < t->shape.numOfDims; i++) {
+      if (t->shape.dims[i] != 1) {
+        allOnes = false;
+        break;
+      }
+    }
+    if (allOnes) {
+      newDims[0] = 1;
+      destIdx = 1;
+    }
+  }
+
+  // Copy non-1 dimensions
+  if (destIdx == 0) {
+    for (u8 i = 0; i < t->shape.numOfDims; i++) {
+      if (t->shape.dims[i] != 1) {
+        newDims[destIdx++] = t->shape.dims[i];
+      }
+    }
+  }
+
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+  calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims}, newMultipliers);
+
+  *dest = (Tensor) {
+    .dtype = t->dtype,
+    .values = t->values,
+    .size = t->size,
+    .isContigous = t->isContigous,
+    .isView = true,
+    .boundary = t->boundary,
+    .shape = {
+      .dims = newDims,
+      .numOfDims = newNumDims,
+      .multipliers = newMultipliers
+    }
+  };
+
+  return OK;
+}
+
+Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  // dim can be 0 to numOfDims (inclusive - can insert at end)
+  if (dim > t->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  u8 newNumDims = t->shape.numOfDims + 1;
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+
+  // Copy dims and multipliers, inserting 1 and appropriate multiplier at position dim
+  for (u8 i = 0; i < newNumDims; i++) {
+    if (i < dim) {
+      newDims[i] = t->shape.dims[i];
+      newMultipliers[i] = t->shape.multipliers[i];
+
+      continue;
+    } 
+
+    if (i == dim) {
+      newDims[i] = 1;
+      // For a dimension of size 1, multiplier doesn't matter for indexing
+      // but we use the next dimension's multiplier (or 1 if at end)
+      if (dim < t->shape.numOfDims) {
+        newMultipliers[i] = t->shape.multipliers[dim];
+      } else {
+        newMultipliers[i] = 1;
+      }
+      continue;
+    }
+
+    newDims[i] = t->shape.dims[i - 1];
+    newMultipliers[i] = t->shape.multipliers[i - 1];
+  }
+
+  *dest = (Tensor) {
+    .dtype = t->dtype,
+    .values = t->values,
+    .size = t->size,
+    .isContigous = t->isContigous,
+    .isView = true,
+    .boundary = t->boundary,
+    .shape = {
+      .dims = newDims,
+      .numOfDims = newNumDims,
+      .multipliers = newMultipliers
+    }
+  };
+
+  return OK;
+}
+
+Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  Tensor *source = t;
+  if (!t->isContigous) {
+    source = copyToContiguous(ctx, t);
+  }
+
+  size_t valueBytes = getBytesForDtype(source->dtype) * source->size;
+  void *newValues = allocate(ctx->memory, valueBytes);
+  memcpy(newValues, source->values, valueBytes);
+
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
+
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
+
+  *dest = (Tensor) {
+    .dtype = source->dtype,
+    .values = newValues,
+    .size = source->size,
+    .isContigous = true,
+    .isView = false,
+    .boundary = NULL,
+    .shape = {
+      .dims = newDims,
+      .numOfDims = source->shape.numOfDims,
+      .multipliers = newMultipliers
+    }
+  };
+
+  return OK;
+}
+
 // Creation
 Tensor* T_Zeros(Context *ctx, Dim shape) {
   return t_Zeros(ctx, shape, U8);
@@ -613,7 +771,6 @@ Result FreeTensor(Context *ctx, Tensor *t) {
    return ERR_CANNOT_FREE_VIEW_TENSOR; 
   }
 
-  
   if (t->values != NULL) {
     freeAlloc(ctx->memory, t->values);
   }
@@ -627,3 +784,4 @@ Result FreeTensor(Context *ctx, Tensor *t) {
   freeAlloc(ctx->memory, t);
   return OK;
 }
+
