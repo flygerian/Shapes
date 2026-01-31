@@ -1,5 +1,6 @@
 #include "test.h"
 #include "../../tensor/tensor.h"
+#include <string.h>
 
 typedef struct {
   Tensor tensor;
@@ -2771,6 +2772,209 @@ static void test_slice_boundary_access(void) {
   freeMemory(mem);
 }
 
+static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values, tensor_size_t size) {
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
+  tensor_size_t mult = 1;
+  for (int i = numOfDims - 1; i >= 0; i--) {
+    multipliers[i] = mult;
+    mult *= dims[i];
+  }
+
+  float *vals = allocate(ctx->memory, sizeof(float) * size);
+  memcpy(vals, values, sizeof(float) * size);
+
+  return (Tensor) {
+    .dtype = F32,
+    .size = size,
+    .isContigous = true,
+    .isView = false,
+    .boundary = NULL,
+    .values = vals,
+    .shape = (Dim){.dims = dims, .numOfDims = numOfDims, .multipliers = multipliers}
+  };
+}
+
+static void test_matmul_2d_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 3};
+  float valsA[] = {1, 2, 3, 4, 5, 6};
+  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
+
+  dim_t dimsB[] = {3, 2};
+  float valsB[] = {1, 2, 3, 4, 5, 6};
+  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, OK, "MatMul 2D basic should return OK");
+
+  ASSERT_EQ(result.shape.numOfDims, 2, "result should be 2D");
+  ASSERT_EQ(result.shape.dims[0], 2, "result rows should be 2");
+  ASSERT_EQ(result.shape.dims[1], 2, "result cols should be 2");
+
+  float *vals = (float *)result.values;
+  ASSERT_EQ((int)vals[0], 22, "[0,0] should be 22");
+  ASSERT_EQ((int)vals[1], 28, "[0,1] should be 28");
+  ASSERT_EQ((int)vals[2], 49, "[1,0] should be 49");
+  ASSERT_EQ((int)vals[3], 64, "[1,1] should be 64");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_2d_non_square(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 4};
+  float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8};
+  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 8);
+
+  dim_t dimsB[] = {4, 3};
+  float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 12);
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, OK, "MatMul 2D non-square should return OK");
+
+  ASSERT_EQ(result.shape.dims[0], 2, "result rows should be 2");
+  ASSERT_EQ(result.shape.dims[1], 3, "result cols should be 3");
+
+  float *vals = (float *)result.values;
+  ASSERT_EQ((int)vals[0], 70, "[0,0] should be 70");
+  ASSERT_EQ((int)vals[1], 80, "[0,1] should be 80");
+  ASSERT_EQ((int)vals[2], 90, "[0,2] should be 90");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_3d_batch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 2, 3};
+  float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
+
+  dim_t dimsB[] = {2, 3, 2};
+  float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 12);
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, OK, "MatMul 3D batch should return OK");
+
+  ASSERT_EQ(result.shape.numOfDims, 3, "result should be 3D");
+  ASSERT_EQ(result.shape.dims[0], 2, "batch size should be 2");
+  ASSERT_EQ(result.shape.dims[1], 2, "result rows should be 2");
+  ASSERT_EQ(result.shape.dims[2], 2, "result cols should be 2");
+
+  float *vals = (float *)result.values;
+  ASSERT_EQ((int)vals[0], 22, "batch0[0,0] should be 22");
+  ASSERT_EQ((int)vals[1], 28, "batch0[0,1] should be 28");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_broadcast_batch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 2, 3};
+  float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
+
+  dim_t dimsB[] = {1, 3, 2};
+  float valsB[] = {1, 2, 3, 4, 5, 6};
+  Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 6);
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, OK, "MatMul broadcast batch should return OK");
+
+  ASSERT_EQ(result.shape.dims[0], 2, "output batch should be 2");
+  ASSERT_EQ(result.shape.dims[1], 2, "result rows should be 2");
+  ASSERT_EQ(result.shape.dims[2], 2, "result cols should be 2");
+
+  float *vals = (float *)result.values;
+  ASSERT_EQ((int)vals[0], 22, "batch0[0,0] should be 22");
+  ASSERT_EQ((int)vals[4], 76, "batch1[0,0] should be 76");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_dtype_mismatch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 2};
+  float valsA[] = {1, 2, 3, 4};
+  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 4);
+
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dimsA, .numOfDims = 2});
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, b, &result);
+  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "MatMul with mismatched dtypes should fail");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_inner_dim_mismatch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 3};
+  float valsA[] = {1, 2, 3, 4, 5, 6};
+  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
+
+  dim_t dimsB[] = {2, 2};
+  float valsB[] = {1, 2, 3, 4};
+  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 4);
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, ERR_MATMUL_INNER_DIM_MISMATCH, "MatMul with inner dim mismatch should fail");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_1d_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {3};
+  float valsA[] = {1, 2, 3};
+  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
+
+  dim_t dimsB[] = {3, 2};
+  float valsB[] = {1, 2, 3, 4, 5, 6};
+  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
+
+  Tensor result;
+  Result r = MatMul(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, ERR_MATMUL_MIN_2D, "MatMul with 1D tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_matmul_integer_dtype_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 2};
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+
+  Tensor result;
+  Result r = MatMul(&ctx, a, b, &result);
+  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "MatMul with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -2883,4 +3087,13 @@ void run_tensor_tests(void) {
   test_clone_slice();
   test_clone_transposed();
   test_clone_null_tensor();
+  // MatMul tests
+  test_matmul_2d_basic();
+  test_matmul_2d_non_square();
+  test_matmul_3d_batch();
+  test_matmul_broadcast_batch();
+  test_matmul_dtype_mismatch();
+  test_matmul_inner_dim_mismatch();
+  test_matmul_1d_rejected();
+  test_matmul_integer_dtype_rejected();
 }

@@ -146,6 +146,53 @@ static bool areBroadcastable(Tensor* a, Tensor* b) {
   return true;
 }
 
+static bool areBatchDimsBroadcastable(Tensor* a, Tensor* b) {
+  u8 maxDims = a->shape.numOfDims > b->shape.numOfDims ? a->shape.numOfDims : b->shape.numOfDims;
+  
+  // For matmul, only check batch dimensions (exclude last 2)
+  for (int d = 2; d < maxDims; d++) {
+    int aIdx = a->shape.numOfDims - 1 - d;
+    int bIdx = b->shape.numOfDims - 1 - d;
+    
+    dim_t aDim = aIdx >= 0 ? a->shape.dims[aIdx] : 1;
+    dim_t bDim = bIdx >= 0 ? b->shape.dims[bIdx] : 1;
+    
+    if (aDim != bDim && aDim != 1 && bDim != 1) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+typedef struct {
+  Tensor *a;
+  Tensor *b;
+} TensorPair;
+
+TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
+    Tensor *smaller = a->shape.numOfDims < b->shape.numOfDims ? a : b;
+    Tensor *larger = a->shape.numOfDims < b->shape.numOfDims ? b : a;
+    u8 diff = larger->shape.numOfDims - smaller->shape.numOfDims;
+
+    dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * larger->shape.numOfDims);
+    for (u8 i = 0; i < diff; i++) {
+      newDims[i] = 1;
+    }
+    for (u8 i = 0; i < smaller->shape.numOfDims; i++) {
+      newDims[diff + i] = smaller->shape.dims[i];
+    }
+
+    Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
+    Tensor *reshapedSmaller = allocate(ctx->memory, sizeof(Tensor));
+    Reshape(ctx, smaller, reshapedSmaller, newShape);
+
+    if (smaller == a) {
+      return (TensorPair){.a = reshapedSmaller, .b = b};
+    }
+    return (TensorPair){.a = a, .b = reshapedSmaller};
+}
+
 // Binary ops
 typedef enum {
   OP_ADD,
@@ -163,36 +210,13 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor reshapedA, reshapedB;
-  Tensor *opA = a;
-  Tensor *opB = b;
-
+  TensorPair ops = {.a = a, .b = b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
-    Tensor *smaller = a->shape.numOfDims < b->shape.numOfDims ? a : b;
-    Tensor *larger = a->shape.numOfDims < b->shape.numOfDims ? b : a;
-    u8 diff = larger->shape.numOfDims - smaller->shape.numOfDims;
-
-    dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * larger->shape.numOfDims);
-    for (u8 i = 0; i < diff; i++) {
-      newDims[i] = 1;
-    }
-    for (u8 i = 0; i < smaller->shape.numOfDims; i++) {
-      newDims[diff + i] = smaller->shape.dims[i];
-    }
-
-    Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
-    Tensor *reshapedSmaller = (smaller == a) ? &reshapedA : &reshapedB;
-    Result r = Reshape(ctx, smaller, reshapedSmaller, newShape);
-    if (r != OK) return r;
-
-    if (smaller == a) {
-      opA = &reshapedA;
-      opB = b;
-    } else {
-      opA = a;
-      opB = &reshapedB;
-    }
+    ops = padSmallerTensor(ctx, a, b);
   }
+
+  Tensor *opA = ops.a;
+  Tensor *opB = ops.b;
 
   if (!opA->isContigous) {
     opA = copyToContiguous(ctx, opA);
@@ -283,7 +307,7 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t* result
     return OK;
   }
 
-  if(dim >= t->size) {
+  if(dim >= t->shape.numOfDims) {
     return ERR_OUT_OF_BOUNDS;
   }
 
@@ -301,6 +325,24 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t* result
 
   return OK;
 }
+
+Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result) {
+  if (dim == 0) {
+    return OK;
+  }
+
+  if(dim >= t->shape.numOfDims) {
+    return ERR_OUT_OF_BOUNDS;
+  }
+
+  uint8_t numDimBefore = t->shape.numOfDims - dim - 1;
+  for (dim_t d=0; d < dim; d++) {
+    result->dims[d] = t->shape.dims[d];
+  }
+
+  return OK;
+}
+
 
 
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t* result) {
@@ -552,34 +594,34 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   dim_t reduce = workingTensor->shape.dims[dim];
 
- tensor_size_t numAfterDim = 0;
- Result numAfterResult = calculateNumElementsAfterDim(workingTensor, dim, &numAfterDim);
- if (numAfterResult != OK) {
-   return numBeforeResult;
- }
+  tensor_size_t numAfterDim = 0;
+  Result numAfterResult = calculateNumElementsAfterDim(workingTensor, dim, &numAfterDim);
+  if (numAfterResult != OK) {
+    return numBeforeResult;
+  }
 
- tensor_size_t resultSize = numBeforeDim * numAfterDim;
- *dest = (Tensor) {
+  tensor_size_t resultSize = numBeforeDim * numAfterDim;
+  *dest = (Tensor) {
     .dtype=workingTensor->dtype, 
     .isContigous = true, 
     .isView = false, 
     .size = (resultSize), 
     .values=allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize)
- };
+  };
 
- for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
-   for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
-     Value acc = VALUE(workingTensor->dtype, 0);
-     for (dim_t r=0; r < reduce; r++) {
-       tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
+  for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
+    for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
+      Value acc = VALUE(workingTensor->dtype, 0);
+      for (dim_t r=0; r < reduce; r++) {
+        tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
       
-       Value v;
-       VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &v, workingTensor->dtype);
+        Value v;
+        VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &v, workingTensor->dtype);
         
-       VALUE_BINOP(acc, acc, v, +);
-     } 
-     // Indexing the outgoing tensor, we'll treat it as a tensor of shape (numBeforeResult, 1, numAfterResult)
-     VALUE_UNBOX(acc, dest->values + (outer * numAfterDim + inner));
+        VALUE_BINOP(acc, acc, v, +);
+      } 
+      // Indexing the outgoing tensor, we'll treat it as a tensor of shape (numBeforeResult, 1, numAfterResult)
+      VALUE_UNBOX(acc, dest->values + (outer * numAfterDim + inner));
    }
  }
 
@@ -754,6 +796,96 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
       .multipliers = newMultipliers
     }
   };
+
+  return OK;
+}
+
+Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
+  if (isInvalidTensor(a) || isInvalidTensor(b)) {
+      return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if ((a->shape.numOfDims < 2 || b->shape.numOfDims < 2)) {
+    return ERR_MATMUL_MIN_2D;
+  }
+
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (a->dtype != F32 && a->dtype != F64 && a->dtype != F16) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  dim_t innerDimA = a->shape.dims[a->shape.numOfDims-1];
+  dim_t innerDimB = b->shape.dims[b->shape.numOfDims-2];
+
+  if (innerDimA != innerDimB) {
+    return ERR_MATMUL_INNER_DIM_MISMATCH;
+  }
+
+  if (!areBatchDimsBroadcastable(a, b)) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  TensorPair ops = {.a = a, .b = b};
+  if (a->shape.numOfDims != b->shape.numOfDims) {
+    ops = padSmallerTensor(ctx, a, b);
+  }
+
+  Tensor *opA = ops.a;
+  Tensor *opB = ops.b;
+
+  if (!opA->isContigous) {
+    opA = copyToContiguous(ctx, opA);
+  }
+
+  if (!opB->isContigous) {
+    opB = copyToContiguous(ctx, opB);
+  }
+
+  dim_t m = opA->shape.dims[opA->shape.numOfDims-2];
+  dim_t k = opB->shape.dims[opB->shape.numOfDims-2];
+  dim_t n = opB->shape.dims[opB->shape.numOfDims-1];
+
+  tensor_size_t batchSizeA, batchSizeB;
+  dim_t batchDimIdx = opA->shape.numOfDims - 2;
+  Result r = calculateNumElementsBeforeDim(opA, batchDimIdx, &batchSizeA);
+  if (r != OK) return r;
+  r = calculateNumElementsBeforeDim(opB, batchDimIdx, &batchSizeB);
+  if (r != OK) return r;
+
+  tensor_size_t batchSize = batchSizeA > batchSizeB ? batchSizeA : batchSizeB;
+
+  Tensor *sentinel = batchSizeA >= batchSizeB ? opA : opB;
+  Dim newDim = (Dim) {.dims = allocate(ctx->memory, sizeof(dim_t) * sentinel->shape.numOfDims), .numOfDims=sentinel->shape.numOfDims };
+  r = getDimsBefore(ctx, sentinel, batchDimIdx, &newDim);
+  if (r != OK) return r;
+
+  newDim.dims[newDim.numOfDims - 2] = m; 
+  newDim.dims[newDim.numOfDims - 1] = n; 
+
+  newDim.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * newDim.numOfDims);
+  tensor_size_t size = calculateNumValuesAndMultipliers(newDim, newDim.multipliers);
+
+  *result = (Tensor) {
+    .dtype = a->dtype, 
+    .isContigous = true,
+    .isView = false,
+    .shape=newDim,
+    .size=size,
+    .values=allocate(ctx->memory, getBytesForDtype(opA->dtype) * size)
+  };
+
+  size_t elemSize = getBytesForDtype(opA->dtype);
+  for (tensor_size_t i = 0; i < batchSize; i++) {
+    tensor_size_t aIdx = i % batchSizeA;
+    tensor_size_t bIdx = i % batchSizeB;
+    void *A_batch = (char*)opA->values + aIdx * (m * k) * elemSize;
+    void *B_batch = (char*)opB->values + bIdx * (k * n) * elemSize;
+    void *C_batch = (char*)result->values + i * (m * n) * elemSize;
+    BLAS_GEMM(opA->dtype, A_batch, B_batch, C_batch, m, n, k);
+  }
 
   return OK;
 }

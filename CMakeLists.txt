@@ -3,6 +3,7 @@ project(shapes C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Default to Debug build
 if(NOT CMAKE_BUILD_TYPE)
@@ -34,7 +35,7 @@ add_library(shapes_core
     tensor/tensor.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(shapes_core shapes_memory)
+target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB})
 
 # Main executable
 add_executable(shapes

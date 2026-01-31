@@ -10,7 +10,6 @@ typedef enum  {
    F16, F32, F64, U8, U16, U32, U64 
 }Dtype;
 
-
 #define MAX_SUM_N_DIMS 2
 #define MAX_PARALLEL_SUMS 4
 
@@ -86,6 +85,20 @@ typedef struct {
    (type) == F32 ? (Value){.dtype = (type), .as.f32 = (float)(data)} : \
                    (Value){.dtype = (type), .as.f64 = (double) (data)})
 
+#define BLAS_GEMM(dt, A, B, C, m, n, k) do { \
+  switch (dt) { \
+    case F64: \
+      cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, \
+                  m, n, k, 1.0, (double*)(A), k, (double*)(B), n, 0.0, (double*)(C), n); \
+      break; \
+    case F32: \
+    case F16: \
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, \
+                  m, n, k, 1.0f, (float*)(A), k, (float*)(B), n, 0.0f, (float*)(C), n); \
+      break; \
+    default: break; \
+  } \
+} while(0)
 
 typedef u64 tensor_size_t;
 typedef u32 dim_t;
@@ -113,20 +126,28 @@ typedef struct {
   Range *boundary;
 } Tensor;
 
+// Binary Ops
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Subtract(Context *ctx, Tensor *a, Tensor *b,Tensor *destination);
 Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination);
 Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination); 
 
+// Access and shapes
 Result GetAt(Tensor *t, Dim dim, Value *result);
 Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value); 
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
-Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
+Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);\
 Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);
-Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Squeeze(Context *ctx, Tensor *t, Tensor *dest);
 Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Clone(Context *ctx, Tensor *t, Tensor *dest);
+
+// Unary
+Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+
+// Matrix ops
+Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
+Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor result);
 
 // Tensor creation
 Tensor* T_Zeros(Context *ctx, Dim shape);
