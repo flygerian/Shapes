@@ -100,6 +100,19 @@ typedef struct {
   } \
 } while(0)
 
+#define BLAS_DOT(dt, n, A, B, result) do { \
+  switch (dt) { \
+    case F64: \
+      *((double*)(result)) = cblas_ddot(n, (double*)(A), 1, (double*)(B), 1); \
+      break; \
+    case F32: \
+    case F16: \
+      *((float*)(result)) = cblas_sdot(n, (float*)(A), 1, (float*)(B), 1); \
+      break; \
+    default: break; \
+  } \
+} while(0)
+
 typedef u64 tensor_size_t;
 typedef u32 dim_t;
 typedef u8 multiplier_t;
@@ -147,7 +160,7 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 
 // Matrix ops
 Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
-Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor result);
+Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
 
 // Tensor creation
 Tensor* T_Zeros(Context *ctx, Dim shape);

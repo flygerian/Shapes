@@ -2975,6 +2975,123 @@ static void test_matmul_integer_dtype_rejected(void) {
   freeMemory(mem);
 }
 
+static void test_dot_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {3};
+  float valsA[] = {1, 2, 3};
+  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
+
+  dim_t dimsB[] = {3};
+  float valsB[] = {4, 5, 6};
+  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
+
+  Tensor result;
+  Result r = Dot(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, OK, "Dot basic should return OK");
+
+  ASSERT_EQ(result.shape.numOfDims, 1, "result should be 1D");
+  ASSERT_EQ(result.shape.dims[0], 1, "result size should be 1");
+
+  float *vals = (float *)result.values;
+  ASSERT_EQ((int)vals[0], 32, "1*4 + 2*5 + 3*6 = 32");
+
+  freeMemory(mem);
+}
+
+static void test_dot_larger_vectors(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {5};
+  float valsA[] = {1, 2, 3, 4, 5};
+  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 5);
+
+  dim_t dimsB[] = {5};
+  float valsB[] = {1, 1, 1, 1, 1};
+  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 5);
+
+  Tensor result;
+  Result r = Dot(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, OK, "Dot larger vectors should return OK");
+
+  float *vals = (float *)result.values;
+  ASSERT_EQ((int)vals[0], 15, "1+2+3+4+5 = 15");
+
+  freeMemory(mem);
+}
+
+static void test_dot_size_mismatch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {3};
+  float valsA[] = {1, 2, 3};
+  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
+
+  dim_t dimsB[] = {4};
+  float valsB[] = {1, 2, 3, 4};
+  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 4);
+
+  Tensor result;
+  Result r = Dot(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Dot with size mismatch should fail");
+
+  freeMemory(mem);
+}
+
+static void test_dot_dtype_mismatch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {3};
+  float valsA[] = {1, 2, 3};
+  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
+
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dimsA, .numOfDims = 1});
+
+  Tensor result;
+  Result r = Dot(&ctx, &a, b, &result);
+  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "Dot with dtype mismatch should fail");
+
+  freeMemory(mem);
+}
+
+static void test_dot_2d_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 3};
+  float valsA[] = {1, 2, 3, 4, 5, 6};
+  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
+
+  dim_t dimsB[] = {3};
+  float valsB[] = {1, 2, 3};
+  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
+
+  Tensor result;
+  Result r = Dot(&ctx, &a, &b, &result);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Dot with 2D tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_dot_integer_dtype_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {3};
+  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+
+  Tensor result;
+  Result r = Dot(&ctx, a, b, &result);
+  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "Dot with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -3096,4 +3213,11 @@ void run_tensor_tests(void) {
   test_matmul_inner_dim_mismatch();
   test_matmul_1d_rejected();
   test_matmul_integer_dtype_rejected();
+  // Dot tests
+  test_dot_basic();
+  test_dot_larger_vectors();
+  test_dot_size_mismatch();
+  test_dot_dtype_mismatch();
+  test_dot_2d_rejected();
+  test_dot_integer_dtype_rejected();
 }

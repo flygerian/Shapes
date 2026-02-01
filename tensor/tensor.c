@@ -884,8 +884,62 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     void *A_batch = (char*)opA->values + aIdx * (m * k) * elemSize;
     void *B_batch = (char*)opB->values + bIdx * (k * n) * elemSize;
     void *C_batch = (char*)result->values + i * (m * n) * elemSize;
+
     BLAS_GEMM(opA->dtype, A_batch, B_batch, C_batch, m, n, k);
   }
+
+  return OK;
+}
+
+Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
+  if (isInvalidTensor(a) || isInvalidTensor(b)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (a->shape.numOfDims != 1 || b->shape.numOfDims != 1) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (a->size != b->size) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (a->dtype != F32 && a->dtype != F64 && a->dtype != F16) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  Tensor *opA = a;
+  Tensor *opB = b;
+
+  if (!opA->isContigous) {
+    opA = copyToContiguous(ctx, opA);
+  }
+  if (!opB->isContigous) {
+    opB = copyToContiguous(ctx, opB);
+  }
+
+  dim_t *resDims = allocate(ctx->memory, sizeof(dim_t));
+  resDims[0] = 1;
+  multiplier_t *resMult = allocate(ctx->memory, sizeof(multiplier_t));
+  resMult[0] = 1;
+
+  void *resVal = allocate(ctx->memory, getBytesForDtype(a->dtype));
+
+  BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
+
+  *result = (Tensor) {
+    .dtype = a->dtype,
+    .isContigous = true,
+    .isView = false,
+    .boundary = NULL,
+    .size = 1,
+    .values = resVal,
+    .shape = (Dim){.dims = resDims, .numOfDims = 1, .multipliers = resMult}
+  };
 
   return OK;
 }
