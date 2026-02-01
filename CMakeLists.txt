@@ -33,6 +33,13 @@ target_include_directories(shapes_memory PUBLIC ${CMAKE_SOURCE_DIR})
 # Core library
 add_library(shapes_core
     tensor/tensor.c
+    tensor/binary_op.c
+    tensor/matrix_ops.c
+    tensor/shape_ops.c
+    tensor/access.c
+    tensor/reduction.c
+    tensor/creation.c
+    tensor/destruction.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB})
