@@ -1,6 +1,6 @@
-#include <string.h>
 #include "tensor_internal.h"
 #include "../memory.h"
+#include <string.h>
 
 Tensor* t_Zeros(Context *ctx, Dim shape, Dtype type) {
   Dim tShape = (Dim){.numOfDims=shape.numOfDims};

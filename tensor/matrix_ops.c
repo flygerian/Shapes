@@ -1,6 +1,7 @@
 #include "tensor_internal.h"
 #include "blas.h"
 #include "../memory.h"
+#include "value.h"
 
 static bool areBatchDimsBroadcastable(Tensor* a, Tensor* b) {
   u8 maxDims = a->shape.numOfDims > b->shape.numOfDims ? a->shape.numOfDims : b->shape.numOfDims;

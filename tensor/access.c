@@ -1,4 +1,5 @@
 #include "tensor_internal.h"
+#include "value.h"
 
 static bool isOutOfBounds(Tensor *t, Dim dim) {
   for (u8 i = 0; i < dim.numOfDims; i++) {

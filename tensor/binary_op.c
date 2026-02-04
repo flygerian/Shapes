@@ -1,14 +1,8 @@
+#include "common.h"
 #include "tensor_internal.h"
-#include "../memory.h"
+#include "value.h"
 
-typedef enum {
-  OP_ADD,
-  OP_SUBTRACT,
-  OP_MULTIPLY,
-  OP_DIVIDE
-} BinaryOpType;
-
-static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, BinaryOpType opType) {
+static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
   if (a->dtype != b->dtype) {
     return ERR_DTYPE_MISMATCH;
   }
@@ -72,6 +66,10 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   }
 
   *destination = *output;
+
+  if (ctx->grad) {
+    // construct backward
+  }
   return OK;
 }
 

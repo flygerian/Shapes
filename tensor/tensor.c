@@ -1,6 +1,7 @@
 #include <string.h>
 #include "tensor.h"
 #include "tensor_internal.h"
+#include "value.h"
 #include "../memory.h"
 
 u64 calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
@@ -165,5 +166,4 @@ Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t* result)
   *result = numElements;
   return OK;
 }
-
 

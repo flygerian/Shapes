@@ -1,38 +1,7 @@
 #ifndef shapes_value_h
 #define shapes_value_h
 
-#include "../common.h"
 #include <stddef.h>
-
-typedef enum {
-  F16, F32, F64, U8, U16, U32, U64
-} Dtype;
-
-static inline size_t getBytesForDtype(Dtype type) {
-  switch(type) {
-    case U8:  return sizeof(u8);
-    case U16: return sizeof(u16);
-    case U32: return sizeof(u32);
-    case U64: return sizeof(u64);
-    case F16:
-    case F32: return sizeof(float);
-    case F64: return sizeof(double);
-    default:  return 0;
-  }
-}
-
-typedef struct {
-  Dtype dtype;
-  union {
-    u8 u8;
-    u16 u16;
-    u32 u32;
-    u64 u64;
-    float f16;
-    float f32;
-    double f64;
-  } as;
-} Value;
 
 #define VALUE_SET(arr, idx, v) do { \
   switch ((v).dtype) { \

@@ -5,36 +5,9 @@
 #include <stdint.h>
 #include "../common.h"
 #include "../result/result.h"
-#include "value.h"
 
 #define MAX_SUM_N_DIMS 2
 #define MAX_PARALLEL_SUMS 4
-
-typedef u64 tensor_size_t;
-typedef u32 dim_t;
-typedef u8 multiplier_t;
-
-typedef struct {
-  dim_t *dims;
-  u8 numOfDims;
-
-  u8 *multipliers;
-} Dim;
-
-typedef struct {
-  u64 start;
-  u64 end;
-} Range;
-
-typedef struct {
-  Dtype dtype;
-  void *values;
-  tensor_size_t size;
-  Dim shape;
-  bool isView;
-  bool isContigous;
-  Range *boundary;
-} Tensor;
 
 // Binary Ops
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);

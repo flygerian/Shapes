@@ -1,5 +1,6 @@
 #include <string.h>
 #include "tensor_internal.h"
+#include "value.h"
 #include "../memory.h"
 
 static Result straightSum(Context *ctx, Tensor *t, Tensor* dest) {

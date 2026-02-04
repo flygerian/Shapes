@@ -32,6 +32,7 @@ target_include_directories(shapes_memory PUBLIC ${CMAKE_SOURCE_DIR})
 
 # Core library
 add_library(shapes_core
+    common.c
     tensor/tensor.c
     tensor/binary_op.c
     tensor/matrix_ops.c
