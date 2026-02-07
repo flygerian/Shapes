@@ -1,0 +1,48 @@
+---
+Language: C
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+IndentCaseLabels: true
+IndentGotoLabels: true
+
+# Line length
+ColumnLimit: 100
+
+# Braces (K&R / Attach style)
+BreakBeforeBraces: Attach
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: Consecutive
+AlignEscapedNewlines: Right
+AlignOperands: Align
+AlignTrailingComments: true
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+SpacesInParentheses: false
+
+# Single-line allowances
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Other
+SortIncludes: Never
+PointerAlignment: Right
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+InsertTrailingCommas: None
+MaxEmptyLinesToKeep: 2
+ReflowComments: true
+InsertBraces: false
+...

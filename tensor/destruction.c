@@ -2,10 +2,11 @@
 #include "../memory.h"
 
 Result FreeTensor(Context *ctx, Tensor *t) {
-  if (t == NULL) return ERR_NULL_TENSOR_PROVIDED;
+  if (t == NULL)
+    return ERR_NULL_TENSOR_PROVIDED;
 
   if (t->isView) {
-   return ERR_CANNOT_FREE_VIEW_TENSOR; 
+    return ERR_CANNOT_FREE_VIEW_TENSOR;
   }
 
   if (t->values != NULL) {

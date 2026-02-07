@@ -81,8 +81,7 @@ static void test_allocations_are_contiguous_at_end(void) {
   void *ptr1 = allocate(mem, size1);
   void *ptr2 = allocate(mem, size2);
 
-  uint8_t *end_of_first_block =
-      (uint8_t *)ptr1 + size1 + sizeof(blockfooter) + sizeof(blockheader);
+  uint8_t *end_of_first_block = (uint8_t *)ptr1 + size1 + sizeof(blockfooter) + sizeof(blockheader);
 
   ASSERT_EQ((uint8_t *)ptr2, end_of_first_block,
             "second allocation should be right after first block");
@@ -113,12 +112,10 @@ static void test_footer_constructed_correctly(void) {
   blockfooter *footer = (blockfooter *)((uint8_t *)ptr + size);
 
   size_t expected_offset = (uint8_t *)header - arena;
-  ASSERT_EQ(footer->headerOffset, expected_offset,
-            "footer headerOffset should point to header");
+  ASSERT_EQ(footer->headerOffset, expected_offset, "footer headerOffset should point to header");
 
   blockheader *header_from_footer = (blockheader *)(arena + footer->headerOffset);
-  ASSERT_EQ(header_from_footer, header,
-            "footer headerOffset should resolve back to header");
+  ASSERT_EQ(header_from_footer, header, "footer headerOffset should resolve back to header");
 
   freeMemory(mem);
 }
@@ -152,8 +149,7 @@ static void test_coalesce_backwards_merges_blocks(void) {
 
   freeAlloc(mem, ptr2);
 
-  size_t expected_merged_size =
-      size1 + sizeof(blockfooter) + sizeof(blockheader) + size2;
+  size_t expected_merged_size = size1 + sizeof(blockfooter) + sizeof(blockheader) + size2;
   ASSERT_EQ(header1->blockSize, expected_merged_size,
             "first block should grow to include second block");
   ASSERT_EQ(header1->free, true, "merged block should be free");
@@ -175,8 +171,7 @@ static void test_coalesce_backwards_updates_footer(void) {
   freeAlloc(mem, ptr1);
   freeAlloc(mem, ptr2);
 
-  blockfooter *merged_footer =
-      (blockfooter *)((uint8_t *)(header1 + 1) + header1->blockSize);
+  blockfooter *merged_footer = (blockfooter *)((uint8_t *)(header1 + 1) + header1->blockSize);
   size_t expected_offset = (uint8_t *)header1 - arena;
 
   ASSERT_EQ(merged_footer->headerOffset, expected_offset,

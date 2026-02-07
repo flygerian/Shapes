@@ -1,4 +1,6 @@
 #include "common.h"
+#include "result/result.h"
+#include "grad/grad.h"
 #include "tensor_internal.h"
 #include "value.h"
 
@@ -57,10 +59,10 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
 
     Value result;
     switch (opType) {
-      case OP_ADD:      VALUE_BINOP(result, aVal, bVal, +); break;
+      case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      case OP_DIVIDE:   VALUE_BINOP(result, aVal, bVal, /); break;
+      case OP_DIVIDE: VALUE_BINOP(result, aVal, bVal, /); break;
     }
     VALUE_SET(output->values, x, result);
   }
@@ -68,7 +70,7 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   *destination = *output;
 
   if (ctx->grad) {
-    // construct backward
+    ConstructBinopBackwardpass(ctx, opType, a, b, destination);
   }
   return OK;
 }

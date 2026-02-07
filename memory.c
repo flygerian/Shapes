@@ -11,7 +11,7 @@
 Memory *initializeMemory() {
   Memory *head;
   head = malloc(sizeof(Memory) + ALLOCATION); // return the top of the heap;
-                                                  // top of the heap
+                                              // top of the heap
   assert(head != NULL);
 
   head->capacity = ALLOCATION;
@@ -34,8 +34,7 @@ void *findAvailableSpace(Memory *memory, size_t size) {
       return (uint8_t *)(headerAtIdx + 1);
     }
 
-    size_t totalBlockSize =
-        sizeof(blockheader) + headerAtIdx->blockSize + sizeof(blockfooter);
+    size_t totalBlockSize = sizeof(blockheader) + headerAtIdx->blockSize + sizeof(blockfooter);
 
     if (memory->allocated <= (idxToCheck + totalBlockSize)) {
       return NULL;
@@ -73,20 +72,17 @@ void *allocate(Memory *memory, size_t size) {
   return blockToReturn;
 }
 
-void createFreeBlockFromLeftover(uint8_t *arena, blockheader *blockHeader,
-                                 size_t leftover) {
+void createFreeBlockFromLeftover(uint8_t *arena, blockheader *blockHeader, size_t leftover) {
   uint8_t *blockData = (uint8_t *)(blockHeader + 1);
 
   blockfooter *footer = (blockfooter *)(blockData + blockHeader->blockSize);
   footer->headerOffset = (uint8_t *)blockHeader - arena;
 
-  blockheader *splitHeader =
-      (blockheader *)((uint8_t *)footer + sizeof(blockfooter));
+  blockheader *splitHeader = (blockheader *)((uint8_t *)footer + sizeof(blockfooter));
   splitHeader->blockSize = leftover - sizeof(blockheader) - sizeof(blockfooter);
   splitHeader->free = true;
 
-  blockfooter *splitFooter =
-      (blockfooter *)((uint8_t *)(splitHeader + 1) + splitHeader->blockSize);
+  blockfooter *splitFooter = (blockfooter *)((uint8_t *)(splitHeader + 1) + splitHeader->blockSize);
   splitFooter->headerOffset = (uint8_t *)splitHeader - arena;
 }
 
@@ -106,8 +102,8 @@ void *findSpaceAtEndOfBlock(Memory *memory, blockheader *currentBlockHeader,
     return NULL;
   }
 
-  size_t mergedCapacity = oldSize + sizeof(blockfooter) + sizeof(blockheader) +
-                          nextBlock->blockSize;
+  size_t mergedCapacity =
+      oldSize + sizeof(blockfooter) + sizeof(blockheader) + nextBlock->blockSize;
 
   if (mergedCapacity < totalSpaceNeeded) {
     return NULL;
@@ -122,8 +118,7 @@ void *findSpaceAtEndOfBlock(Memory *memory, blockheader *currentBlockHeader,
   } else {
     currentBlockHeader->blockSize = mergedCapacity;
 
-    blockfooter *footer =
-        (blockfooter *)(currentBlock + currentBlockHeader->blockSize);
+    blockfooter *footer = (blockfooter *)(currentBlock + currentBlockHeader->blockSize);
     footer->headerOffset = (uint8_t *)currentBlockHeader - arena;
   }
 
@@ -147,8 +142,7 @@ void *reallocate(Memory *memory, void *ptr, size_t size) {
       return ptr;
     }
 
-    void *endOfBlockSpace =
-        findSpaceAtEndOfBlock(memory, memBlockHeader, size);
+    void *endOfBlockSpace = findSpaceAtEndOfBlock(memory, memBlockHeader, size);
     if (endOfBlockSpace != NULL) {
       return endOfBlockSpace;
     }
@@ -167,16 +161,14 @@ void coalesceBackwards(Memory *memory, blockheader *memBlockHeader) {
   size_t headerOffset = (uint8_t *)memBlockHeader - arena;
 
   if (headerOffset > 0) {
-    blockfooter *prevFooter =
-        (blockfooter *)((uint8_t *)memBlockHeader - sizeof(blockfooter));
+    blockfooter *prevFooter = (blockfooter *)((uint8_t *)memBlockHeader - sizeof(blockfooter));
     blockheader *prevHeader = (blockheader *)(arena + prevFooter->headerOffset);
 
     if (prevHeader->free) {
       prevHeader->blockSize +=
           sizeof(blockfooter) + sizeof(blockheader) + memBlockHeader->blockSize;
 
-      blockfooter *footer =
-          (blockfooter *)((uint8_t *)(prevHeader + 1) + prevHeader->blockSize);
+      blockfooter *footer = (blockfooter *)((uint8_t *)(prevHeader + 1) + prevHeader->blockSize);
       footer->headerOffset = (uint8_t *)prevHeader - arena;
     }
   }
@@ -193,4 +185,6 @@ void freeAlloc(Memory *memory, void *ptr) {
   coalesceBackwards(memory, memBlockHeader);
 }
 
-void freeMemory(Memory *memory) { free(memory); }
+void freeMemory(Memory *memory) {
+  free(memory);
+}

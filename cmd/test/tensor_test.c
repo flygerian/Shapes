@@ -42,6 +42,29 @@ static void test_zeros_values_are_zero(void) {
   freeMemory(tt.mem);
 }
 
+static void test_int_creates_tensor_with_value(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 5);
+
+  ASSERT_EQ(t->shape.numOfDims, 2, "tensor should have 2 dimensions");
+  ASSERT_EQ(t->dtype, U8, "T_Int should create U8 tensor");
+
+  u8 *values = (u8 *)t->values;
+  int all_match = 1;
+  for (u32 i = 0; i < 6; i++) {
+    if (values[i] != 5) {
+      all_match = 0;
+      break;
+    }
+  }
+  ASSERT(all_match, "all tensor values should be 5");
+
+  freeMemory(mem);
+}
+
 static void test_zeros_1d_tensor(void) {
   u32 dims[] = {5};
   TestTensor tt = createZerosTensor(dims, 1);
@@ -74,7 +97,7 @@ static void test_zeros_3d_tensor(void) {
 
 // For shape [rows, cols], multipliers should be [cols, 1]
 static void test_multipliers_2d_tensor(void) {
-  u32 dims[] = {3, 4};  // 3 rows, 4 cols
+  u32 dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -86,7 +109,7 @@ static void test_multipliers_2d_tensor(void) {
 
 // For shape [d0, d1, d2], multipliers should be [d1*d2, d2, 1]
 static void test_multipliers_3d_tensor(void) {
-  u32 dims[] = {2, 3, 4};  // shape: 2x3x4
+  u32 dims[] = {2, 3, 4}; // shape: 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -99,7 +122,7 @@ static void test_multipliers_3d_tensor(void) {
 
 // For shape [d0, d1, d2, d3], multipliers should be [d1*d2*d3, d2*d3, d3, 1]
 static void test_multipliers_4d_tensor(void) {
-  u32 dims[] = {2, 3, 4, 5};  // shape: 2x3x4x5
+  u32 dims[] = {2, 3, 4, 5}; // shape: 2x3x4x5
   TestTensor tt = createZerosTensor(dims, 4);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -169,7 +192,7 @@ static void test_assign_value_out_of_bounds(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {3, 0};  // 3 >= 3, out of bounds
+  u32 idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U8, .as.u8 = 10};
 
@@ -194,7 +217,7 @@ static void test_assign_value_null_tensor(void) {
 }
 
 static void test_assign_value_only_modifies_target_index(void) {
-  u32 dims[] = {3, 4};  // 12 elements
+  u32 dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -205,7 +228,7 @@ static void test_assign_value_only_modifies_target_index(void) {
   AssignValueAt(&ctx, &tt.tensor, idx, val);
 
   u8 *values = (u8 *)tt.tensor.values;
-  int target_idx = 1 * 4 + 2;  // = 6
+  int target_idx = 1 * 4 + 2; // = 6
 
   int only_target_modified = 1;
   for (int i = 0; i < 12; i++) {
@@ -227,7 +250,7 @@ static void test_assign_value_only_modifies_target_index(void) {
 }
 
 static void test_assign_value_multiple_indices(void) {
-  u32 dims[] = {2, 3};  // 6 elements
+  u32 dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -236,9 +259,12 @@ static void test_assign_value_multiple_indices(void) {
   u32 idx1[] = {0, 2};
   u32 idx2[] = {1, 1};
 
-  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 10});
-  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 20});
-  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2}, (Value){.dtype = U8, .as.u8 = 30});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2},
+                (Value){.dtype = U8, .as.u8 = 10});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2},
+                (Value){.dtype = U8, .as.u8 = 20});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2},
+                (Value){.dtype = U8, .as.u8 = 30});
 
   u8 *values = (u8 *)tt.tensor.values;
   ASSERT_EQ(values[0 * 3 + 0], 10, "[0,0] should be 10");
@@ -290,7 +316,7 @@ static void test_get_at_out_of_bounds(void) {
   u32 dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  u32 idx_dims[] = {0, 5};  // 5 >= 4, out of bounds
+  u32 idx_dims[] = {0, 5}; // 5 >= 4, out of bounds
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value result;
 
@@ -339,7 +365,8 @@ static void test_slice_basic_2d(void) {
   }
 
   Tensor slice;
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
   ASSERT_EQ(r, OK, "Slice should return OK");
   ASSERT(slice.isView, "slice should be a view");
   ASSERT_EQ(slice.shape.numOfDims, 2, "slice should have 2 dimensions");
@@ -361,7 +388,8 @@ static void test_slice_shares_data_with_source(void) {
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
   Tensor slice;
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_EQ(r, OK, "Slice should return OK");
   ASSERT_EQ(slice.values, tt.tensor.values, "slice should share values pointer with source");
 
@@ -384,7 +412,8 @@ static void test_slice_get_at_correct_values(void) {
   }
 
   Tensor slice;
-  // Slice rows 1-3 (exclusive), cols 2-5 (exclusive) -> should get [1,2], [1,3], [1,4], [2,2], [2,3], [2,4]
+  // Slice rows 1-3 (exclusive), cols 2-5 (exclusive) -> should get [1,2], [1,3], [1,4], [2,2],
+  // [2,3], [2,4]
   Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
@@ -410,7 +439,8 @@ static void test_slice_invalid_range_end_before_start(void) {
   Context ctx = {.memory = mem};
 
   Tensor slice;
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 1}, (Range){.start = 0, .end = 4});
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 1}, (Range){.start = 0, .end = 4});
   ASSERT_EQ(r, ERR_INVALID_RANGE, "should return ERR_INVALID_RANGE when end < start");
 
   freeMemory(mem);
@@ -424,7 +454,8 @@ static void test_slice_range_out_of_bounds(void) {
 
   Tensor slice;
   // Range end exceeds dim size (5 > 4 for first dim)
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 4});
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 4});
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH when range exceeds bounds");
 
   freeMemory(mem);
@@ -443,7 +474,8 @@ static void test_slice_single_element_range(void) {
 
   Tensor slice;
   // Single element slice at [2,3] (exclusive end: 2:3 gives 1 element, 3:4 gives 1 element)
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
   ASSERT_EQ(r, OK, "single element slice should return OK");
   ASSERT_EQ(slice.shape.dims[0], 1, "slice dim[0] should be 1");
   ASSERT_EQ(slice.shape.dims[1], 1, "slice dim[1] should be 1");
@@ -464,7 +496,8 @@ static void test_slice_full_range(void) {
 
   Tensor slice;
   // Full range slice (exclusive end: 0:3 gives 3 elements, 0:4 gives 4 elements)
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_EQ(r, OK, "full range slice should return OK");
   ASSERT_EQ(slice.shape.dims[0], 3, "slice dim[0] should match source");
   ASSERT_EQ(slice.shape.dims[1], 4, "slice dim[1] should match source");
@@ -549,7 +582,8 @@ static void test_slice_of_slice(void) {
   // Second slice of first slice: rows 1-3 (exclusive), cols 1-3 (exclusive) -> 2x2 region
   // This maps to source rows 2-3, cols 2-3
   Tensor slice2;
-  Result r = Slice(&ctx, &slice1, &slice2, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  Result r =
+      Slice(&ctx, &slice1, &slice2, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
   ASSERT_EQ(r, OK, "slice of slice should return OK");
   ASSERT_EQ(slice2.shape.dims[0], 2, "nested slice dim[0] should be 2");
   ASSERT_EQ(slice2.shape.dims[1], 2, "nested slice dim[1] should be 2");
@@ -564,7 +598,7 @@ static void test_slice_of_slice(void) {
 }
 
 static void test_slice_large_4d_tensor(void) {
-  u32 dims[] = {8, 10, 12, 6};  // 8x10x12x6 = 5760 elements
+  u32 dims[] = {8, 10, 12, 6}; // 8x10x12x6 = 5760 elements
   TestTensor tt = createZerosTensor(dims, 4);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -585,12 +619,10 @@ static void test_slice_large_4d_tensor(void) {
 
   Tensor slice;
   // Slice: [2:6, 3:8, 4:10, 1:5] (exclusive) -> 4x5x6x4 = 480 elements
-  Result r = Slice(&ctx, &tt.tensor, &slice,
-    (Range){.start = 2, .end = 6},
-    (Range){.start = 3, .end = 8},
-    (Range){.start = 4, .end = 10},
-    (Range){.start = 1, .end = 5});
-  
+  Result r =
+      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8},
+            (Range){.start = 4, .end = 10}, (Range){.start = 1, .end = 5});
+
   ASSERT_EQ(r, OK, "4D slice should return OK");
   ASSERT_EQ(slice.shape.dims[0], 4, "4D slice dim[0] should be 4");
   ASSERT_EQ(slice.shape.dims[1], 5, "4D slice dim[1] should be 5");
@@ -624,7 +656,7 @@ static void test_slice_large_4d_tensor(void) {
         for (u32 l = 0; l < 4 && all_correct; l++) {
           u32 s_idx[] = {i, j, k, l};
           GetAt(&slice, (Dim){.dims = s_idx, .numOfDims = 4}, &result);
-          
+
           u32 src_i = i + 2, src_j = j + 3, src_k = k + 4, src_l = l + 1;
           u8 exp = (u8)((src_i * 10 * 12 * 6 + src_j * 12 * 6 + src_k * 6 + src_l) % 256);
           if (result.as.u8 != exp) {
@@ -641,7 +673,7 @@ static void test_slice_large_4d_tensor(void) {
 
 // Reshape tests
 static void test_reshape_basic_2d_to_1d(void) {
-  u32 dims[] = {3, 4};  // 12 elements
+  u32 dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -678,7 +710,7 @@ static void test_reshape_1d_to_2d(void) {
 }
 
 static void test_reshape_preserves_data(void) {
-  u32 dims[] = {2, 3};  // 6 elements
+  u32 dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -737,17 +769,18 @@ static void test_reshape_shares_data_with_source(void) {
 }
 
 static void test_reshape_invalid_size_mismatch(void) {
-  u32 dims[] = {3, 4};  // 12 elements
+  u32 dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 new_dims[] = {10};  // 10 != 12
+  u32 new_dims[] = {10}; // 10 != 12
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
   Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, ERR_RESHAPE_DIM_MISMATCH, "should return ERR_RESHAPE_DIM_MISMATCH for size mismatch");
+  ASSERT_EQ(r, ERR_RESHAPE_DIM_MISMATCH,
+            "should return ERR_RESHAPE_DIM_MISMATCH for size mismatch");
 
   freeMemory(mem);
 }
@@ -776,13 +809,14 @@ static void test_reshape_null_shape(void) {
 
   Tensor reshaped;
   Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, ERR_NULL_SHAPE_PROVIDED, "should return ERR_NULL_SHAPE_PROVIDED for null shape dims");
+  ASSERT_EQ(r, ERR_NULL_SHAPE_PROVIDED,
+            "should return ERR_NULL_SHAPE_PROVIDED for null shape dims");
 
   freeMemory(mem);
 }
 
 static void test_reshape_3d_to_2d(void) {
-  u32 dims[] = {2, 3, 4};  // 24 elements
+  u32 dims[] = {2, 3, 4}; // 24 elements
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -821,7 +855,7 @@ static void test_reshape_3d_to_2d(void) {
 }
 
 static void test_reshape_view(void) {
-  u32 dims[] = {6, 6};  // 36 elements
+  u32 dims[] = {6, 6}; // 36 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -854,7 +888,7 @@ static void test_reshape_view(void) {
 }
 
 static void test_reshape_3d_view(void) {
-  u32 dims[] = {4, 5, 6};  // 120 elements
+  u32 dims[] = {4, 5, 6}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -872,10 +906,8 @@ static void test_reshape_3d_view(void) {
 
   // Slice: [1:3, 0:5, 0:6] (exclusive) -> 2x5x6 = 60 elements
   Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice,
-    (Range){.start = 1, .end = 3},
-    (Range){.start = 0, .end = 5},
-    (Range){.start = 0, .end = 6});
+  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5},
+        (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice.shape.dims[0], 2, "3D slice dim[0] should be 2");
   ASSERT_EQ(slice.shape.dims[1], 5, "3D slice dim[1] should be 5");
@@ -902,7 +934,7 @@ static void test_reshape_3d_view(void) {
 }
 
 static void test_reshape_4d_view(void) {
-  u32 dims[] = {3, 4, 5, 6};  // 360 elements
+  u32 dims[] = {3, 4, 5, 6}; // 360 elements
   TestTensor tt = createZerosTensor(dims, 4);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -923,11 +955,8 @@ static void test_reshape_4d_view(void) {
 
   // Slice: [0:2, 1:4, 0:5, 0:6] (exclusive) -> 2x3x5x6 = 180 elements
   Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice,
-    (Range){.start = 0, .end = 2},
-    (Range){.start = 1, .end = 4},
-    (Range){.start = 0, .end = 5},
-    (Range){.start = 0, .end = 6});
+  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4},
+        (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice.shape.dims[0], 2, "4D slice dim[0] should be 2");
   ASSERT_EQ(slice.shape.dims[1], 3, "4D slice dim[1] should be 3");
@@ -951,7 +980,7 @@ static void test_reshape_4d_view(void) {
 }
 
 static void test_reshape_4d_view_to_1d(void) {
-  u32 dims[] = {2, 3, 4, 5};  // 120 elements
+  u32 dims[] = {2, 3, 4, 5}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 4);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -972,11 +1001,8 @@ static void test_reshape_4d_view_to_1d(void) {
 
   // Slice: [0:1, 0:3, 0:4, 0:5] (exclusive) -> 1x3x4x5 = 60 elements
   Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice,
-    (Range){.start = 0, .end = 1},
-    (Range){.start = 0, .end = 3},
-    (Range){.start = 0, .end = 4},
-    (Range){.start = 0, .end = 5});
+  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3},
+        (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
 
   // Reshape to 1D: 60 elements
   u32 new_dims[] = {60};
@@ -998,7 +1024,7 @@ static void test_reshape_4d_view_to_1d(void) {
 }
 
 static void test_reshape_then_access_elements(void) {
-  u32 dims[] = {2, 2, 3};  // 12 elements
+  u32 dims[] = {2, 2, 3}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1045,7 +1071,7 @@ static void test_reshape_then_access_elements(void) {
 
 // Transpose tests
 static void test_transpose_basic_2d(void) {
-  u32 dims[] = {3, 4};  // 3 rows, 4 cols
+  u32 dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1177,7 +1203,7 @@ static void test_transpose_size_less_than_2(void) {
 }
 
 static void test_transpose_3d(void) {
-  u32 dims[] = {2, 3, 4};  // 2x3x4
+  u32 dims[] = {2, 3, 4}; // 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1243,7 +1269,7 @@ static void test_reshape_after_transpose_copies(void) {
   Tensor reshaped;
   Result r = Reshape(&ctx, &transposed, &reshaped, newShape);
   ASSERT_EQ(r, OK, "Reshape after transpose should return OK");
-  ASSERT(!reshaped.isContigous || reshaped.values != transposed.values, 
+  ASSERT(!reshaped.isContigous || reshaped.values != transposed.values,
          "reshape should copy non-contiguous data");
 
   // Verify data is correctly copied in transposed order
@@ -1311,7 +1337,7 @@ static void test_add_dtype_mismatch(void) {
   u32 dims[] = {2, 2};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  b->dtype = U32;  // Force dtype mismatch
+  b->dtype = U32; // Force dtype mismatch
   Tensor dest;
 
   Result r = Add(&ctx, a, b, &dest);
@@ -2748,7 +2774,7 @@ static void test_slice_boundary_access(void) {
 
   // Test all 4 corners of the slice
   Value result;
-  
+
   // Top-left: slice[0,0] = source[2,1] = 11
   u32 tl[] = {0, 0};
   GetAt(&slice, (Dim){.dims = tl, .numOfDims = 2}, &result);
@@ -2772,7 +2798,8 @@ static void test_slice_boundary_access(void) {
   freeMemory(mem);
 }
 
-static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values, tensor_size_t size) {
+static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values,
+                              tensor_size_t size) {
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
   tensor_size_t mult = 1;
   for (int i = numOfDims - 1; i >= 0; i--) {
@@ -2783,15 +2810,13 @@ static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *va
   float *vals = allocate(ctx->memory, sizeof(float) * size);
   memcpy(vals, values, sizeof(float) * size);
 
-  return (Tensor) {
-    .dtype = F32,
-    .size = size,
-    .isContigous = true,
-    .isView = false,
-    .boundary = NULL,
-    .values = vals,
-    .shape = (Dim){.dims = dims, .numOfDims = numOfDims, .multipliers = multipliers}
-  };
+  return (Tensor){.dtype = F32,
+                  .size = size,
+                  .isContigous = true,
+                  .isView = false,
+                  .boundary = NULL,
+                  .values = vals,
+                  .shape = (Dim){.dims = dims, .numOfDims = numOfDims, .multipliers = multipliers}};
 }
 
 static void test_matmul_2d_basic(void) {
@@ -3096,6 +3121,7 @@ void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
   test_zeros_values_are_zero();
+  test_int_creates_tensor_with_value();
   test_zeros_1d_tensor();
   test_zeros_3d_tensor();
   test_multipliers_2d_tensor();

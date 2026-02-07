@@ -1,5 +1,10 @@
 #include "../../tensor/tensor.h"
+#include "common.h"
+#include <stdbool.h>
 #include <stdio.h>
+#include <termios.h>
+#include "memory.h"
+#include "visual/visual.h"
 
 void showcase(Context *ctx) {
 
@@ -12,7 +17,7 @@ void showcase(Context *ctx) {
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
       u32 idx[] = {i, j};
-      AssignValueAt(ctx, t, (Dim){.dims = idx, .numOfDims = 2}, 
+      AssignValueAt(ctx, t, (Dim){.dims = idx, .numOfDims = 2},
                     (Value){.dtype = U8, .as.u8 = (u8)(i * 4 + j)});
     }
   }
@@ -210,35 +215,52 @@ void showcase(Context *ctx) {
       GetAt(&broadcast_sum, (Dim){.dims = idx, .numOfDims = 2}, &v);
       printf("%3d ", v.as.u8);
     }
+
     printf("\n");
   }
-
 }
 
 int main(int argc, char *argv[]) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  Context ctx = {.memory = mem, .grad = true, .screenConfig = allocate(mem, sizeof(ScreenConfig))};
+  ctx.screenConfig->orig_termios = allocate(mem, sizeof(struct termios));
 
-  Tensor t;
-  dim_t newTensorDims[] = { 5, 7, 4, 5};
-  Dim newTensorShape = {.numOfDims=4, .dims=newTensorDims };
+  EnableRawMode(&ctx);
 
-  Tensor *original = T_Zeros(&ctx, newTensorShape);
-  Tensor sliced;
+  dim_t shape[1] = {1};
 
-  // Slice (:, :, 0:2)
-  Slice(
-      &ctx, 
-      original, 
-      &sliced, 
-      (Range) {.start=0, .end=4}, // dim 0
-      (Range) {.start=0, .end=6}, // dim 1
-      (Range) {.start=0, .end=2}, // dim 2
-      (Range) {.start=0, .end=4} // dim 2
-  );
+  Dim tDim = {.dims = shape, .numOfDims = 1};
 
-  printf("Tensor has %d dims\n", sliced.shape.numOfDims);
+  Tensor *a = T_Int(&ctx, tDim, 2);
+  Tensor *b = T_Int(&ctx, tDim, -3);
+  Tensor *c = T_Int(&ctx, tDim, 10);
 
+  Tensor e;
+  Multiply(&ctx, a, b, &e);
+
+  Tensor d;
+
+  Add(&ctx, &e, c, &d);
+
+  PrintItem(&d);
+
+  printf("d inputs are ");
+
+  PrintItem(d.computation->inputs[0]);
+
+  printf(" and ");
+
+  PrintItem(d.computation->inputs[1]);
+
+  ClearScreen(&ctx);
+
+  Box valueBox = {.x = 0, .y = 5, .width = 20, .height = 5, .text = GetItem(&ctx, &d)};
+
+  DrawBox(&ctx, &valueBox);
+
+  printf("\033[%d;%dH", 20, 0);
+
+  DisableRawMode(&ctx);
   freeMemory(ctx.memory);
   return 0;
 }

@@ -9,7 +9,7 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
   va_list args;
   va_start(args, dest);
 
-  for(u8 x=0; x < source->shape.numOfDims; x++) {
+  for (u8 x = 0; x < source->shape.numOfDims; x++) {
     ranges[x] = va_arg(args, Range);
 
     if (ranges[x].end < ranges[x].start) {
@@ -17,38 +17,42 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
       return ERR_INVALID_RANGE;
     }
 
-    if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 || ranges[x].end > source->shape.dims[x]) {
+    if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 ||
+        ranges[x].end > source->shape.dims[x]) {
       va_end(args);
       return ERR_DIM_MISMATCH;
     }
   }
   va_end(args);
 
-  Dim newShape = {.dims=allocate(ctx->memory, sizeof(Dim)* source->shape.numOfDims), .numOfDims=source->shape.numOfDims, .multipliers=source->shape.multipliers}; 
+  Dim newShape = {.dims = allocate(ctx->memory, sizeof(Dim) * source->shape.numOfDims),
+                  .numOfDims = source->shape.numOfDims,
+                  .multipliers = source->shape.multipliers};
   Range *boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
 
-  for(u8 x=0; x < source->shape.numOfDims; x++) {
+  for (u8 x = 0; x < source->shape.numOfDims; x++) {
     Range r = ranges[x];
     u32 dimsize = (r.end - r.start);
     newShape.dims[x] = dimsize;
 
     if (source->isView) {
-      boundary[x] = (Range) {.start=source->boundary->start + ranges[x].start, .end=source->boundary->start + ranges[x].end };
+      boundary[x] = (Range){.start = source->boundary->start + ranges[x].start,
+                            .end = source->boundary->start + ranges[x].end};
     } else {
       boundary[x] = ranges[x];
     }
   }
-  
+
   tensor_size_t size = calculateNumValuesAndMultipliers(newShape, NULL);
-  *dest = ((Tensor) {
-      .isView = true, 
-      .values=source->values, 
-      .shape=newShape, 
-      .dtype=source->dtype, 
-      .boundary=boundary, 
-      .size=size,
-      .isContigous=false,
-    });
+  *dest = ((Tensor){
+      .isView = true,
+      .values = source->values,
+      .shape = newShape,
+      .dtype = source->dtype,
+      .boundary = boundary,
+      .size = size,
+      .isContigous = false,
+  });
 
   return OK;
 }
@@ -62,7 +66,7 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     return ERR_NULL_SHAPE_PROVIDED;
   }
 
-  u8* multipliers = allocate(ctx->memory, sizeof(u8) * newShape.numOfDims);
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * newShape.numOfDims);
   tensor_size_t proposedSize = calculateNumValuesAndMultipliers(newShape, multipliers);
 
   if (proposedSize != source->size) {
@@ -82,8 +86,14 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     values = source->values;
   }
 
-  *dest = ((Tensor) {.isView = isView, .values = values, .dtype = source->dtype, .boundary = boundary, .size = source->size, .isContigous = true});
-  dest->shape = (Dim) {.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = multipliers};
+  *dest = ((Tensor){.isView = isView,
+                    .values = values,
+                    .dtype = source->dtype,
+                    .boundary = boundary,
+                    .size = source->size,
+                    .isContigous = true});
+  dest->shape =
+      (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = multipliers};
   return OK;
 }
 
@@ -98,7 +108,7 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   if (source->size < 2) {
     return ERR_NO_OP;
   }
-  
+
   va_list args;
   va_start(args, dest);
 
@@ -110,30 +120,31 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   if (transposeDims[0] >= source->shape.numOfDims || transposeDims[1] >= source->shape.numOfDims) {
     return ERR_DIM_MISMATCH;
   }
-  
+
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
- 
+
   dim_t temp = newDims[transposeDims[0]];
   newDims[transposeDims[0]] = newDims[transposeDims[1]];
   newDims[transposeDims[1]] = temp;
 
-  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  multiplier_t *newMultipliers =
+      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
   multiplier_t tempMultiplier = newMultipliers[transposeDims[0]];
   newMultipliers[transposeDims[0]] = newMultipliers[transposeDims[1]];
   newMultipliers[transposeDims[1]] = tempMultiplier;
 
-  *dest = (Tensor) {
-    .dtype  =source->dtype,
-    .values =source->values,
-    .size = source->size,
-    .isView = true,
-    .isContigous = false,
-    .shape = {.dims=newDims, .numOfDims=source->shape.numOfDims, .multipliers=newMultipliers},
-    .boundary=source->boundary
-  };
+  *dest = (Tensor){.dtype = source->dtype,
+                   .values = source->values,
+                   .size = source->size,
+                   .isView = true,
+                   .isContigous = false,
+                   .shape = {.dims = newDims,
+                             .numOfDims = source->shape.numOfDims,
+                             .multipliers = newMultipliers},
+                   .boundary = source->boundary};
 
   return OK;
 }
@@ -182,19 +193,14 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
   calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims}, newMultipliers);
 
-  *dest = (Tensor) {
-    .dtype = t->dtype,
-    .values = t->values,
-    .size = t->size,
-    .isContigous = t->isContigous,
-    .isView = true,
-    .boundary = t->boundary,
-    .shape = {
-      .dims = newDims,
-      .numOfDims = newNumDims,
-      .multipliers = newMultipliers
-    }
-  };
+  *dest =
+      (Tensor){.dtype = t->dtype,
+               .values = t->values,
+               .size = t->size,
+               .isContigous = t->isContigous,
+               .isView = true,
+               .boundary = t->boundary,
+               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
 
   return OK;
 }
@@ -217,7 +223,7 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
       newDims[i] = t->shape.dims[i];
       newMultipliers[i] = t->shape.multipliers[i];
       continue;
-    } 
+    }
 
     if (i == dim) {
       newDims[i] = 1;
@@ -233,21 +239,14 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     newMultipliers[i] = t->shape.multipliers[i - 1];
   }
 
-  *dest = (Tensor) {
-    .dtype = t->dtype,
-    .values = t->values,
-    .size = t->size,
-    .isContigous = t->isContigous,
-    .isView = true,
-    .boundary = t->boundary,
-    .shape = {
-      .dims = newDims,
-      .numOfDims = newNumDims,
-      .multipliers = newMultipliers
-    }
-  };
+  *dest =
+      (Tensor){.dtype = t->dtype,
+               .values = t->values,
+               .size = t->size,
+               .isContigous = t->isContigous,
+               .isView = true,
+               .boundary = t->boundary,
+               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
 
   return OK;
 }
-
-

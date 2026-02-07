@@ -4,12 +4,20 @@
 #include "memory.h"
 #include "result/result.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <termios.h>
+#include <time.h>
 
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
 
 typedef u64 tensor_size_t;
 typedef u32 dim_t;
@@ -29,9 +37,7 @@ typedef struct {
   u64 end;
 } Range;
 
-typedef enum {
-  F16, F32, F64, U8, U16, U32, U64
-} Dtype;
+typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64 } Dtype;
 
 typedef struct {
   Dtype dtype;
@@ -40,6 +46,12 @@ typedef struct {
     u16 u16;
     u32 u32;
     u64 u64;
+
+    i8 i8;
+    i16 i16;
+    i32 i32;
+    i64 i64;
+
     float f16;
     float f32;
     double f64;
@@ -54,22 +66,30 @@ typedef struct {
   bool isView;
   bool isContigous;
   Range *boundary;
+  struct GraphNode *computation;
 } Tensor;
 
+
+typedef struct ScreenConfig {
+  int cx, cy;
+  int rx;
+  int screenrows;
+  int screencols;
+  int numrows;
+  int rowoff;
+  int coloff;
+  struct termios *orig_termios;
+} ScreenConfig;
+
 typedef struct Context {
- Memory *memory;  
- bool grad;
- struct GraphNode *computationGraph;
+  Memory *memory;
+  bool grad;
+  ScreenConfig *screenConfig;
 } Context;
 
-typedef Result (*BackwardFn)(struct Context*, struct GraphNode*);
+typedef Result (*BackwardFn)(struct Context *, struct GraphNode *);
 
-typedef enum {
-  OP_ADD,
-  OP_SUBTRACT,
-  OP_MULTIPLY,
-  OP_DIVIDE
-} OpType;
+typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_DIVIDE } OpType;
 
 typedef struct GraphNode {
   Tensor *output;
@@ -79,7 +99,6 @@ typedef struct GraphNode {
   BackwardFn backward;
   OpType optype;
 } GraphNode;
-
 
 size_t getBytesForDtype(Dtype type);
 

@@ -1,0 +1,26 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-reserved-identifier,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  misc-redundant-expression,
+  misc-unused-parameters,
+  readability-braces-around-statements,
+  readability-inconsistent-declaration-parameter-name,
+  readability-misleading-indentation,
+  readability-redundant-preprocessor,
+
+WarningsAsErrors: ''
+
+HeaderFilterRegex: '^(?!.*OpenBLAS).*'
+
+CheckOptions:
+  - key: bugprone-assert-side-effect.AssertMacros
+    value: 'ASSERT,ASSERT_EQ,ASSERT_NEQ,ASSERT_NULL,ASSERT_NOT_NULL'
+
+FormatStyle: file
+...
