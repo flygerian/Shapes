@@ -242,23 +242,7 @@ int main(int argc, char *argv[]) {
 
   Add(&ctx, &e, c, &d);
 
-  PrintItem(&d);
-
-  printf("d inputs are ");
-
-  PrintItem(d.computation->inputs[0]);
-
-  printf(" and ");
-
-  PrintItem(d.computation->inputs[1]);
-
-  ClearScreen(&ctx);
-
-  Box valueBox = {.x = 0, .y = 5, .width = 20, .height = 5, .text = GetItem(&ctx, &d)};
-
-  DrawBox(&ctx, &valueBox);
-
-  printf("\033[%d;%dH", 20, 0);
+  VisualizeOps(&ctx, &d);
 
   DisableRawMode(&ctx);
   freeMemory(ctx.memory);
