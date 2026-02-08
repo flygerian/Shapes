@@ -53,10 +53,12 @@ add_library(shapes_core
     tensor/creation.c
     tensor/destruction.c
     grad/binary_op_backwards.c
+    grad/activation_backward.c
     visual/visual.c
+    activation/activation.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB})
+target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} m)
 
 # Main executable
 add_executable(shapes
@@ -69,6 +71,8 @@ add_executable(shapes_test
     cmd/test/main.c
     cmd/test/memory_test.c
     cmd/test/tensor_test.c
+    cmd/test/activation_test.c
+    cmd/test/grad_test.c
 )
 target_link_libraries(shapes_test shapes_core)
 

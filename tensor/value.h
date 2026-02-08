@@ -1,6 +1,7 @@
 #ifndef shapes_value_h
 #define shapes_value_h
 
+#include "common.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -120,5 +121,8 @@
       case F64: snprintf(dest, size, "%f", (double)(v).as.f64); break;                             \
     }                                                                                              \
   } while (0)
+
+static dim_t idx_zero[] = {0};
+#define DIM_ZERO ((Dim){.dims = idx_zero, .numOfDims = 1})
 
 #endif

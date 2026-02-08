@@ -95,7 +95,7 @@ typedef struct Context {
 
 typedef Result (*BackwardFn)(struct Context *, struct GraphNode *);
 
-typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_DIVIDE } OpType;
+typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_DIVIDE, OP_TANH } OpType;
 
 typedef struct GraphNode {
   Tensor *output;
@@ -107,5 +107,8 @@ typedef struct GraphNode {
 } GraphNode;
 
 size_t getBytesForDtype(Dtype type);
+
+
+Context NoGradContext(Context *ctx);
 
 #endif

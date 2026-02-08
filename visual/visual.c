@@ -135,6 +135,7 @@ static const char *opName(OpType op) {
     case OP_SUBTRACT: return "-";
     case OP_MULTIPLY: return "*";
     case OP_DIVIDE: return "/";
+    case OP_TANH: return "tanh";
     default: return "?";
   }
 }

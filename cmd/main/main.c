@@ -1,9 +1,11 @@
 #include "../../tensor/tensor.h"
+#include "activation/activation.h"
 #include "common.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <termios.h>
 #include "memory.h"
+#include "tensor/value.h"
 #include "visual/visual.h"
 
 void showcase(Context *ctx) {
@@ -220,15 +222,10 @@ void showcase(Context *ctx) {
   }
 }
 
-int main(int argc, char *argv[]) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true, .screenConfig = allocate(mem, sizeof(ScreenConfig))};
-  ctx.screenConfig->orig_termios = allocate(mem, sizeof(struct termios));
-
+void tensorExp(Context ctx) {
   EnableRawMode(&ctx);
 
   dim_t shape[1] = {1};
-
   Dim tDim = {.dims = shape, .numOfDims = 1};
 
   Tensor *a = T_Float(&ctx, tDim, 2);
@@ -253,7 +250,63 @@ int main(int argc, char *argv[]) {
   Multiply(&ctx, &d, f, &L);
   L.label = "L";
 
+  SetValues(L.computation->grad, VALUE(L.dtype, 1.0));
+
+  Value dL_dd;
+  GetAt(f, DIM_ZERO, &dL_dd);
+  SetValues(d.computation->grad, dL_dd);
+
+  Value dL_df;
+  GetAt(&d, DIM_ZERO, &dL_df);
+  SetValues(f->computation->grad, dL_df);
+
   VisualizeOps(&ctx, &L);
+}
+
+int main(int argc, char *argv[]) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem, .grad = true, .screenConfig = allocate(mem, sizeof(ScreenConfig))};
+  ctx.screenConfig->orig_termios = allocate(mem, sizeof(struct termios));
+
+  EnableRawMode(&ctx);
+
+  dim_t shape[1] = {1};
+  Dim tDim = {.dims = shape, .numOfDims = 1};
+
+  Tensor *x1 = T_Float(&ctx, tDim, 2.0);
+  x1->label = "x1";
+  Tensor *x2 = T_Float(&ctx, tDim, 0.0);
+  x2->label = "x2";
+
+  Tensor *w1 = T_Float(&ctx, tDim, -3.0);
+  w1->label = "w1";
+  Tensor *w2 = T_Float(&ctx, tDim, 1.0);
+  w2->label = "w2";
+
+  Tensor *b = T_Float(&ctx, tDim, 6.8813735870195432);
+  b->label = "b";
+
+  Tensor x1w1;
+  Multiply(&ctx, x1, w1, &x1w1);
+  x1w1.label = "x1w1";
+
+  Tensor x2w2;
+  Multiply(&ctx, x2, w2, &x2w2);
+  x2w2.label = "x2w2";
+
+  Tensor x1w1x2w2;
+  Add(&ctx, &x1w1, &x2w2, &x1w1x2w2);
+  x1w1x2w2.label = "x1x1 + x2w2";
+
+  Tensor n;
+  Add(&ctx, &x1w1x2w2, b, &n);
+  n.label = "n";
+
+  Tensor o;
+  Tanh(&ctx, &n, &o);
+  o.label = "o";
+
+  VisualizeOps(&ctx, &o);
 
   DisableRawMode(&ctx);
   freeMemory(ctx.memory);

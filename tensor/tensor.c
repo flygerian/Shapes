@@ -24,7 +24,7 @@ char *GetItem(Context *ctx, Tensor *t) {
   Value val;
   GetAt(t, zeroIdx, &val);
 
-  size_t size = sizeof(char) * 3;
+  size_t size = sizeof(char) * 32;
   char *valueStr = allocate(ctx->memory, size);
   VALUE_TO_STRING(val, valueStr, size);
 

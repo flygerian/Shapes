@@ -1,4 +1,5 @@
 #include "common.h"
+#include <stdbool.h>
 
 size_t getBytesForDtype(Dtype type) {
   switch (type) {
@@ -15,4 +16,9 @@ size_t getBytesForDtype(Dtype type) {
     case F64: return sizeof(double);
     default: return 0;
   }
+}
+
+Context NoGradContext(Context *ctx) {
+  Context new = {.memory = ctx->memory, .grad = false, .screenConfig = ctx->screenConfig};
+  return new;
 }

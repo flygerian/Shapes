@@ -69,7 +69,9 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                    .isView = false,
                    .size = (resultSize),
                    .values =
-                       allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize)};
+                       allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
+                   .boundary = NULL,
+                   .computation = NULL};
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -82,16 +84,21 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
         VALUE_BINOP(acc, acc, v, +);
       }
-      VALUE_UNBOX(acc, dest->values + (outer * numAfterDim + inner) * getBytesForDtype(workingTensor->dtype));
+      VALUE_UNBOX(acc, dest->values +
+                           (outer * numAfterDim + inner) * getBytesForDtype(workingTensor->dtype));
     }
   }
 
   dest->shape =
       (Dim){.numOfDims = workingTensor->shape.numOfDims,
-            .dims = allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims)};
+            .dims = allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims),
+            .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * workingTensor->shape.numOfDims)};
   memcpy(dest->shape.dims, workingTensor->shape.dims,
          sizeof(dim_t) * workingTensor->shape.numOfDims);
   dest->shape.dims[dim] = 1;
+
+  // Recalculate multipliers for the new shape
+  calculateNumValuesAndMultipliers(dest->shape, dest->shape.multipliers);
 
   if (!t->isContigous) {
     Result freeRes = FreeTensor(ctx, workingTensor);

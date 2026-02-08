@@ -7,6 +7,38 @@
 #include <complex.h>
 #include <string.h>
 
+static void initializeGradient(Context *ctx, Tensor *t) {
+  if (!ctx->grad) {
+    return;
+  }
+
+  GraphNode *node = allocate(ctx->memory, sizeof(GraphNode));
+  Tensor *grad = allocate(ctx->memory, sizeof(Tensor));
+
+  // Create gradient tensor with same shape and dtype
+  size_t valueBytes = getBytesForDtype(t->dtype) * t->size;
+  dim_t *gradDims = allocate(ctx->memory, sizeof(dim_t) * t->shape.numOfDims);
+  memcpy(gradDims, t->shape.dims, sizeof(dim_t) * t->shape.numOfDims);
+
+  multiplier_t *gradMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * t->shape.numOfDims);
+  memcpy(gradMultipliers, t->shape.multipliers, sizeof(multiplier_t) * t->shape.numOfDims);
+
+  *grad = (Tensor){
+      .dtype = t->dtype,
+      .values = allocate(ctx->memory, valueBytes),
+      .size = t->size,
+      .isContigous = true,
+      .isView = false,
+      .boundary = NULL,
+      .shape = {.dims = gradDims, .numOfDims = t->shape.numOfDims, .multipliers = gradMultipliers}};
+  memset(grad->values, 0, valueBytes);
+
+  *node = (GraphNode){
+      .output = t, .grad = grad, .inputs = NULL, .numInputs = 0, .backward = NULL, .optype = 0};
+
+  t->computation = node;
+}
+
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
   Dim tShape = (Dim){.numOfDims = shape.numOfDims};
 
@@ -24,6 +56,9 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
                 .size = size,
                 .isContigous = true};
   memset(t->values, 0, bytesRequired);
+
+  initializeGradient(ctx, t);
+
   return t;
 }
 
@@ -61,6 +96,8 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
                    .shape = {.dims = newDims,
                              .numOfDims = source->shape.numOfDims,
                              .multipliers = newMultipliers}};
+
+  initializeGradient(ctx, dest);
 
   return OK;
 }
