@@ -3,6 +3,7 @@
 
 #include "memory.h"
 #include "result/result.h"
+#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -18,6 +19,10 @@ typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
+
+typedef float_t f16;
+typedef float_t f32;
+typedef double_t f64;
 
 typedef u64 tensor_size_t;
 typedef u32 dim_t;
@@ -52,9 +57,9 @@ typedef struct {
     i32 i32;
     i64 i64;
 
-    float f16;
-    float f32;
-    double f64;
+    f16 f16;
+    f32 f32;
+    f64 f64;
   } as;
 } Value;
 
@@ -67,6 +72,7 @@ typedef struct {
   bool isContigous;
   Range *boundary;
   struct GraphNode *computation;
+  char *label;
 } Tensor;
 
 

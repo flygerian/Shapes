@@ -82,7 +82,7 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
         VALUE_BINOP(acc, acc, v, +);
       }
-      VALUE_UNBOX(acc, dest->values + (outer * numAfterDim + inner));
+      VALUE_UNBOX(acc, dest->values + (outer * numAfterDim + inner) * getBytesForDtype(workingTensor->dtype));
     }
   }
 

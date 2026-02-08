@@ -38,7 +38,9 @@ char *GetItem(Context *ctx, Tensor *t);
 
 // Tensor creation
 Tensor *T_Zeros(Context *ctx, Dim shape);
-Tensor *T_Int(Context *ctx, Dim shape, i8 values);
+Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
+Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
+void SetValues(Tensor *t, Value value);
 
 // Tensor destruction
 Result FreeTensor(Context *ctx, Tensor *t);

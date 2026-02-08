@@ -28,7 +28,7 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
 }
 
 Tensor *T_Zeros(Context *ctx, Dim shape) {
-  return t_Zeros(ctx, shape, U8);
+  return t_Zeros(ctx, shape, F32);
 }
 
 Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
@@ -65,13 +65,22 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
   return OK;
 }
 
+void SetValues(Tensor *t, Value value) {
+  for (tensor_size_t i = 0; i < t->size; i++) {
+    VALUE_SET(t->values, i, value);
+  }
+}
+
 Tensor *T_Int(Context *ctx, Dim shape, i8 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, I8);
+  Value v = (Value){.dtype = I8, .as.i8 = initialValue};
+  SetValues(init, v);
+  return init;
+}
 
-  for (int i = 0; i < init->size; i++) {
-    Value v = (Value){.dtype = U8, .as.i8 = initialValue};
-    VALUE_SET(init->values, i, v);
-  }
-
+Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
+  Tensor *init = t_Zeros(ctx, shape, F32);
+  Value v = (Value){.dtype = F32, .as.f32 = initialValue};
+  SetValues(init, v);
   return init;
 }

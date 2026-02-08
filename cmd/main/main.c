@@ -231,18 +231,29 @@ int main(int argc, char *argv[]) {
 
   Dim tDim = {.dims = shape, .numOfDims = 1};
 
-  Tensor *a = T_Int(&ctx, tDim, 2);
-  Tensor *b = T_Int(&ctx, tDim, -3);
-  Tensor *c = T_Int(&ctx, tDim, 10);
+  Tensor *a = T_Float(&ctx, tDim, 2);
+  a->label = "a";
+  Tensor *b = T_Float(&ctx, tDim, -3);
+  b->label = "b";
+  Tensor *c = T_Float(&ctx, tDim, 10);
+  c->label = "c";
 
   Tensor e;
   Multiply(&ctx, a, b, &e);
+  e.label = "e";
 
   Tensor d;
-
   Add(&ctx, &e, c, &d);
+  d.label = "d";
 
-  VisualizeOps(&ctx, &d);
+  Tensor *f = T_Float(&ctx, tDim, -2);
+  f->label = "F";
+
+  Tensor L;
+  Multiply(&ctx, &d, f, &L);
+  L.label = "L";
+
+  VisualizeOps(&ctx, &L);
 
   DisableRawMode(&ctx);
   freeMemory(ctx.memory);

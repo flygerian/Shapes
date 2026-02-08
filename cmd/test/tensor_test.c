@@ -19,7 +19,7 @@ static void test_zeros_creates_tensor_with_correct_shape(void) {
   TestTensor tt = createZerosTensor(dims, 2);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 2, "tensor should have 2 dimensions");
-  ASSERT_EQ(tt.tensor.dtype, U8, "T_Zeros should create U8 tensor");
+  ASSERT_EQ(tt.tensor.dtype, F32, "T_Zeros should create F32 tensor");
   ASSERT_NOT_NULL(tt.tensor.values, "tensor values should be allocated");
 
   freeMemory(tt.mem);
@@ -29,10 +29,10 @@ static void test_zeros_values_are_zero(void) {
   u32 dims[] = {4};
   TestTensor tt = createZerosTensor(dims, 1);
 
-  u8 *values = (u8 *)tt.tensor.values;
+  f32 *values = (f32 *)tt.tensor.values;
   int all_zero = 1;
   for (u32 i = 0; i < 4; i++) {
-    if (values[i] != 0) {
+    if (values[i] != 0.0f) {
       all_zero = 0;
       break;
     }
@@ -50,9 +50,9 @@ static void test_int_creates_tensor_with_value(void) {
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 5);
 
   ASSERT_EQ(t->shape.numOfDims, 2, "tensor should have 2 dimensions");
-  ASSERT_EQ(t->dtype, U8, "T_Int should create U8 tensor");
+  ASSERT_EQ(t->dtype, I8, "T_Int should create I8 tensor");
 
-  u8 *values = (u8 *)t->values;
+  i8 *values = (i8 *)t->values;
   int all_match = 1;
   for (u32 i = 0; i < 6; i++) {
     if (values[i] != 5) {
@@ -82,10 +82,10 @@ static void test_zeros_3d_tensor(void) {
   ASSERT_EQ(tt.tensor.shape.numOfDims, 3, "should be 3D tensor");
   ASSERT_NOT_NULL(tt.tensor.values, "values should be allocated");
 
-  u8 *values = (u8 *)tt.tensor.values;
+  f32 *values = (f32 *)tt.tensor.values;
   int all_zero = 1;
   for (u32 i = 0; i < 2 * 3 * 4; i++) {
-    if (values[i] != 0) {
+    if (values[i] != 0.0f) {
       all_zero = 0;
       break;
     }
@@ -143,13 +143,13 @@ static void test_assign_value_success(void) {
 
   u32 idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
-  Value val = {.dtype = U8, .as.u8 = 42};
+  Value val = {.dtype = F32, .as.f32 = 42.0f};
 
   Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, OK, "AssignValue should return OK");
 
-  u8 *values = (u8 *)tt.tensor.values;
-  ASSERT_EQ(values[1 * 4 + 2], 42, "value at [1,2] should be 42");
+  f32 *values = (f32 *)tt.tensor.values;
+  ASSERT_EQ(values[1 * 4 + 2], 42.0f, "value at [1,2] should be 42");
 
   freeMemory(mem);
 }
@@ -178,7 +178,7 @@ static void test_assign_value_dim_mismatch(void) {
 
   u32 idx_dims[] = {0, 0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 3};
-  Value val = {.dtype = U8, .as.u8 = 10};
+  Value val = {.dtype = F32, .as.f32 = 10.0f};
 
   Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH");
@@ -194,7 +194,7 @@ static void test_assign_value_out_of_bounds(void) {
 
   u32 idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
-  Value val = {.dtype = U8, .as.u8 = 10};
+  Value val = {.dtype = F32, .as.f32 = 10.0f};
 
   Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "should return ERR_OUT_OF_BOUNDS");
@@ -208,7 +208,7 @@ static void test_assign_value_null_tensor(void) {
 
   u32 idx_dims[] = {0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
-  Value val = {.dtype = U8, .as.u8 = 10};
+  Value val = {.dtype = F32, .as.f32 = 10.0f};
 
   Result r = AssignValueAt(&ctx, NULL, idx, val);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "should return ERR_NULL_TENSOR_PROVIDED for null tensor");
@@ -224,10 +224,10 @@ static void test_assign_value_only_modifies_target_index(void) {
 
   u32 idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
-  Value val = {.dtype = U8, .as.u8 = 77};
+  Value val = {.dtype = F32, .as.f32 = 77.0f};
   AssignValueAt(&ctx, &tt.tensor, idx, val);
 
-  u8 *values = (u8 *)tt.tensor.values;
+  f32 *values = (f32 *)tt.tensor.values;
   int target_idx = 1 * 4 + 2; // = 6
 
   int only_target_modified = 1;
@@ -260,19 +260,19 @@ static void test_assign_value_multiple_indices(void) {
   u32 idx2[] = {1, 1};
 
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2},
-                (Value){.dtype = U8, .as.u8 = 10});
+                (Value){.dtype = F32, .as.f32 = 10.0f});
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2},
-                (Value){.dtype = U8, .as.u8 = 20});
+                (Value){.dtype = F32, .as.f32 = 20.0f});
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2},
-                (Value){.dtype = U8, .as.u8 = 30});
+                (Value){.dtype = F32, .as.f32 = 30.0f});
 
-  u8 *values = (u8 *)tt.tensor.values;
-  ASSERT_EQ(values[0 * 3 + 0], 10, "[0,0] should be 10");
-  ASSERT_EQ(values[0 * 3 + 1], 0, "[0,1] should remain 0");
-  ASSERT_EQ(values[0 * 3 + 2], 20, "[0,2] should be 20");
-  ASSERT_EQ(values[1 * 3 + 0], 0, "[1,0] should remain 0");
-  ASSERT_EQ(values[1 * 3 + 1], 30, "[1,1] should be 30");
-  ASSERT_EQ(values[1 * 3 + 2], 0, "[1,2] should remain 0");
+  f32 *values = (f32 *)tt.tensor.values;
+  ASSERT_EQ(values[0 * 3 + 0], 10.0f, "[0,0] should be 10");
+  ASSERT_EQ(values[0 * 3 + 1], 0.0f, "[0,1] should remain 0");
+  ASSERT_EQ(values[0 * 3 + 2], 20.0f, "[0,2] should be 20");
+  ASSERT_EQ(values[1 * 3 + 0], 0.0f, "[1,0] should remain 0");
+  ASSERT_EQ(values[1 * 3 + 1], 30.0f, "[1,1] should be 30");
+  ASSERT_EQ(values[1 * 3 + 2], 0.0f, "[1,2] should remain 0");
 
   freeMemory(mem);
 }
@@ -286,14 +286,14 @@ static void test_get_at_success(void) {
 
   u32 idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
-  Value val = {.dtype = U8, .as.u8 = 99};
+  Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, idx, val);
 
   Value result;
   Result r = GetAt(&tt.tensor, idx, &result);
   ASSERT_EQ(r, OK, "GetAt should return OK");
-  ASSERT_EQ(result.dtype, U8, "result dtype should be U8");
-  ASSERT_EQ(result.as.u8, 99, "result value should be 99");
+  ASSERT_EQ(result.dtype, F32, "result dtype should be F32");
+  ASSERT_EQ(result.as.f32, 99.0f, "result value should be 99");
 
   freeMemory(mem);
 }
@@ -359,7 +359,7 @@ static void test_slice_basic_2d(void) {
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
       u32 idx_dims[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 5 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
@@ -384,7 +384,7 @@ static void test_slice_shares_data_with_source(void) {
 
   // Set a value in source
   u32 idx_dims[] = {1, 2};
-  Value val = {.dtype = U8, .as.u8 = 42};
+  Value val = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
   Tensor slice;
@@ -406,7 +406,7 @@ static void test_slice_get_at_correct_values(void) {
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
       u32 idx_dims[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 5 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
@@ -421,13 +421,13 @@ static void test_slice_get_at_correct_values(void) {
   Value result;
   Result r = GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
-  ASSERT_EQ(result.as.u8, 7, "slice[0,0] should be 7 (source[1,2])");
+  ASSERT_EQ(result.as.f32, 7.0f, "slice[0,0] should be 7 (source[1,2])");
 
   // Access slice[1,2] should be source[2,4] = 2*5+4 = 14
   u32 slice_idx2[] = {1, 2};
   r = GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
-  ASSERT_EQ(result.as.u8, 14, "slice[1,2] should be 14 (source[2,4])");
+  ASSERT_EQ(result.as.f32, 14.0f, "slice[1,2] should be 14 (source[2,4])");
 
   freeMemory(mem);
 }
@@ -469,7 +469,7 @@ static void test_slice_single_element_range(void) {
 
   // Set value at [2,3]
   u32 idx_dims[] = {2, 3};
-  Value val = {.dtype = U8, .as.u8 = 99};
+  Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
   Tensor slice;
@@ -483,7 +483,7 @@ static void test_slice_single_element_range(void) {
   u32 slice_idx[] = {0, 0};
   Value result;
   GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 99, "single element slice value should be 99");
+  ASSERT_EQ(result.as.f32, 99.0f, "single element slice value should be 99");
 
   freeMemory(mem);
 }
@@ -514,7 +514,7 @@ static void test_slice_1d_tensor(void) {
   // Populate with values 0-9
   for (u32 i = 0; i < 10; i++) {
     u32 idx_dims[] = {i};
-    Value val = {.dtype = U8, .as.u8 = (u8)i};
+    Value val = {.dtype = F32, .as.f32 = (f32)i};
     AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 1}, val);
   }
 
@@ -527,12 +527,12 @@ static void test_slice_1d_tensor(void) {
   u32 slice_idx[] = {0};
   Value result;
   GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 3, "slice[0] should be 3");
+  ASSERT_EQ(result.as.f32, 3.0f, "slice[0] should be 3");
 
   // slice[4] should be source[7] = 7
   u32 slice_idx2[] = {4};
   GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 7, "slice[4] should be 7");
+  ASSERT_EQ(result.as.f32, 7.0f, "slice[4] should be 7");
 
   freeMemory(mem);
 }
@@ -548,14 +548,14 @@ static void test_slice_modify_reflects_in_source(void) {
 
   // Modify slice[0,1] which maps to source[1,2]
   u32 slice_idx[] = {0, 1};
-  Value val = {.dtype = U8, .as.u8 = 77};
+  Value val = {.dtype = F32, .as.f32 = 77.0f};
   AssignValueAt(&ctx, &slice, (Dim){.dims = slice_idx, .numOfDims = 2}, val);
 
   // Check source[1,2]
   u32 src_idx[] = {1, 2};
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = src_idx, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 77, "modifying slice should reflect in source");
+  ASSERT_EQ(result.as.f32, 77.0f, "modifying slice should reflect in source");
 
   freeMemory(mem);
 }
@@ -570,7 +570,7 @@ static void test_slice_of_slice(void) {
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
       u32 idx_dims[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 6 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 6 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
@@ -592,7 +592,7 @@ static void test_slice_of_slice(void) {
   u32 slice_idx[] = {0, 0};
   Value result;
   GetAt(&slice2, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 14, "nested slice[0,0] should be 14 (source[2,2])");
+  ASSERT_EQ(result.as.f32, 14.0f, "nested slice[0,0] should be 14 (source[2,2])");
 
   freeMemory(mem);
 }
@@ -610,7 +610,7 @@ static void test_slice_large_4d_tensor(void) {
         for (u32 l = 0; l < 6; l++) {
           u32 idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 10 * 12 * 6 + j * 12 * 6 + k * 6 + l) % 256);
-          Value val = {.dtype = U8, .as.u8 = val_num};
+          Value val = {.dtype = F32, .as.f32 = (f32)val_num};
           AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
       }
@@ -633,20 +633,20 @@ static void test_slice_large_4d_tensor(void) {
   u32 slice_idx[] = {0, 0, 0, 0};
   Value result;
   GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 4}, &result);
-  u8 expected = (u8)((2 * 10 * 12 * 6 + 3 * 12 * 6 + 4 * 6 + 1) % 256);
-  ASSERT_EQ(result.as.u8, expected, "4D slice[0,0,0,0] should match source[2,3,4,1]");
+  f32 expected = (f32)((2 * 10 * 12 * 6 + 3 * 12 * 6 + 4 * 6 + 1) % 256);
+  ASSERT_EQ(result.as.f32, expected, "4D slice[0,0,0,0] should match source[2,3,4,1]");
 
   // Test slice[3,4,5,3] = source[5,7,9,4]
   u32 slice_idx2[] = {3, 4, 5, 3};
   GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 4}, &result);
-  expected = (u8)((5 * 10 * 12 * 6 + 7 * 12 * 6 + 9 * 6 + 4) % 256);
-  ASSERT_EQ(result.as.u8, expected, "4D slice[3,4,5,3] should match source[5,7,9,4]");
+  expected = (f32)((5 * 10 * 12 * 6 + 7 * 12 * 6 + 9 * 6 + 4) % 256);
+  ASSERT_EQ(result.as.f32, expected, "4D slice[3,4,5,3] should match source[5,7,9,4]");
 
   // Test middle element: slice[2,2,3,2] = source[4,5,7,3]
   u32 slice_idx3[] = {2, 2, 3, 2};
   GetAt(&slice, (Dim){.dims = slice_idx3, .numOfDims = 4}, &result);
-  expected = (u8)((4 * 10 * 12 * 6 + 5 * 12 * 6 + 7 * 6 + 3) % 256);
-  ASSERT_EQ(result.as.u8, expected, "4D slice middle element should be correct");
+  expected = (f32)((4 * 10 * 12 * 6 + 5 * 12 * 6 + 7 * 6 + 3) % 256);
+  ASSERT_EQ(result.as.f32, expected, "4D slice middle element should be correct");
 
   // Verify all elements in slice match expected source values
   int all_correct = 1;
@@ -658,8 +658,8 @@ static void test_slice_large_4d_tensor(void) {
           GetAt(&slice, (Dim){.dims = s_idx, .numOfDims = 4}, &result);
 
           u32 src_i = i + 2, src_j = j + 3, src_k = k + 4, src_l = l + 1;
-          u8 exp = (u8)((src_i * 10 * 12 * 6 + src_j * 12 * 6 + src_k * 6 + src_l) % 256);
-          if (result.as.u8 != exp) {
+          f32 exp = (f32)((src_i * 10 * 12 * 6 + src_j * 12 * 6 + src_k * 6 + src_l) % 256);
+          if (result.as.f32 != exp) {
             all_correct = 0;
           }
         }
@@ -719,7 +719,7 @@ static void test_reshape_preserves_data(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx_dims[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 3 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 3 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
@@ -735,7 +735,7 @@ static void test_reshape_preserves_data(void) {
     u32 idx[] = {i};
     Value result;
     GetAt(&reshaped, (Dim){.dims = idx, .numOfDims = 1}, &result);
-    ASSERT_EQ(result.as.u8, i, "reshaped data should be preserved");
+    ASSERT_EQ(result.as.f32, i, "reshaped data should be preserved");
   }
 
   freeMemory(mem);
@@ -757,13 +757,13 @@ static void test_reshape_shares_data_with_source(void) {
 
   // Modify via reshaped, check source
   u32 r_idx[] = {0, 0};
-  Value val = {.dtype = U8, .as.u8 = 55};
+  Value val = {.dtype = F32, .as.f32 = 55.0f};
   AssignValueAt(&ctx, &reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, val);
 
   u32 s_idx[] = {0, 0};
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = s_idx, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 55, "modification via reshaped should reflect in source");
+  ASSERT_EQ(result.as.f32, 55.0f, "modification via reshaped should reflect in source");
 
   freeMemory(mem);
 }
@@ -826,7 +826,7 @@ static void test_reshape_3d_to_2d(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
         u32 idx_dims[] = {i, j, k};
-        Value val = {.dtype = U8, .as.u8 = (u8)(i * 12 + j * 4 + k)};
+        Value val = {.dtype = F32, .as.f32 = (f32)(i * 12 + j * 4 + k)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
@@ -845,11 +845,11 @@ static void test_reshape_3d_to_2d(void) {
   u32 idx1[] = {0, 0};
   Value result;
   GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 0, "reshaped[0,0] should be 0");
+  ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0,0] should be 0");
 
   u32 idx2[] = {5, 3};
   GetAt(&reshaped, (Dim){.dims = idx2, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 23, "reshaped[5,3] should be 23");
+  ASSERT_EQ(result.as.f32, 23.0f, "reshaped[5,3] should be 23");
 
   freeMemory(mem);
 }
@@ -864,7 +864,7 @@ static void test_reshape_view(void) {
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
       u32 idx_dims[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 6 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 6 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
@@ -898,7 +898,7 @@ static void test_reshape_3d_view(void) {
     for (u32 j = 0; j < 5; j++) {
       for (u32 k = 0; k < 6; k++) {
         u32 idx_dims[] = {i, j, k};
-        Value val = {.dtype = U8, .as.u8 = (u8)((i * 30 + j * 6 + k) % 256)};
+        Value val = {.dtype = F32, .as.f32 = (f32)((i * 30 + j * 6 + k) % 256)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
@@ -928,7 +928,7 @@ static void test_reshape_3d_view(void) {
   u32 r_idx[] = {0, 0};
   Value result;
   GetAt(&reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 30, "reshaped[0,0] should be 30");
+  ASSERT_EQ(result.as.f32, 30.0f, "reshaped[0,0] should be 30");
 
   freeMemory(mem);
 }
@@ -946,7 +946,7 @@ static void test_reshape_4d_view(void) {
         for (u32 l = 0; l < 6; l++) {
           u32 idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 120 + j * 30 + k * 6 + l) % 256);
-          Value val = {.dtype = U8, .as.u8 = val_num};
+          Value val = {.dtype = F32, .as.f32 = (f32)val_num};
           AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
       }
@@ -992,7 +992,7 @@ static void test_reshape_4d_view_to_1d(void) {
       for (u32 k = 0; k < 4; k++) {
         for (u32 l = 0; l < 5; l++) {
           u32 idx_dims[] = {i, j, k, l};
-          Value val = {.dtype = U8, .as.u8 = counter++};
+          Value val = {.dtype = F32, .as.f32 = (f32)(counter++)};
           AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
       }
@@ -1018,7 +1018,7 @@ static void test_reshape_4d_view_to_1d(void) {
   u32 idx1[] = {0};
   Value result;
   GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 0, "reshaped[0] should be 0");
+  ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 
   freeMemory(mem);
 }
@@ -1035,7 +1035,7 @@ static void test_reshape_then_access_elements(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 3; k++) {
         u32 idx_dims[] = {i, j, k};
-        Value val = {.dtype = U8, .as.u8 = counter++};
+        Value val = {.dtype = F32, .as.f32 = (f32)(counter++)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
@@ -1058,8 +1058,8 @@ static void test_reshape_then_access_elements(void) {
       u32 idx[] = {i, j};
       Value result;
       GetAt(&reshaped, (Dim){.dims = idx, .numOfDims = 2}, &result);
-      u8 expected = (u8)(i * 3 + j);
-      if (result.as.u8 != expected) {
+      f32 expected = (f32)(i * 3 + j);
+      if (result.as.f32 != expected) {
         all_correct = 0;
       }
     }
@@ -1131,7 +1131,7 @@ static void test_transpose_access_elements(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 3 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 3 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 2}, val);
     }
   }
@@ -1148,19 +1148,19 @@ static void test_transpose_access_elements(void) {
 
   u32 idx1[] = {0, 0};
   GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 0, "transposed[0,0] should be 0");
+  ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0] should be 0");
 
   u32 idx2[] = {0, 1};
   GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 3, "transposed[0,1] should be 3");
+  ASSERT_EQ(result.as.f32, 3.0f, "transposed[0,1] should be 3");
 
   u32 idx3[] = {1, 0};
   GetAt(&transposed, (Dim){.dims = idx3, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 1, "transposed[1,0] should be 1");
+  ASSERT_EQ(result.as.f32, 1.0f, "transposed[1,0] should be 1");
 
   u32 idx4[] = {2, 1};
   GetAt(&transposed, (Dim){.dims = idx4, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 5, "transposed[2,1] should be 5");
+  ASSERT_EQ(result.as.f32, 5.0f, "transposed[2,1] should be 5");
 
   freeMemory(mem);
 }
@@ -1213,7 +1213,7 @@ static void test_transpose_3d(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
         u32 idx[] = {i, j, k};
-        Value val = {.dtype = U8, .as.u8 = (u8)(i * 12 + j * 4 + k)};
+        Value val = {.dtype = F32, .as.f32 = (f32)(i * 12 + j * 4 + k)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 3}, val);
       }
     }
@@ -1234,11 +1234,11 @@ static void test_transpose_3d(void) {
 
   u32 idx1[] = {0, 0, 0};
   GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 0, "transposed[0,0,0] should be 0");
+  ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0,0] should be 0");
 
   u32 idx2[] = {3, 2, 1};
   GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 23, "transposed[3,2,1] should be 23");
+  ASSERT_EQ(result.as.f32, 23.0f, "transposed[3,2,1] should be 23");
 
   freeMemory(mem);
 }
@@ -1253,7 +1253,7 @@ static void test_reshape_after_transpose_copies(void) {
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
       u32 idx[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 4 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 4 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 2}, val);
     }
   }
@@ -1283,15 +1283,15 @@ static void test_reshape_after_transpose_copies(void) {
   Value result;
   u32 idx0[] = {0};
   GetAt(&reshaped, (Dim){.dims = idx0, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 0, "reshaped[0] should be 0");
+  ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 
   u32 idx1[] = {1};
   GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 4, "reshaped[1] should be 4 (transposed[0,1])");
+  ASSERT_EQ(result.as.f32, 4.0f, "reshaped[1] should be 4 (transposed[0,1])");
 
   u32 idx3[] = {3};
   GetAt(&reshaped, (Dim){.dims = idx3, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 1, "reshaped[3] should be 1 (transposed[1,0])");
+  ASSERT_EQ(result.as.f32, 1.0f, "reshaped[3] should be 1 (transposed[1,0])");
 
   freeMemory(mem);
 }
@@ -1311,8 +1311,8 @@ static void test_add_basic_same_shape(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value va = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      Value vb = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      Value va = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
+      Value vb = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
       AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
@@ -1322,10 +1322,10 @@ static void test_add_basic_same_shape(void) {
   ASSERT_EQ(r, OK, "Add should return OK");
 
   // Verify: result = [[11,22,33], [44,55,66]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 11, "result[0,0] should be 11");
-  ASSERT_EQ(values[1], 22, "result[0,1] should be 22");
-  ASSERT_EQ(values[5], 66, "result[1,2] should be 66");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
+  ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
+  ASSERT_EQ(values[5], 66.0f, "result[1,2] should be 66");
 
   freeMemory(mem);
 }
@@ -1361,7 +1361,7 @@ static void test_add_broadcast_row_vector(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1369,7 +1369,7 @@ static void test_add_broadcast_row_vector(void) {
   // b = [[10, 20, 30]]
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
-    Value v = {.dtype = U8, .as.u8 = (u8)((j + 1) * 10)};
+    Value v = {.dtype = F32, .as.f32 = (f32)((j + 1) * 10)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
@@ -1377,13 +1377,13 @@ static void test_add_broadcast_row_vector(void) {
   ASSERT_EQ(r, OK, "Add with broadcast should return OK");
 
   // result = [[11,22,33], [14,25,36]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 11, "result[0,0] should be 11");
-  ASSERT_EQ(values[1], 22, "result[0,1] should be 22");
-  ASSERT_EQ(values[2], 33, "result[0,2] should be 33");
-  ASSERT_EQ(values[3], 14, "result[1,0] should be 14");
-  ASSERT_EQ(values[4], 25, "result[1,1] should be 25");
-  ASSERT_EQ(values[5], 36, "result[1,2] should be 36");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
+  ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
+  ASSERT_EQ(values[2], 33.0f, "result[0,2] should be 33");
+  ASSERT_EQ(values[3], 14.0f, "result[1,0] should be 14");
+  ASSERT_EQ(values[4], 25.0f, "result[1,1] should be 25");
+  ASSERT_EQ(values[5], 36.0f, "result[1,2] should be 36");
 
   freeMemory(mem);
 }
@@ -1403,7 +1403,7 @@ static void test_add_broadcast_col_vector(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1411,7 +1411,7 @@ static void test_add_broadcast_col_vector(void) {
   // b = [[10], [20]]
   for (u32 i = 0; i < 2; i++) {
     u32 idx[] = {i, 0};
-    Value v = {.dtype = U8, .as.u8 = (u8)((i + 1) * 10)};
+    Value v = {.dtype = F32, .as.f32 = (f32)((i + 1) * 10)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
@@ -1419,13 +1419,13 @@ static void test_add_broadcast_col_vector(void) {
   ASSERT_EQ(r, OK, "Add with col broadcast should return OK");
 
   // result = [[11,12,13], [24,25,26]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 11, "result[0,0] should be 11");
-  ASSERT_EQ(values[1], 12, "result[0,1] should be 12");
-  ASSERT_EQ(values[2], 13, "result[0,2] should be 13");
-  ASSERT_EQ(values[3], 24, "result[1,0] should be 24");
-  ASSERT_EQ(values[4], 25, "result[1,1] should be 25");
-  ASSERT_EQ(values[5], 26, "result[1,2] should be 26");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
+  ASSERT_EQ(values[1], 12.0f, "result[0,1] should be 12");
+  ASSERT_EQ(values[2], 13.0f, "result[0,2] should be 13");
+  ASSERT_EQ(values[3], 24.0f, "result[1,0] should be 24");
+  ASSERT_EQ(values[4], 25.0f, "result[1,1] should be 25");
+  ASSERT_EQ(values[5], 26.0f, "result[1,2] should be 26");
 
   freeMemory(mem);
 }
@@ -1445,23 +1445,23 @@ static void test_add_broadcast_scalar(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[100]]
   u32 idx_b[] = {0, 0};
-  Value vb = {.dtype = U8, .as.u8 = 100};
+  Value vb = {.dtype = F32, .as.f32 = 100.0f};
   AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
   Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add with scalar broadcast should return OK");
 
   // result = [[101,102,103], [104,105,106]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 101, "result[0,0] should be 101");
-  ASSERT_EQ(values[5], 106, "result[1,2] should be 106");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 101.0f, "result[0,0] should be 101");
+  ASSERT_EQ(values[5], 106.0f, "result[1,2] should be 106");
 
   freeMemory(mem);
 }
@@ -1478,8 +1478,8 @@ static void test_add_1d_tensors(void) {
   // a = [1, 2, 3, 4], b = [10, 20, 30, 40]
   for (u32 i = 0; i < 4; i++) {
     u32 idx[] = {i};
-    Value va = {.dtype = U8, .as.u8 = (u8)(i + 1)};
-    Value vb = {.dtype = U8, .as.u8 = (u8)((i + 1) * 10)};
+    Value va = {.dtype = F32, .as.f32 = (f32)(i + 1)};
+    Value vb = {.dtype = F32, .as.f32 = (f32)((i + 1) * 10)};
     AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 1}, va);
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, vb);
   }
@@ -1487,11 +1487,11 @@ static void test_add_1d_tensors(void) {
   Result r = Add(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Add 1D should return OK");
 
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 11, "result[0] should be 11");
-  ASSERT_EQ(values[1], 22, "result[1] should be 22");
-  ASSERT_EQ(values[2], 33, "result[2] should be 33");
-  ASSERT_EQ(values[3], 44, "result[3] should be 44");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 11.0f, "result[0] should be 11");
+  ASSERT_EQ(values[1], 22.0f, "result[1] should be 22");
+  ASSERT_EQ(values[2], 33.0f, "result[2] should be 33");
+  ASSERT_EQ(values[3], 44.0f, "result[3] should be 44");
 
   freeMemory(mem);
 }
@@ -1511,8 +1511,8 @@ static void test_subtract_basic_same_shape(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value va = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
-      Value vb = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value va = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
+      Value vb = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
       AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
@@ -1522,10 +1522,10 @@ static void test_subtract_basic_same_shape(void) {
   ASSERT_EQ(r, OK, "Subtract should return OK");
 
   // result = [[9,18,27], [36,45,54]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 9, "result[0,0] should be 9");
-  ASSERT_EQ(values[1], 18, "result[0,1] should be 18");
-  ASSERT_EQ(values[5], 54, "result[1,2] should be 54");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 9.0f, "result[0,0] should be 9");
+  ASSERT_EQ(values[1], 18.0f, "result[0,1] should be 18");
+  ASSERT_EQ(values[5], 54.0f, "result[1,2] should be 54");
 
   freeMemory(mem);
 }
@@ -1544,7 +1544,7 @@ static void test_subtract_broadcast(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      Value v = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1552,7 +1552,7 @@ static void test_subtract_broadcast(void) {
   // b = [[1, 2, 3]]
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
-    Value v = {.dtype = U8, .as.u8 = (u8)(j + 1)};
+    Value v = {.dtype = F32, .as.f32 = (f32)(j + 1)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
@@ -1560,9 +1560,9 @@ static void test_subtract_broadcast(void) {
   ASSERT_EQ(r, OK, "Subtract with broadcast should return OK");
 
   // result = [[9,18,27], [39,48,57]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 9, "result[0,0] should be 9");
-  ASSERT_EQ(values[3], 39, "result[1,0] should be 39");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 9.0f, "result[0,0] should be 9");
+  ASSERT_EQ(values[3], 39.0f, "result[1,0] should be 39");
 
   freeMemory(mem);
 }
@@ -1582,8 +1582,8 @@ static void test_multiply_basic_same_shape(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value va = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
-      Value vb = {.dtype = U8, .as.u8 = (u8)(i + 2)};
+      Value va = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
+      Value vb = {.dtype = F32, .as.f32 = (f32)(i + 2)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
       AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
@@ -1593,11 +1593,11 @@ static void test_multiply_basic_same_shape(void) {
   ASSERT_EQ(r, OK, "Multiply should return OK");
 
   // result = [[2,4,6], [12,15,18]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 2, "result[0,0] should be 2");
-  ASSERT_EQ(values[2], 6, "result[0,2] should be 6");
-  ASSERT_EQ(values[3], 12, "result[1,0] should be 12");
-  ASSERT_EQ(values[5], 18, "result[1,2] should be 18");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 2.0f, "result[0,0] should be 2");
+  ASSERT_EQ(values[2], 6.0f, "result[0,2] should be 6");
+  ASSERT_EQ(values[3], 12.0f, "result[1,0] should be 12");
+  ASSERT_EQ(values[5], 18.0f, "result[1,2] should be 18");
 
   freeMemory(mem);
 }
@@ -1616,24 +1616,24 @@ static void test_multiply_broadcast_scalar(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[5]]
   u32 idx_b[] = {0, 0};
-  Value vb = {.dtype = U8, .as.u8 = 5};
+  Value vb = {.dtype = F32, .as.f32 = 5.0f};
   AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
   Result r = Multiply(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "Multiply with scalar should return OK");
 
   // result = [[5,10,15], [20,25,30]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 5, "result[0,0] should be 5");
-  ASSERT_EQ(values[2], 15, "result[0,2] should be 15");
-  ASSERT_EQ(values[5], 30, "result[1,2] should be 30");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
+  ASSERT_EQ(values[2], 15.0f, "result[0,2] should be 15");
+  ASSERT_EQ(values[5], 30.0f, "result[1,2] should be 30");
 
   freeMemory(mem);
 }
@@ -1653,8 +1653,8 @@ static void test_divide_basic_same_shape(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value va = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
-      Value vb = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 2)};
+      Value va = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
+      Value vb = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 2)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
       AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, vb);
     }
@@ -1664,9 +1664,9 @@ static void test_divide_basic_same_shape(void) {
   ASSERT_EQ(r, OK, "Divide should return OK");
 
   // result = [[5,5,5], [5,5,5]] (integer division)
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 5, "result[0,0] should be 5");
-  ASSERT_EQ(values[5], 5, "result[1,2] should be 5");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
+  ASSERT_EQ(values[5], 5.0f, "result[1,2] should be 5");
 
   freeMemory(mem);
 }
@@ -1685,7 +1685,7 @@ static void test_divide_broadcast(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)((i * 3 + j + 1) * 10)};
+      Value v = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1694,7 +1694,7 @@ static void test_divide_broadcast(void) {
   u8 divisors[] = {2, 5, 10};
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {0, j};
-    Value v = {.dtype = U8, .as.u8 = divisors[j]};
+    Value v = {.dtype = F32, .as.f32 = (f32)divisors[j]};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
@@ -1702,13 +1702,13 @@ static void test_divide_broadcast(void) {
   ASSERT_EQ(r, OK, "Divide with broadcast should return OK");
 
   // result = [[5,4,3], [20,10,6]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 5, "result[0,0] should be 5");
-  ASSERT_EQ(values[1], 4, "result[0,1] should be 4");
-  ASSERT_EQ(values[2], 3, "result[0,2] should be 3");
-  ASSERT_EQ(values[3], 20, "result[1,0] should be 20");
-  ASSERT_EQ(values[4], 10, "result[1,1] should be 10");
-  ASSERT_EQ(values[5], 6, "result[1,2] should be 6");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
+  ASSERT_EQ(values[1], 4.0f, "result[0,1] should be 4");
+  ASSERT_EQ(values[2], 3.0f, "result[0,2] should be 3");
+  ASSERT_EQ(values[3], 20.0f, "result[1,0] should be 20");
+  ASSERT_EQ(values[4], 10.0f, "result[1,1] should be 10");
+  ASSERT_EQ(values[5], 6.0f, "result[1,2] should be 6");
 
   freeMemory(mem);
 }
@@ -1728,7 +1728,7 @@ static void test_add_non_contiguous_transposed(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1737,7 +1737,7 @@ static void test_add_non_contiguous_transposed(void) {
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 2; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)((i * 2 + j + 1) * 10)};
+      Value v = {.dtype = F32, .as.f32 = (f32)((i * 2 + j + 1) * 10)};
       AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1753,13 +1753,13 @@ static void test_add_non_contiguous_transposed(void) {
 
   // result = [[1+10, 2+30, 3+50], [4+20, 5+40, 6+60]]
   //        = [[11, 32, 53], [24, 45, 66]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 11, "result[0,0] should be 11");
-  ASSERT_EQ(values[1], 32, "result[0,1] should be 32");
-  ASSERT_EQ(values[2], 53, "result[0,2] should be 53");
-  ASSERT_EQ(values[3], 24, "result[1,0] should be 24");
-  ASSERT_EQ(values[4], 45, "result[1,1] should be 45");
-  ASSERT_EQ(values[5], 66, "result[1,2] should be 66");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
+  ASSERT_EQ(values[1], 32.0f, "result[0,1] should be 32");
+  ASSERT_EQ(values[2], 53.0f, "result[0,2] should be 53");
+  ASSERT_EQ(values[3], 24.0f, "result[1,0] should be 24");
+  ASSERT_EQ(values[4], 45.0f, "result[1,1] should be 45");
+  ASSERT_EQ(values[5], 66.0f, "result[1,2] should be 66");
 
   freeMemory(mem);
 }
@@ -1779,7 +1779,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1787,7 +1787,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
   // b = [10, 20, 30]
   for (u32 j = 0; j < 3; j++) {
     u32 idx[] = {j};
-    Value v = {.dtype = U8, .as.u8 = (u8)((j + 1) * 10)};
+    Value v = {.dtype = F32, .as.f32 = (f32)((j + 1) * 10)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
@@ -1795,13 +1795,13 @@ static void test_add_2d_plus_1d_broadcast(void) {
   ASSERT_EQ(r, OK, "Add 2D + 1D broadcast should return OK");
 
   // result = [[11,22,33], [14,25,36]]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 11, "result[0,0] should be 11");
-  ASSERT_EQ(values[1], 22, "result[0,1] should be 22");
-  ASSERT_EQ(values[2], 33, "result[0,2] should be 33");
-  ASSERT_EQ(values[3], 14, "result[1,0] should be 14");
-  ASSERT_EQ(values[4], 25, "result[1,1] should be 25");
-  ASSERT_EQ(values[5], 36, "result[1,2] should be 36");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
+  ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
+  ASSERT_EQ(values[2], 33.0f, "result[0,2] should be 33");
+  ASSERT_EQ(values[3], 14.0f, "result[1,0] should be 14");
+  ASSERT_EQ(values[4], 25.0f, "result[1,1] should be 25");
+  ASSERT_EQ(values[5], 36.0f, "result[1,2] should be 36");
 
   freeMemory(mem);
 }
@@ -1818,7 +1818,7 @@ static void test_sum_dim0_2d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1832,10 +1832,10 @@ static void test_sum_dim0_2d(void) {
   ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
   ASSERT_EQ(dest.shape.dims[1], 3, "dim 1 should be 3");
 
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 5, "result[0] should be 5");
-  ASSERT_EQ(values[1], 7, "result[1] should be 7");
-  ASSERT_EQ(values[2], 9, "result[2] should be 9");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 5.0f, "result[0] should be 5");
+  ASSERT_EQ(values[1], 7.0f, "result[1] should be 7");
+  ASSERT_EQ(values[2], 9.0f, "result[2] should be 9");
 
   freeMemory(mem);
 }
@@ -1851,7 +1851,7 @@ static void test_sum_dim1_2d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1865,9 +1865,9 @@ static void test_sum_dim1_2d(void) {
   ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
   ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
 
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 6, "result[0] should be 6");
-  ASSERT_EQ(values[1], 15, "result[1] should be 15");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 6.0f, "result[0] should be 6");
+  ASSERT_EQ(values[1], 15.0f, "result[1] should be 15");
 
   freeMemory(mem);
 }
@@ -1885,7 +1885,7 @@ static void test_sum_3d_middle_dim(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 2; k++) {
         u32 idx[] = {i, j, k};
-        Value v = {.dtype = U8, .as.u8 = (u8)(i * 6 + j * 2 + k + 1)};
+        Value v = {.dtype = F32, .as.f32 = (f32)(i * 6 + j * 2 + k + 1)};
         AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
       }
     }
@@ -1903,11 +1903,11 @@ static void test_sum_3d_middle_dim(void) {
 
   // For batch 0: sum rows [1,2], [3,4], [5,6] along dim 1 = [1+3+5, 2+4+6] = [9, 12]
   // For batch 1: sum rows [7,8], [9,10], [11,12] along dim 1 = [7+9+11, 8+10+12] = [27, 30]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 9, "result[0,0,0] should be 9");
-  ASSERT_EQ(values[1], 12, "result[0,0,1] should be 12");
-  ASSERT_EQ(values[2], 27, "result[1,0,0] should be 27");
-  ASSERT_EQ(values[3], 30, "result[1,0,1] should be 30");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 9.0f, "result[0,0,0] should be 9");
+  ASSERT_EQ(values[1], 12.0f, "result[0,0,1] should be 12");
+  ASSERT_EQ(values[2], 27.0f, "result[1,0,0] should be 27");
+  ASSERT_EQ(values[3], 30.0f, "result[1,0,1] should be 30");
 
   freeMemory(mem);
 }
@@ -1949,7 +1949,7 @@ static void test_sum_non_contiguous(void) {
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 2; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 2 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 2 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -1964,9 +1964,9 @@ static void test_sum_non_contiguous(void) {
   ASSERT_EQ(r, OK, "Sum on transposed tensor should return OK");
 
   // Sum along dim 1: [1+3+5, 2+4+6] = [9, 12], shape [2, 1]
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 9, "result[0] should be 9");
-  ASSERT_EQ(values[1], 12, "result[1] should be 12");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 9.0f, "result[0] should be 9");
+  ASSERT_EQ(values[1], 12.0f, "result[1] should be 12");
 
   freeMemory(mem);
 }
@@ -1981,7 +1981,7 @@ static void test_sum_1d_tensor(void) {
   // t = [1, 2, 3, 4, 5]
   for (u32 i = 0; i < 5; i++) {
     u32 idx[] = {i};
-    Value v = {.dtype = U8, .as.u8 = (u8)(i + 1)};
+    Value v = {.dtype = F32, .as.f32 = (f32)(i + 1)};
     AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
@@ -1993,8 +1993,8 @@ static void test_sum_1d_tensor(void) {
   ASSERT_EQ(dest.shape.numOfDims, 1, "result should have 1 dim");
   ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
 
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 15, "result should be 15");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 15.0f, "result should be 15");
 
   freeMemory(mem);
 }
@@ -2014,7 +2014,7 @@ static void test_sum_4d_dim0(void) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 3; l++) {
           u32 idx[] = {i, j, k, l};
-          Value v = {.dtype = U8, .as.u8 = val++};
+          Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
       }
@@ -2034,11 +2034,11 @@ static void test_sum_4d_dim0(void) {
 
   // First batch [0,:,:,:] has values 1-12, second [1,:,:,:] has 13-24
   // Sum along dim 0: element-wise 1+13=14, 2+14=16, ..., 12+24=36
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 14, "result[0,0,0,0] should be 14");
-  ASSERT_EQ(values[1], 16, "result[0,0,0,1] should be 16");
-  ASSERT_EQ(values[2], 18, "result[0,0,0,2] should be 18");
-  ASSERT_EQ(values[11], 36, "result[0,1,1,2] should be 36");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 14.0f, "result[0,0,0,0] should be 14");
+  ASSERT_EQ(values[1], 16.0f, "result[0,0,0,1] should be 16");
+  ASSERT_EQ(values[2], 18.0f, "result[0,0,0,2] should be 18");
+  ASSERT_EQ(values[11], 36.0f, "result[0,1,1,2] should be 36");
 
   freeMemory(mem);
 }
@@ -2058,7 +2058,7 @@ static void test_sum_4d_dim1(void) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 2; l++) {
           u32 idx[] = {i, j, k, l};
-          Value v = {.dtype = U8, .as.u8 = val++};
+          Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
       }
@@ -2078,11 +2078,11 @@ static void test_sum_4d_dim1(void) {
 
   // Batch 0: sum j=0,1,2 for each (k,l)
   // [0,0,0,0]: 1+5+9=15, [0,0,0,1]: 2+6+10=18, [0,0,1,0]: 3+7+11=21, [0,0,1,1]: 4+8+12=24
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 15, "result[0,0,0,0] should be 15");
-  ASSERT_EQ(values[1], 18, "result[0,0,0,1] should be 18");
-  ASSERT_EQ(values[2], 21, "result[0,0,1,0] should be 21");
-  ASSERT_EQ(values[3], 24, "result[0,0,1,1] should be 24");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 15.0f, "result[0,0,0,0] should be 15");
+  ASSERT_EQ(values[1], 18.0f, "result[0,0,0,1] should be 18");
+  ASSERT_EQ(values[2], 21.0f, "result[0,0,1,0] should be 21");
+  ASSERT_EQ(values[3], 24.0f, "result[0,0,1,1] should be 24");
 
   freeMemory(mem);
 }
@@ -2102,7 +2102,7 @@ static void test_sum_4d_dim3(void) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 4; l++) {
           u32 idx[] = {i, j, k, l};
-          Value v = {.dtype = U8, .as.u8 = val++};
+          Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
       }
@@ -2123,10 +2123,10 @@ static void test_sum_4d_dim3(void) {
   // [0,0,0,:] = 1+2+3+4 = 10
   // [0,0,1,:] = 5+6+7+8 = 26
   // [0,1,0,:] = 9+10+11+12 = 42
-  u8 *values = (u8 *)dest.values;
-  ASSERT_EQ(values[0], 10, "result[0,0,0,0] should be 10");
-  ASSERT_EQ(values[1], 26, "result[0,0,1,0] should be 26");
-  ASSERT_EQ(values[2], 42, "result[0,1,0,0] should be 42");
+  f32 *values = (f32 *)dest.values;
+  ASSERT_EQ(values[0], 10.0f, "result[0,0,0,0] should be 10");
+  ASSERT_EQ(values[1], 26.0f, "result[0,0,1,0] should be 26");
+  ASSERT_EQ(values[2], 42.0f, "result[0,1,0,0] should be 42");
 
   freeMemory(mem);
 }
@@ -2145,7 +2145,7 @@ static void test_sum_multiple_reduces_3d(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
         u32 idx[] = {i, j, k};
-        Value v = {.dtype = U8, .as.u8 = val++};
+        Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
         AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
       }
     }
@@ -2176,8 +2176,8 @@ static void test_sum_multiple_reduces_3d(void) {
   ASSERT_EQ(after_dim0.shape.dims[2], 1, "after dim0: dim 2 should be 1");
 
   // Total sum of 1+2+...+24 = 300
-  u8 *values = (u8 *)after_dim0.values;
-  ASSERT_EQ(values[0], 300 % 256, "final sum should be 300 mod 256 = 44");
+  f32 *values = (f32 *)after_dim0.values;
+  ASSERT_EQ(values[0], 300.0f, "final sum should be 300");
 
   freeMemory(mem);
 }
@@ -2197,7 +2197,7 @@ static void test_sum_multiple_reduces_4d(void) {
       for (u32 k = 0; k < 3; k++) {
         for (u32 l = 0; l < 2; l++) {
           u32 idx[] = {i, j, k, l};
-          Value v = {.dtype = U8, .as.u8 = val++};
+          Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
       }
@@ -2237,7 +2237,7 @@ static void test_sum_reduce_to_scalar_2d(void) {
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 4 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 4 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -2254,8 +2254,8 @@ static void test_sum_reduce_to_scalar_2d(void) {
   ASSERT_EQ(r2.shape.dims[1], 1, "final dim 1 should be 1");
 
   // Sum of 1-12 = 78
-  u8 *values = (u8 *)r2.values;
-  ASSERT_EQ(values[0], 78, "total sum should be 78");
+  f32 *values = (f32 *)r2.values;
+  ASSERT_EQ(values[0], 78.0f, "total sum should be 78");
 
   freeMemory(mem);
 }
@@ -2348,7 +2348,7 @@ static void test_squeeze_shares_data(void) {
 
   // Set a value
   u32 idx[] = {0, 1};
-  Value v = {.dtype = U8, .as.u8 = 42};
+  Value v = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
 
   Tensor squeezed;
@@ -2358,7 +2358,7 @@ static void test_squeeze_shares_data(void) {
   u32 sq_idx[] = {1};
   Value result;
   GetAt(&squeezed, (Dim){.dims = sq_idx, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 42, "squeezed should share data with source");
+  ASSERT_EQ(result.as.f32, 42.0f, "squeezed should share data with source");
 
   freeMemory(mem);
 }
@@ -2374,7 +2374,7 @@ static void test_squeeze_after_sum(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -2390,9 +2390,9 @@ static void test_squeeze_after_sum(void) {
   ASSERT_EQ(squeezed.shape.numOfDims, 1, "squeezed should have 1 dim");
   ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
 
-  u8 *values = (u8 *)squeezed.values;
-  ASSERT_EQ(values[0], 6, "result[0] should be 6");
-  ASSERT_EQ(values[1], 15, "result[1] should be 15");
+  f32 *values = (f32 *)squeezed.values;
+  ASSERT_EQ(values[0], 6.0f, "result[0] should be 6");
+  ASSERT_EQ(values[1], 15.0f, "result[1] should be 15");
 
   freeMemory(mem);
 }
@@ -2486,7 +2486,7 @@ static void test_unsqueeze_shares_data(void) {
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
   u32 idx[] = {1};
-  Value v = {.dtype = U8, .as.u8 = 42};
+  Value v = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
 
   Tensor unsqueezed;
@@ -2496,7 +2496,7 @@ static void test_unsqueeze_shares_data(void) {
   u32 new_idx[] = {0, 1};
   Value result;
   GetAt(&unsqueezed, (Dim){.dims = new_idx, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 42, "unsqueezed should share data");
+  ASSERT_EQ(result.as.f32, 42.0f, "unsqueezed should share data");
 
   freeMemory(mem);
 }
@@ -2527,7 +2527,7 @@ static void test_unsqueeze_non_contiguous(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -2551,19 +2551,19 @@ static void test_unsqueeze_non_contiguous(void) {
   Value result;
   u32 idx1[] = {0, 0, 0};
   GetAt(&unsqueezed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 1, "unsqueezed[0,0,0] should be 1");
+  ASSERT_EQ(result.as.f32, 1.0f, "unsqueezed[0,0,0] should be 1");
 
   u32 idx2[] = {0, 0, 1};
   GetAt(&unsqueezed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 4, "unsqueezed[0,0,1] should be 4");
+  ASSERT_EQ(result.as.f32, 4.0f, "unsqueezed[0,0,1] should be 4");
 
   u32 idx3[] = {0, 1, 0};
   GetAt(&unsqueezed, (Dim){.dims = idx3, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 2, "unsqueezed[0,1,0] should be 2");
+  ASSERT_EQ(result.as.f32, 2.0f, "unsqueezed[0,1,0] should be 2");
 
   u32 idx4[] = {0, 2, 1};
   GetAt(&unsqueezed, (Dim){.dims = idx4, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 6, "unsqueezed[0,2,1] should be 6");
+  ASSERT_EQ(result.as.f32, 6.0f, "unsqueezed[0,2,1] should be 6");
 
   freeMemory(mem);
 }
@@ -2579,7 +2579,7 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 k = 0; k < 3; k++) {
       u32 idx[] = {i, 0, k};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + k + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + k + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
     }
   }
@@ -2599,7 +2599,7 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   u32 idx[] = {1, 0, 2};
   Value result;
   GetAt(&unsqueezed, (Dim){.dims = idx, .numOfDims = 3}, &result);
-  ASSERT_EQ(result.as.u8, 6, "data should be preserved");
+  ASSERT_EQ(result.as.f32, 6.0f, "data should be preserved");
 
   freeMemory(mem);
 }
@@ -2615,7 +2615,7 @@ static void test_clone_basic(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -2630,9 +2630,9 @@ static void test_clone_basic(void) {
   ASSERT_EQ(cloned.size, 6, "size should be 6");
   ASSERT(!cloned.isView, "clone should not be a view");
 
-  u8 *values = (u8 *)cloned.values;
-  ASSERT_EQ(values[0], 1, "cloned[0] should be 1");
-  ASSERT_EQ(values[5], 6, "cloned[5] should be 6");
+  f32 *values = (f32 *)cloned.values;
+  ASSERT_EQ(values[0], 1.0f, "cloned[0] should be 1");
+  ASSERT_EQ(values[5], 6.0f, "cloned[5] should be 6");
 
   freeMemory(mem);
 }
@@ -2645,7 +2645,7 @@ static void test_clone_independent_data(void) {
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
   u32 idx[] = {1};
-  Value v = {.dtype = U8, .as.u8 = 10};
+  Value v = {.dtype = F32, .as.f32 = 10.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
 
   Tensor cloned;
@@ -2658,7 +2658,7 @@ static void test_clone_independent_data(void) {
   // Clone should be unchanged
   Value result;
   GetAt(&cloned, (Dim){.dims = idx, .numOfDims = 1}, &result);
-  ASSERT_EQ(result.as.u8, 10, "clone should be independent from source");
+  ASSERT_EQ(result.as.f32, 10.0f, "clone should be independent from source");
 
   freeMemory(mem);
 }
@@ -2673,7 +2673,7 @@ static void test_clone_slice(void) {
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 4; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 4 + j)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 4 + j)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -2696,11 +2696,11 @@ static void test_clone_slice(void) {
   // slice[0,1] = source[1,2] = 6
   // slice[1,0] = source[2,1] = 9
   // slice[1,1] = source[2,2] = 10
-  u8 *values = (u8 *)cloned.values;
-  ASSERT_EQ(values[0], 5, "cloned[0,0] should be 5");
-  ASSERT_EQ(values[1], 6, "cloned[0,1] should be 6");
-  ASSERT_EQ(values[2], 9, "cloned[1,0] should be 9");
-  ASSERT_EQ(values[3], 10, "cloned[1,1] should be 10");
+  f32 *values = (f32 *)cloned.values;
+  ASSERT_EQ(values[0], 5.0f, "cloned[0,0] should be 5");
+  ASSERT_EQ(values[1], 6.0f, "cloned[0,1] should be 6");
+  ASSERT_EQ(values[2], 9.0f, "cloned[1,0] should be 9");
+  ASSERT_EQ(values[3], 10.0f, "cloned[1,1] should be 10");
 
   freeMemory(mem);
 }
@@ -2716,7 +2716,7 @@ static void test_clone_transposed(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       u32 idx[] = {i, j};
-      Value v = {.dtype = U8, .as.u8 = (u8)(i * 3 + j + 1)};
+      Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
@@ -2733,11 +2733,11 @@ static void test_clone_transposed(void) {
   ASSERT(cloned.isContigous, "clone should be contiguous");
 
   // Transposed: [[1,4], [2,5], [3,6]]
-  u8 *values = (u8 *)cloned.values;
-  ASSERT_EQ(values[0], 1, "cloned[0,0] should be 1");
-  ASSERT_EQ(values[1], 4, "cloned[0,1] should be 4");
-  ASSERT_EQ(values[2], 2, "cloned[1,0] should be 2");
-  ASSERT_EQ(values[3], 5, "cloned[1,1] should be 5");
+  f32 *values = (f32 *)cloned.values;
+  ASSERT_EQ(values[0], 1.0f, "cloned[0,0] should be 1");
+  ASSERT_EQ(values[1], 4.0f, "cloned[0,1] should be 4");
+  ASSERT_EQ(values[2], 2.0f, "cloned[1,0] should be 2");
+  ASSERT_EQ(values[3], 5.0f, "cloned[1,1] should be 5");
 
   freeMemory(mem);
 }
@@ -2763,7 +2763,7 @@ static void test_slice_boundary_access(void) {
   for (u32 i = 0; i < 5; i++) {
     for (u32 j = 0; j < 5; j++) {
       u32 idx_dims[] = {i, j};
-      Value val = {.dtype = U8, .as.u8 = (u8)(i * 5 + j)};
+      Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
@@ -2778,22 +2778,22 @@ static void test_slice_boundary_access(void) {
   // Top-left: slice[0,0] = source[2,1] = 11
   u32 tl[] = {0, 0};
   GetAt(&slice, (Dim){.dims = tl, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 11, "top-left corner should be 11");
+  ASSERT_EQ(result.as.f32, 11.0f, "top-left corner should be 11");
 
   // Top-right: slice[0,2] = source[2,3] = 13
   u32 tr[] = {0, 2};
   GetAt(&slice, (Dim){.dims = tr, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 13, "top-right corner should be 13");
+  ASSERT_EQ(result.as.f32, 13.0f, "top-right corner should be 13");
 
   // Bottom-left: slice[2,0] = source[4,1] = 21
   u32 bl[] = {2, 0};
   GetAt(&slice, (Dim){.dims = bl, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 21, "bottom-left corner should be 21");
+  ASSERT_EQ(result.as.f32, 21.0f, "bottom-left corner should be 21");
 
   // Bottom-right: slice[2,2] = source[4,3] = 23
   u32 br[] = {2, 2};
   GetAt(&slice, (Dim){.dims = br, .numOfDims = 2}, &result);
-  ASSERT_EQ(result.as.u8, 23, "bottom-right corner should be 23");
+  ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
 
   freeMemory(mem);
 }
@@ -2938,7 +2938,7 @@ static void test_matmul_dtype_mismatch(void) {
   float valsA[] = {1, 2, 3, 4};
   Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 4);
 
-  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dimsA, .numOfDims = 2});
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dimsA, .numOfDims = 2}, 0);
 
   Tensor result;
   Result r = MatMul(&ctx, &a, b, &result);
@@ -2990,8 +2990,8 @@ static void test_matmul_integer_dtype_rejected(void) {
   Context ctx = {.memory = mem};
 
   u32 dims[] = {2, 2};
-  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor result;
   Result r = MatMul(&ctx, a, b, &result);
@@ -3074,7 +3074,7 @@ static void test_dot_dtype_mismatch(void) {
   float valsA[] = {1, 2, 3};
   Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
 
-  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dimsA, .numOfDims = 1});
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dimsA, .numOfDims = 1}, 0);
 
   Tensor result;
   Result r = Dot(&ctx, &a, b, &result);
@@ -3107,8 +3107,8 @@ static void test_dot_integer_dtype_rejected(void) {
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
-  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
 
   Tensor result;
   Result r = Dot(&ctx, a, b, &result);

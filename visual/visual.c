@@ -147,10 +147,33 @@ static char *tensorLabel(Context *ctx, Tensor *t) {
 
   /* Format: "value (op)" e.g. "-6 (*)" */
   const char *op = opName(t->computation->optype);
+
+  /* Check if grad is available and include it */
+  if (t->computation->grad != NULL) {
+    char *gradVal = GetItem(ctx, t->computation->grad);
+    size_t len = strlen(val) + 6 + strlen(op) + strlen(gradVal);
+    char *label = allocate(ctx->memory, len + 1);
+    snprintf(label, len + 1, "%s (%s) [%s]", val, op, gradVal);
+    return label;
+  }
+
   size_t len = strlen(val) + 4 + strlen(op);
   char *label = allocate(ctx->memory, len + 1);
   snprintf(label, len + 1, "%s (%s)", val, op);
   return label;
+}
+
+static char *tensorDisplayLabel(Context *ctx, Tensor *t) {
+  char *baseLabel = tensorLabel(ctx, t);
+  if (t->label == NULL) {
+    return baseLabel;
+  }
+
+  /* Format: "Label: value (op)" or "Label: value" */
+  size_t len = strlen(t->label) + 2 + strlen(baseLabel);
+  char *display = allocate(ctx->memory, len + 1);
+  snprintf(display, len + 1, "%s: %s", t->label, baseLabel);
+  return display;
 }
 
 void VisualizeOps(Context *ctx, Tensor *t) {
@@ -223,7 +246,7 @@ void VisualizeOps(Context *ctx, Tensor *t) {
     boxes[i].y = 2 + lv * (VIS_BOX_HEIGHT + VIS_V_SPACING);
     boxes[i].width = VIS_BOX_WIDTH;
     boxes[i].height = VIS_BOX_HEIGHT;
-    boxes[i].text = tensorLabel(ctx, queue[i]);
+    boxes[i].text = tensorDisplayLabel(ctx, queue[i]);
   }
 
   ClearScreen(ctx);
