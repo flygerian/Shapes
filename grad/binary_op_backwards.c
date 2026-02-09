@@ -105,6 +105,51 @@ Result divideBackward(Context *ctx, GraphNode *node) {
 }
 
 Result multiplyBackward(Context *ctx, GraphNode *node) {
+  Tensor *a = node->inputs[0];
+  Tensor *b = node->inputs[1];
+
+  Context noGradCtx = NoGradContext(ctx);
+
+  // Gradient for a: grad_a = output_grad * b
+  Tensor gradA_unreduced;
+  Result res = Multiply(&noGradCtx, node->grad, b, &gradA_unreduced);
+  if (res != OK) {
+    return res;
+  }
+
+  // Reduce gradient for input a if broadcasting occurred
+  Tensor *gradA;
+  res = reduceGradForInput(ctx, a, &gradA_unreduced, &gradA);
+  if (res != OK) {
+    return res;
+  }
+
+  // Accumulate gradient to input a
+  res = Add(&noGradCtx, a->computation->grad, gradA, a->computation->grad);
+  if (res != OK) {
+    return res;
+  }
+
+  // Gradient for b: grad_b = output_grad * a
+  Tensor gradB_unreduced;
+  res = Multiply(&noGradCtx, node->grad, a, &gradB_unreduced);
+  if (res != OK) {
+    return res;
+  }
+
+  // Reduce gradient for input b if broadcasting occurred
+  Tensor *gradB;
+  res = reduceGradForInput(ctx, b, &gradB_unreduced, &gradB);
+  if (res != OK) {
+    return res;
+  }
+
+  // Accumulate gradient to input b
+  res = Add(&noGradCtx, b->computation->grad, gradB, b->computation->grad);
+  if (res != OK) {
+    return res;
+  }
+
   return OK;
 }
 
