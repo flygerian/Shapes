@@ -54,8 +54,10 @@ add_library(shapes_core
     tensor/destruction.c
     grad/binary_op_backwards.c
     grad/activation_backward.c
+    grad/backward.c
     visual/visual.c
     activation/activation.c
+
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} m)

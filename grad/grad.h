@@ -7,4 +7,6 @@
 Result ConstructBinopBackwardpass(Context *ctx, OpType type, Tensor *a, Tensor *b, Tensor *result);
 Result ConstructTanhBackwardpass(Context *ctx, Tensor *t, Tensor *result);
 
+Result Backward(Context *ctx, Tensor *t);
+
 #endif

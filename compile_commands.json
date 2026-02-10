@@ -73,6 +73,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_core.dir/grad/backward.c.o -c /home/olabode/repos/Shapes/grad/backward.c",
+  "file": "/home/olabode/repos/Shapes/grad/backward.c",
+  "output": "CMakeFiles/shapes_core.dir/grad/backward.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_core.dir/visual/visual.c.o -c /home/olabode/repos/Shapes/visual/visual.c",
   "file": "/home/olabode/repos/Shapes/visual/visual.c",
   "output": "CMakeFiles/shapes_core.dir/visual/visual.c.o"
@@ -112,5 +118,11 @@
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_test.dir/cmd/test/activation_test.c.o -c /home/olabode/repos/Shapes/cmd/test/activation_test.c",
   "file": "/home/olabode/repos/Shapes/cmd/test/activation_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/activation_test.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_test.dir/cmd/test/grad_test.c.o -c /home/olabode/repos/Shapes/cmd/test/grad_test.c",
+  "file": "/home/olabode/repos/Shapes/cmd/test/grad_test.c",
+  "output": "CMakeFiles/shapes_test.dir/cmd/test/grad_test.c.o"
 }
 ]

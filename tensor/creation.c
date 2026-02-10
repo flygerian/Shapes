@@ -7,6 +7,13 @@
 #include <complex.h>
 #include <string.h>
 
+Result emptyBackward(Context *ctx, GraphNode *g) {
+  (void) g;
+  (void) ctx;
+
+  return OK;
+}
+
 static void initializeGradient(Context *ctx, Tensor *t) {
   if (!ctx->grad) {
     return;
@@ -34,7 +41,7 @@ static void initializeGradient(Context *ctx, Tensor *t) {
   memset(grad->values, 0, valueBytes);
 
   *node = (GraphNode){
-      .output = t, .grad = grad, .inputs = NULL, .numInputs = 0, .backward = NULL, .optype = 0};
+      .output = t, .grad = grad, .inputs = NULL, .numInputs = 0, .backward = emptyBackward, .optype = 0};
 
   t->computation = node;
 }
