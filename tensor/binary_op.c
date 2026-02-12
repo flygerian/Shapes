@@ -3,6 +3,7 @@
 #include "grad/grad.h"
 #include "tensor_internal.h"
 #include "value.h"
+#include "unary.h"
 
 static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
   if (a->dtype != b->dtype) {
@@ -62,8 +63,11 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
       case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      case OP_DIVIDE: VALUE_BINOP(result, aVal, bVal, /); break;
+
+      default:
+        return ERR_NOT_A_BINOP;
     }
+
     VALUE_SET(output->values, x, result);
   }
 
@@ -72,6 +76,7 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   if (ctx->grad) {
     ConstructBinopBackwardpass(ctx, opType, a, b, destination);
   }
+
   return OK;
 }
 
@@ -87,6 +92,17 @@ Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   return binaryOp(ctx, a, b, destination, OP_MULTIPLY);
 }
 
-Result Divide(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_DIVIDE);
+Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination) {
+  // Implement division as: numerator / denominator = numerator * (denominator^-1)
+  // This automatically gets correct gradients through the computation graph!
+
+  // Allocate tensor for denominator^-1 using creation function (avoids stack-use-after-return)
+  Tensor *denom_inv = t_Zeros(ctx, denominator->shape, denominator->dtype);
+  Result res = Pow(ctx, denominator, -1.0f, denom_inv);
+  if (res != OK) {
+    return res;
+  }
+
+  // Compute numerator * denominator^-1
+  return Multiply(ctx, numerator, denom_inv, destination);
 }

@@ -75,7 +75,6 @@ typedef struct {
   char *label;
 } Tensor;
 
-
 typedef struct ScreenConfig {
   int cx, cy;
   int rx;
@@ -95,7 +94,7 @@ typedef struct Context {
 
 typedef Result (*BackwardFn)(struct Context *, struct GraphNode *);
 
-typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_DIVIDE, OP_TANH } OpType;
+typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_TANH, OP_POW } OpType;
 
 typedef struct GraphNode {
   Tensor *output;
@@ -104,6 +103,7 @@ typedef struct GraphNode {
   u8 numInputs;
   BackwardFn backward;
   OpType optype;
+  void *metadata;  // Operation-specific data (e.g., power value for Pow)
 } GraphNode;
 
 size_t getBytesForDtype(Dtype type);

@@ -160,7 +160,7 @@ void coalesceBackwards(Memory *memory, blockheader *memBlockHeader) {
   uint8_t *arena = ARENA(memory);
   size_t headerOffset = (uint8_t *)memBlockHeader - arena;
 
-  if (headerOffset > 0) {
+  if (headerOffset >= sizeof(blockheader) + sizeof(blockfooter)) {
     blockfooter *prevFooter = (blockfooter *)((uint8_t *)memBlockHeader - sizeof(blockfooter));
     blockheader *prevHeader = (blockheader *)(arena + prevFooter->headerOffset);
 

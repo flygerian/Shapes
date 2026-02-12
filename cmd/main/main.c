@@ -306,7 +306,9 @@ int main(int argc, char *argv[]) {
   Tanh(&ctx, &n, &o);
   o.label = "o";
 
-  Backward(&ctx, &o);
+  ComputationGraph *graph = InitComputationGraph(&ctx, &o);
+
+  Backward(&ctx, graph);
 
   EnableRawMode(&ctx);
 

@@ -61,6 +61,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_core.dir/tensor/unary.c.o -c /home/olabode/repos/Shapes/tensor/unary.c",
+  "file": "/home/olabode/repos/Shapes/tensor/unary.c",
+  "output": "CMakeFiles/shapes_core.dir/tensor/unary.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_core.dir/grad/binary_op_backwards.c.o -c /home/olabode/repos/Shapes/grad/binary_op_backwards.c",
   "file": "/home/olabode/repos/Shapes/grad/binary_op_backwards.c",
   "output": "CMakeFiles/shapes_core.dir/grad/binary_op_backwards.c.o"
@@ -115,9 +121,9 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_test.dir/cmd/test/activation_test.c.o -c /home/olabode/repos/Shapes/cmd/test/activation_test.c",
-  "file": "/home/olabode/repos/Shapes/cmd/test/activation_test.c",
-  "output": "CMakeFiles/shapes_test.dir/cmd/test/activation_test.c.o"
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/OpenBLAS/install/include -I/home/olabode/repos/Shapes -g -std=gnu99 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o -c /home/olabode/repos/Shapes/cmd/test/unary_test.c",
+  "file": "/home/olabode/repos/Shapes/cmd/test/unary_test.c",
+  "output": "CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/build",

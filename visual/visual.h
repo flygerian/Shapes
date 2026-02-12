@@ -6,7 +6,8 @@
 typedef struct {
   int x, y;
   int width, height;
-  char *text;
+  char *topText;    /* Top line: label | value | grad */
+  char *bottomText; /* Bottom line: (operation) */
 } Box;
 
 void EnableRawMode(Context *ctx);

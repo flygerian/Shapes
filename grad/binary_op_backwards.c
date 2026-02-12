@@ -13,6 +13,7 @@ static GraphNode *contructGraphNode(Context *ctx, OpType type, Tensor *a, Tensor
   node->grad = t_Zeros(ctx, result->shape, result->dtype);
   node->inputs = (Tensor **)allocate(ctx->memory, sizeof(Tensor *) * 2);
   node->numInputs = 2;
+  node->metadata = NULL;
 
   node->inputs[0] = a;
   node->inputs[1] = b;
@@ -100,10 +101,6 @@ Result subtractBackward(Context *ctx, GraphNode *node) {
   return OK;
 }
 
-Result divideBackward(Context *ctx, GraphNode *node) {
-  return OK;
-}
-
 Result multiplyBackward(Context *ctx, GraphNode *node) {
   Tensor *a = node->inputs[0];
   Tensor *b = node->inputs[1];
@@ -160,8 +157,6 @@ Result ConstructBinopBackwardpass(Context *ctx, OpType type, Tensor *a, Tensor *
     case OP_ADD: node->backward = addBackward; break;
 
     case OP_SUBTRACT: node->backward = subtractBackward; break;
-
-    case OP_DIVIDE: node->backward = divideBackward; break;
 
     case OP_MULTIPLY: node->backward = multiplyBackward; break;
   }

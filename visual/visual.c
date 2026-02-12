@@ -10,8 +10,8 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define VIS_BOX_WIDTH  20
-#define VIS_BOX_HEIGHT 5
+#define VIS_BOX_WIDTH  50
+#define VIS_BOX_HEIGHT 7
 #define VIS_V_SPACING  5
 #define VIS_MAX_NODES  64
 
@@ -21,6 +21,11 @@ void die(const char *message) {
 }
 
 void DisableRawMode(Context *ctx) {
+  /* Only disable raw mode if stdin is actually a terminal */
+  if (!isatty(STDIN_FILENO)) {
+    return;
+  }
+
   int reponse = tcsetattr(STDIN_FILENO, TCSAFLUSH, ctx->screenConfig->orig_termios);
   if (reponse == -1) {
     die("tcsetattr");
@@ -28,6 +33,10 @@ void DisableRawMode(Context *ctx) {
 }
 
 void EnableRawMode(Context *ctx) {
+  /* Only enable raw mode if stdin is actually a terminal */
+  if (!isatty(STDIN_FILENO)) {
+    return;
+  }
 
   if (tcgetattr(STDIN_FILENO, ctx->screenConfig->orig_termios) == -1) {
     die("tcgetattr");
@@ -93,25 +102,71 @@ void DrawBox(Context *ctx, Box *box) {
     printf("─");
   printf("┐");
 
-  /* Draw middle lines with text */
+  /* Draw middle lines with text and separator */
   for (int i = 1; i < box->height - 1; i++) {
     printf("\033[%d;%dH", box->y + i, box->x);
-    printf("│");
 
-    if (i == box->height / 2 && box->text) {
-      int text_len = strlen(box->text);
-      int padding = (box->width - 2 - text_len) / 2;
-      for (int j = 0; j < padding; j++)
-        printf(" ");
-      printf("%.*s", box->width - 2 - padding, box->text);
-      for (int j = padding + text_len; j < box->width - 2; j++)
-        printf(" ");
+    if (i == 2) {
+      /* Top text line: label | value | grad */
+      printf("│");
+      if (box->topText) {
+        int text_len = strlen(box->topText);
+        int available_width = box->width - 2;
+
+        if (text_len <= available_width) {
+          /* Text fits, center it */
+          int padding = (available_width - text_len) / 2;
+          for (int j = 0; j < padding; j++)
+            printf(" ");
+          printf("%s", box->topText);
+          for (int j = padding + text_len; j < available_width; j++)
+            printf(" ");
+        } else {
+          /* Text is too long, truncate it */
+          printf("%.*s", available_width, box->topText);
+        }
+      } else {
+        for (int j = 0; j < box->width - 2; j++)
+          printf(" ");
+      }
+      printf("│");
+    } else if (i == 3) {
+      /* Horizontal separator line */
+      printf("├");
+      for (int j = 0; j < box->width - 2; j++)
+        printf("─");
+      printf("┤");
+    } else if (i == 4) {
+      /* Bottom text line: (operation) */
+      printf("│");
+      if (box->bottomText) {
+        int text_len = strlen(box->bottomText);
+        int available_width = box->width - 2;
+
+        if (text_len <= available_width) {
+          /* Text fits, center it */
+          int padding = (available_width - text_len) / 2;
+          for (int j = 0; j < padding; j++)
+            printf(" ");
+          printf("%s", box->bottomText);
+          for (int j = padding + text_len; j < available_width; j++)
+            printf(" ");
+        } else {
+          /* Text is too long, truncate it */
+          printf("%.*s", available_width, box->bottomText);
+        }
+      } else {
+        for (int j = 0; j < box->width - 2; j++)
+          printf(" ");
+      }
+      printf("│");
     } else {
+      /* Empty line */
+      printf("│");
       for (int j = 0; j < box->width - 2; j++)
         printf(" ");
+      printf("│");
     }
-
-    printf("│");
   }
 
   /* Draw bottom border */
@@ -134,47 +189,84 @@ static const char *opName(OpType op) {
     case OP_ADD: return "+";
     case OP_SUBTRACT: return "-";
     case OP_MULTIPLY: return "*";
-    case OP_DIVIDE: return "/";
     case OP_TANH: return "tanh";
+    case OP_POW: return "pow";
     default: return "?";
   }
 }
 
-static char *tensorLabel(Context *ctx, Tensor *t) {
-  char *val = GetItem(ctx, t);
-  if (t->computation == NULL) {
-    return val;
+static char *formatNumber(Context *ctx, const char *numStr) {
+  /* Remove trailing zeros after decimal point */
+  /* e.g., "3.142000" -> "3.142", "2.000000" -> "2.0" */
+  size_t len = strlen(numStr);
+  char *result = allocate(ctx->memory, len + 1);
+  strcpy(result, numStr);
+
+  /* Find decimal point */
+  char *dot = strchr(result, '.');
+  if (dot == NULL) {
+    return result; /* No decimal point, return as-is */
   }
 
-  /* Format: "value (op)" e.g. "-6 (*)" */
-  const char *op = opName(t->computation->optype);
-
-  /* Check if grad is available and include it */
-  if (t->computation->grad != NULL) {
-    char *gradVal = GetItem(ctx, t->computation->grad);
-    size_t len = strlen(val) + 6 + strlen(op) + strlen(gradVal);
-    char *label = allocate(ctx->memory, len + 1);
-    snprintf(label, len + 1, "%s (%s) [%s]", val, op, gradVal);
-    return label;
+  /* Trim trailing zeros after decimal */
+  char *end = result + len - 1;
+  while (end > dot && *end == '0') {
+    *end = '\0';
+    end--;
   }
 
-  size_t len = strlen(val) + 4 + strlen(op);
-  char *label = allocate(ctx->memory, len + 1);
-  snprintf(label, len + 1, "%s (%s)", val, op);
-  return label;
+  /* Keep at least one digit after decimal (e.g., "2." -> "2.0") */
+  if (end == dot) {
+    *(end + 1) = '0';
+    *(end + 2) = '\0';
+  }
+
+  return result;
 }
 
-static char *tensorDisplayLabel(Context *ctx, Tensor *t) {
-  char *baseLabel = tensorLabel(ctx, t);
-  if (t->label == NULL) {
-    return baseLabel;
+typedef struct {
+  char *topText;
+  char *bottomText;
+} BoxLabels;
+
+static BoxLabels tensorDisplayLabels(Context *ctx, Tensor *t) {
+  BoxLabels labels;
+  char *val = formatNumber(ctx, GetItem(ctx, t));
+  const char *label = t->label ? t->label : "?";
+
+  /* If no computation, just show: "label | value" on top, nothing on bottom */
+  if (t->computation == NULL) {
+    size_t len = strlen(label) + 3 + strlen(val);
+    labels.topText = allocate(ctx->memory, len + 1);
+    snprintf(labels.topText, len + 1, "%s | %s", label, val);
+    labels.bottomText = NULL;
+    return labels;
   }
 
-  /* Format: "Label: value (op)" or "Label: value" */
-  size_t len = strlen(t->label) + 2 + strlen(baseLabel);
-  char *display = allocate(ctx->memory, len + 1);
-  snprintf(display, len + 1, "%s: %s", t->label, baseLabel);
-  return display;
+  /* Top line: "label | value | grad [gradVal]" */
+  /* Bottom line: "(op)" only if node has inputs */
+  if (t->computation->grad != NULL) {
+    char *gradVal = formatNumber(ctx, GetItem(ctx, t->computation->grad));
+    size_t len = strlen(label) + 3 + strlen(val) + 10 + strlen(gradVal);
+    labels.topText = allocate(ctx->memory, len + 1);
+    snprintf(labels.topText, len + 1, "%s | %s | grad [%s]", label, val, gradVal);
+  } else {
+    size_t len = strlen(label) + 3 + strlen(val);
+    labels.topText = allocate(ctx->memory, len + 1);
+    snprintf(labels.topText, len + 1, "%s | %s", label, val);
+  }
+
+  /* Bottom line shows operation only if node has inputs (not a leaf node) */
+  if (t->computation->numInputs > 0) {
+    const char *op = opName(t->computation->optype);
+    size_t opLen = 2 + strlen(op) + 1;
+    labels.bottomText = allocate(ctx->memory, opLen + 1);
+    snprintf(labels.bottomText, opLen + 1, "(%s)", op);
+  } else {
+    labels.bottomText = NULL;
+  }
+
+  return labels;
 }
 
 void VisualizeOps(Context *ctx, Tensor *t) {
@@ -238,7 +330,8 @@ void VisualizeOps(Context *ctx, Tensor *t) {
     int idx = levelIdx[lv]++;
 
     int totalWidth = nodesAtLevel * VIS_BOX_WIDTH + (nodesAtLevel - 1) * 4;
-    int startX = (80 - totalWidth) / 2;
+    int screenWidth = 120; /* Assume 120 column terminal */
+    int startX = (screenWidth - totalWidth) / 2;
     if (startX < 1) {
       startX = 1;
     }
@@ -247,7 +340,9 @@ void VisualizeOps(Context *ctx, Tensor *t) {
     boxes[i].y = 2 + lv * (VIS_BOX_HEIGHT + VIS_V_SPACING);
     boxes[i].width = VIS_BOX_WIDTH;
     boxes[i].height = VIS_BOX_HEIGHT;
-    boxes[i].text = tensorDisplayLabel(ctx, queue[i]);
+    BoxLabels labels = tensorDisplayLabels(ctx, queue[i]);
+    boxes[i].topText = labels.topText;
+    boxes[i].bottomText = labels.bottomText;
   }
 
   ClearScreen(ctx);
