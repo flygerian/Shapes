@@ -1,149 +1,176 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with the Shapes multi-language tensor library.
 
-## Project Overview
+## Project Architecture
 
-Shapes is a from-scratch tensor computation library written in C99, implementing multi-dimensional tensor operations with automatic differentiation (autograd). Think NumPy/PyTorch but in pure C with a custom arena-based memory allocator and OpenBLAS for BLAS operations.
+Shapes is a **multi-language tensor computation library** with a high-performance C core and language-specific bindings.
+
+### Directory Structure
+
+```
+/home/olabode/repos/Shapes/
+├── base/          # C99 core implementation
+├── go/            # Go bindings + high-level API
+└── [future]/      # Additional language bindings
+```
+
+**Key concept**: The `base/` directory contains a complete, standalone C tensor library. Other directories contain language bindings that call into the C core via FFI (Foreign Function Interface).
+
+### Component Roles
+
+**base/ (C Core)**
+- Performance-critical tensor operations
+- Custom arena memory allocator
+- Autograd system with computation graph
+- OpenBLAS integration for BLAS operations
+- **Authoritative implementation**: This is the source of truth for tensor behavior
+
+**go/ (Go Bindings)**
+- CGo bindings to expose C functions to Go
+- Idiomatic Go API wrapping C types
+- Higher-level abstractions: layers, optimizers, training utilities
+- **Builds on C core**: Calls C functions for tensor ops, adds Go-specific features
+
+**Future language bindings**
+- Similar pattern: FFI bindings + language-specific high-level features
+
+## Development Guidelines
+
+### General Principles
+
+1. **Core vs. Bindings**: Performance-critical operations belong in C (`base/`). Language-specific ergonomics and high-level features belong in bindings.
+
+2. **Shared Core Philosophy**: All languages use the same C core. Don't reimplement tensor operations in each language—bind to the C version.
+
+3. **Layered Design**:
+   - Layer 1: C tensor primitives (add, multiply, matmul, etc.)
+   - Layer 2: Language bindings (FFI, memory management bridges)
+   - Layer 3: High-level features (layers, training loops, utilities)
+
+4. **Documentation**: Each component has its own documentation:
+   - `base/CLAUDE.md` - C library development guide
+   - `base/AGENTS.md` - Comprehensive C development reference
+   - This file - Overall project architecture
+
+### Working with the C Core
+
+When modifying `base/`:
+- Follow C99 standard strictly (see `base/CLAUDE.md` for conventions)
+- Use the custom arena allocator for all allocations
+- Run `make -C base/build format` before committing
+- Test changes with `./base/build/shapes_test`
+- Consider impact on all language bindings when changing C API
+
+**Build commands** (from `base/` directory):
+```bash
+cmake -S . -B build
+make -C build              # Build
+make -C build format       # Auto-format (REQUIRED before commit)
+ctest --test-dir build     # Run tests
+```
+
+### Working with Go Bindings
+
+When modifying `go/`:
+- Use CGo to interface with C core
+- Wrap C types (`Tensor*`, `Context`, etc.) in Go structs
+- Manage memory carefully across Go/C boundary:
+  - C arena allocator manages C memory
+  - Go garbage collector manages Go memory
+  - Use finalizers or explicit Free methods for hybrid objects
+- Build higher-level features in pure Go when possible
+- Follow Go conventions for the Go API even if C API differs
+
+**Module**: `github.com/yourusername/shapes`
+
+### CGo Integration Strategy
+
+The Go library should:
+1. Import C headers and link against C library
+2. Create Go wrapper types that hold C pointers
+3. Provide Go methods that call C functions via CGo
+4. Handle type conversions (Go slices ↔ C arrays, etc.)
+5. Implement higher-level Go-native features on top
+
+Example pattern:
+```go
+// #include "../../base/tensor/tensor.h"
+// #include "../../base/common.h"
+import "C"
+
+type Tensor struct {
+    cTensor *C.Tensor
+    ctx     *Context
+}
+
+func (t *Tensor) Add(other *Tensor) (*Tensor, error) {
+    // Call C function via CGo
+    var result C.Tensor
+    resultCode := C.Add(t.ctx.cCtx, t.cTensor, other.cTensor, &result)
+    // Handle errors, wrap result
+}
+```
+
+## When Working on Different Components
+
+### Adding a new tensor operation
+
+1. **Implement in C first** (`base/tensor/`)
+   - Write the C function following existing patterns
+   - Add tests in `base/cmd/test/`
+   - Document in `base/tensor/tensor.h`
+
+2. **Expose to Go** (`go/`)
+   - Create CGo binding
+   - Wrap in idiomatic Go API
+   - Add Go tests
+
+3. **Update documentation**
+   - Update relevant CLAUDE.md sections
+   - Add examples to README if significant
+
+### Adding a high-level feature (e.g., neural network layer)
+
+1. **Decide on location**: If it can be built purely using existing tensor ops, implement in the language binding (e.g., Go)
+
+2. **Implement in binding language**:
+   - Use existing tensor operations as primitives
+   - Follow language conventions
+   - Add comprehensive tests
+
+3. **Don't add to C core** unless it requires new low-level primitives
+
+## Current State
+
+- ✅ C core: Fully functional with tensor ops, autograd, memory allocator
+- ✅ C build system: CMake with format/lint/test targets
+- ✅ Go module: Initialized, ready for implementation
+- 🚧 Go bindings: Not yet implemented
+- 🚧 Go high-level API: Not yet implemented
 
 ## Quick Reference
 
-### Build Commands
-```bash
-# Initial setup
-cmake -S . -B build
+### File Locations
+- C library: `base/`
+- C conventions: `base/CLAUDE.md`, `base/AGENTS.md`
+- Go module: `go/`
+- Project README: `README.md` (root)
 
-# Build all targets
-make -C build
+### Common Tasks
+- Format C code: `make -C base/build format`
+- Test C code: `./base/build/shapes_test`
+- Build Go code: `cd go && go build ./...`
+- Test Go code: `cd go && go test ./...`
 
-# Build and run tests
-ctest --test-dir build
+## Important Notes for Claude
 
-# Run tests directly
-./build/shapes_test
+1. **Don't duplicate tensor operations**: If a tensor operation exists in C, bind to it rather than reimplementing in Go.
 
-# Auto-format code (REQUIRED before commits)
-make -C build format
+2. **Respect the architecture**: C for performance-critical code, Go for ergonomics and high-level features.
 
-# Check formatting (CI-friendly, non-modifying)
-make -C build check-format
+3. **Memory management is critical**: The C library uses a custom arena allocator. Go code must carefully manage the lifecycle of C objects.
 
-# Static analysis
-make -C build lint
+4. **Keep C API stable**: Changes to the C API affect all language bindings. Consider compatibility.
 
-# Run main executable
-./build/shapes
-```
-
-### Testing
-- Single test executable (`shapes_test`) runs all tests together
-- No mechanism to run individual tests in isolation
-- To test specific area: comment out other `run_*_tests()` calls in `cmd/test/main.c` and rebuild
-- Test framework uses custom macros: `ASSERT`, `ASSERT_EQ`, `ASSERT_NEQ`, `ASSERT_NULL`, `ASSERT_NOT_NULL`, `TEST_SUMMARY`
-- Each test is a static void function grouped in `run_*_tests()` functions
-
-## Architecture
-
-### Core Concepts
-
-**Memory Management**: Custom arena allocator (`memory.h/c`) with 1MB arena. ALL allocations go through `allocate(ctx->memory, size)` — never use malloc/free directly. Context struct carries `Memory*` pointer everywhere.
-
-**Computation Graph**: Tensors can be part of a computation graph for autograd. Each tensor optionally has a `GraphNode* computation` that tracks:
-- Output tensor
-- Gradient tensor
-- Input tensors (array)
-- Backward pass function pointer
-- Operation type (OP_ADD, OP_MULTIPLY, etc.)
-- Operation metadata (e.g., power value for Pow)
-
-**Context**: The `Context` struct is the central state container passed to all operations:
-```c
-typedef struct Context {
-  Memory *memory;      // Arena allocator
-  bool grad;           // Enable gradient tracking
-  ScreenConfig *screenConfig;  // Terminal visualization config
-} Context;
-```
-
-**Result Pattern**: Functions that can fail return `Result` enum (OK or ERR_*). Always validate inputs at function top with early returns.
-
-### Module Breakdown
-
-**tensor/**: Core tensor operations
-- `binary_op.c`: Element-wise Add, Subtract, Multiply, Divide with broadcasting
-- `matrix_ops.c`: MatMul, Dot (wraps OpenBLAS)
-- `shape_ops.c`: Slice, Reshape, Transpose, Squeeze, UnSqueeze
-- `reduction.c`: Sum operation
-- `creation.c`: T_Zeros, T_Int, T_Float, Clone
-- `access.c`: GetAt, AssignValueAt for element access
-- `value.h`: Type-generic macros (VALUE_SET, VALUE_GET_FROM_ARR, VALUE_BINOP)
-- `blas.h`: OpenBLAS wrapper macros
-
-**grad/**: Autograd system
-- `backward.c`: Main backward pass orchestration, builds topological sort of computation graph
-- `binary_op_backwards.c`: Backward implementations for Add, Subtract, Multiply, Divide
-- `activation_backward.c`: Backward for Tanh and other activations
-- Construction functions: `ConstructBinopBackwardpass`, `ConstructTanhBackwardpass`, etc.
-
-**visual/**: Terminal visualization for computation graphs (uses raw terminal mode)
-
-**common.h**: Core type definitions (Tensor, Dim, Value, GraphNode, Context, Dtype)
-
-### Key Patterns
-
-**Tensor Views vs Copies**:
-- Shape operations (Slice, Transpose, Squeeze, UnSqueeze) create views: `.isView = true`, `.isContigous = false`
-- Views share underlying `values` pointer
-- Non-contiguous tensors are copied to contiguous before operations via internal `copyToContiguous()`
-
-**Tensor Creation vs Operations**:
-- Creation functions return `Tensor*` (heap-allocated): `T_Zeros`, `T_Int`, `T_Float`
-- Operations take output as pointer parameter: `Add(ctx, a, b, &result)`, `Reshape(ctx, src, &dest, shape)`
-- Operations write via assignment: `*dest = (Tensor){...}`
-
-**Broadcasting**: Binary ops support NumPy-style broadcasting. Shape compatibility checked before operation.
-
-**Type-Generic Operations**: Use macros from `value.h` for type-generic operations. Do NOT add new type-dispatch patterns — extend existing macros instead.
-
-**Autograd Flow**:
-1. Operations check `ctx->grad` flag
-2. If enabled, construct GraphNode with backward function
-3. `InitComputationGraph` builds topological order from output tensor
-4. `Backward` traverses graph in reverse order, calling backward functions
-5. Gradients accumulate in `node->grad` tensors
-
-## Code Conventions
-
-### Language
-C99 standard. No C11 features (no `_Generic`, anonymous structs/unions, `_Static_assert`).
-
-### Naming
-- Public API: `PascalCase` (Add, MatMul, T_Zeros, FreeTensor)
-- Internal/static: `camelCase` (binaryOp, unravel_index, copyToContiguous)
-- Types: `PascalCase` (Tensor, Context, GraphNode)
-- Type aliases: lowercase (u8, u32, i32, f32, tensor_size_t, dim_t)
-- Macros: `UPPER_SNAKE_CASE` (ARENA, GROW_ARRAY, VALUE_SET, BLAS_GEMM)
-- Struct fields: `camelCase` (numOfDims, isView, isContigous)
-
-### Header Guards
-Use `#ifndef`/`#define`/`#endif` style with pattern `shapes_<module>_h`, not `#pragma once`.
-
-### Includes
-- Project headers: quoted with relative paths (`#include "common.h"`, `#include "../memory.h"`)
-- System headers: angle brackets (`#include <stddef.h>`)
-
-### Formatting
-Enforced by clang-format. Run `make -C build format` before all commits. Key points:
-- 2-space indentation, no tabs
-- 100-column line limit
-- K&R brace style (opening brace same line)
-- Use designated initializers: `(Dim){.dims = dims, .numOfDims = 2}`
-
-## Important Files
-
-- `AGENTS.md`: Comprehensive development guide with full conventions and patterns
-- `.clang-format`, `.clang-tidy`: Tooling configuration
-- `CMakeLists.txt`: Build configuration, includes format/lint/check-format targets
-- `common.h`: Central type definitions, must read for understanding core types
-- `tensor/tensor.h`: Complete public tensor API
-- `grad/grad.h`: Autograd system API
+5. **Each language has its own conventions**: C code follows C99 + custom patterns (see `base/CLAUDE.md`). Go code should follow standard Go conventions.
