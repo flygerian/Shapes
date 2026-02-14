@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/flygerian/shapes"
+	"github.com/flygerian/shapes/activation"
 	"github.com/flygerian/shapes/tensor"
 )
 
@@ -22,8 +23,8 @@ func main() {
 
 	x1w1 := x1.Times(w1)
 	x2w2 := x2.Times(w2)
-	_ = x1w1.Times(x2w2).Plus(b)
+	n := x1w1.Times(x2w2).Plus(b)
+	o := activation.Tanh(n)
 
-	zeros := tensor.Zeros(ctx, tensor.Shape{2, 3})
-	fmt.Printf("Created zeros: %v\n", zeros)
+	o.Backward()
 }

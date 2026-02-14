@@ -1,5 +1,4 @@
 #include "common.h"
-#include "grad/grad.h"
 #include "result/result.h"
 #include "tensor/tensor_internal.h"
 #include "tensor/value.h"
@@ -41,10 +40,6 @@ Result Tanh(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   *dest = *output;
-
-  if (ctx->grad) {
-    ConstructTanhBackwardpass(ctx, t, dest);
-  }
 
   return OK;
 }

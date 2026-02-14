@@ -21,7 +21,7 @@ func TestBackwardAdd(t *testing.T) {
 	b := Float(ctx, Shape{2}, 5.0)
 
 	c := a.Plus(b)
-	Backward(c)
+	c.Backward()
 
 	for i := range uint32(2) {
 		ga, err := a.Grad().GetF32(i)
@@ -51,7 +51,7 @@ func TestBackwardMultiply(t *testing.T) {
 	b := Float(ctx, Shape{2}, 5.0)
 
 	c := a.Times(b)
-	Backward(c)
+	c.Backward()
 
 	for i := range uint32(2) {
 		ga, err := a.Grad().GetF32(i)
@@ -81,7 +81,7 @@ func TestBackwardSubtract(t *testing.T) {
 	b := Float(ctx, Shape{2}, 2.0)
 
 	c := a.Minus(b)
-	Backward(c)
+	c.Backward()
 
 	for i := range uint32(2) {
 		ga, err := a.Grad().GetF32(i)
@@ -131,7 +131,7 @@ func TestBackwardChain(t *testing.T) {
 	x1w1x2w2 := x1w1.Plus(x2w2)
 	n := x1w1x2w2.Plus(b)
 
-	Backward(n)
+	n.Backward()
 
 	tests := []struct {
 		name string
@@ -181,7 +181,8 @@ func TestBackwardPanicsNoGraph(t *testing.T) {
 			t.Fatal("expected panic when calling Backward on tensor with no graph")
 		}
 	}()
-	Backward(a)
+
+	a.Backward()
 }
 
 func TestLeafTensorHasGrad(t *testing.T) {
@@ -212,7 +213,7 @@ func TestLeafBackwardNoOp(t *testing.T) {
 
 	// Calling Backward on a leaf tensor should not panic.
 	a := Float(ctx, Shape{1}, 5.0)
-	Backward(a)
+	a.Backward()
 
 	got, err := a.Grad().GetF32(0)
 	if err != nil {

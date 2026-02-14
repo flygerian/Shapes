@@ -1,6 +1,5 @@
 #include "common.h"
 #include "result/result.h"
-#include "grad/grad.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include "unary.h"
@@ -72,10 +71,6 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   }
 
   *destination = *output;
-
-  if (ctx->grad) {
-    ConstructBinopBackwardpass(ctx, opType, a, b, destination);
-  }
 
   return OK;
 }

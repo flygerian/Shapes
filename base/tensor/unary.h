@@ -11,6 +11,14 @@
     return OK;                                                                                     \
   }
 
+#define COMPUTE_EXP(val, dtype_enum, c_type, exp_fn)                                               \
+  case dtype_enum: {                                                                               \
+    c_type num = (val)->as.c_type;                                                                 \
+    (val)->as.c_type = (c_type)exp_fn((double)num);                                               \
+    return OK;                                                                                     \
+  }
+
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
+Result Exp(Context *ctx, Tensor *t, Tensor *dest);
 
 #endif

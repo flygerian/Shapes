@@ -29,14 +29,9 @@ type Range = []uint32
 
 // Tensor wraps a C Tensor pointer and holds a reference to the context it was created with.
 type Tensor struct {
-	cTensor *C.Tensor
-	ctx     *shapes.Context
-	node    *GraphNode
-}
-
-// Ptr returns the C Tensor pointer for passing to C functions.
-func (t *Tensor) Ptr() *C.Tensor {
-	return t.cTensor
+	cTensor     *C.Tensor
+	ctx         *shapes.Context
+	Computation *ComputationGraphNode
 }
 
 // dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
@@ -72,4 +67,30 @@ func resultString(r uint32) string {
 // ptrOffset returns an unsafe.Pointer offset by i elements of *C.dim_t size.
 func ptrOffset(base *C.dim_t, i int) unsafe.Pointer {
 	return unsafe.Pointer(uintptr(unsafe.Pointer(base)) + uintptr(i)*unsafe.Sizeof(*base))
+}
+
+// UnsafeCPtr returns the C Tensor as an unsafe.Pointer for cross-package CGo casts.
+func (t *Tensor) UnsafeCPtr() unsafe.Pointer {
+	return unsafe.Pointer(t.cTensor)
+}
+
+// Context returns the shapes.Context this tensor belongs to.
+func (t *Tensor) Context() *shapes.Context {
+	return t.ctx
+}
+
+// Track wraps a C tensor pointer into a Go Tensor and registers it with the context.
+// Used by external packages (e.g., activation) to create Tensor values from C pointers.
+func Track(ctx *shapes.Context, cPtr unsafe.Pointer) *Tensor {
+	return track(ctx, &Tensor{cTensor: (*C.Tensor)(cPtr)})
+}
+
+// ShapeOf returns the shape of the tensor as a Go slice.
+func ShapeOf(t *Tensor) Shape {
+	return shapeOf(t)
+}
+
+// AttachComputationGraphNode is the exported version of attachNode for use by external packages.
+func AttachComputationGraphNode(result *Tensor, backward BackwardFn, inputs ...*Tensor) {
+	attachNode(result, backward, inputs...)
 }

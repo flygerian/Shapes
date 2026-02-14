@@ -15,5 +15,5 @@
 
 ## Code Style
 - **C**: C99 strict. PascalCase public API (`Add`, `MatMul`), camelCase internals/locals/fields, UPPER_SNAKE_CASE macros. `Result` return type for fallible ops; early-return on error. All allocations via arena (`allocate(ctx->memory, size)`) — never raw `malloc`. 2-space indent, K&R braces, 100-col limit. `#ifndef` header guards (`shapes_<module>_h`).
-- **Go**: Standard Go conventions. CGo wrappers hold C pointers via `unsafe.Pointer` casts between package-local `C.*` types. Use `runtime.SetFinalizer` as safety net but prefer explicit `Free()`/`Close()`. `LD_LIBRARY_PATH` must include OpenBLAS install dir for tests/runtime.
+- **Go**: Standard Go conventions. CGo wrappers hold C pointers via `unsafe.Pointer` casts between package-local `C.*` types. Use `runtime.SetFinalizer` as safety net but prefer explicit `Free()`/`Close()`. `LD_LIBRARY_PATH` must include OpenBLAS install dir for tests/runtime. Prefer `for i := range n` over C-style `for i := 0; i < n; i++`. Use `context.Background()` instead of `nil` when calling `shapes.New()`.
 - Also see `CLAUDE.md` (root) and `base/CLAUDE.md` for additional context.
