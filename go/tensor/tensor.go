@@ -25,6 +25,7 @@ import (
 )
 
 type Shape = []uint32
+type Range = []uint32
 
 // Tensor wraps a C Tensor pointer
 type Tensor struct {
