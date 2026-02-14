@@ -13,10 +13,7 @@ func TestSumAlongDim0(t *testing.T) {
 	// 2x3 tensor filled with 2s, sum along dim 0 → 1x3 of 4s
 	a := Int(ctx, Shape{2, 3}, 2)
 
-	result, err := a.Sum(ctx, 0)
-	if err != nil {
-		t.Fatalf("Sum: %v", err)
-	}
+	result := a.Sum(0)
 
 	for j := uint32(0); j < 3; j++ {
 		got, err := result.GetI8(0, j)
@@ -36,10 +33,7 @@ func TestSumAlongDim1(t *testing.T) {
 	// 2x3 tensor filled with 3s, sum along dim 1 → 2x1 of 9s
 	a := Int(ctx, Shape{2, 3}, 3)
 
-	result, err := a.Sum(ctx, 1)
-	if err != nil {
-		t.Fatalf("Sum: %v", err)
-	}
+	result := a.Sum(1)
 
 	for i := uint32(0); i < 2; i++ {
 		got, err := result.GetI8(i, 0)
@@ -58,8 +52,10 @@ func TestSumDimOutOfBounds(t *testing.T) {
 
 	a := Int(ctx, Shape{2, 3}, 1)
 
-	_, err := a.Sum(ctx, 5)
-	if err == nil {
-		t.Fatal("expected error for out-of-bounds dim, got nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for out-of-bounds dim, got nil")
+		}
+	}()
+	a.Sum(5)
 }

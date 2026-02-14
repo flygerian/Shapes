@@ -27,9 +27,10 @@ import (
 type Shape = []uint32
 type Range = []uint32
 
-// Tensor wraps a C Tensor pointer
+// Tensor wraps a C Tensor pointer and holds a reference to the context it was created with.
 type Tensor struct {
 	cTensor *C.Tensor
+	ctx     *shapes.Context
 }
 
 // Ptr returns the C Tensor pointer for passing to C functions.
@@ -48,6 +49,20 @@ func dim(ctx *shapes.Context, shape Shape) *C.Dim {
 
 // track registers a tensor's C pointer with the context for lifetime management.
 func track(ctx *shapes.Context, t *Tensor) *Tensor {
+	t.ctx = ctx
 	ctx.Track((*unsafe.Pointer)(unsafe.Pointer(&t.cTensor)))
 	return t
+}
+
+// requireSameCtx checks that two tensors belong to the same context. Panics if not.
+func requireSameCtx(a, b *Tensor) *shapes.Context {
+	if a.ctx != b.ctx {
+		panic("shapes: tensors belong to different contexts")
+	}
+	return a.ctx
+}
+
+// resultString converts a C Result code to a human-readable string.
+func resultString(r uint32) string {
+	return shapes.ResultString(r)
 }

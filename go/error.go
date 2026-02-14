@@ -9,10 +9,11 @@ import "fmt"
 
 // ResultError converts a non-OK C Result code into a Go error.
 func ResultError(r uint32) error {
-	return fmt.Errorf("shapes: %s", resultString(r))
+	return fmt.Errorf("shapes: %s", ResultString(r))
 }
 
-func resultString(r uint32) string {
+// ResultString returns a human-readable string for a C Result code.
+func ResultString(r uint32) string {
 	switch r {
 	case C.OK:
 		return "ok"

@@ -12,9 +12,17 @@ func main() {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Close()
 
-	// Create a 2x3 tensor filled with 3.14
-	t := tensor.Float(ctx, []uint32{2, 3}, 3.14)
-	fmt.Printf("Created tensor: %v\n", t)
+	x1 := tensor.Float(ctx, []uint32{1}, 2.0)
+	x2 := tensor.Float(ctx, []uint32{1}, 0.0)
+
+	w1 := tensor.Float(ctx, []uint32{1}, -3.0)
+	w2 := tensor.Float(ctx, []uint32{1}, 1.0)
+
+	b := tensor.Float(ctx, []uint32{1}, 6.8813735870195432)
+
+	x1w1 := x1.Times(w1)
+	x2w2 := x2.Times(w2)
+	_ = x1w1.Times(x2w2).Plus(b)
 
 	zeros := tensor.Zeros(ctx, tensor.Shape{2, 3})
 	fmt.Printf("Created zeros: %v\n", zeros)

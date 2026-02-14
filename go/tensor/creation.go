@@ -54,11 +54,11 @@ func Float(ctx *shapes.Context, shape Shape, value float32) *Tensor {
 }
 
 // Clone creates a deep copy of the tensor.
-func Clone(ctx *shapes.Context, src *Tensor) (*Tensor, error) {
+func Clone(src *Tensor) *Tensor {
 	var dest *C.Tensor
-	result := C.wrap_Clone((*C.Context)(ctx.UnsafePtr()), src.cTensor, &dest)
+	result := C.wrap_Clone((*C.Context)(src.ctx.UnsafePtr()), src.cTensor, &dest)
 	if result != C.OK {
-		return nil, shapes.ResultError(uint32(result))
+		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest}), nil
+	return track(src.ctx, &Tensor{cTensor: dest})
 }

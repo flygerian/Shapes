@@ -15,14 +15,13 @@ static inline Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out) 
 }
 */
 import "C"
-import shapes "github.com/flygerian/shapes"
 
 // Sum reduces the tensor along the given dimension by summing, returning a new tensor.
-func (t *Tensor) Sum(ctx *shapes.Context, dim uint32) (*Tensor, error) {
+func (t *Tensor) Sum(dim uint32) *Tensor {
 	var dest *C.Tensor
-	result := C.wrap_Sum((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dim), &dest)
+	result := C.wrap_Sum((*C.Context)(t.ctx.UnsafePtr()), t.cTensor, C.dim_t(dim), &dest)
 	if result != C.OK {
-		return nil, shapes.ResultError(uint32(result))
+		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest}), nil
+	return track(t.ctx, &Tensor{cTensor: dest})
 }

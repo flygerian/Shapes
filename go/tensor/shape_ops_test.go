@@ -13,10 +13,7 @@ func TestSlice(t *testing.T) {
 	// 3x4 tensor filled with 5s, slice to [0:2, 1:3] → 2x2
 	a := Int(ctx, Shape{3, 4}, 5)
 
-	sliced, err := a.Slice(ctx, Range{0, 2}, Range{1, 3})
-	if err != nil {
-		t.Fatalf("Slice: %v", err)
-	}
+	sliced := a.Slice(Range{0, 2}, Range{1, 3})
 
 	for i := uint32(0); i < 2; i++ {
 		for j := uint32(0); j < 2; j++ {
@@ -37,11 +34,12 @@ func TestSliceInvalidRange(t *testing.T) {
 
 	a := Int(ctx, Shape{3, 4}, 1)
 
-	// end < start
-	_, err := a.Slice(ctx, Range{2, 0}, Range{0, 4})
-	if err == nil {
-		t.Fatal("expected error for invalid range, got nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for invalid range, got nil")
+		}
+	}()
+	a.Slice(Range{2, 0}, Range{0, 4})
 }
 
 func TestReshape(t *testing.T) {
@@ -51,10 +49,7 @@ func TestReshape(t *testing.T) {
 	// 2x3 → 3x2
 	a := Int(ctx, Shape{2, 3}, 7)
 
-	reshaped, err := a.Reshape(ctx, Shape{3, 2})
-	if err != nil {
-		t.Fatalf("Reshape: %v", err)
-	}
+	reshaped := a.Reshape(Shape{3, 2})
 
 	for i := uint32(0); i < 3; i++ {
 		for j := uint32(0); j < 2; j++ {
@@ -75,10 +70,12 @@ func TestReshapeSizeMismatch(t *testing.T) {
 
 	a := Int(ctx, Shape{2, 3}, 1)
 
-	_, err := a.Reshape(ctx, Shape{2, 2})
-	if err == nil {
-		t.Fatal("expected error for reshape size mismatch, got nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for reshape size mismatch, got nil")
+		}
+	}()
+	a.Reshape(Shape{2, 2})
 }
 
 func TestTranspose(t *testing.T) {
@@ -88,10 +85,7 @@ func TestTranspose(t *testing.T) {
 	// 2x3 filled with 4, transpose dims 0,1 → 3x2
 	a := Int(ctx, Shape{2, 3}, 4)
 
-	transposed, err := a.Transpose(ctx, 0, 1)
-	if err != nil {
-		t.Fatalf("Transpose: %v", err)
-	}
+	transposed := a.Transpose(0, 1)
 
 	for i := uint32(0); i < 3; i++ {
 		for j := uint32(0); j < 2; j++ {
@@ -112,10 +106,12 @@ func TestTransposeDimOutOfBounds(t *testing.T) {
 
 	a := Int(ctx, Shape{2, 3}, 1)
 
-	_, err := a.Transpose(ctx, 0, 5)
-	if err == nil {
-		t.Fatal("expected error for dim out of bounds, got nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for dim out of bounds, got nil")
+		}
+	}()
+	a.Transpose(0, 5)
 }
 
 func TestSqueeze(t *testing.T) {
@@ -125,10 +121,7 @@ func TestSqueeze(t *testing.T) {
 	// 1x3x1 → 3
 	a := Int(ctx, Shape{1, 3, 1}, 9)
 
-	squeezed, err := a.Squeeze(ctx)
-	if err != nil {
-		t.Fatalf("Squeeze: %v", err)
-	}
+	squeezed := a.Squeeze()
 
 	for i := uint32(0); i < 3; i++ {
 		got, err := squeezed.GetI8(i)
@@ -148,10 +141,7 @@ func TestUnSqueeze(t *testing.T) {
 	// shape [3] → unsqueeze at dim 0 → [1, 3]
 	a := Int(ctx, Shape{3}, 6)
 
-	unsqueezed, err := a.UnSqueeze(ctx, 0)
-	if err != nil {
-		t.Fatalf("UnSqueeze: %v", err)
-	}
+	unsqueezed := a.UnSqueeze(0)
 
 	for j := uint32(0); j < 3; j++ {
 		got, err := unsqueezed.GetI8(0, j)
@@ -170,8 +160,10 @@ func TestUnSqueezeDimOutOfBounds(t *testing.T) {
 
 	a := Int(ctx, Shape{3}, 1)
 
-	_, err := a.UnSqueeze(ctx, 5)
-	if err == nil {
-		t.Fatal("expected error for dim out of bounds, got nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for dim out of bounds, got nil")
+		}
+	}()
+	a.UnSqueeze(5)
 }
