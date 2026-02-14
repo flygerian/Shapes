@@ -269,7 +269,6 @@ int main(int argc, char *argv[]) {
   Context ctx = {.memory = mem, .grad = true, .screenConfig = allocate(mem, sizeof(ScreenConfig))};
   ctx.screenConfig->orig_termios = allocate(mem, sizeof(struct termios));
 
-
   dim_t shape[1] = {1};
   Dim tDim = {.dims = shape, .numOfDims = 1};
 

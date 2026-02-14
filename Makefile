@@ -1,7 +1,7 @@
 # Shapes Multi-language Tensor Library
 # Root Makefile for building all components
 
-.PHONY: all help init build build-openblas build-base test clean format lint check-format
+.PHONY: all help init build build-openblas build-base build-go test test-go clean format lint check-format
 
 # Detect number of CPU cores
 NPROC := $(shell nproc 2>/dev/null || echo 4)
@@ -16,6 +16,10 @@ GO_DIR := go
 OPENBLAS_LIB := $(OPENBLAS_DIR)/libopenblas.a
 OPENBLAS_INSTALL := $(OPENBLAS_DIR)/install
 
+# Go
+GO_BINARY := $(GO_DIR)/main
+OPENBLAS_LIB_DIR := $(OPENBLAS_INSTALL)/lib
+
 # Default target
 all: build
 
@@ -25,10 +29,12 @@ help:
 	@echo "Targets:"
 	@echo "  all            - Build everything (default)"
 	@echo "  init           - Initialize submodules and build OpenBLAS"
-	@echo "  build          - Build C library and executables"
+	@echo "  build          - Build C library and Go bindings"
 	@echo "  build-openblas - Build OpenBLAS from submodule"
-	@echo "  build-base     - Build C library only"
-	@echo "  test           - Run all tests"
+	@echo "  build-base     - Build C library only (Release mode)"
+	@echo "  build-go       - Build Go bindings"
+	@echo "  test           - Run all tests (C + Go)"
+	@echo "  test-go        - Run Go tests only"
 	@echo "  clean          - Clean all build artifacts"
 	@echo "  format         - Auto-format C code"
 	@echo "  check-format   - Check C code formatting (non-modifying)"
@@ -57,21 +63,37 @@ $(OPENBLAS_LIB):
 	cd $(OPENBLAS_DIR) && $(MAKE) PREFIX=$$(pwd)/install install
 	@echo "==> OpenBLAS build complete!"
 
-# Configure and build C library
-build: build-base
+# Configure and build everything
+build: build-base build-go
 
 build-base: $(OPENBLAS_LIB)
-	@echo "==> Configuring C library..."
-	cmake -S $(BASE_DIR) -B $(BUILD_DIR)
+	@echo "==> Configuring C library (Release mode)..."
+	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
 	@echo "==> Building C library..."
 	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
-	@echo "==> Build complete!"
+	@echo "==> C build complete!"
 
-# Run tests
-test: build-base
+# Build Go bindings
+build-go: build-base
+	@echo "==> Building Go bindings..."
+	cd $(GO_DIR) && go build -v ./cmd/main
+	@echo "==> Go build complete!"
+	@echo ""
+	@echo "To run: cd go && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main"
+
+# Run all tests
+test: build-base build-go
 	@echo "==> Running C tests..."
 	cd $(BASE_DIR) && ctest --test-dir build --output-on-failure
+	@echo "==> Running Go tests..."
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) go test -v ./...
 	@echo "==> All tests passed!"
+
+# Run Go tests only
+test-go: build-go
+	@echo "==> Running Go tests..."
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) go test -v ./...
+	@echo "==> Go tests passed!"
 
 # Run tests directly (alternative to ctest)
 test-direct: build-base
@@ -101,6 +123,8 @@ lint:
 clean:
 	@echo "==> Cleaning build artifacts..."
 	rm -rf $(BUILD_DIR)
+	rm -f $(GO_BINARY)
+	cd $(GO_DIR) && go clean
 	cd $(OPENBLAS_DIR) && $(MAKE) clean 2>/dev/null || true
 	@echo "==> Clean complete!"
 
