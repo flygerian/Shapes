@@ -2,6 +2,7 @@ package shapes
 
 import (
 	stdctx "context"
+	"unsafe"
 )
 
 /*
@@ -11,6 +12,15 @@ import (
 #include "common.h"
 #include "memory.h"
 #include <stdlib.h>
+
+static inline Context *newContext(bool grad) {
+	Memory *mem = initializeMemory();
+	Context *ctx = allocate(mem, sizeof(Context));
+	ctx->memory = mem;
+	ctx->grad = grad;
+	ctx->screenConfig = NULL;
+	return ctx;
+}
 */
 import "C"
 
@@ -19,7 +29,8 @@ import "C"
 // the shapes C library context.
 type Context struct {
 	stdctx.Context // Embedded Go context for cancellation/deadlines
-	cCtx           C.Context
+	cCtx           *C.Context
+	tensors        []*unsafe.Pointer // tracked C tensor pointers, nilled on Close
 }
 
 // New creates a new Context with the given parent Go context.
@@ -36,14 +47,9 @@ func New(parent stdctx.Context, opts ...Option) *Context {
 
 	ctx := &Context{
 		Context: parent,
-		cCtx: C.Context{
-			memory:       C.initializeMemory(),
-			grad:         C.bool(false),
-			screenConfig: nil, // Visual config allocated lazily if needed
-		},
+		cCtx:    C.newContext(C.bool(false)),
 	}
 
-	// Apply options
 	for _, opt := range opts {
 		opt(ctx)
 	}
@@ -52,18 +58,27 @@ func New(parent stdctx.Context, opts ...Option) *Context {
 }
 
 // Close releases the C context resources.
-// After calling Close, the Context should not be used.
+// All tensors created under this context become invalid after Close.
 func (c *Context) Close() {
-	if c.cCtx.memory != nil {
+	if c.cCtx != nil && c.cCtx.memory != nil {
+		for _, p := range c.tensors {
+			*p = nil
+		}
+		c.tensors = nil
 		C.freeMemory(c.cCtx.memory)
-		c.cCtx.memory = nil
+		c.cCtx = nil
 	}
 }
 
 // Ptr returns the C Context pointer for passing to C functions.
 // The returned pointer is only valid while the Context is alive.
 func (c *Context) Ptr() *C.Context {
-	return &c.cCtx
+	return c.cCtx
+}
+
+// UnsafePtr returns the C Context as an unsafe.Pointer for cross-package CGo casts.
+func (c *Context) UnsafePtr() unsafe.Pointer {
+	return unsafe.Pointer(c.cCtx)
 }
 
 // GradEnabled returns whether gradient tracking is enabled.
@@ -73,6 +88,17 @@ func (c *Context) GradEnabled() bool {
 
 func (c *Context) Memory() *C.Memory {
 	return c.cCtx.memory
+}
+
+// UnsafeMemory returns the C Memory as an unsafe.Pointer for cross-package CGo casts.
+func (c *Context) UnsafeMemory() unsafe.Pointer {
+	return unsafe.Pointer(c.cCtx.memory)
+}
+
+// Track registers a C pointer so it gets nilled on Close().
+// The tensor package calls this when creating tensors.
+func (c *Context) Track(p *unsafe.Pointer) {
+	c.tensors = append(c.tensors, p)
 }
 
 // Option is a function that configures a Context.

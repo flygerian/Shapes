@@ -6,6 +6,16 @@ package tensor
 
 #include "tensor/tensor.h"
 #include "common.h"
+#include <string.h>
+
+static inline Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
+	Dim *d = allocate(mem, sizeof(Dim));
+	d->dims = allocate(mem, sizeof(dim_t) * numDims);
+	memcpy(d->dims, dims, sizeof(dim_t) * numDims);
+	d->numOfDims = numDims;
+	d->multipliers = NULL;
+	return d;
+}
 */
 import "C"
 import (
@@ -14,39 +24,29 @@ import (
 	shapes "github.com/flygerian/shapes"
 )
 
+type Shape = []uint32
+
 // Tensor wraps a C Tensor pointer
 type Tensor struct {
 	cTensor *C.Tensor
 }
 
-// Float creates a tensor filled with the given float value.
-// shape is a slice of dimensions, e.g. []uint32{3, 4} for a 3x4 tensor.
-func Float(ctx *shapes.Context, shape []uint32, value float32) *Tensor {
-	// Allocate C array for dimensions
-	numDims := len(shape)
-	// Cast shapes.C.Memory to local C.Memory via unsafe.Pointer
-	dimsPtr := (*C.dim_t)(C.allocate((*C.Memory)(unsafe.Pointer(ctx.Memory())), C.size_t(numDims)*C.size_t(unsafe.Sizeof(C.dim_t(0)))))
-
-	// Copy shape to C array
-	dimsSlice := unsafe.Slice(dimsPtr, numDims)
-	for i, d := range shape {
-		dimsSlice[i] = C.dim_t(d)
-	}
-
-	// Create Dim struct
-	dim := C.Dim{
-		dims:        dimsPtr,
-		numOfDims:   C.u8(numDims),
-		multipliers: nil,
-	}
-
-	// Create tensor - cast shapes.C.Context to local C.Context via unsafe.Pointer
-	cTensor := C.T_Float((*C.Context)(unsafe.Pointer(ctx.Ptr())), dim, C.f32(value))
-
-	return &Tensor{cTensor: cTensor}
-}
-
-// Ptr returns the C Tensor pointer for passing to C functions
+// Ptr returns the C Tensor pointer for passing to C functions.
 func (t *Tensor) Ptr() *C.Tensor {
 	return t.cTensor
+}
+
+// dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
+func dim(ctx *shapes.Context, shape Shape) *C.Dim {
+	return C.makeDim(
+		(*C.Memory)(ctx.UnsafeMemory()),
+		(*C.dim_t)(unsafe.Pointer(&shape[0])),
+		C.u8(len(shape)),
+	)
+}
+
+// track registers a tensor's C pointer with the context for lifetime management.
+func track(ctx *shapes.Context, t *Tensor) *Tensor {
+	ctx.Track((*unsafe.Pointer)(unsafe.Pointer(&t.cTensor)))
+	return t
 }

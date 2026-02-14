@@ -1,7 +1,7 @@
 # Shapes Multi-language Tensor Library
 # Root Makefile for building all components
 
-.PHONY: all help init build build-openblas build-base build-go test test-go clean format lint check-format
+.PHONY: all help init build build-openblas build-base build-go run test test-go clean format lint check-format
 
 # Detect number of CPU cores
 NPROC := $(shell nproc 2>/dev/null || echo 4)
@@ -33,6 +33,7 @@ help:
 	@echo "  build-openblas - Build OpenBLAS from submodule"
 	@echo "  build-base     - Build C library only (Release mode)"
 	@echo "  build-go       - Build Go bindings"
+	@echo "  run            - Build and run the Go binary"
 	@echo "  test           - Run all tests (C + Go)"
 	@echo "  test-go        - Run Go tests only"
 	@echo "  clean          - Clean all build artifacts"
@@ -80,6 +81,10 @@ build-go: build-base
 	@echo "==> Go build complete!"
 	@echo ""
 	@echo "To run: cd go && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main"
+
+# Run the Go binary
+run: build-go
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main
 
 # Run all tests
 test: build-base build-go
