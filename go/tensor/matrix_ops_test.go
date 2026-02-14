@@ -15,7 +15,7 @@ func TestMul(t *testing.T) {
 	a := Float(ctx, Shape{2, 3}, 1.0)
 	b := Float(ctx, Shape{3, 2}, 1.0)
 
-	result := a.Mul(b)
+	result := a.Mul(ctx, b)
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
@@ -42,7 +42,7 @@ func TestMulInnerDimMismatch(t *testing.T) {
 			t.Fatal("expected panic for inner dim mismatch, got nil")
 		}
 	}()
-	a.Mul(b)
+	a.Mul(ctx, b)
 }
 
 func TestDot(t *testing.T) {
@@ -53,7 +53,7 @@ func TestDot(t *testing.T) {
 	a := Float(ctx, Shape{3}, 2.0)
 	b := Float(ctx, Shape{3}, 3.0)
 
-	result := a.Dot(b)
+	result := a.Dot(ctx, b)
 
 	got, err := result.GetF32(0)
 	if err != nil {
@@ -76,5 +76,5 @@ func TestDotDimMismatch(t *testing.T) {
 			t.Fatal("expected panic for non-1D tensors, got nil")
 		}
 	}()
-	a.Dot(b)
+	a.Dot(ctx, b)
 }

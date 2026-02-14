@@ -22,23 +22,24 @@ static inline Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out) {
 }
 */
 import "C"
+import shapes "github.com/flygerian/shapes"
 
 // Pow raises every element to the given power, returning a new tensor.
-func (t *Tensor) Pow(power float32) *Tensor {
+func (t *Tensor) Pow(ctx *shapes.Context, power float32) *Tensor {
 	var dest *C.Tensor
-	result := C.wrap_Pow((*C.Context)(t.ctx.UnsafePtr()), t.cTensor, C.f32(power), &dest)
+	result := C.wrap_Pow((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.f32(power), &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }
 
 // Exp computes e^x for every element, returning a new tensor.
-func (t *Tensor) Exp() *Tensor {
+func (t *Tensor) Exp(ctx *shapes.Context) *Tensor {
 	var dest *C.Tensor
-	result := C.wrap_Exp((*C.Context)(t.ctx.UnsafePtr()), t.cTensor, &dest)
+	result := C.wrap_Exp((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }

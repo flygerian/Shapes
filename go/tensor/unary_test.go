@@ -13,7 +13,7 @@ func TestPow(t *testing.T) {
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 2}, 3.0)
-	result := a.Pow(2.0)
+	result := a.Pow(ctx, 2.0)
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
@@ -33,7 +33,7 @@ func TestPowFractional(t *testing.T) {
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2}, 4.0)
-	result := a.Pow(0.5)
+	result := a.Pow(ctx, 0.5)
 
 	for i := range uint32(2) {
 		got, err := result.GetF32(i)
@@ -51,7 +51,7 @@ func TestExp(t *testing.T) {
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 2}, 1.0)
-	result := a.Exp()
+	result := a.Exp(ctx)
 
 	want := float32(math.E)
 	for i := range uint32(2) {
@@ -72,7 +72,7 @@ func TestExpZero(t *testing.T) {
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{3}, 0.0)
-	result := a.Exp()
+	result := a.Exp(ctx)
 
 	for i := range uint32(3) {
 		got, err := result.GetF32(i)

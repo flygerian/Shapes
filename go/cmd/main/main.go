@@ -21,13 +21,13 @@ func main() {
 
 	b := tensor.Float(ctx, []uint32{1}, 6.8813735870195432)
 
-	x1w1 := x1.Times(w1)
-	x2w2 := x2.Times(w2)
+	x1w1 := x1.Times(ctx, w1)
+	x2w2 := x2.Times(ctx, w2)
 
-	n := x1w1.Plus(x2w2).Plus(b)
-	o := activation.Tanh(n)
+	n := x1w1.Plus(ctx, x2w2).Plus(ctx, b)
+	o := activation.Tanh(ctx, n)
 
-	o.Backward()
+	o.Backward(ctx)
 
 	visual.Visualize(o)
 }

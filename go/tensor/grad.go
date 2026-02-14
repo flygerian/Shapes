@@ -3,7 +3,7 @@ package tensor
 import shapes "github.com/flygerian/shapes"
 
 // BackwardFn is the signature for backward pass functions.
-type BackwardFn func(node *ComputationGraphNode)
+type BackwardFn func(ctx *shapes.Context, node *ComputationGraphNode)
 
 // OpType identifies the operation that produced a computation graph node.
 type OpType int
@@ -113,15 +113,15 @@ func topo(graph *computationGraph, visited map[*ComputationGraphNode]bool, node 
 }
 
 // Backward runs backpropagation from tensor t through the computation graph.
-func (t *Tensor) Backward() {
+func (t *Tensor) Backward(ctx *shapes.Context) {
 	if t.Computation == nil {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
 
 	// Seed the output gradient with ones.
-	ctx := t.ctx.NoGrad()
+	noGrad := ctx.NoGrad()
 	onesShape := shapeOf(t)
-	t.Computation.Grad = Float(ctx, onesShape, 1.0)
+	t.Computation.Grad = Float(noGrad, onesShape, 1.0)
 
 	graph := buildGraph(t)
 
@@ -129,9 +129,17 @@ func (t *Tensor) Backward() {
 	for i := len(graph.nodes) - 1; i >= 0; i-- {
 		node := graph.nodes[i]
 		if node.Backward != nil {
-			node.Backward(node)
+			node.Backward(noGrad, node)
 		}
 	}
+}
+
+// Grad returns the gradient tensor. Panics if this tensor has no computation node.
+func (t *Tensor) Grad() *Tensor {
+	if t.Computation == nil {
+		panic("shapes: tensor has no computation graph node")
+	}
+	return t.Computation.Grad
 }
 
 // RequiresGrad returns true if this tensor is part of a computation graph.
@@ -139,8 +147,4 @@ func (t *Tensor) RequiresGrad() bool {
 	return t.Computation != nil
 }
 
-// noGradCtx returns a no-grad context from the node's first input.
-// Used inside backward functions.
-func noGradCtx(node *ComputationGraphNode) *shapes.Context {
-	return node.Inputs[0].ctx.NoGrad()
-}
+

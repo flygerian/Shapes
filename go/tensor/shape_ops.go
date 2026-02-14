@@ -89,11 +89,13 @@ import "C"
 import (
 	"fmt"
 	"unsafe"
+
+	shapes "github.com/flygerian/shapes"
 )
 
 // Slice creates a view into the tensor. Each range is a Range{start, end}
 // specifying a half-open interval for that dimension.
-func (t *Tensor) Slice(ranges ...Range) *Tensor {
+func (t *Tensor) Slice(ctx *shapes.Context, ranges ...Range) *Tensor {
 	ndims := len(ranges)
 	if ndims == 0 || ndims > 8 {
 		panic(fmt.Sprintf("shapes: slice supports 1-8 dimensions, got %d", ndims))
@@ -107,7 +109,7 @@ func (t *Tensor) Slice(ranges ...Range) *Tensor {
 		cRanges[i] = C.Range{start: C.u64(r[0]), end: C.u64(r[1])}
 	}
 
-	cCtx := (*C.Context)(t.ctx.UnsafePtr())
+	cCtx := (*C.Context)(ctx.UnsafePtr())
 	rp := (*C.Range)(unsafe.Pointer(&cRanges[0]))
 
 	var dest *C.Tensor
@@ -134,52 +136,70 @@ func (t *Tensor) Slice(ranges ...Range) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }
 
 // Reshape returns a tensor with the same data but a different shape.
-func (t *Tensor) Reshape(shape Shape) *Tensor {
+func (t *Tensor) Reshape(ctx *shapes.Context, shape Shape) *Tensor {
 	var dest *C.Tensor
-	d := dim(t.ctx, shape)
-	result := C.wrap_Reshape((*C.Context)(t.ctx.UnsafePtr()), t.cTensor, &dest, d)
+	d := dim(ctx, shape)
+	result := C.wrap_Reshape((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, d)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }
 
-// Transpose swaps the two given dimensions, returning a view.
-func (t *Tensor) Transpose(dim0, dim1 uint32) *Tensor {
+// Transpose swaps two dimensions, returning a view.
+// With no extra args it swaps the last two dimensions (the common default).
+// With two args it swaps those specific dimensions.
+func (t *Tensor) Transpose(ctx *shapes.Context, dims ...uint32) *Tensor {
+	var d0, d1 uint32
+	switch len(dims) {
+	case 0:
+		ndims := uint32(t.cTensor.shape.numOfDims)
+		if ndims < 2 {
+			return t
+		}
+		d0 = ndims - 2
+		d1 = ndims - 1
+	case 2:
+		d0 = dims[0]
+		d1 = dims[1]
+	default:
+		panic("shapes: transpose expects 0 or 2 dimension args")
+	}
+
 	var dest *C.Tensor
 	result := C.wrap_Transpose(
-		(*C.Context)(t.ctx.UnsafePtr()),
+		(*C.Context)(ctx.UnsafePtr()),
 		t.cTensor,
 		&dest,
-		C.dim_t(dim0),
-		C.dim_t(dim1),
+		C.dim_t(d0),
+		C.dim_t(d1),
 	)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }
 
 // Squeeze removes all dimensions of size 1, returning a view.
-func (t *Tensor) Squeeze() *Tensor {
+func (t *Tensor) Squeeze(ctx *shapes.Context) *Tensor {
 	var dest *C.Tensor
-	result := C.wrap_Squeeze((*C.Context)(t.ctx.UnsafePtr()), t.cTensor, &dest)
+	result := C.wrap_Squeeze((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }
 
 // UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
-func (t *Tensor) UnSqueeze(dim uint32) *Tensor {
+func (t *Tensor) UnSqueeze(ctx *shapes.Context, dim uint32) *Tensor {
 	var dest *C.Tensor
-	result := C.wrap_UnSqueeze((*C.Context)(t.ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
+	result := C.wrap_UnSqueeze((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(t.ctx, &Tensor{cTensor: dest})
+	return track(ctx, &Tensor{cTensor: dest})
 }

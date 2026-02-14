@@ -19,7 +19,7 @@ func TestTanh(t *testing.T) {
 
 	// tanh(0) = 0, tanh(1) ≈ 0.7616
 	a := tensor.Float(ctx, tensor.Shape{2}, 0.0)
-	result := Tanh(a)
+	result := Tanh(ctx, a)
 
 	got, err := result.GetF32(0)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestTanhValues(t *testing.T) {
 	defer ctx.Close()
 
 	a := tensor.Float(ctx, tensor.Shape{1}, 1.0)
-	result := Tanh(a)
+	result := Tanh(ctx, a)
 
 	got, err := result.GetF32(0)
 	if err != nil {
@@ -54,9 +54,9 @@ func TestTanhBackward(t *testing.T) {
 	// tanh'(x) = 1 - tanh(x)^2
 	// At x=0: tanh(0)=0, tanh'(0) = 1 - 0 = 1
 	x := tensor.Float(ctx, tensor.Shape{1}, 0.0)
-	y := Tanh(x)
+	y := Tanh(ctx, x)
 
-	y.Backward()
+	y.Backward(ctx)
 
 	got, err := x.Grad().GetF32(0)
 	if err != nil {
@@ -73,8 +73,8 @@ func TestTanhBackwardNonZero(t *testing.T) {
 
 	// At x=1: tanh(1) ≈ 0.7616, tanh'(1) = 1 - 0.7616^2 ≈ 0.4200
 	x := tensor.Float(ctx, tensor.Shape{1}, 1.0)
-	y := Tanh(x)
-	y.Backward()
+	y := Tanh(ctx, x)
+	y.Backward(ctx)
 
 	got, err := x.Grad().GetF32(0)
 	if err != nil {

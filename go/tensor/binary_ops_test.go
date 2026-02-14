@@ -14,7 +14,7 @@ func TestPlus(t *testing.T) {
 	a := Int(ctx, Shape{2, 2}, 3)
 	b := Int(ctx, Shape{2, 2}, 5)
 
-	result := a.Plus(b)
+	result := a.Plus(ctx, b)
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
@@ -36,7 +36,7 @@ func TestMinus(t *testing.T) {
 	a := Int(ctx, Shape{2, 3}, 10)
 	b := Int(ctx, Shape{2, 3}, 4)
 
-	result := a.Minus(b)
+	result := a.Minus(ctx, b)
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
@@ -58,7 +58,7 @@ func TestTimes(t *testing.T) {
 	a := Int(ctx, Shape{2, 2}, 3)
 	b := Int(ctx, Shape{2, 2}, 7)
 
-	result := a.Times(b)
+	result := a.Times(ctx, b)
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
@@ -80,7 +80,7 @@ func TestDivide(t *testing.T) {
 	a := Float(ctx, Shape{2, 2}, 10.0)
 	b := Float(ctx, Shape{2, 2}, 4.0)
 
-	result := a.Divide(b)
+	result := a.Divide(ctx, b)
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
@@ -104,8 +104,8 @@ func TestBinaryOpChain(t *testing.T) {
 	c := Int(ctx, Shape{2}, 4)
 
 	// (a + b) * c = (2 + 3) * 4 = 20
-	sum := a.Plus(b)
-	result := sum.Times(c)
+	sum := a.Plus(ctx, b)
+	result := sum.Times(ctx, c)
 
 	for i := range uint32(2) {
 		got, err := result.GetI8(i)
@@ -125,7 +125,7 @@ func TestBinaryOpBroadcast(t *testing.T) {
 	a := Int(ctx, Shape{2, 3}, 5)
 	b := Int(ctx, Shape{1, 3}, 2)
 
-	result := a.Plus(b)
+	result := a.Plus(ctx, b)
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
@@ -152,5 +152,5 @@ func TestBinaryOpDtypeMismatch(t *testing.T) {
 			t.Fatal("expected panic for dtype mismatch, got nil")
 		}
 	}()
-	a.Plus(b)
+	a.Plus(ctx, b)
 }

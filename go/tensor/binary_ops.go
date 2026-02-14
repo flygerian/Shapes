@@ -36,10 +36,11 @@ static inline Result wrap_Divide(Context *ctx, Tensor *a, Tensor *b, Tensor **ou
 }
 */
 import "C"
+import shapes "github.com/flygerian/shapes"
 
 // Plus performs element-wise addition of t and other, returning a new tensor.
-func (t *Tensor) Plus(other *Tensor) *Tensor {
-	ctx := requireSameCtx(t, other)
+func (t *Tensor) Plus(ctx *shapes.Context, other *Tensor) *Tensor {
+	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Add((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -53,8 +54,8 @@ func (t *Tensor) Plus(other *Tensor) *Tensor {
 }
 
 // Minus performs element-wise subtraction of other from t, returning a new tensor.
-func (t *Tensor) Minus(other *Tensor) *Tensor {
-	ctx := requireSameCtx(t, other)
+func (t *Tensor) Minus(ctx *shapes.Context, other *Tensor) *Tensor {
+	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Subtract((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -68,8 +69,8 @@ func (t *Tensor) Minus(other *Tensor) *Tensor {
 }
 
 // Times performs element-wise multiplication of t and other, returning a new tensor.
-func (t *Tensor) Times(other *Tensor) *Tensor {
-	ctx := requireSameCtx(t, other)
+func (t *Tensor) Times(ctx *shapes.Context, other *Tensor) *Tensor {
+	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Multiply((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -83,8 +84,8 @@ func (t *Tensor) Times(other *Tensor) *Tensor {
 }
 
 // Divide performs element-wise division of t by other, returning a new tensor.
-func (t *Tensor) Divide(other *Tensor) *Tensor {
-	ctx := requireSameCtx(t, other)
+func (t *Tensor) Divide(ctx *shapes.Context, other *Tensor) *Tensor {
+	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Divide((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {

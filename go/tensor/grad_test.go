@@ -20,8 +20,8 @@ func TestBackwardAdd(t *testing.T) {
 	a := Float(ctx, Shape{2}, 3.0)
 	b := Float(ctx, Shape{2}, 5.0)
 
-	c := a.Plus(b)
-	c.Backward()
+	c := a.Plus(ctx, b)
+	c.Backward(ctx)
 
 	for i := range uint32(2) {
 		ga, err := a.Grad().GetF32(i)
@@ -50,8 +50,8 @@ func TestBackwardMultiply(t *testing.T) {
 	a := Float(ctx, Shape{2}, 3.0)
 	b := Float(ctx, Shape{2}, 5.0)
 
-	c := a.Times(b)
-	c.Backward()
+	c := a.Times(ctx, b)
+	c.Backward(ctx)
 
 	for i := range uint32(2) {
 		ga, err := a.Grad().GetF32(i)
@@ -80,8 +80,8 @@ func TestBackwardSubtract(t *testing.T) {
 	a := Float(ctx, Shape{2}, 7.0)
 	b := Float(ctx, Shape{2}, 2.0)
 
-	c := a.Minus(b)
-	c.Backward()
+	c := a.Minus(ctx, b)
+	c.Backward(ctx)
 
 	for i := range uint32(2) {
 		ga, err := a.Grad().GetF32(i)
@@ -126,12 +126,12 @@ func TestBackwardChain(t *testing.T) {
 	w2 := Float(ctx, Shape{1}, 1.0)
 	b := Float(ctx, Shape{1}, 6.8813735870195432)
 
-	x1w1 := x1.Times(w1)
-	x2w2 := x2.Times(w2)
-	x1w1x2w2 := x1w1.Plus(x2w2)
-	n := x1w1x2w2.Plus(b)
+	x1w1 := x1.Times(ctx, w1)
+	x2w2 := x2.Times(ctx, w2)
+	x1w1x2w2 := x1w1.Plus(ctx, x2w2)
+	n := x1w1x2w2.Plus(ctx, b)
 
-	n.Backward()
+	n.Backward(ctx)
 
 	tests := []struct {
 		name string
@@ -164,7 +164,7 @@ func TestBackwardNoGradNoPanic(t *testing.T) {
 	b := Float(ctx, Shape{2}, 5.0)
 
 	// No grad enabled, ops should not build graph.
-	c := a.Plus(b)
+	c := a.Plus(ctx, b)
 	if c.RequiresGrad() {
 		t.Error("expected no grad tracking when grad is disabled")
 	}
@@ -182,7 +182,7 @@ func TestBackwardPanicsNoGraph(t *testing.T) {
 		}
 	}()
 
-	a.Backward()
+	a.Backward(ctx)
 }
 
 func TestLeafTensorHasGrad(t *testing.T) {
@@ -213,7 +213,7 @@ func TestLeafBackwardNoOp(t *testing.T) {
 
 	// Calling Backward on a leaf tensor should not panic.
 	a := Float(ctx, Shape{1}, 5.0)
-	a.Backward()
+	a.Backward(ctx)
 
 	got, err := a.Grad().GetF32(0)
 	if err != nil {
