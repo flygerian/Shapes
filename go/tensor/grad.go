@@ -47,7 +47,7 @@ func shapeOf(t *Tensor) Shape {
 	numDims := int(t.cTensor.shape.numOfDims)
 	shape := make(Shape, numDims)
 	dims := t.cTensor.shape.dims
-	for i := 0; i < numDims; i++ {
+	for i := range numDims {
 		shape[i] = *(*uint32)(ptrOffset(dims, i))
 	}
 	return shape
