@@ -31,6 +31,7 @@ type Range = []uint32
 type Tensor struct {
 	cTensor *C.Tensor
 	ctx     *shapes.Context
+	node    *GraphNode
 }
 
 // Ptr returns the C Tensor pointer for passing to C functions.
@@ -55,8 +56,9 @@ func track(ctx *shapes.Context, t *Tensor) *Tensor {
 }
 
 // requireSameCtx checks that two tensors belong to the same context. Panics if not.
+// Compares underlying C context pointers so that NoGrad-derived contexts pass.
 func requireSameCtx(a, b *Tensor) *shapes.Context {
-	if a.ctx != b.ctx {
+	if a.ctx.UnsafePtr() != b.ctx.UnsafePtr() {
 		panic("shapes: tensors belong to different contexts")
 	}
 	return a.ctx
@@ -65,4 +67,9 @@ func requireSameCtx(a, b *Tensor) *shapes.Context {
 // resultString converts a C Result code to a human-readable string.
 func resultString(r uint32) string {
 	return shapes.ResultString(r)
+}
+
+// ptrOffset returns an unsafe.Pointer offset by i elements of *C.dim_t size.
+func ptrOffset(base *C.dim_t, i int) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(unsafe.Pointer(base)) + uintptr(i)*unsafe.Sizeof(*base))
 }

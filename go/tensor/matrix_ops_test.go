@@ -1,13 +1,14 @@
 package tensor
 
 import (
+	"context"
 	"testing"
 
 	shapes "github.com/flygerian/shapes"
 )
 
 func TestMul(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 of 1.0 * 3x2 of 1.0 → 2x2 of 3.0
@@ -16,8 +17,8 @@ func TestMul(t *testing.T) {
 
 	result := a.Mul(b)
 
-	for i := uint32(0); i < 2; i++ {
-		for j := uint32(0); j < 2; j++ {
+	for i := range uint32(2) {
+		for j := range uint32(2) {
 			got, err := result.GetF32(i, j)
 			if err != nil {
 				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
@@ -30,7 +31,7 @@ func TestMul(t *testing.T) {
 }
 
 func TestMulInnerDimMismatch(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 3}, 1.0)
@@ -45,7 +46,7 @@ func TestMulInnerDimMismatch(t *testing.T) {
 }
 
 func TestDot(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	// [2.0, 2.0, 2.0] · [3.0, 3.0, 3.0] = 18.0
@@ -64,7 +65,7 @@ func TestDot(t *testing.T) {
 }
 
 func TestDotDimMismatch(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{3}, 1.0)

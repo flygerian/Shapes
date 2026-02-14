@@ -32,7 +32,11 @@ func Zeros(ctx *shapes.Context, shape Shape) *Tensor {
 		return nil
 	}
 	cTensor := C.wrap_T_Zeros((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape))
-	return track(ctx, &Tensor{cTensor: cTensor})
+	t := track(ctx, &Tensor{cTensor: cTensor})
+	if ctx.GradEnabled() {
+		leafNode(t)
+	}
+	return t
 }
 
 // Int creates a tensor filled with the given int8 value.
@@ -41,7 +45,11 @@ func Int(ctx *shapes.Context, shape Shape, value int8) *Tensor {
 		return nil
 	}
 	cTensor := C.wrap_T_Int((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.i8(value))
-	return track(ctx, &Tensor{cTensor: cTensor})
+	t := track(ctx, &Tensor{cTensor: cTensor})
+	if ctx.GradEnabled() {
+		leafNode(t)
+	}
+	return t
 }
 
 // Float creates a tensor filled with the given float32 value.
@@ -50,7 +58,11 @@ func Float(ctx *shapes.Context, shape Shape, value float32) *Tensor {
 		return nil
 	}
 	cTensor := C.wrap_T_Float((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.f32(value))
-	return track(ctx, &Tensor{cTensor: cTensor})
+	t := track(ctx, &Tensor{cTensor: cTensor})
+	if ctx.GradEnabled() {
+		leafNode(t)
+	}
+	return t
 }
 
 // Clone creates a deep copy of the tensor.

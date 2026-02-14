@@ -1,13 +1,14 @@
 package tensor
 
 import (
+	"context"
 	"testing"
 
 	shapes "github.com/flygerian/shapes"
 )
 
 func TestSumAlongDim0(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 tensor filled with 2s, sum along dim 0 → 1x3 of 4s
@@ -15,7 +16,7 @@ func TestSumAlongDim0(t *testing.T) {
 
 	result := a.Sum(0)
 
-	for j := uint32(0); j < 3; j++ {
+	for j := range uint32(3) {
 		got, err := result.GetI8(0, j)
 		if err != nil {
 			t.Fatalf("GetI8(0,%d): %v", j, err)
@@ -27,7 +28,7 @@ func TestSumAlongDim0(t *testing.T) {
 }
 
 func TestSumAlongDim1(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 tensor filled with 3s, sum along dim 1 → 2x1 of 9s
@@ -35,7 +36,7 @@ func TestSumAlongDim1(t *testing.T) {
 
 	result := a.Sum(1)
 
-	for i := uint32(0); i < 2; i++ {
+	for i := range uint32(2) {
 		got, err := result.GetI8(i, 0)
 		if err != nil {
 			t.Fatalf("GetI8(%d,0): %v", i, err)
@@ -47,7 +48,7 @@ func TestSumAlongDim1(t *testing.T) {
 }
 
 func TestSumDimOutOfBounds(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 3}, 1)

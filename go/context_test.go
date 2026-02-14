@@ -1,13 +1,14 @@
 package shapes
 
 import (
+	"context"
 	stdctx "context"
 	"testing"
 	"time"
 )
 
 func TestNew(t *testing.T) {
-	ctx := New(nil)
+	ctx := New(context.Background())
 	if ctx == nil {
 		t.Fatal("New() returned nil")
 	}
@@ -30,21 +31,21 @@ func TestNewWithParent(t *testing.T) {
 
 func TestWithGrad(t *testing.T) {
 	// Default: grad disabled
-	ctx := New(nil)
+	ctx := New(context.Background())
 	defer ctx.Close()
 	if ctx.GradEnabled() {
 		t.Error("Grad should be disabled by default")
 	}
 
 	// With grad enabled
-	ctx2 := New(nil, WithGrad(true))
+	ctx2 := New(context.TODO(), WithGrad(true))
 	defer ctx2.Close()
 	if !ctx2.GradEnabled() {
 		t.Error("Grad should be enabled")
 	}
 
 	// With grad explicitly disabled
-	ctx3 := New(nil, WithGrad(false))
+	ctx3 := New(context.Background(), WithGrad(false))
 	defer ctx3.Close()
 	if ctx3.GradEnabled() {
 		t.Error("Grad should be disabled")
@@ -52,7 +53,7 @@ func TestWithGrad(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	ctx := New(nil)
+	ctx := New(context.Background())
 
 	// Should be safe to call multiple times
 	ctx.Close()
@@ -92,7 +93,7 @@ func TestContextInterface(t *testing.T) {
 }
 
 func TestMultipleOptions(t *testing.T) {
-	ctx := New(nil,
+	ctx := New(context.Background(),
 		WithGrad(true),
 	)
 	defer ctx.Close()

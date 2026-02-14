@@ -45,7 +45,11 @@ func (t *Tensor) Plus(other *Tensor) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled() {
+		attachNode(out, addBackward, t, other)
+	}
+	return out
 }
 
 // Minus performs element-wise subtraction of other from t, returning a new tensor.
@@ -56,7 +60,11 @@ func (t *Tensor) Minus(other *Tensor) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled() {
+		attachNode(out, subtractBackward, t, other)
+	}
+	return out
 }
 
 // Times performs element-wise multiplication of t and other, returning a new tensor.
@@ -67,7 +75,11 @@ func (t *Tensor) Times(other *Tensor) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled() {
+		attachNode(out, multiplyBackward, t, other)
+	}
+	return out
 }
 
 // Divide performs element-wise division of t by other, returning a new tensor.
@@ -78,5 +90,9 @@ func (t *Tensor) Divide(other *Tensor) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled() {
+		attachNode(out, divideBackward, t, other)
+	}
+	return out
 }

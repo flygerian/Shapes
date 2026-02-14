@@ -1,13 +1,14 @@
 package tensor
 
 import (
+	"context"
 	"testing"
 
 	shapes "github.com/flygerian/shapes"
 )
 
 func TestPlus(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 2}, 3)
@@ -15,8 +16,8 @@ func TestPlus(t *testing.T) {
 
 	result := a.Plus(b)
 
-	for i := uint32(0); i < 2; i++ {
-		for j := uint32(0); j < 2; j++ {
+	for i := range uint32(2) {
+		for j := range uint32(2) {
 			got, err := result.GetI8(i, j)
 			if err != nil {
 				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
@@ -29,7 +30,7 @@ func TestPlus(t *testing.T) {
 }
 
 func TestMinus(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 3}, 10)
@@ -37,8 +38,8 @@ func TestMinus(t *testing.T) {
 
 	result := a.Minus(b)
 
-	for i := uint32(0); i < 2; i++ {
-		for j := uint32(0); j < 3; j++ {
+	for i := range uint32(2) {
+		for j := range uint32(3) {
 			got, err := result.GetI8(i, j)
 			if err != nil {
 				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
@@ -51,7 +52,7 @@ func TestMinus(t *testing.T) {
 }
 
 func TestTimes(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 2}, 3)
@@ -59,8 +60,8 @@ func TestTimes(t *testing.T) {
 
 	result := a.Times(b)
 
-	for i := uint32(0); i < 2; i++ {
-		for j := uint32(0); j < 2; j++ {
+	for i := range uint32(2) {
+		for j := range uint32(2) {
 			got, err := result.GetI8(i, j)
 			if err != nil {
 				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
@@ -73,7 +74,7 @@ func TestTimes(t *testing.T) {
 }
 
 func TestDivide(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 2}, 10.0)
@@ -81,8 +82,8 @@ func TestDivide(t *testing.T) {
 
 	result := a.Divide(b)
 
-	for i := uint32(0); i < 2; i++ {
-		for j := uint32(0); j < 2; j++ {
+	for i := range uint32(2) {
+		for j := range uint32(2) {
 			got, err := result.GetF32(i, j)
 			if err != nil {
 				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
@@ -95,7 +96,7 @@ func TestDivide(t *testing.T) {
 }
 
 func TestBinaryOpChain(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2}, 2)
@@ -106,7 +107,7 @@ func TestBinaryOpChain(t *testing.T) {
 	sum := a.Plus(b)
 	result := sum.Times(c)
 
-	for i := uint32(0); i < 2; i++ {
+	for i := range uint32(2) {
 		got, err := result.GetI8(i)
 		if err != nil {
 			t.Fatalf("GetI8(%d): %v", i, err)
@@ -118,7 +119,7 @@ func TestBinaryOpChain(t *testing.T) {
 }
 
 func TestBinaryOpBroadcast(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 3}, 5)
@@ -126,8 +127,8 @@ func TestBinaryOpBroadcast(t *testing.T) {
 
 	result := a.Plus(b)
 
-	for i := uint32(0); i < 2; i++ {
-		for j := uint32(0); j < 3; j++ {
+	for i := range uint32(2) {
+		for j := range uint32(3) {
 			got, err := result.GetI8(i, j)
 			if err != nil {
 				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
@@ -140,7 +141,7 @@ func TestBinaryOpBroadcast(t *testing.T) {
 }
 
 func TestBinaryOpDtypeMismatch(t *testing.T) {
-	ctx := shapes.New(nil)
+	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2}, 1)

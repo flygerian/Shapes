@@ -31,6 +31,7 @@ type Context struct {
 	stdctx.Context // Embedded Go context for cancellation/deadlines
 	cCtx           *C.Context
 	tensors        []*unsafe.Pointer // tracked C tensor pointers, nilled on Close
+	gradEnabled    bool              // Go-level grad tracking (C context always has grad=false)
 }
 
 // New creates a new Context with the given parent Go context.
@@ -83,7 +84,19 @@ func (c *Context) UnsafePtr() unsafe.Pointer {
 
 // GradEnabled returns whether gradient tracking is enabled.
 func (c *Context) GradEnabled() bool {
-	return bool(c.cCtx.grad)
+	return c.gradEnabled
+}
+
+// NoGrad returns a new Context that shares the same C context and memory
+// but has gradient tracking disabled. Used inside backward functions so
+// that the ops computing gradients don't build graph nodes.
+func (c *Context) NoGrad() *Context {
+	return &Context{
+		Context:     c.Context,
+		cCtx:        c.cCtx,
+		tensors:     c.tensors,
+		gradEnabled: false,
+	}
 }
 
 func (c *Context) Memory() *C.Memory {
@@ -107,6 +120,6 @@ type Option func(*Context)
 // WithGrad enables or disables gradient tracking.
 func WithGrad(enabled bool) Option {
 	return func(c *Context) {
-		c.cCtx.grad = C.bool(enabled)
+		c.gradEnabled = enabled
 	}
 }
