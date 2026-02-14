@@ -5,12 +5,51 @@ import shapes "github.com/flygerian/shapes"
 // BackwardFn is the signature for backward pass functions.
 type BackwardFn func(node *ComputationGraphNode)
 
+// OpType identifies the operation that produced a computation graph node.
+type OpType int
+
+const (
+	OpNone     OpType = iota
+	OpAdd             // +
+	OpSubtract        // -
+	OpMultiply        // *
+	OpDivide          // /
+	OpPow             // pow
+	OpExp             // exp
+	OpTanh            // tanh
+	OpDense           // wx + b
+)
+
+func (op OpType) String() string {
+	switch op {
+	case OpAdd:
+		return "+"
+	case OpSubtract:
+		return "-"
+	case OpMultiply:
+		return "*"
+	case OpDivide:
+		return "/"
+	case OpPow:
+		return "pow"
+	case OpExp:
+		return "exp"
+	case OpTanh:
+		return "tanh"
+	case OpDense:
+		return "@w + b"
+	default:
+		return "?"
+	}
+}
+
 // ComputationGraphNode represents a node in the autograd computation graph.
 type ComputationGraphNode struct {
 	Output   *Tensor
 	Grad     *Tensor
 	Inputs   []*Tensor
 	Backward BackwardFn
+	Op       OpType
 	Metadata any
 }
 
@@ -31,13 +70,14 @@ func leafNode(t *Tensor) {
 
 // attachNode creates a GraphNode and attaches it to the result tensor.
 // Only called when grad is enabled.
-func attachNode(result *Tensor, backward BackwardFn, inputs ...*Tensor) {
+func attachNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
 	ctx := result.ctx.NoGrad()
 	node := &ComputationGraphNode{
 		Output:   result,
 		Grad:     Zeros(ctx, shapeOf(result)),
 		Inputs:   inputs,
 		Backward: backward,
+		Op:       op,
 	}
 	result.Computation = node
 }
@@ -92,15 +132,6 @@ func (t *Tensor) Backward() {
 			node.Backward(node)
 		}
 	}
-}
-
-// Grad returns the accumulated gradient for this tensor.
-// Panics if the tensor has no graph node.
-func (t *Tensor) Grad() *Tensor {
-	if t.Computation == nil {
-		panic("shapes: tensor has no gradient (not part of a computation graph)")
-	}
-	return t.Computation.Grad
 }
 
 // RequiresGrad returns true if this tensor is part of a computation graph.

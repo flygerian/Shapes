@@ -32,6 +32,7 @@ type Tensor struct {
 	cTensor     *C.Tensor
 	ctx         *shapes.Context
 	Computation *ComputationGraphNode
+	Label       string
 }
 
 // dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
@@ -91,6 +92,6 @@ func ShapeOf(t *Tensor) Shape {
 }
 
 // AttachComputationGraphNode is the exported version of attachNode for use by external packages.
-func AttachComputationGraphNode(result *Tensor, backward BackwardFn, inputs ...*Tensor) {
-	attachNode(result, backward, inputs...)
+func AttachComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+	attachNode(result, op, backward, inputs...)
 }

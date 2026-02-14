@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/activation"
 	"github.com/flygerian/shapes/tensor"
+	"github.com/flygerian/shapes/visual"
 )
 
 func main() {
@@ -23,8 +23,11 @@ func main() {
 
 	x1w1 := x1.Times(w1)
 	x2w2 := x2.Times(w2)
-	n := x1w1.Times(x2w2).Plus(b)
+
+	n := x1w1.Plus(x2w2).Plus(b)
 	o := activation.Tanh(n)
 
 	o.Backward()
+
+	visual.Visualize(o)
 }

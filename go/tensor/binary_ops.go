@@ -47,7 +47,7 @@ func (t *Tensor) Plus(other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled() {
-		attachNode(out, addBackward, t, other)
+		attachNode(out, OpAdd, addBackward, t, other)
 	}
 	return out
 }
@@ -62,7 +62,7 @@ func (t *Tensor) Minus(other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled() {
-		attachNode(out, subtractBackward, t, other)
+		attachNode(out, OpSubtract, subtractBackward, t, other)
 	}
 	return out
 }
@@ -77,7 +77,7 @@ func (t *Tensor) Times(other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled() {
-		attachNode(out, multiplyBackward, t, other)
+		attachNode(out, OpMultiply, multiplyBackward, t, other)
 	}
 	return out
 }
@@ -92,7 +92,7 @@ func (t *Tensor) Divide(other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled() {
-		attachNode(out, divideBackward, t, other)
+		attachNode(out, OpDivide, divideBackward, t, other)
 	}
 	return out
 }

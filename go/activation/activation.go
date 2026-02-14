@@ -17,7 +17,7 @@ func Tanh(t *tensor.Tensor) *tensor.Tensor {
 	out := exp2x.Minus(ones).Divide(exp2x.Plus(ones))
 
 	if ctx.GradEnabled() {
-		tensor.AttachComputationGraphNode(out, tanhBackward, t)
+		tensor.AttachComputationGraphNode(out, tensor.OpTanh, tanhBackward, t)
 	}
 	return out
 }
