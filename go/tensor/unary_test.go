@@ -162,6 +162,65 @@ func TestExp(t *testing.T) {
 	}
 }
 
+func TestNegate(t *testing.T) {
+	ctx := shapes.New(context.Background())
+	defer ctx.Close()
+
+	a := FromFloat32(ctx, Shape{3}, []float32{1.0, -2.0, 3.0})
+	result := a.Negate(ctx)
+
+	expected := []float32{-1.0, 2.0, -3.0}
+	for i, want := range expected {
+		got, err := result.GetF32(uint32(i))
+		if err != nil {
+			t.Fatalf("GetF32(%d): %v", i, err)
+		}
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Negate[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestNegateZeros(t *testing.T) {
+	ctx := shapes.New(context.Background())
+	defer ctx.Close()
+
+	a := Zeros(ctx, Shape{2, 2})
+	result := a.Negate(ctx)
+
+	for i := range uint32(2) {
+		for j := range uint32(2) {
+			got, err := result.GetF32(i, j)
+			if err != nil {
+				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
+			}
+			if !approxEq(got, 0.0, 1e-5) {
+				t.Errorf("Negate(0)[%d,%d] = %f, want 0.0", i, j, got)
+			}
+		}
+	}
+}
+
+func TestNegateBackward(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Close()
+
+	// -x, d(-x)/dx = -1
+	x := FromFloat32(ctx, Shape{3}, []float32{1.0, -2.0, 3.0})
+	y := x.Negate(ctx)
+	y.Backward(ctx)
+
+	for i := range uint32(3) {
+		got, err := x.Grad().GetF32(i)
+		if err != nil {
+			t.Fatalf("GetF32(%d): %v", i, err)
+		}
+		if !approxEq(got, -1.0, 1e-5) {
+			t.Errorf("grad[%d] = %f, want -1.0", i, got)
+		}
+	}
+}
+
 func TestExpZero(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()

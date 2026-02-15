@@ -3271,6 +3271,47 @@ static void test_grad_values_initialized_to_zero(void) {
   freeMemory(mem);
 }
 
+static void test_negate_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  u32 dims[] = {3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 5.0);
+  Tensor dest;
+  Result r = Negate(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Negate should succeed");
+  f32 *vals = (f32 *)dest.values;
+  for (int i = 0; i < 3; i++) {
+    ASSERT_EQ(vals[i], -5.0f, "negated value should be -5.0");
+  }
+  freeMemory(mem);
+}
+
+static void test_negate_already_negative(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  u32 dims[] = {2};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, -3.0);
+  Tensor dest;
+  Result r = Negate(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Negate should succeed for negative values");
+  f32 *vals = (f32 *)dest.values;
+  for (int i = 0; i < 2; i++) {
+    ASSERT_EQ(vals[i], 3.0f, "negated -3.0 should be 3.0");
+  }
+  freeMemory(mem);
+}
+
+static void test_negate_unsigned_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  u32 dims[] = {2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 1);
+  t->dtype = U32;
+  Result r = Negate(&ctx, t, &(Tensor){});
+  ASSERT_EQ(r, ERR_NEGATE_UNSUPPORTED_DTYPE, "Negate should reject unsigned dtypes");
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -3409,4 +3450,8 @@ test_squeeze_after_sum();
   test_grad_clone_with_grad();
   test_grad_tensor_shape_matches();
   test_grad_values_initialized_to_zero();
+  // Negate tests
+  test_negate_f32();
+  test_negate_already_negative();
+  test_negate_unsigned_rejected();
 }

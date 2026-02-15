@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define ALLOCATION 1024 * 1024 * 1 // 1mb
+#define ALLOCATION 1024 * 1024 * 64 // 64mb
 
 #define ARENA(memory) ((uint8_t *)(memory + 1))
 
@@ -18,7 +18,7 @@
 
 typedef struct {
   bool free;
-  uint16_t blockSize;
+  size_t blockSize;
 } blockheader;
 
 typedef struct {

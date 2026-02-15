@@ -14,6 +14,7 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination);
 Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+Result AddInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
 Result GetAt(Tensor *t, Dim dim, Value *result);
@@ -30,6 +31,7 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest);
 Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
+Result Negate(Context *ctx, Tensor *t, Tensor *dest);
 
 // Matrix ops
 Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);

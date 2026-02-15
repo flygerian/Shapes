@@ -20,5 +20,12 @@
 
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
+Result Negate(Context *ctx, Tensor *t, Tensor *dest);
+
+#define COMPUTE_NEGATE(val, dtype_enum, c_type)                                                    \
+  case dtype_enum: {                                                                               \
+    (val)->as.c_type = -(val)->as.c_type;                                                          \
+    return OK;                                                                                     \
+  }
 
 #endif

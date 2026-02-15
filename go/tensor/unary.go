@@ -20,6 +20,13 @@ static inline Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out) {
 	*out = dest;
 	return r;
 }
+
+static inline Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = Negate(ctx, t, dest);
+	*out = dest;
+	return r;
+}
 */
 import "C"
 import shapes "github.com/flygerian/shapes"
@@ -32,7 +39,7 @@ func (t *Tensor) Pow(ctx *shapes.Context, power float32) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled {
+	if ctx.BackwardEnabled {
 		attachNode(out, OpPow, powBackward, t)
 		out.Computation.Metadata = power
 	}
@@ -47,4 +54,18 @@ func (t *Tensor) Exp(ctx *shapes.Context) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	return track(ctx, &Tensor{cTensor: dest})
+}
+
+// Negate negates every element (-t), returning a new tensor.
+func (t *Tensor) Negate(ctx *shapes.Context) *Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Negate((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.BackwardEnabled {
+		attachNode(out, OpNegate, negateBackward, t)
+	}
+	return out
 }

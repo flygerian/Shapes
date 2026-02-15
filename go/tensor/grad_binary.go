@@ -74,6 +74,25 @@ func powBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
 }
 
+// negateBackward computes gradients for element-wise negation.
+// d(-t)/dt = -1
+func negateBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+	t := node.Inputs[0]
+	negOnes := Float(ctx, shapeOf(node.Grad), -1.0)
+	gradT := node.Grad.Times(ctx, negOnes)
+	t.Computation.Grad = t.Computation.Grad.Plus(ctx, gradT)
+}
+
+// sumBackward computes gradients for sum reduction along a dimension.
+// d(sum(x, dim))/dx = 1 for all elements; grad is broadcast from reduced shape.
+func sumBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+	x := node.Inputs[0]
+	inputShape := shapeOf(x)
+	ones := Float(ctx, inputShape, 1.0)
+	gradX := ones.Times(ctx, node.Grad)
+	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+}
+
 // ReduceBroadcast sums the gradient along dimensions that were broadcast
 // to match the input tensor's shape.
 func ReduceBroadcast(ctx *shapes.Context, input *Tensor, grad *Tensor) *Tensor {

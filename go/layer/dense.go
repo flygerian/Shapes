@@ -6,6 +6,8 @@ import (
 )
 
 func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) *tensor.Tensor {
+	var w, b *tensor.Tensor
+
 	return func(ctx *shapes.Context, x *tensor.Tensor) *tensor.Tensor {
 		fusedCtx := ctx.Fused()
 
@@ -18,9 +20,12 @@ func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) 
 			input = x.UnSqueeze(fusedCtx, 0)
 		}
 
-		tensorLastDimSize := inputShape[len(inputShape)-1]
-		w := tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize), tensorLastDimSize})
-		b := tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize)})
+		// Initialize weights once on first call.
+		if w == nil {
+			tensorLastDimSize := inputShape[len(inputShape)-1]
+			w = tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize), tensorLastDimSize})
+			b = tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize)})
+		}
 
 		// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
 		o := input.Mul(fusedCtx, w.Transpose(fusedCtx)).Plus(fusedCtx, b)
@@ -57,4 +62,6 @@ func constructDenseBackwardPass(ctx *shapes.Context, node *tensor.ComputationGra
 	// ∂L/∂b = grad (reduced to match b's shape)
 	gradB := tensor.ReduceBroadcast(ctx, b, grad)
 	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
+
+	node.Parameters = []*tensor.Tensor{w, b}
 }

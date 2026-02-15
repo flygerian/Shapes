@@ -9,20 +9,22 @@ type BackwardFn func(ctx *shapes.Context, node *ComputationGraphNode)
 type OpType int
 
 const (
-	OpNone     OpType = iota
-	OpAdd             // +
-	OpSubtract        // -
-	OpMultiply        // *
-	OpDivide          // /
-	OpPow             // pow
-	OpExp             // exp
-	OpTanh            // tanh
-	OpDense           // wx + b
-	OpReshape         // reshape
-	OpTranspose       // transpose
-	OpSqueeze         // squeeze
-	OpSqueezeDim      // squeeze_dim
-	OpUnSqueeze       // unsqueeze
+	OpNone       OpType = iota
+	OpAdd               // +
+	OpSubtract          // -
+	OpMultiply          // *
+	OpDivide            // /
+	OpPow               // pow
+	OpExp               // exp
+	OpTanh              // tanh
+	OpDense             // wx + b
+	OpReshape           // reshape
+	OpTranspose         // transpose
+	OpSqueeze           // squeeze
+	OpSqueezeDim        // squeeze_dim
+	OpUnSqueeze         // unsqueeze
+	OpNegate            // negate
+	OpSum               // sum
 )
 
 func (op OpType) String() string {
@@ -51,6 +53,10 @@ func (op OpType) String() string {
 		return "squeeze"
 	case OpUnSqueeze:
 		return "unsqueeze"
+	case OpNegate:
+		return "negate"
+	case OpSum:
+		return "sum"
 	default:
 		return "?"
 	}
@@ -58,17 +64,18 @@ func (op OpType) String() string {
 
 // ComputationGraphNode represents a node in the autograd computation graph.
 type ComputationGraphNode struct {
-	Output   *Tensor
-	Grad     *Tensor
-	Inputs   []*Tensor
-	Backward BackwardFn
-	Op       OpType
-	Metadata any
+	Output     *Tensor
+	Grad       *Tensor
+	Inputs     []*Tensor
+	Backward   BackwardFn
+	Op         OpType
+	Parameters []*Tensor
+	Metadata   any
 }
 
-// computationGraph holds topologically sorted graph nodes.
-type computationGraph struct {
-	nodes []*ComputationGraphNode
+// ComputationGraph holds topologically sorted graph nodes.
+type ComputationGraph struct {
+	Nodes []*ComputationGraphNode
 }
 
 // leafNode attaches an empty GraphNode (nil backward) to a tensor.
@@ -107,14 +114,14 @@ func shapeOf(t *Tensor) Shape {
 }
 
 // buildGraph performs a topological sort starting from the output tensor.
-func buildGraph(t *Tensor) *computationGraph {
-	graph := &computationGraph{}
+func buildGraph(t *Tensor) *ComputationGraph {
+	graph := &ComputationGraph{}
 	visited := make(map[*ComputationGraphNode]bool)
 	topo(graph, visited, t.Computation)
 	return graph
 }
 
-func topo(graph *computationGraph, visited map[*ComputationGraphNode]bool, node *ComputationGraphNode) {
+func topo(graph *ComputationGraph, visited map[*ComputationGraphNode]bool, node *ComputationGraphNode) {
 	if node == nil || visited[node] {
 		return
 	}
@@ -122,11 +129,11 @@ func topo(graph *computationGraph, visited map[*ComputationGraphNode]bool, node 
 	for _, inp := range node.Inputs {
 		topo(graph, visited, inp.Computation)
 	}
-	graph.nodes = append(graph.nodes, node)
+	graph.Nodes = append(graph.Nodes, node)
 }
 
 // Backward runs backpropagation from tensor t through the computation graph.
-func (t *Tensor) Backward(ctx *shapes.Context) {
+func (t *Tensor) Backward(ctx *shapes.Context) *ComputationGraph {
 	if t.Computation == nil {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
@@ -139,12 +146,14 @@ func (t *Tensor) Backward(ctx *shapes.Context) {
 	graph := buildGraph(t)
 
 	// Walk in reverse topological order.
-	for i := len(graph.nodes) - 1; i >= 0; i-- {
-		node := graph.nodes[i]
+	for i := len(graph.Nodes) - 1; i >= 0; i-- {
+		node := graph.Nodes[i]
 		if node.Backward != nil {
 			node.Backward(noGraphCtx, node)
 		}
 	}
+
+	return graph
 }
 
 // Grad returns the gradient tensor. Panics if this tensor has no computation node.

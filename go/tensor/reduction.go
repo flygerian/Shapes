@@ -24,5 +24,10 @@ func (t *Tensor) Sum(ctx *shapes.Context, dim uint32) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.BackwardEnabled {
+		attachNode(out, OpSum, sumBackward, t)
+		out.Computation.Metadata = dim
+	}
+	return out
 }

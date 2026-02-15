@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/flygerian/shapes"
+	"github.com/flygerian/shapes/extract"
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
+	"github.com/flygerian/shapes/optimizer"
 	"github.com/flygerian/shapes/tensor"
 	"github.com/flygerian/shapes/visual"
 )
@@ -26,27 +28,43 @@ func main() {
 	dense := layer.Dense(3, 10)
 	dense2 := layer.Dense(10, 120)
 	dens3 := layer.Dense(120, 1)
-	denseOutput := dense(ctx, xs)
-	denseOutput.Label = "dense1"
 
-	denseOutput2 := dense2(ctx, denseOutput)
-	denseOutput2.Label = "dense2"
+	noGraph := ctx.NoGraph()
+	sgd := optimizer.SGD(noGraph, 0.0001)
 
-	logits := dens3(ctx, denseOutput2)
-	logits.Label = "logits"
+	var l *tensor.Tensor
+	var computationGraph *tensor.ComputationGraph
+	var logits *tensor.Tensor
 
-	l := loss.Mse(ctx, ys, logits.Squeeze(ctx))
-	l.Backward(ctx)
+	for range 20 {
+		denseOutput := dense(ctx, xs)
+		denseOutput.Label = "dense1"
 
-	visual.Visualize(l)
+		denseOutput2 := dense2(ctx, denseOutput)
+		denseOutput2.Label = "dense2"
+
+		logits = dens3(ctx, denseOutput2)
+		logits.Label = "logits"
+
+		l = loss.Mse(ctx, ys, logits.Squeeze(ctx))
+		computationGraph = l.Backward(ctx)
+
+		fmt.Printf("Loss \n")
+		visual.Print(l)
+
+		sgd(computationGraph)
+		optimizer.ZeroGrad(noGraph, computationGraph)
+	}
+
+	// visual.Visualize(l)
+
+	parameters := extract.Parameters(computationGraph)
+	fmt.Println("Model parameters: ", len(parameters))
 
 	fmt.Printf("Output: \n")
 	visual.Print(logits)
 
 	fmt.Printf("Expected \n")
 	visual.Print(ys)
-
-	fmt.Printf("Loss \n")
-	visual.Print(l)
 
 }

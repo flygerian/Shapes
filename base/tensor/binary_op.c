@@ -79,6 +79,54 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   return binaryOp(ctx, a, b, destination, OP_ADD);
 }
 
+Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (!areBroadcastable(a, b)) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  Tensor *opB = b;
+  if (a->shape.numOfDims != b->shape.numOfDims) {
+    TensorPair ops = padSmallerTensor(ctx, a, b);
+    opB = ops.b;
+  }
+
+  if (!a->isContigous) {
+    return ERR_DIM_MISMATCH;
+  }
+  if (!opB->isContigous) {
+    opB = copyToContiguous(ctx, opB);
+  }
+
+  dim_t currentCoord[a->shape.numOfDims];
+  dim_t bCoords[a->shape.numOfDims];
+
+  for (tensor_size_t x = 0; x < a->size; x++) {
+    unravel_index(x, &a->shape, currentCoord);
+
+    for (u8 d = 0; d < a->shape.numOfDims; d++) {
+      bCoords[d] = currentCoord[d] % opB->shape.dims[d];
+    }
+
+    Value aVal;
+    VALUE_GET_FROM_ARR(a->values, x, &aVal, a->dtype);
+
+    Value bVal;
+    u64 idx = getContigousIdxFromCoord(opB, bCoords);
+    VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
+
+    Value result;
+    VALUE_BINOP(result, aVal, bVal, +);
+
+    VALUE_SET(a->values, x, result);
+  }
+
+  return OK;
+}
+
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   return binaryOp(ctx, a, b, destination, OP_SUBTRACT);
 }

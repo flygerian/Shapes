@@ -34,6 +34,10 @@ static inline Result wrap_Divide(Context *ctx, Tensor *a, Tensor *b, Tensor **ou
 	*out = dest;
 	return r;
 }
+
+static inline Result wrap_AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+	return AddInPlace(ctx, a, b);
+}
 */
 import "C"
 import shapes "github.com/flygerian/shapes"
@@ -96,4 +100,13 @@ func (t *Tensor) Divide(ctx *shapes.Context, other *Tensor) *Tensor {
 		attachNode(out, OpDivide, divideBackward, t, other)
 	}
 	return out
+}
+
+// AddInPlace performs element-wise addition of other into t, modifying t in place.
+func (t *Tensor) AddInPlace(ctx *shapes.Context, other *Tensor) {
+	requireSameCtx(t, other)
+	result := C.wrap_AddInPlace((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
 }

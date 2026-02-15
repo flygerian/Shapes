@@ -115,6 +115,15 @@ func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
 	return t
 }
 
+// Free releases the tensor's C memory back to the arena.
+// The tensor must not be a view. After Free, the tensor must not be used.
+func (t *Tensor) Free(ctx *shapes.Context) {
+	result := C.FreeTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+}
+
 // Clone creates a deep copy of the tensor.
 func Clone(ctx *shapes.Context, src *Tensor) *Tensor {
 	var dest *C.Tensor

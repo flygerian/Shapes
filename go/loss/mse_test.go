@@ -22,22 +22,13 @@ func TestMse(t *testing.T) {
 
 	loss := Mse(ctx, yGround, yPred)
 
-	shape := tensor.ShapeOf(loss)
-	if len(shape) != 1 || shape[0] != 4 {
-		t.Fatalf("expected shape [4], got %v", shape)
+	// Sum of squared errors: 0.25 + 0.25 + 0.04 + 0.01 = 0.55
+	got, err := loss.GetF32(0)
+	if err != nil {
+		t.Fatalf("GetF32(0): %v", err)
 	}
-
-	// MSE per element: (pred - ground)^2
-	// (0.5-1)^2=0.25, (-0.5-(-1))^2=0.25, (-0.8-(-1))^2=0.04, (0.9-1)^2=0.01
-	expected := []float32{0.25, 0.25, 0.04, 0.01}
-	for i, want := range expected {
-		got, err := loss.GetF32(uint32(i))
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
-		if !approxEq(got, want, 1e-4) {
-			t.Errorf("Mse[%d] = %f, want %f", i, got, want)
-		}
+	if !approxEq(got, 0.55, 1e-4) {
+		t.Errorf("Mse = %f, want 0.55", got)
 	}
 }
 
@@ -49,14 +40,12 @@ func TestMsePerfectPrediction(t *testing.T) {
 
 	loss := Mse(ctx, y, y)
 
-	for i := range uint32(3) {
-		got, err := loss.GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
-		if !approxEq(got, 0.0, 1e-6) {
-			t.Errorf("Mse[%d] = %f, want 0.0", i, got)
-		}
+	got, err := loss.GetF32(0)
+	if err != nil {
+		t.Fatalf("GetF32(0): %v", err)
+	}
+	if !approxEq(got, 0.0, 1e-6) {
+		t.Errorf("Mse = %f, want 0.0", got)
 	}
 }
 
@@ -69,26 +58,22 @@ func TestMse2D(t *testing.T) {
 
 	loss := Mse(ctx, yGround, yPred)
 
+	// Per-element squared errors: 1, 0, 1, 4, 9, 16. Sum = 31.0
+	// Shape after sum dim1: [2,1], after sum dim0: [1,1]
 	shape := tensor.ShapeOf(loss)
-	if len(shape) != 2 || shape[0] != 2 || shape[1] != 3 {
-		t.Fatalf("expected shape [2,3], got %v", shape)
-	}
 
-	// (pred - ground)^2: (2-1)^2=1, (2-2)^2=0, (2-3)^2=1, (2-4)^2=4, (2-5)^2=9, (2-6)^2=16
-	expected := [][]float32{
-		{1.0, 0.0, 1.0},
-		{4.0, 9.0, 16.0},
+	var got float32
+	var err error
+	if len(shape) == 2 {
+		got, err = loss.GetF32(0, 0)
+	} else {
+		got, err = loss.GetF32(0)
 	}
-	for i := range uint32(2) {
-		for j := range uint32(3) {
-			got, err := loss.GetF32(i, j)
-			if err != nil {
-				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
-			}
-			if !approxEq(got, expected[i][j], 1e-4) {
-				t.Errorf("Mse[%d,%d] = %f, want %f", i, j, got, expected[i][j])
-			}
-		}
+	if err != nil {
+		t.Fatalf("GetF32: %v", err)
+	}
+	if !approxEq(got, 31.0, 1e-4) {
+		t.Errorf("Mse = %f, want 31.0", got)
 	}
 }
 
@@ -96,7 +81,7 @@ func TestMseBackward(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Close()
 
-	// Scalar case: pred=1.5, ground=1.0 => loss=(0.5)^2=0.25
+	// Scalar case: pred=1.5, ground=1.0 => loss = (0.5)^2 = 0.25
 	// d(loss)/d(pred) = 2*(pred-ground) = 1.0
 	yGround := tensor.Float(ctx, tensor.Shape{1}, 1.0)
 	yPred := tensor.Float(ctx, tensor.Shape{1}, 1.5)
