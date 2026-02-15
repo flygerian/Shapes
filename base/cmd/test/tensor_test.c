@@ -2363,6 +2363,44 @@ static void test_squeeze_shares_data(void) {
   freeMemory(mem);
 }
 
+static void test_squeeze_dim_specific(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // [1, 3, 1, 4] squeeze dim 0 -> [3, 1, 4]
+  u32 dims[] = {1, 3, 1, 4};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
+
+  Tensor squeezed;
+  Result r = SqueezeDim(&ctx, t, &squeezed, 0);
+  ASSERT_EQ(r, OK, "SqueezeDim should return OK");
+  ASSERT_EQ(squeezed.shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(squeezed.shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(squeezed.shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(squeezed.shape.dims[2], 4, "dim 2 should be 4");
+
+  // [1, 3, 1, 4] squeeze dim 2 -> [1, 3, 4]
+  Tensor squeezed2;
+  r = SqueezeDim(&ctx, t, &squeezed2, 2);
+  ASSERT_EQ(r, OK, "SqueezeDim dim 2 should return OK");
+  ASSERT_EQ(squeezed2.shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(squeezed2.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(squeezed2.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(squeezed2.shape.dims[2], 4, "dim 2 should be 4");
+
+  // Squeezing a non-1 dim should fail
+  Tensor squeezed3;
+  r = SqueezeDim(&ctx, t, &squeezed3, 1);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "SqueezeDim non-1 dim should fail");
+
+  // Out of bounds dim should fail
+  Tensor squeezed4;
+  r = SqueezeDim(&ctx, t, &squeezed4, 5);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "SqueezeDim out of bounds should fail");
+
+  freeMemory(mem);
+}
+
 static void test_squeeze_after_sum(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -3330,7 +3368,8 @@ void run_tensor_tests(void) {
   test_squeeze_no_single_dims();
   test_squeeze_all_ones();
   test_squeeze_shares_data();
-  test_squeeze_after_sum();
+  test_squeeze_dim_specific();
+test_squeeze_after_sum();
   // UnSqueeze tests
   test_unsqueeze_dim0();
   test_unsqueeze_middle();

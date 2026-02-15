@@ -33,21 +33,21 @@ func TestWithGrad(t *testing.T) {
 	// Default: grad disabled
 	ctx := New(context.Background())
 	defer ctx.Close()
-	if ctx.GradEnabled() {
+	if ctx.GradEnabled {
 		t.Error("Grad should be disabled by default")
 	}
 
 	// With grad enabled
 	ctx2 := New(context.TODO(), WithGrad(true))
 	defer ctx2.Close()
-	if !ctx2.GradEnabled() {
+	if !ctx2.GradEnabled {
 		t.Error("Grad should be enabled")
 	}
 
 	// With grad explicitly disabled
 	ctx3 := New(context.Background(), WithGrad(false))
 	defer ctx3.Close()
-	if ctx3.GradEnabled() {
+	if ctx3.GradEnabled {
 		t.Error("Grad should be disabled")
 	}
 }
@@ -98,7 +98,7 @@ func TestMultipleOptions(t *testing.T) {
 	)
 	defer ctx.Close()
 
-	if !ctx.GradEnabled() {
+	if !ctx.GradEnabled {
 		t.Error("Grad should be enabled")
 	}
 }

@@ -118,10 +118,10 @@ func (t *Tensor) Backward(ctx *shapes.Context) {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
 
+	noGraphCtx := ctx.NoGraph()
 	// Seed the output gradient with ones.
-	noGrad := ctx.NoGrad()
 	onesShape := shapeOf(t)
-	t.Computation.Grad = Float(noGrad, onesShape, 1.0)
+	t.Computation.Grad = Float(noGraphCtx, onesShape, 1.0)
 
 	graph := buildGraph(t)
 
@@ -129,7 +129,7 @@ func (t *Tensor) Backward(ctx *shapes.Context) {
 	for i := len(graph.nodes) - 1; i >= 0; i-- {
 		node := graph.nodes[i]
 		if node.Backward != nil {
-			node.Backward(noGrad, node)
+			node.Backward(noGraphCtx, node)
 		}
 	}
 }
@@ -146,5 +146,3 @@ func (t *Tensor) Grad() *Tensor {
 func (t *Tensor) RequiresGrad() bool {
 	return t.Computation != nil
 }
-
-

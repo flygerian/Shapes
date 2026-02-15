@@ -111,7 +111,7 @@ func TestDense1DInput(t *testing.T) {
 	}
 }
 
-func TestDenseNoGradNoGraph(t *testing.T) {
+func TestDenseAlwaysAttachesGraph(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
@@ -120,8 +120,8 @@ func TestDenseNoGradNoGraph(t *testing.T) {
 
 	o := dense(ctx, x)
 
-	if o.RequiresGrad() {
-		t.Error("expected no grad tracking when context has grad disabled")
+	if !o.RequiresGrad() {
+		t.Error("expected graph node to always be attached")
 	}
 }
 
@@ -145,6 +145,130 @@ func TestDenseWithGradAttachesNode(t *testing.T) {
 	// The node should have 3 inputs: w, x, b
 	if len(o.Computation.Inputs) != 3 {
 		t.Fatalf("expected 3 inputs (w, x, b), got %d", len(o.Computation.Inputs))
+	}
+}
+
+func TestDenseBackward1D(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Close()
+
+	dense := Dense(3, 2)
+	x := tensor.Float(ctx, tensor.Shape{3}, 1.0)
+
+	o := dense(ctx, x)
+	o.Backward(ctx)
+
+	// w is [2,3], x is [3], b is [2,1]
+	wGrad := o.Computation.Inputs[0].Grad()
+	xGrad := o.Computation.Inputs[1].Grad()
+	bGrad := o.Computation.Inputs[2].Grad()
+
+	wGradShape := tensor.ShapeOf(wGrad)
+	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 3 {
+		t.Fatalf("expected wGrad shape [2,3], got %v", wGradShape)
+	}
+
+	xGradShape := tensor.ShapeOf(xGrad)
+	if len(xGradShape) != 1 || xGradShape[0] != 3 {
+		t.Fatalf("expected xGrad shape [3], got %v", xGradShape)
+	}
+
+	bGradShape := tensor.ShapeOf(bGrad)
+	if len(bGradShape) != 2 || bGradShape[0] != 2 || bGradShape[1] != 1 {
+		t.Fatalf("expected bGrad shape [2,1], got %v", bGradShape)
+	}
+}
+
+func TestDenseBackward2D(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Close()
+
+	dense := Dense(4, 2)
+	x := tensor.Float(ctx, tensor.Shape{3, 4}, 1.0)
+
+	o := dense(ctx, x)
+	o.Backward(ctx)
+
+	// w is [2,4], x is [3,4], b is [2,1]
+	wGrad := o.Computation.Inputs[0].Grad()
+	xGrad := o.Computation.Inputs[1].Grad()
+	bGrad := o.Computation.Inputs[2].Grad()
+
+	wGradShape := tensor.ShapeOf(wGrad)
+	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 4 {
+		t.Fatalf("expected wGrad shape [2,4], got %v", wGradShape)
+	}
+
+	xGradShape := tensor.ShapeOf(xGrad)
+	if len(xGradShape) != 2 || xGradShape[0] != 3 || xGradShape[1] != 4 {
+		t.Fatalf("expected xGrad shape [3,4], got %v", xGradShape)
+	}
+
+	bGradShape := tensor.ShapeOf(bGrad)
+	if len(bGradShape) != 2 || bGradShape[0] != 2 || bGradShape[1] != 1 {
+		t.Fatalf("expected bGrad shape [2,1], got %v", bGradShape)
+	}
+}
+
+func TestDenseBackward3D(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Close()
+
+	dense := Dense(5, 3)
+	x := tensor.Float(ctx, tensor.Shape{2, 4, 5}, 1.0)
+
+	o := dense(ctx, x)
+	o.Backward(ctx)
+
+	// w is [3,5], x is [2,4,5], b is [3,1]
+	wGrad := o.Computation.Inputs[0].Grad()
+	xGrad := o.Computation.Inputs[1].Grad()
+	bGrad := o.Computation.Inputs[2].Grad()
+
+	wGradShape := tensor.ShapeOf(wGrad)
+	if len(wGradShape) != 2 || wGradShape[0] != 3 || wGradShape[1] != 5 {
+		t.Fatalf("expected wGrad shape [3,5], got %v", wGradShape)
+	}
+
+	xGradShape := tensor.ShapeOf(xGrad)
+	if len(xGradShape) != 3 || xGradShape[0] != 2 || xGradShape[1] != 4 || xGradShape[2] != 5 {
+		t.Fatalf("expected xGrad shape [2,4,5], got %v", xGradShape)
+	}
+
+	bGradShape := tensor.ShapeOf(bGrad)
+	if len(bGradShape) != 2 || bGradShape[0] != 3 || bGradShape[1] != 1 {
+		t.Fatalf("expected bGrad shape [3,1], got %v", bGradShape)
+	}
+}
+
+func TestDenseBackward4D(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Close()
+
+	dense := Dense(6, 4)
+	x := tensor.Float(ctx, tensor.Shape{2, 3, 5, 6}, 1.0)
+
+	o := dense(ctx, x)
+	o.Backward(ctx)
+
+	// w is [4,6], x is [2,3,5,6], b is [4,1]
+	wGrad := o.Computation.Inputs[0].Grad()
+	xGrad := o.Computation.Inputs[1].Grad()
+	bGrad := o.Computation.Inputs[2].Grad()
+
+	wGradShape := tensor.ShapeOf(wGrad)
+	if len(wGradShape) != 2 || wGradShape[0] != 4 || wGradShape[1] != 6 {
+		t.Fatalf("expected wGrad shape [4,6], got %v", wGradShape)
+	}
+
+	xGradShape := tensor.ShapeOf(xGrad)
+	if len(xGradShape) != 4 || xGradShape[0] != 2 || xGradShape[1] != 3 || xGradShape[2] != 5 || xGradShape[3] != 6 {
+		t.Fatalf("expected xGrad shape [2,3,5,6], got %v", xGradShape)
+	}
+
+	bGradShape := tensor.ShapeOf(bGrad)
+	if len(bGradShape) != 2 || bGradShape[0] != 4 || bGradShape[1] != 1 {
+		t.Fatalf("expected bGrad shape [4,1], got %v", bGradShape)
 	}
 }
 

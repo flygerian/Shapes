@@ -73,8 +73,12 @@ func ReduceBroadcast(ctx *shapes.Context, input *Tensor, grad *Tensor) *Tensor {
 
 	// Handle dimension mismatch: sum along leading dimensions.
 	dimDiff := len(gradShape) - len(inputShape)
+	if dimDiff < 0 {
+		return current
+	}
+
 	for range dimDiff {
-		current = current.Sum(ctx, 0)
+		current = current.Sum(ctx, 0).SqueezeDim(ctx, 0)
 	}
 
 	// Sum along dimensions where input has size 1 but grad has size > 1.

@@ -22,6 +22,7 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
 Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Squeeze(Context *ctx, Tensor *t, Tensor *dest);
+Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Clone(Context *ctx, Tensor *t, Tensor *dest);
 

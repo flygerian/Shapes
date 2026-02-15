@@ -78,6 +78,13 @@ static inline Result wrap_Squeeze(Context *ctx, Tensor *src, Tensor **out) {
 	return r;
 }
 
+static inline Result wrap_SqueezeDim(Context *ctx, Tensor *src, Tensor **out, dim_t d) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = SqueezeDim(ctx, src, dest, d);
+	*out = dest;
+	return r;
+}
+
 static inline Result wrap_UnSqueeze(Context *ctx, Tensor *src, Tensor **out, dim_t d) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
 	Result r = UnSqueeze(ctx, src, dest, d);
@@ -93,6 +100,7 @@ import (
 	shapes "github.com/flygerian/shapes"
 )
 
+// TODO shape ops should be exact clones of the tensor
 // Slice creates a view into the tensor. Each range is a Range{start, end}
 // specifying a half-open interval for that dimension.
 func (t *Tensor) Slice(ctx *shapes.Context, ranges ...Range) *Tensor {
@@ -194,6 +202,16 @@ func (t *Tensor) Squeeze(ctx *shapes.Context) *Tensor {
 	return track(ctx, &Tensor{cTensor: dest})
 }
 
+// SqueezeDim removes a single dimension at the given position (must be size 1), returning a view.
+func (t *Tensor) SqueezeDim(ctx *shapes.Context, dim uint32) *Tensor {
+	var dest *C.Tensor
+	result := C.wrap_SqueezeDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &Tensor{cTensor: dest})
+}
+
 // UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
 func (t *Tensor) UnSqueeze(ctx *shapes.Context, dim uint32) *Tensor {
 	var dest *C.Tensor
@@ -202,4 +220,21 @@ func (t *Tensor) UnSqueeze(ctx *shapes.Context, dim uint32) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	return track(ctx, &Tensor{cTensor: dest})
+}
+
+// SafeUnsqeeze nserts a new dimention at dom 0 only if the tensor is 1D
+func (t *Tensor) SafeUnSqueeze(ctx *shapes.Context, dims ...uint32) *Tensor {
+	if len(shapeOf(t)) > 1 {
+		return t
+	}
+
+	if len(dims) > 1 {
+		panic("shapes: only 1 dim is allowed when doing a safe unsqueeze")
+	}
+
+	if len(dims) == 1 {
+		return t.UnSqueeze(ctx, dims[0])
+	}
+
+	return t.UnSqueeze(ctx, uint32(0))
 }

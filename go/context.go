@@ -28,10 +28,11 @@ import "C"
 // It satisfies the context.Context interface while providing access to
 // the shapes C library context.
 type Context struct {
-	stdctx.Context // Embedded Go context for cancellation/deadlines
-	cCtx           *C.Context
-	tensors        []*unsafe.Pointer // tracked C tensor pointers, nilled on Close
-	gradEnabled    bool              // Go-level grad tracking (C context always has grad=false)
+	stdctx.Context  // Embedded Go context for cancellation/deadlines
+	cCtx            *C.Context
+	tensors         []*unsafe.Pointer // tracked C tensor pointers, nilled on Close TODO: be sure about the copying behaviour here
+	GradEnabled     bool              // Go-level grad tracking (C context always has grad=false)
+	BackwardEnabled bool
 }
 
 // New creates a new Context with the given parent Go context.
@@ -82,20 +83,41 @@ func (c *Context) UnsafePtr() unsafe.Pointer {
 	return unsafe.Pointer(c.cCtx)
 }
 
-// GradEnabled returns whether gradient tracking is enabled.
-func (c *Context) GradEnabled() bool {
-	return c.gradEnabled
-}
-
 // NoGrad returns a new Context that shares the same C context and memory
-// but has gradient tracking disabled. Used inside backward functions so
-// that the ops computing gradients don't build graph nodes.
+// but has gradient tracking disabled. In this context gradients are not created for new tensors
 func (c *Context) NoGrad() *Context {
 	return &Context{
-		Context:     c.Context,
-		cCtx:        c.cCtx,
-		tensors:     c.tensors,
-		gradEnabled: false,
+		Context:         c.Context,
+		cCtx:            c.cCtx,
+		tensors:         c.tensors,
+		GradEnabled:     false,
+		BackwardEnabled: c.BackwardEnabled,
+	}
+}
+
+// Fused returns a new Context that shares the same C context and memory
+// but turns of backward passes for any ops used in that context.
+// Meant for doing compund operations where the caller might want to specify the backward pass manually
+func (c *Context) Fused() *Context {
+	return &Context{
+		Context:         c.Context,
+		cCtx:            c.cCtx,
+		tensors:         c.tensors,
+		GradEnabled:     c.GradEnabled,
+		BackwardEnabled: false,
+	}
+}
+
+// NoGraph() returns a new Context that shares the same C context and memory
+// turns off all gradient tacking. For use in backward pass only
+
+func (c *Context) NoGraph() *Context {
+	return &Context{
+		Context:         c.Context,
+		cCtx:            c.cCtx,
+		tensors:         c.tensors,
+		GradEnabled:     false,
+		BackwardEnabled: false,
 	}
 }
 
@@ -117,9 +139,10 @@ func (c *Context) Track(p *unsafe.Pointer) {
 // Option is a function that configures a Context.
 type Option func(*Context)
 
-// WithGrad enables or disables gradient tracking.
+// WithGrad enables or disables gradient tracking and backward passes.
 func WithGrad(enabled bool) Option {
 	return func(c *Context) {
-		c.gradEnabled = enabled
+		c.GradEnabled = enabled
+		c.BackwardEnabled = enabled
 	}
 }

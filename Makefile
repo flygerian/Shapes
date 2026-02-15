@@ -1,7 +1,7 @@
 # Shapes Multi-language Tensor Library
 # Root Makefile for building all components
 
-.PHONY: all help init build build-openblas build-base build-go run test test-go clean format lint check-format
+.PHONY: all help init build build-openblas build-base build-go run debug test test-go clean format lint check-format
 
 # Detect number of CPU cores
 NPROC := $(shell nproc 2>/dev/null || echo 4)
@@ -34,6 +34,7 @@ help:
 	@echo "  build-base     - Build C library only (Release mode)"
 	@echo "  build-go       - Build Go bindings"
 	@echo "  run            - Build and run the Go binary"
+	@echo "  debug          - Build and debug the Go binary with Delve"
 	@echo "  test           - Run all tests (C + Go)"
 	@echo "  test-go        - Run Go tests only"
 	@echo "  clean          - Clean all build artifacts"
@@ -85,6 +86,13 @@ build-go: build-base
 # Run the Go binary
 run: build-go
 	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main
+
+# Debug the Go binary with Delve
+debug: build-base
+	@echo "==> Building Go binary with debug flags..."
+	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
+	@echo "==> Launching Delve debugger..."
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) dlv exec ./main
 
 # Run all tests
 test: build-base build-go

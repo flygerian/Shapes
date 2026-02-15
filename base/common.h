@@ -71,10 +71,11 @@ typedef struct {
   bool isView;
   bool isContigous;
   Range *boundary;
-  struct GraphNode *computation;
-  char *label;
+  struct GraphNode *computation; // TODO: remove
+  char *label; // TODO remove
 } Tensor;
 
+// remove
 typedef struct ScreenConfig {
   int cx, cy;
   int rx;
@@ -88,14 +89,15 @@ typedef struct ScreenConfig {
 
 typedef struct Context {
   Memory *memory;
-  bool grad;
-  ScreenConfig *screenConfig;
+  bool grad; // remove
+  ScreenConfig *screenConfig; // remove
 } Context;
 
 typedef Result (*BackwardFn)(struct Context *, struct GraphNode *);
 
 typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_TANH, OP_POW } OpType;
 
+// TODO remove
 typedef struct GraphNode {
   Tensor *output;
   Tensor *grad;
@@ -108,7 +110,7 @@ typedef struct GraphNode {
 
 size_t getBytesForDtype(Dtype type);
 
-
+// TODO remove
 Context NoGradContext(Context *ctx);
 
 #endif

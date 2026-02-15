@@ -47,7 +47,7 @@ func (t *Tensor) Plus(ctx *shapes.Context, other *Tensor) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled() {
+	if ctx.BackwardEnabled {
 		attachNode(out, OpAdd, addBackward, t, other)
 	}
 	return out
@@ -62,7 +62,7 @@ func (t *Tensor) Minus(ctx *shapes.Context, other *Tensor) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled() {
+	if ctx.BackwardEnabled {
 		attachNode(out, OpSubtract, subtractBackward, t, other)
 	}
 	return out
@@ -77,7 +77,7 @@ func (t *Tensor) Times(ctx *shapes.Context, other *Tensor) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled() {
+	if ctx.BackwardEnabled {
 		attachNode(out, OpMultiply, multiplyBackward, t, other)
 	}
 	return out
@@ -92,7 +92,7 @@ func (t *Tensor) Divide(ctx *shapes.Context, other *Tensor) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled() {
+	if ctx.BackwardEnabled {
 		attachNode(out, OpDivide, divideBackward, t, other)
 	}
 	return out

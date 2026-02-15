@@ -205,6 +205,51 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   return OK;
 }
 
+Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (dim >= t->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (t->shape.dims[dim] != 1) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (t->shape.numOfDims == 1) {
+    *dest = *t;
+    dest->isView = true;
+    return OK;
+  }
+
+  u8 newNumDims = t->shape.numOfDims - 1;
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+
+  u8 destIdx = 0;
+  for (u8 i = 0; i < t->shape.numOfDims; i++) {
+    if (i == dim) {
+      continue;
+    }
+    newDims[destIdx++] = t->shape.dims[i];
+  }
+
+  calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims}, newMultipliers);
+
+  *dest =
+      (Tensor){.dtype = t->dtype,
+               .values = t->values,
+               .size = t->size,
+               .isContigous = t->isContigous,
+               .isView = true,
+               .boundary = t->boundary,
+               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
+
+  return OK;
+}
+
 Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
