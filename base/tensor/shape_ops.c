@@ -82,6 +82,9 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     values = contiguous->values;
     isView = false;
     boundary = NULL;
+    freeAlloc(ctx->memory, contiguous->shape.dims);
+    freeAlloc(ctx->memory, contiguous->shape.multipliers);
+    freeAlloc(ctx->memory, contiguous);
   } else {
     values = source->values;
   }

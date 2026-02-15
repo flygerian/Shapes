@@ -31,6 +31,7 @@ static Result straightSum(Context *ctx, Tensor *t, Tensor *dest) {
   Tensor *result = t_Zeros(ctx, (Dim){.dims = dims, .numOfDims = 1}, t->dtype);
   VALUE_UNBOX(sum, result->values);
   *dest = *result;
+  freeAlloc(ctx->memory, result);
 
   return OK;
 }

@@ -91,6 +91,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
     }
   }
 
+  freeAlloc(ctx->memory, indices);
   return copy;
 }
 

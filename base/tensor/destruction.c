@@ -1,6 +1,24 @@
 #include "tensor_internal.h"
 #include "../memory.h"
 
+Result FreeViewTensor(Context *ctx, Tensor *t) {
+  if (t == NULL)
+    return ERR_NULL_TENSOR_PROVIDED;
+
+  if (t->shape.dims != NULL) {
+    freeAlloc(ctx->memory, t->shape.dims);
+  }
+  if (t->shape.multipliers != NULL) {
+    freeAlloc(ctx->memory, t->shape.multipliers);
+  }
+  if (t->boundary != NULL) {
+    freeAlloc(ctx->memory, t->boundary);
+  }
+
+  freeAlloc(ctx->memory, t);
+  return OK;
+}
+
 Result FreeTensor(Context *ctx, Tensor *t) {
   if (t == NULL)
     return ERR_NULL_TENSOR_PROVIDED;

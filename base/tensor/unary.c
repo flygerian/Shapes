@@ -1,4 +1,5 @@
 #include "common.h"
+#include "../memory.h"
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "unary.h"
@@ -40,6 +41,7 @@ Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest) {
   }
 
   *dest = *output;
+  freeAlloc(ctx->memory, output);
 
   return OK;
 }
@@ -92,6 +94,7 @@ Result Negate(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   *dest = *output;
+  freeAlloc(ctx->memory, output);
 
   return OK;
 }
@@ -120,6 +123,7 @@ Result Exp(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   *dest = *output;
+  freeAlloc(ctx->memory, output);
 
   return OK;
 }

@@ -111,6 +111,11 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     BLAS_GEMM(opA->dtype, A_batch, B_batch, C_batch, m, n, k);
   }
 
+  if (opA != ops.a) FreeTensor(ctx, opA);
+  if (opB != ops.b) FreeTensor(ctx, opB);
+  if (ops.a != a) FreeViewTensor(ctx, ops.a);
+  if (ops.b != b) FreeViewTensor(ctx, ops.b);
+
   return OK;
 }
 
@@ -161,6 +166,9 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .size = 1,
                      .values = resVal,
                      .shape = (Dim){.dims = resDims, .numOfDims = 1, .multipliers = resMult}};
+
+  if (opA != a) FreeTensor(ctx, opA);
+  if (opB != b) FreeTensor(ctx, opB);
 
   return OK;
 }

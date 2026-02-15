@@ -49,5 +49,6 @@ void SetValues(Tensor *t, Value value);
 
 // Tensor destruction
 Result FreeTensor(Context *ctx, Tensor *t);
+Result FreeViewTensor(Context *ctx, Tensor *t);
 
 #endif

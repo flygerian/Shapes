@@ -1,4 +1,5 @@
 #include "common.h"
+#include "../memory.h"
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "value.h"
@@ -71,6 +72,12 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   }
 
   *destination = *output;
+  freeAlloc(ctx->memory, output);
+
+  if (opA != ops.a) FreeTensor(ctx, opA);
+  if (opB != ops.b) FreeTensor(ctx, opB);
+  if (ops.a != a) FreeViewTensor(ctx, ops.a);
+  if (ops.b != b) FreeViewTensor(ctx, ops.b);
 
   return OK;
 }
@@ -89,16 +96,20 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   Tensor *opB = b;
+  Tensor *paddedB = NULL;
   if (a->shape.numOfDims != b->shape.numOfDims) {
     TensorPair ops = padSmallerTensor(ctx, a, b);
     opB = ops.b;
+    paddedB = ops.b;
   }
 
   if (!a->isContigous) {
     return ERR_DIM_MISMATCH;
   }
+  Tensor *contiguousB = NULL;
   if (!opB->isContigous) {
     opB = copyToContiguous(ctx, opB);
+    contiguousB = opB;
   }
 
   dim_t currentCoord[a->shape.numOfDims];
@@ -124,6 +135,9 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
     VALUE_SET(a->values, x, result);
   }
 
+  if (contiguousB != NULL) FreeTensor(ctx, contiguousB);
+  if (paddedB != NULL) FreeViewTensor(ctx, paddedB);
+
   return OK;
 }
 
@@ -147,5 +161,7 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
   }
 
   // Compute numerator * denominator^-1
-  return Multiply(ctx, numerator, denom_inv, destination);
+  res = Multiply(ctx, numerator, denom_inv, destination);
+  FreeTensor(ctx, denom_inv);
+  return res;
 }
