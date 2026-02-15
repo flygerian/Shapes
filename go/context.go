@@ -31,6 +31,7 @@ type Context struct {
 	stdctx.Context  // Embedded Go context for cancellation/deadlines
 	cCtx            *C.Context
 	tensors         []*unsafe.Pointer // tracked C tensor pointers, nilled on Close TODO: be sure about the copying behaviour here
+	intermediates   []unsafe.Pointer  // C tensor pointers to free after backward pass
 	GradEnabled     bool              // Go-level grad tracking (C context always has grad=false)
 	BackwardEnabled bool
 }
@@ -90,6 +91,7 @@ func (c *Context) NoGrad() *Context {
 		Context:         c.Context,
 		cCtx:            c.cCtx,
 		tensors:         c.tensors,
+		intermediates:   c.intermediates,
 		GradEnabled:     false,
 		BackwardEnabled: c.BackwardEnabled,
 	}
@@ -103,6 +105,7 @@ func (c *Context) Fused() *Context {
 		Context:         c.Context,
 		cCtx:            c.cCtx,
 		tensors:         c.tensors,
+		intermediates:   c.intermediates,
 		GradEnabled:     c.GradEnabled,
 		BackwardEnabled: false,
 	}
@@ -116,6 +119,7 @@ func (c *Context) NoGraph() *Context {
 		Context:         c.Context,
 		cCtx:            c.cCtx,
 		tensors:         c.tensors,
+		intermediates:   c.intermediates,
 		GradEnabled:     false,
 		BackwardEnabled: false,
 	}
@@ -134,6 +138,21 @@ func (c *Context) UnsafeMemory() unsafe.Pointer {
 // The tensor package calls this when creating tensors.
 func (c *Context) Track(p *unsafe.Pointer) {
 	c.tensors = append(c.tensors, p)
+}
+
+// MarkIntermediate registers a C tensor pointer for freeing after backward.
+func (c *Context) MarkIntermediate(p unsafe.Pointer) {
+	c.intermediates = append(c.intermediates, p)
+}
+
+// Intermediates returns the list of intermediate C tensor pointers.
+func (c *Context) Intermediates() []unsafe.Pointer {
+	return c.intermediates
+}
+
+// ClearIntermediates resets the intermediate list after they have been freed.
+func (c *Context) ClearIntermediates() {
+	c.intermediates = c.intermediates[:0]
 }
 
 // Option is a function that configures a Context.

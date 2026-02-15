@@ -61,6 +61,7 @@ static inline Result wrap_Reshape(Context *ctx, Tensor *src, Tensor **out, Dim *
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
 	Result r = Reshape(ctx, src, dest, *newShape);
 	*out = dest;
+	freeAlloc(ctx->memory, newShape);
 	return r;
 }
 

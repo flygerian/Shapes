@@ -8,6 +8,7 @@ func reshapeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	origShape := shapeOf(x)
 	gradX := node.Grad.Reshape(ctx, origShape)
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	markIntermediate(ctx, gradX)
 }
 
 // transposeBackward transposes the gradient back using the same dims.
@@ -16,6 +17,7 @@ func transposeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	dims := node.Metadata.([2]uint32)
 	gradX := node.Grad.Transpose(ctx, dims[0], dims[1])
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	markIntermediate(ctx, gradX)
 }
 
 // squeezeBackward reshapes the gradient back to the input's original shape.
@@ -24,6 +26,7 @@ func squeezeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	origShape := shapeOf(x)
 	gradX := node.Grad.Reshape(ctx, origShape)
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	markIntermediate(ctx, gradX)
 }
 
 // squeezeDimBackward unsqueezes the gradient at the dim that was squeezed.
@@ -32,6 +35,7 @@ func squeezeDimBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	dim := node.Metadata.(uint32)
 	gradX := node.Grad.UnSqueeze(ctx, dim)
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	markIntermediate(ctx, gradX)
 }
 
 // unSqueezeBackward squeezes the gradient at the dim that was unsqueezed.
@@ -40,4 +44,5 @@ func unSqueezeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	dim := node.Metadata.(uint32)
 	gradX := node.Grad.SqueezeDim(ctx, dim)
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	markIntermediate(ctx, gradX)
 }

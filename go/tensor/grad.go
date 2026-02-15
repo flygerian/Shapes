@@ -1,6 +1,18 @@
 package tensor
 
-import shapes "github.com/flygerian/shapes"
+/*
+#cgo CFLAGS: -I../../base
+#cgo LDFLAGS: -L../../base/build -L../../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+
+#include "tensor/tensor.h"
+#include "common.h"
+*/
+import "C"
+import (
+	"unsafe"
+
+	shapes "github.com/flygerian/shapes"
+)
 
 // BackwardFn is the signature for backward pass functions.
 type BackwardFn func(ctx *shapes.Context, node *ComputationGraphNode)
@@ -102,6 +114,34 @@ func attachNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tenso
 	result.Computation = node
 }
 
+// markIntermediate registers a tensor for freeing after the backward pass.
+func markIntermediate(ctx *shapes.Context, t *Tensor) {
+	ctx.MarkIntermediate(unsafe.Pointer(t.cTensor))
+}
+
+// markIfIntermediate marks t only if it is not the same tensor as origin.
+// ReduceBroadcast may return its input unchanged when no reduction is needed;
+// in that case we must not free it.
+func markIfIntermediate(ctx *shapes.Context, t *Tensor, origin *Tensor) {
+	if t != origin {
+		markIntermediate(ctx, t)
+	}
+}
+
+// FreeIntermediates frees all tensors marked as intermediate during backward.
+func FreeIntermediates(ctx *shapes.Context) {
+	cCtx := (*C.Context)(ctx.UnsafePtr())
+	for _, p := range ctx.Intermediates() {
+		ct := (*C.Tensor)(p)
+		if ct.isView {
+			C.FreeViewTensor(cCtx, ct)
+		} else {
+			C.FreeTensor(cCtx, ct)
+		}
+	}
+	ctx.ClearIntermediates()
+}
+
 // shapeOf extracts the shape from a tensor's C representation.
 func shapeOf(t *Tensor) Shape {
 	numDims := int(t.cTensor.shape.numOfDims)
@@ -152,6 +192,9 @@ func (t *Tensor) Backward(ctx *shapes.Context) *ComputationGraph {
 			node.Backward(noGraphCtx, node)
 		}
 	}
+
+	// Free all tensors marked as intermediate during the backprop
+	FreeIntermediates(noGraphCtx)
 
 	return graph
 }

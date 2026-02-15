@@ -9,13 +9,22 @@ package tensor
 #include <string.h>
 
 static inline Tensor *wrap_T_Zeros(Context *ctx, Dim *shape) {
-	return T_Zeros(ctx, *shape);
+	Tensor *t = T_Zeros(ctx, *shape);
+	freeAlloc(ctx->memory, shape->dims);
+	freeAlloc(ctx->memory, shape);
+	return t;
 }
 static inline Tensor *wrap_T_Int(Context *ctx, Dim *shape, i8 value) {
-	return T_Int(ctx, *shape, value);
+	Tensor *t = T_Int(ctx, *shape, value);
+	freeAlloc(ctx->memory, shape->dims);
+	freeAlloc(ctx->memory, shape);
+	return t;
 }
 static inline Tensor *wrap_T_Float(Context *ctx, Dim *shape, f32 value) {
-	return T_Float(ctx, *shape, value);
+	Tensor *t = T_Float(ctx, *shape, value);
+	freeAlloc(ctx->memory, shape->dims);
+	freeAlloc(ctx->memory, shape);
+	return t;
 }
 static inline Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
@@ -119,6 +128,15 @@ func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
 // The tensor must not be a view. After Free, the tensor must not be used.
 func (t *Tensor) Free(ctx *shapes.Context) {
 	result := C.FreeTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+}
+
+// FreeView releases a view tensor's metadata (dims, multipliers, boundary)
+// back to the arena without freeing the shared values.
+func (t *Tensor) FreeView(ctx *shapes.Context) {
+	result := C.FreeViewTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
