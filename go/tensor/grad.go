@@ -18,6 +18,11 @@ const (
 	OpExp             // exp
 	OpTanh            // tanh
 	OpDense           // wx + b
+	OpReshape         // reshape
+	OpTranspose       // transpose
+	OpSqueeze         // squeeze
+	OpSqueezeDim      // squeeze_dim
+	OpUnSqueeze       // unsqueeze
 )
 
 func (op OpType) String() string {
@@ -38,6 +43,14 @@ func (op OpType) String() string {
 		return "tanh"
 	case OpDense:
 		return "@w + b"
+	case OpReshape:
+		return "reshape"
+	case OpTranspose:
+		return "transpose"
+	case OpSqueeze, OpSqueezeDim:
+		return "squeeze"
+	case OpUnSqueeze:
+		return "unsqueeze"
 	default:
 		return "?"
 	}

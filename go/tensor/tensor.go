@@ -91,6 +91,26 @@ func ShapeOf(t *Tensor) Shape {
 	return shapeOf(t)
 }
 
+// Dtype constants matching the C Dtype enum.
+const (
+	DtypeF16 = iota
+	DtypeF32
+	DtypeF64
+	DtypeU8
+	DtypeU16
+	DtypeU32
+	DtypeU64
+	DtypeI8
+	DtypeI16
+	DtypeI32
+	DtypeI64
+)
+
+// Dtype returns the tensor's data type as an integer matching the C Dtype enum.
+func (t *Tensor) Dtype() int {
+	return int(t.cTensor.dtype)
+}
+
 // AttachComputationGraphNode is the exported version of attachNode for use by external packages.
 func AttachComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
 	attachNode(result, op, backward, inputs...)

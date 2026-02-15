@@ -19,11 +19,11 @@ func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) 
 		}
 
 		tensorLastDimSize := inputShape[len(inputShape)-1]
-		w := tensor.Float(fusedCtx, tensor.Shape{uint32(outputSize), tensorLastDimSize}, 0.001)
-		b := tensor.Float(fusedCtx, tensor.Shape{uint32(outputSize), 1}, 0.001)
+		w := tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize), tensorLastDimSize})
+		b := tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize)})
 
-		// wx + b
-		o := w.Mul(fusedCtx, input.Transpose(fusedCtx)).Plus(fusedCtx, b)
+		// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
+		o := input.Mul(fusedCtx, w.Transpose(fusedCtx)).Plus(fusedCtx, b)
 
 		// If 1D input, squeeze back to 1D output.
 		if is1D {
@@ -41,23 +41,20 @@ func constructDenseBackwardPass(ctx *shapes.Context, node *tensor.ComputationGra
 	x := node.Inputs[1]
 	b := node.Inputs[2]
 
-	// Forward: o = w @ xᵀ + b
-	// ∂L/∂w = grad @ x  (outer product when 1-D)
+	// Forward: o = x @ wᵀ + b
+	grad := node.Grad.SafeUnSqueeze(ctx, 0)
 
-	dW := node.Grad.SafeUnSqueeze(ctx, 1).Mul(ctx, x.SafeUnSqueeze(ctx, 0))
+	// ∂L/∂w = gradᵀ @ x  ([out, batch] @ [batch, in] = [out, in])
+	dW := grad.Transpose(ctx).Mul(ctx, x.SafeUnSqueeze(ctx, 0))
 	gradW := tensor.ReduceBroadcast(ctx, w, dW)
 	w.Computation.Grad = w.Computation.Grad.Plus(ctx, gradW)
 
-	// ∂L/∂x = (wᵀ @ grad)ᵀ  (transpose back to match x's shape)
-	dX := w.SafeUnSqueeze(ctx).Transpose(ctx).Mul(
-		ctx,
-		node.Grad.SafeUnSqueeze(ctx, 1),
-	).Transpose(ctx)
-
+	// ∂L/∂x = grad @ w  ([batch, out] @ [out, in] = [batch, in])
+	dX := grad.Mul(ctx, w)
 	gradX := tensor.ReduceBroadcast(ctx, x, dX)
 	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
 
-	// ∂L/∂b = grad
-	gradB := tensor.ReduceBroadcast(ctx, b, node.Grad.SafeUnSqueeze(ctx, 1))
+	// ∂L/∂b = grad (reduced to match b's shape)
+	gradB := tensor.ReduceBroadcast(ctx, b, grad)
 	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
 }

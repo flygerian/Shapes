@@ -63,6 +63,17 @@ func divideBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
 }
 
+// powBackward computes gradients for element-wise power.
+// d(x^n)/dx = n * x^(n-1)
+func powBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+	x := node.Inputs[0]
+	n := node.Metadata.(float32)
+
+	coeff := Float(ctx, shapeOf(x), n)
+	gradX := node.Grad.Times(ctx, coeff.Times(ctx, x.Pow(ctx, n-1)))
+	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+}
+
 // ReduceBroadcast sums the gradient along dimensions that were broadcast
 // to match the input tensor's shape.
 func ReduceBroadcast(ctx *shapes.Context, input *Tensor, grad *Tensor) *Tensor {

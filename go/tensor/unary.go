@@ -31,7 +31,12 @@ func (t *Tensor) Pow(ctx *shapes.Context, power float32) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled {
+		attachNode(out, OpPow, powBackward, t)
+		out.Computation.Metadata = power
+	}
+	return out
 }
 
 // Exp computes e^x for every element, returning a new tensor.

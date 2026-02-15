@@ -26,6 +26,7 @@ static inline Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {
 */
 import "C"
 import (
+	"math/rand"
 	"unsafe"
 
 	shapes "github.com/flygerian/shapes"
@@ -85,6 +86,31 @@ func FromFloat32(ctx *shapes.Context, shape Shape, data []float32) *Tensor {
 	}
 
 	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(expected)*C.sizeof_float)
+
+	if ctx.GradEnabled {
+		leafNode(t)
+	}
+
+	return t
+}
+
+// FloatRandom creates a tensor with random float32 values uniformly distributed in [-1, 1].
+func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
+	if len(shape) == 0 {
+		return nil
+	}
+
+	t := Zeros(ctx, shape)
+	n := int(t.cTensor.size)
+	data := make([]float32, n)
+	for i := range n {
+		data[i] = rand.Float32()*2 - 1
+	}
+	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
+
+	if ctx.GradEnabled {
+		leafNode(t)
+	}
 
 	return t
 }

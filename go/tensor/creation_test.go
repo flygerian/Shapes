@@ -78,6 +78,52 @@ func TestFromFloat32EmptyShape(t *testing.T) {
 	}
 }
 
+func TestFloatRandom(t *testing.T) {
+	ctx := shapes.New(context.Background())
+	defer ctx.Close()
+
+	tensor := FloatRandom(ctx, Shape{3, 4})
+	if tensor == nil {
+		t.Fatal("FloatRandom returned nil")
+	}
+
+	shape := ShapeOf(tensor)
+	if len(shape) != 2 || shape[0] != 3 || shape[1] != 4 {
+		t.Fatalf("expected shape [3,4], got %v", shape)
+	}
+
+	for i := range uint32(3) {
+		for j := range uint32(4) {
+			v, err := tensor.GetF32(i, j)
+			if err != nil {
+				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
+			}
+			if v < -1 || v > 1 {
+				t.Errorf("FloatRandom[%d,%d] = %f, want in [-1, 1]", i, j, v)
+			}
+		}
+	}
+}
+
+func TestFloatRandomNotAllSame(t *testing.T) {
+	ctx := shapes.New(context.Background())
+	defer ctx.Close()
+
+	tensor := FloatRandom(ctx, Shape{100})
+	first, _ := tensor.GetF32(0)
+	allSame := true
+	for i := range uint32(100) {
+		v, _ := tensor.GetF32(i)
+		if v != first {
+			allSame = false
+			break
+		}
+	}
+	if allSame {
+		t.Error("expected random values, but all elements are the same")
+	}
+}
+
 func TestFromFloat32WithGrad(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Close()

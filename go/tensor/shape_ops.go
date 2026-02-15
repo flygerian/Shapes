@@ -155,7 +155,11 @@ func (t *Tensor) Reshape(ctx *shapes.Context, shape Shape) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled {
+		attachNode(out, OpReshape, reshapeBackward, t)
+	}
+	return out
 }
 
 // Transpose swaps two dimensions, returning a view.
@@ -189,7 +193,12 @@ func (t *Tensor) Transpose(ctx *shapes.Context, dims ...uint32) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled {
+		attachNode(out, OpTranspose, transposeBackward, t)
+		out.Computation.Metadata = [2]uint32{d0, d1}
+	}
+	return out
 }
 
 // Squeeze removes all dimensions of size 1, returning a view.
@@ -199,7 +208,11 @@ func (t *Tensor) Squeeze(ctx *shapes.Context) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled {
+		attachNode(out, OpSqueeze, squeezeBackward, t)
+	}
+	return out
 }
 
 // SqueezeDim removes a single dimension at the given position (must be size 1), returning a view.
@@ -209,7 +222,12 @@ func (t *Tensor) SqueezeDim(ctx *shapes.Context, dim uint32) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled {
+		attachNode(out, OpSqueezeDim, squeezeDimBackward, t)
+		out.Computation.Metadata = dim
+	}
+	return out
 }
 
 // UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
@@ -219,7 +237,12 @@ func (t *Tensor) UnSqueeze(ctx *shapes.Context, dim uint32) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.GradEnabled {
+		attachNode(out, OpUnSqueeze, unSqueezeBackward, t)
+		out.Computation.Metadata = dim
+	}
+	return out
 }
 
 // SafeUnsqeeze nserts a new dimention at dom 0 only if the tensor is 1D
