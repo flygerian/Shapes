@@ -26,24 +26,19 @@ func main() {
 	ys := tensor.FromFloat32(ctx, tensor.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
 
 	dense := layer.Dense(3, 10)
-	dense2 := layer.Dense(10, 120)
-	dens3 := layer.Dense(120, 1)
+	dens3 := layer.Dense(10, 1)
 
 	noGraph := ctx.NoGraph()
-	sgd := optimizer.SGD(noGraph, 0.0001)
+	sgd := optimizer.SGD(noGraph, 0.01)
 
 	var l *tensor.Tensor
 	var computationGraph *tensor.ComputationGraph
 	var logits *tensor.Tensor
-
 	for range 20 {
 		denseOutput := dense(ctx, xs)
 		denseOutput.Label = "dense1"
 
-		denseOutput2 := dense2(ctx, denseOutput)
-		denseOutput2.Label = "dense2"
-
-		logits = dens3(ctx, denseOutput2)
+		logits = dens3(ctx, denseOutput)
 		logits.Label = "logits"
 
 		l = loss.Mse(ctx, ys, logits.Squeeze(ctx))
