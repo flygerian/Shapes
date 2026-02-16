@@ -34,6 +34,7 @@ func main() {
 	var l *tensor.Tensor
 	var computationGraph *tensor.ComputationGraph
 	var logits *tensor.Tensor
+
 	for range 20 {
 		denseOutput := dense(ctx, xs)
 		denseOutput.Label = "dense1"

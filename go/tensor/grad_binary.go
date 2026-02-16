@@ -10,11 +10,11 @@ func addBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	b := node.Inputs[1]
 
 	gradA := reduceBroadcast(ctx, a, node.Grad)
-	a.Computation.Grad = a.Computation.Grad.Plus(ctx, gradA)
+	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
 	markIfIntermediate(ctx, gradA, node.Grad)
 
 	gradB := reduceBroadcast(ctx, b, node.Grad)
-	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
+	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
 	markIfIntermediate(ctx, gradB, node.Grad)
 }
 
@@ -25,12 +25,12 @@ func subtractBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	b := node.Inputs[1]
 
 	gradA := reduceBroadcast(ctx, a, node.Grad)
-	a.Computation.Grad = a.Computation.Grad.Plus(ctx, gradA)
+	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
 	markIfIntermediate(ctx, gradA, node.Grad)
 
 	negGrad := node.Grad.Negate(ctx)
 	gradB := reduceBroadcast(ctx, b, negGrad)
-	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
+	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
 	markIntermediate(ctx, negGrad)
 	markIfIntermediate(ctx, gradB, negGrad)
 }
@@ -44,14 +44,14 @@ func multiplyBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	// grad_a = output_grad * b
 	gradTimesB := node.Grad.Times(ctx, b)
 	gradA := reduceBroadcast(ctx, a, gradTimesB)
-	a.Computation.Grad = a.Computation.Grad.Plus(ctx, gradA)
+	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
 	markIntermediate(ctx, gradTimesB)
 	markIfIntermediate(ctx, gradA, gradTimesB)
 
 	// grad_b = output_grad * a
 	gradTimesA := node.Grad.Times(ctx, a)
 	gradB := reduceBroadcast(ctx, b, gradTimesA)
-	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
+	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
 	markIntermediate(ctx, gradTimesA)
 	markIfIntermediate(ctx, gradB, gradTimesA)
 }
@@ -65,7 +65,7 @@ func divideBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	// grad_a = output_grad / b
 	gradDivB := node.Grad.Divide(ctx, b)
 	gradA := reduceBroadcast(ctx, a, gradDivB)
-	a.Computation.Grad = a.Computation.Grad.Plus(ctx, gradA)
+	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
 	markIntermediate(ctx, gradDivB)
 	markIfIntermediate(ctx, gradA, gradDivB)
 
@@ -75,7 +75,7 @@ func divideBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	negADivB2 := negA.Divide(ctx, bSquared)
 	gradTimesNeg := node.Grad.Times(ctx, negADivB2)
 	gradB := reduceBroadcast(ctx, b, gradTimesNeg)
-	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
+	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
 	markIntermediate(ctx, negA)
 	markIntermediate(ctx, bSquared)
 	markIntermediate(ctx, negADivB2)
@@ -93,7 +93,7 @@ func powBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	xPow := x.Pow(ctx, n-1)
 	localGrad := coeff.Times(ctx, xPow)
 	gradX := node.Grad.Times(ctx, localGrad)
-	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
 	markIntermediate(ctx, coeff)
 	markIntermediate(ctx, xPow)
 	markIntermediate(ctx, localGrad)
@@ -105,7 +105,7 @@ func powBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 func negateBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	t := node.Inputs[0]
 	gradT := node.Grad.Negate(ctx)
-	t.Computation.Grad = t.Computation.Grad.Plus(ctx, gradT)
+	t.Computation.Grad = t.Grad().Plus(ctx, gradT)
 	markIntermediate(ctx, gradT)
 }
 
@@ -116,7 +116,7 @@ func sumBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 	inputShape := shapeOf(x)
 	ones := Float(ctx, inputShape, 1.0)
 	gradX := ones.Times(ctx, node.Grad)
-	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
 	markIntermediate(ctx, ones)
 	markIntermediate(ctx, gradX)
 }

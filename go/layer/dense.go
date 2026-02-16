@@ -52,16 +52,16 @@ func constructDenseBackwardPass(ctx *shapes.Context, node *tensor.ComputationGra
 	// ∂L/∂w = gradᵀ @ x  ([out, batch] @ [batch, in] = [out, in])
 	dW := grad.Transpose(ctx).Mul(ctx, x.SafeUnSqueeze(ctx, 0))
 	gradW := tensor.ReduceBroadcast(ctx, w, dW)
-	w.Computation.Grad = w.Computation.Grad.Plus(ctx, gradW)
+	w.Computation.Grad = w.Grad().Plus(ctx, gradW)
 
 	// ∂L/∂x = grad @ w  ([batch, out] @ [out, in] = [batch, in])
 	dX := grad.Mul(ctx, w)
 	gradX := tensor.ReduceBroadcast(ctx, x, dX)
-	x.Computation.Grad = x.Computation.Grad.Plus(ctx, gradX)
+	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
 
 	// ∂L/∂b = grad (reduced to match b's shape)
 	gradB := tensor.ReduceBroadcast(ctx, b, grad)
-	b.Computation.Grad = b.Computation.Grad.Plus(ctx, gradB)
+	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
 
 	node.Parameters = []*tensor.Tensor{w, b}
 }

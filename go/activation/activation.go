@@ -34,5 +34,5 @@ func tanhBackward(ctx *shapes.Context, node *tensor.ComputationGraphNode) {
 	localGrad := ones.Minus(ctx, outputSquared)
 	gradInput := node.Grad.Times(ctx, localGrad)
 
-	input.Computation.Grad = input.Computation.Grad.Plus(ctx, gradInput)
+	input.Computation.Grad = input.Grad().Plus(ctx, gradInput)
 }
