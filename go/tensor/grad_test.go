@@ -24,18 +24,12 @@ func TestBackwardAdd(t *testing.T) {
 	c.Backward(ctx)
 
 	for i := range uint32(2) {
-		ga, err := a.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		ga := a.Grad().GetF32(i)
 		if !approxEq(ga, 1.0, 1e-5) {
 			t.Errorf("grad_a[%d] = %f, want 1.0", i, ga)
 		}
 
-		gb, err := b.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		gb := b.Grad().GetF32(i)
 		if !approxEq(gb, 1.0, 1e-5) {
 			t.Errorf("grad_b[%d] = %f, want 1.0", i, gb)
 		}
@@ -54,18 +48,12 @@ func TestBackwardMultiply(t *testing.T) {
 	c.Backward(ctx)
 
 	for i := range uint32(2) {
-		ga, err := a.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		ga := a.Grad().GetF32(i)
 		if !approxEq(ga, 5.0, 1e-5) {
 			t.Errorf("grad_a[%d] = %f, want 5.0 (value of b)", i, ga)
 		}
 
-		gb, err := b.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		gb := b.Grad().GetF32(i)
 		if !approxEq(gb, 3.0, 1e-5) {
 			t.Errorf("grad_b[%d] = %f, want 3.0 (value of a)", i, gb)
 		}
@@ -84,18 +72,12 @@ func TestBackwardSubtract(t *testing.T) {
 	c.Backward(ctx)
 
 	for i := range uint32(2) {
-		ga, err := a.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		ga := a.Grad().GetF32(i)
 		if !approxEq(ga, 1.0, 1e-5) {
 			t.Errorf("grad_a[%d] = %f, want 1.0", i, ga)
 		}
 
-		gb, err := b.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		gb := b.Grad().GetF32(i)
 		if !approxEq(gb, -1.0, 1e-5) {
 			t.Errorf("grad_b[%d] = %f, want -1.0", i, gb)
 		}
@@ -146,10 +128,7 @@ func TestBackwardChain(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := tc.t.Grad().GetF32(0)
-		if err != nil {
-			t.Fatalf("%s: GetF32: %v", tc.name, err)
-		}
+		got := tc.t.Grad().GetF32(0)
 		if !approxEq(got, tc.want, 1e-5) {
 			t.Errorf("%s = %f, want %f", tc.name, got, tc.want)
 		}
@@ -197,10 +176,7 @@ func TestLeafTensorHasGrad(t *testing.T) {
 
 	// Grad should be zeros by default.
 	for i := range uint32(2) {
-		got, err := a.Grad().GetF32(i)
-		if err != nil {
-			t.Fatalf("GetF32(%d): %v", i, err)
-		}
+		got := a.Grad().GetF32(i)
 		if !approxEq(got, 0.0, 1e-5) {
 			t.Errorf("leaf grad[%d] = %f, want 0.0", i, got)
 		}
@@ -215,10 +191,7 @@ func TestLeafBackwardNoOp(t *testing.T) {
 	a := Float(ctx, Shape{1}, 5.0)
 	a.Backward(ctx)
 
-	got, err := a.Grad().GetF32(0)
-	if err != nil {
-		t.Fatalf("GetF32: %v", err)
-	}
+	got := a.Grad().GetF32(0)
 	if !approxEq(got, 1.0, 1e-5) {
 		t.Errorf("leaf backward grad = %f, want 1.0", got)
 	}

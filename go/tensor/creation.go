@@ -103,6 +103,91 @@ func FromFloat32(ctx *shapes.Context, shape Shape, data []float32) *Tensor {
 	return t
 }
 
+// fromInt8_1D converts a 1D int8 slice to shape and flat data.
+// Returns true if data is empty (nil should be returned).
+func fromInt8_1D(data []int8) (Shape, []int8, bool) {
+	if len(data) == 0 {
+		return nil, nil, true
+	}
+	return Shape{uint32(len(data))}, data, false
+}
+
+// fromInt8_2D converts a 2D int8 slice to shape and flat data.
+// Panics if inner slices have inconsistent lengths.
+// Returns true if data is empty (nil should be returned).
+func fromInt8_2D(data [][]int8) (Shape, []int8, bool) {
+	d0, d1, isEmpty := validate2D(data)
+	if isEmpty {
+		return nil, nil, true
+	}
+	shape := Shape{uint32(d0), uint32(d1)}
+	flatData := flatten2D(data)
+	return shape, flatData, false
+}
+
+// fromInt8_3D converts a 3D int8 slice to shape and flat data.
+// Panics if nested slices have inconsistent dimensions.
+// Returns true if data is empty (nil should be returned).
+func fromInt8_3D(data [][][]int8) (Shape, []int8, bool) {
+	d0, d1, d2, isEmpty := validate3D(data)
+	if isEmpty {
+		return nil, nil, true
+	}
+	shape := Shape{uint32(d0), uint32(d1), uint32(d2)}
+	flatData := flatten3D(data)
+	return shape, flatData, false
+}
+
+// fromInt8_4D converts a 4D int8 slice to shape and flat data.
+// Panics if nested slices have inconsistent dimensions.
+// Returns true if data is empty (nil should be returned).
+func fromInt8_4D(data [][][][]int8) (Shape, []int8, bool) {
+	d0, d1, d2, d3, isEmpty := validate4D(data)
+	if isEmpty {
+		return nil, nil, true
+	}
+	shape := Shape{uint32(d0), uint32(d1), uint32(d2), uint32(d3)}
+	flatData := flatten4D(data)
+	return shape, flatData, false
+}
+
+// FromInt8 creates a tensor from nested int8 slices, inferring the shape from the data structure.
+// Supports up to 4D tensors: []int8 (1D), [][]int8 (2D), [][][]int8 (3D), [][][][]int8 (4D).
+// Panics if nested slices have inconsistent lengths (ragged arrays).
+// Returns nil for empty data.
+func FromInt8(ctx *shapes.Context, data interface{}) *Tensor {
+	var shape Shape
+	var flatData []int8
+	var isEmpty bool
+
+	switch d := data.(type) {
+	case []int8:
+		shape, flatData, isEmpty = fromInt8_1D(d)
+	case [][]int8:
+		shape, flatData, isEmpty = fromInt8_2D(d)
+	case [][][]int8:
+		shape, flatData, isEmpty = fromInt8_3D(d)
+	case [][][][]int8:
+		shape, flatData, isEmpty = fromInt8_4D(d)
+	default:
+		panic("shapes: unsupported type for FromInt8, expected []int8, [][]int8, [][][]int8, or [][][][]int8")
+	}
+
+	if isEmpty {
+		return nil
+	}
+
+	t := Int(ctx, shape, 0)
+
+	C.memcpy(t.cTensor.values, unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
+
+	if ctx.GradEnabled {
+		leafNode(t)
+	}
+
+	return t
+}
+
 // FloatRandom creates a tensor with random float32 values uniformly distributed in [-1, 1].
 func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
 	if len(shape) == 0 {

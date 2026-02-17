@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	maxBoxWidth  = 50
-	boxHeight    = 7
-	vSpacing     = 5
-	maxNodes     = 64
-	boxGap       = 4
-	screenWidth  = 220
+	maxBoxWidth = 50
+	boxHeight   = 7
+	vSpacing    = 5
+	maxNodes    = 64
+	boxGap      = 4
+	screenWidth = 220
 )
 
 // Box represents a drawable box in the terminal.
@@ -245,10 +245,7 @@ func displayLabels(t *tensor.Tensor) (top, bottom string) {
 
 // formatScalar reads the scalar (index-0) value from a tensor and trims trailing zeros.
 func formatScalar(t *tensor.Tensor) string {
-	v, err := t.GetF32(0)
-	if err != nil {
-		return "?"
-	}
+	v := t.GetF32(0)
 	s := fmt.Sprintf("%f", v)
 	// Trim trailing zeros but keep at least one digit after decimal
 	if idx := strings.IndexByte(s, '.'); idx >= 0 {
@@ -315,10 +312,7 @@ func printRecursive(w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim i
 func formatValue(t *tensor.Tensor, coords []uint32) string {
 	switch t.Dtype() {
 	case tensor.DtypeF16, tensor.DtypeF32, tensor.DtypeF64:
-		v, err := t.GetF32(coords...)
-		if err != nil {
-			return "?"
-		}
+		v := t.GetF32(coords...)
 		s := fmt.Sprintf("%f", v)
 		if idx := strings.IndexByte(s, '.'); idx >= 0 {
 			s = strings.TrimRight(s, "0")
@@ -328,10 +322,7 @@ func formatValue(t *tensor.Tensor, coords []uint32) string {
 		}
 		return s
 	default:
-		v, err := t.GetI8(coords...)
-		if err != nil {
-			return "?"
-		}
+		v := t.GetI8(coords...)
 		return fmt.Sprintf("%d", v)
 	}
 }

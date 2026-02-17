@@ -18,10 +18,7 @@ func TestPlus(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got, err := result.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := result.GetI8(i, j)
 			if got != 8 {
 				t.Errorf("Plus[%d,%d] = %d, want 8", i, j, got)
 			}
@@ -40,10 +37,7 @@ func TestMinus(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got, err := result.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := result.GetI8(i, j)
 			if got != 6 {
 				t.Errorf("Minus[%d,%d] = %d, want 6", i, j, got)
 			}
@@ -62,10 +56,7 @@ func TestTimes(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got, err := result.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := result.GetI8(i, j)
 			if got != 21 {
 				t.Errorf("Times[%d,%d] = %d, want 21", i, j, got)
 			}
@@ -84,10 +75,7 @@ func TestDivide(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got, err := result.GetF32(i, j)
-			if err != nil {
-				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
-			}
+			got := result.GetF32(i, j)
 			if got < 2.49 || got > 2.51 {
 				t.Errorf("Divide[%d,%d] = %f, want 2.5", i, j, got)
 			}
@@ -108,10 +96,7 @@ func TestBinaryOpChain(t *testing.T) {
 	result := sum.Times(ctx, c)
 
 	for i := range uint32(2) {
-		got, err := result.GetI8(i)
-		if err != nil {
-			t.Fatalf("GetI8(%d): %v", i, err)
-		}
+		got := result.GetI8(i)
 		if got != 20 {
 			t.Errorf("Chain[%d] = %d, want 20", i, got)
 		}
@@ -129,10 +114,7 @@ func TestBinaryOpBroadcast(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got, err := result.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := result.GetI8(i, j)
 			if got != 7 {
 				t.Errorf("Broadcast[%d,%d] = %d, want 7", i, j, got)
 			}

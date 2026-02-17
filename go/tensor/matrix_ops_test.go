@@ -19,10 +19,7 @@ func TestMul(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got, err := result.GetF32(i, j)
-			if err != nil {
-				t.Fatalf("GetF32(%d,%d): %v", i, j, err)
-			}
+			got := result.GetF32(i, j)
 			if got < 2.99 || got > 3.01 {
 				t.Errorf("Mul[%d,%d] = %f, want 3.0", i, j, got)
 			}
@@ -55,10 +52,7 @@ func TestDot(t *testing.T) {
 
 	result := a.Dot(ctx, b)
 
-	got, err := result.GetF32(0)
-	if err != nil {
-		t.Fatalf("GetF32(0): %v", err)
-	}
+	got := result.GetF32(0)
 	if got < 17.99 || got > 18.01 {
 		t.Errorf("Dot = %f, want 18.0", got)
 	}

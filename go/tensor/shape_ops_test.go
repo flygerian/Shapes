@@ -18,10 +18,7 @@ func TestSlice(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got, err := sliced.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := sliced.GetI8(i, j)
 			if got != 5 {
 				t.Errorf("Slice[%d,%d] = %d, want 5", i, j, got)
 			}
@@ -54,10 +51,7 @@ func TestReshape(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(2) {
-			got, err := reshaped.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := reshaped.GetI8(i, j)
 			if got != 7 {
 				t.Errorf("Reshape[%d,%d] = %d, want 7", i, j, got)
 			}
@@ -90,10 +84,7 @@ func TestTranspose(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(2) {
-			got, err := transposed.GetI8(i, j)
-			if err != nil {
-				t.Fatalf("GetI8(%d,%d): %v", i, j, err)
-			}
+			got := transposed.GetI8(i, j)
 			if got != 4 {
 				t.Errorf("Transpose[%d,%d] = %d, want 4", i, j, got)
 			}
@@ -125,10 +116,7 @@ func TestSqueeze(t *testing.T) {
 	squeezed := a.Squeeze(ctx)
 
 	for i := range uint32(3) {
-		got, err := squeezed.GetI8(i)
-		if err != nil {
-			t.Fatalf("GetI8(%d): %v", i, err)
-		}
+		got := squeezed.GetI8(i)
 		if got != 9 {
 			t.Errorf("Squeeze[%d] = %d, want 9", i, got)
 		}
@@ -145,10 +133,7 @@ func TestUnSqueeze(t *testing.T) {
 	unsqueezed := a.UnSqueeze(ctx, 0)
 
 	for j := range uint32(3) {
-		got, err := unsqueezed.GetI8(0, j)
-		if err != nil {
-			t.Fatalf("GetI8(0,%d): %v", j, err)
-		}
+		got := unsqueezed.GetI8(0, j)
 		if got != 6 {
 			t.Errorf("UnSqueeze[0,%d] = %d, want 6", j, got)
 		}
