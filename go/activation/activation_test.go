@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	shapes "github.com/flygerian/shapes"
-	"github.com/flygerian/shapes/tensor"
+	
 )
 
 func approxEq(a, b, tol float32) bool {
@@ -18,7 +18,7 @@ func TestTanh(t *testing.T) {
 	defer ctx.Close()
 
 	// tanh(0) = 0, tanh(1) ≈ 0.7616
-	a := tensor.Float(ctx, tensor.Shape{2}, 0.0)
+	a := shapes.Float(ctx, shapes.Shape{2}, 0.0)
 	result := Tanh(ctx, a)
 
 	got := result.Get(ctx, 0).Item().(float32)
@@ -31,7 +31,7 @@ func TestTanhValues(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
-	a := tensor.Float(ctx, tensor.Shape{1}, 1.0)
+	a := shapes.Float(ctx, shapes.Shape{1}, 1.0)
 	result := Tanh(ctx, a)
 
 	got := result.Get(ctx, 0).Item().(float32)
@@ -47,7 +47,7 @@ func TestTanhBackward(t *testing.T) {
 
 	// tanh'(x) = 1 - tanh(x)^2
 	// At x=0: tanh(0)=0, tanh'(0) = 1 - 0 = 1
-	x := tensor.Float(ctx, tensor.Shape{1}, 0.0)
+	x := shapes.Float(ctx, shapes.Shape{1}, 0.0)
 	y := Tanh(ctx, x)
 
 	y.Backward(ctx)
@@ -63,7 +63,7 @@ func TestTanhBackwardNonZero(t *testing.T) {
 	defer ctx.Close()
 
 	// At x=1: tanh(1) ≈ 0.7616, tanh'(1) = 1 - 0.7616^2 ≈ 0.4200
-	x := tensor.Float(ctx, tensor.Shape{1}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1}, 1.0)
 	y := Tanh(ctx, x)
 	y.Backward(ctx)
 

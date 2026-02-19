@@ -1,9 +1,7 @@
-package tensor
-
-import shapes "github.com/flygerian/shapes"
+package shapes
 
 // reshapeBackward reshapes the gradient back to the input's original shape.
-func reshapeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+func reshapeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	origShape := shapeOf(x)
 	gradX := node.Grad.Reshape(ctx, origShape)
@@ -12,7 +10,7 @@ func reshapeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 }
 
 // transposeBackward transposes the gradient back using the same dims.
-func transposeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+func transposeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	dims := node.Metadata.([2]uint32)
 	gradX := node.Grad.Transpose(ctx, dims[0], dims[1])
@@ -21,7 +19,7 @@ func transposeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 }
 
 // squeezeBackward reshapes the gradient back to the input's original shape.
-func squeezeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+func squeezeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	origShape := shapeOf(x)
 	gradX := node.Grad.Reshape(ctx, origShape)
@@ -30,7 +28,7 @@ func squeezeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 }
 
 // squeezeDimBackward unsqueezes the gradient at the dim that was squeezed.
-func squeezeDimBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+func squeezeDimBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	dim := node.Metadata.(uint32)
 	gradX := node.Grad.UnSqueeze(ctx, dim)
@@ -39,7 +37,7 @@ func squeezeDimBackward(ctx *shapes.Context, node *ComputationGraphNode) {
 }
 
 // unSqueezeBackward squeezes the gradient at the dim that was unsqueezed.
-func unSqueezeBackward(ctx *shapes.Context, node *ComputationGraphNode) {
+func unSqueezeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	dim := node.Metadata.(uint32)
 	gradX := node.Grad.SqueezeDim(ctx, dim)

@@ -8,7 +8,6 @@ import (
 	"unicode/utf8"
 
 	shapes "github.com/flygerian/shapes"
-	"github.com/flygerian/shapes/tensor"
 )
 
 const (
@@ -112,14 +111,14 @@ func DrawLine(w io.Writer, from, to *Box) {
 }
 
 // Visualize renders the computation graph rooted at t to the terminal (os.Stdout).
-func Visualize(ctx *shapes.Context, t *tensor.Tensor) {
+func Visualize(ctx *shapes.Context, t *shapes.Tensor) {
 	VisualizeTo(ctx, os.Stdout, t)
 }
 
 // VisualizeTo renders the computation graph rooted at t to the given writer.
-func VisualizeTo(ctx *shapes.Context, w io.Writer, t *tensor.Tensor) {
+func VisualizeTo(ctx *shapes.Context, w io.Writer, t *shapes.Tensor) {
 	type entry struct {
-		tensor    *tensor.Tensor
+		tensor    *shapes.Tensor
 		level     int
 		parentIdx int
 	}
@@ -215,7 +214,7 @@ func VisualizeTo(ctx *shapes.Context, w io.Writer, t *tensor.Tensor) {
 }
 
 // displayLabels builds the top and bottom text for a tensor node.
-func displayLabels(ctx *shapes.Context, t *tensor.Tensor) (top, bottom string) {
+func displayLabels(ctx *shapes.Context, t *shapes.Tensor) (top, bottom string) {
 	label := t.Label
 	if label == "" {
 		label = "?"
@@ -237,7 +236,7 @@ func displayLabels(ctx *shapes.Context, t *tensor.Tensor) (top, bottom string) {
 	}
 
 	// Bottom line shows op name if this is not a leaf
-	if len(node.Inputs) > 0 && node.Op != tensor.OpNone {
+	if len(node.Inputs) > 0 && node.Op != shapes.OpNone {
 		bottom = fmt.Sprintf("(%s)", node.Op)
 	}
 
@@ -245,7 +244,7 @@ func displayLabels(ctx *shapes.Context, t *tensor.Tensor) (top, bottom string) {
 }
 
 // formatScalar reads the scalar (index-0) value from a tensor and trims trailing zeros.
-func formatScalar(ctx *shapes.Context, t *tensor.Tensor) string {
+func formatScalar(ctx *shapes.Context, t *shapes.Tensor) string {
 	v := t.Get(ctx, 0).Item().(float32)
 	s := fmt.Sprintf("%f", v)
 	// Trim trailing zeros but keep at least one digit after decimal
@@ -259,13 +258,13 @@ func formatScalar(ctx *shapes.Context, t *tensor.Tensor) string {
 }
 
 // Print renders the tensor's contents to os.Stdout in a nested bracket format.
-func Print(ctx *shapes.Context, t *tensor.Tensor) {
+func Print(ctx *shapes.Context, t *shapes.Tensor) {
 	PrintTo(ctx, os.Stdout, t)
 }
 
 // PrintTo renders the tensor's contents to the given writer in a nested bracket format.
-func PrintTo(ctx *shapes.Context, w io.Writer, t *tensor.Tensor) {
-	shape := tensor.ShapeOf(t)
+func PrintTo(ctx *shapes.Context, w io.Writer, t *shapes.Tensor) {
+	shape := shapes.ShapeOf(t)
 	if len(shape) == 0 {
 		return
 	}
@@ -280,7 +279,7 @@ func PrintTo(ctx *shapes.Context, w io.Writer, t *tensor.Tensor) {
 }
 
 // printRecursive walks dimension by dimension, printing brackets and values.
-func printRecursive(ctx *shapes.Context, w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim int) {
+func printRecursive(ctx *shapes.Context, w io.Writer, t *shapes.Tensor, shape, coords []uint32, dim int) {
 	if dim == len(shape)-1 {
 		fmt.Fprint(w, "[")
 		for i := range shape[dim] {
@@ -310,14 +309,14 @@ func printRecursive(ctx *shapes.Context, w io.Writer, t *tensor.Tensor, shape, c
 }
 
 // formatValue reads a single element from the tensor and returns its string representation.
-func formatValue(ctx *shapes.Context, t *tensor.Tensor, coords []uint32) string {
+func formatValue(ctx *shapes.Context, t *shapes.Tensor, coords []uint32) string {
 	// Convert []uint32 to []interface{} for Get function
 	args := make([]interface{}, len(coords))
 	for i, c := range coords {
 		args[i] = c
 	}
 	switch t.Dtype() {
-	case tensor.DtypeF16, tensor.DtypeF32, tensor.DtypeF64:
+	case shapes.DtypeF16, shapes.DtypeF32, shapes.DtypeF64:
 		v := t.Get(ctx, args...).Item().(float32)
 		s := fmt.Sprintf("%f", v)
 		if idx := strings.IndexByte(s, '.'); idx >= 0 {

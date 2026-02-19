@@ -1,8 +1,8 @@
-package tensor
+package shapes
 
 /*
-#cgo CFLAGS: -I../../base
-#cgo LDFLAGS: -L../../base/build -L../../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo CFLAGS: -I../base
+#cgo LDFLAGS: -L../base/build -L../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
 #include "tensor/tensor.h"
 #include "common.h"
@@ -65,11 +65,7 @@ static inline i64 value_as_i64(Value v) {
 }
 */
 import "C"
-import (
-	"fmt"
-
-	shapes "github.com/flygerian/shapes"
-)
+import "fmt"
 
 // Get returns a sub-tensor at the given coordinates.
 // If the tensor is multidimensional, returns a view of the sub-tensor.
@@ -78,7 +74,7 @@ import (
 //
 // Get can also accept a tensor as an argument to perform advanced indexing,
 // similar to PyTorch's x[indices] where indices is a tensor of integers.
-func (t *Tensor) Get(ctx *shapes.Context, indices ...interface{}) *Tensor {
+func (t *Tensor) Get(ctx *Context, indices ...interface{}) *Tensor {
 	if len(indices) == 0 {
 		panic("shapes: Get requires at least one argument")
 	}
@@ -124,7 +120,7 @@ func (t *Tensor) Get(ctx *shapes.Context, indices ...interface{}) *Tensor {
 }
 
 // getWithCoords returns a sub-tensor at the given coordinates.
-func (t *Tensor) getWithCoords(ctx *shapes.Context, coords []uint32) *Tensor {
+func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
 	current := t
 	for _, idx := range coords {
 		if current.cTensor.shape.numOfDims == 0 {
@@ -146,7 +142,7 @@ func (t *Tensor) getWithCoords(ctx *shapes.Context, coords []uint32) *Tensor {
 
 // getWithTensor performs advanced indexing using a tensor of indices.
 // The indices tensor must contain integer values.
-func (t *Tensor) getWithTensor(ctx *shapes.Context, indices *Tensor) *Tensor {
+func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
 	var result C.Tensor
 	cCtx := (*C.Context)(ctx.UnsafePtr())
 	res := C.wrap_IndexWithTensor(cCtx, t.cTensor, indices.cTensor, &result)

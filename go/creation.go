@@ -1,8 +1,8 @@
-package tensor
+package shapes
 
 /*
-#cgo CFLAGS: -I../../base
-#cgo LDFLAGS: -L../../base/build -L../../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo CFLAGS: -I../base
+#cgo LDFLAGS: -L../base/build -L../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
 #include "tensor/tensor.h"
 #include "common.h"
@@ -40,12 +40,10 @@ import "C"
 import (
 	"math/rand"
 	"unsafe"
-
-	shapes "github.com/flygerian/shapes"
 )
 
 // Zeros creates a tensor filled with zeros.
-func Zeros(ctx *shapes.Context, shape Shape) *Tensor {
+func Zeros(ctx *Context, shape Shape) *Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -58,7 +56,7 @@ func Zeros(ctx *shapes.Context, shape Shape) *Tensor {
 }
 
 // Int creates a tensor filled with the given int8 value.
-func Int(ctx *shapes.Context, shape Shape, value int8) *Tensor {
+func Int(ctx *Context, shape Shape, value int8) *Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -71,7 +69,7 @@ func Int(ctx *shapes.Context, shape Shape, value int8) *Tensor {
 }
 
 // Float creates a tensor filled with the given float32 value.
-func Float(ctx *shapes.Context, shape Shape, value float32) *Tensor {
+func Float(ctx *Context, shape Shape, value float32) *Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -85,7 +83,7 @@ func Float(ctx *shapes.Context, shape Shape, value float32) *Tensor {
 
 // FromFloat32 creates a tensor from a Go []float32 slice with the given shape.
 // Panics if the number of elements in data does not match the shape.
-func FromFloat32(ctx *shapes.Context, shape Shape, data []float32) *Tensor {
+func FromFloat32(ctx *Context, shape Shape, data []float32) *Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -158,7 +156,7 @@ func fromInt8_4D(data [][][][]int8) (Shape, []int8, bool) {
 // Supports up to 4D tensors: []int8 (1D), [][]int8 (2D), [][][]int8 (3D), [][][][]int8 (4D).
 // Panics if nested slices have inconsistent lengths (ragged arrays).
 // Returns nil for empty data.
-func FromInt8(ctx *shapes.Context, data interface{}) *Tensor {
+func FromInt8(ctx *Context, data interface{}) *Tensor {
 	var shape Shape
 	var flatData []int8
 	var isEmpty bool
@@ -192,7 +190,7 @@ func FromInt8(ctx *shapes.Context, data interface{}) *Tensor {
 }
 
 // FloatRandom creates a tensor with random float32 values uniformly distributed in [-1, 1].
-func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
+func FloatRandom(ctx *Context, shape Shape) *Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -214,7 +212,7 @@ func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
 
 // Free releases the tensor's C memory back to the arena.
 // The tensor must not be a view. After Free, the tensor must not be used.
-func (t *Tensor) Free(ctx *shapes.Context) {
+func (t *Tensor) Free(ctx *Context) {
 	result := C.FreeTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
@@ -223,7 +221,7 @@ func (t *Tensor) Free(ctx *shapes.Context) {
 
 // FreeView releases a view tensor's metadata (dims, multipliers, boundary)
 // back to the arena without freeing the shared values.
-func (t *Tensor) FreeView(ctx *shapes.Context) {
+func (t *Tensor) FreeView(ctx *Context) {
 	result := C.FreeViewTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
@@ -231,7 +229,7 @@ func (t *Tensor) FreeView(ctx *shapes.Context) {
 }
 
 // Clone creates a deep copy of the tensor.
-func Clone(ctx *shapes.Context, src *Tensor) *Tensor {
+func Clone(ctx *Context, src *Tensor) *Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Clone((*C.Context)(ctx.UnsafePtr()), src.cTensor, &dest)
 	if result != C.OK {
@@ -245,7 +243,7 @@ func Clone(ctx *shapes.Context, src *Tensor) *Tensor {
 // dimension of size numClasses where each index is represented as a one-hot vector.
 // For example, indices [[0, 2], [1, 0]] with numClasses=3 becomes:
 // [[[1,0,0], [0,0,1]], [[0,1,0], [1,0,0]]]
-func OneHot(ctx *shapes.Context, indices *Tensor, numClasses uint32) *Tensor {
+func OneHot(ctx *Context, indices *Tensor, numClasses uint32) *Tensor {
 	if indices == nil || numClasses == 0 {
 		return nil
 	}

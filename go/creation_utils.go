@@ -1,4 +1,4 @@
-package tensor
+package shapes
 
 // flatten2D flattens a 2D slice of any type into a 1D slice.
 func flatten2D[T any](data [][]T) []T {

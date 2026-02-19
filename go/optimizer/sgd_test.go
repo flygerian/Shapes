@@ -8,7 +8,6 @@ import (
 	shapes "github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/extract"
 	"github.com/flygerian/shapes/layer"
-	"github.com/flygerian/shapes/tensor"
 )
 
 func approxEq(a, b, tol float32) bool {
@@ -20,7 +19,7 @@ func TestSGDUpdatesParameters(t *testing.T) {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := tensor.Float(ctx, tensor.Shape{1, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
 
 	o := dense(ctx, x)
 	graph := o.Backward(ctx)
@@ -76,7 +75,7 @@ func TestSGDLossDecreases(t *testing.T) {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := tensor.Float(ctx, tensor.Shape{1, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
 
 	o := dense(ctx, x)
 	graph := o.Backward(ctx)
@@ -89,7 +88,7 @@ func TestSGDLossDecreases(t *testing.T) {
 	// Verify gradients are non-zero.
 	hasNonZeroGrad := false
 	for _, p := range params {
-		shape := tensor.ShapeOf(p)
+		shape := shapes.ShapeOf(p)
 		coords := make([]uint32, len(shape))
 		args := make([]interface{}, len(coords))
 		for i, c := range coords {
@@ -116,7 +115,7 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := tensor.Float(ctx, tensor.Shape{1, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
 
 	o := dense(ctx, x)
 	graph := o.Backward(ctx)
@@ -138,11 +137,11 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 }
 
 // snapshotParams reads all float32 values from params using proper multi-dim coords.
-func snapshotParams(t *testing.T, ctx *shapes.Context, params []*tensor.Tensor) []float32 {
+func snapshotParams(t *testing.T, ctx *shapes.Context, params []*shapes.Tensor) []float32 {
 	t.Helper()
 	var vals []float32
 	for _, p := range params {
-		shape := tensor.ShapeOf(p)
+		shape := shapes.ShapeOf(p)
 		total := 1
 		for _, d := range shape {
 			total *= int(d)
@@ -161,7 +160,7 @@ func snapshotParams(t *testing.T, ctx *shapes.Context, params []*tensor.Tensor) 
 }
 
 // unflattenIndex converts a flat index to multi-dimensional coordinates.
-func unflattenIndex(flat int, shape tensor.Shape) []uint32 {
+func unflattenIndex(flat int, shape shapes.Shape) []uint32 {
 	coords := make([]uint32, len(shape))
 	for i := len(shape) - 1; i >= 0; i-- {
 		coords[i] = uint32(flat % int(shape[i]))

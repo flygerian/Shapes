@@ -1,21 +1,17 @@
-package tensor
+package shapes
 
 /*
-#cgo CFLAGS: -I../../base
-#cgo LDFLAGS: -L../../base/build -L../../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo CFLAGS: -I../base
+#cgo LDFLAGS: -L../base/build -L../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
 #include "tensor/tensor.h"
 #include "common.h"
 */
 import "C"
-import (
-	"unsafe"
-
-	shapes "github.com/flygerian/shapes"
-)
+import "unsafe"
 
 // BackwardFn is the signature for backward pass functions.
-type BackwardFn func(ctx *shapes.Context, node *ComputationGraphNode)
+type BackwardFn func(ctx *Context, node *ComputationGraphNode)
 
 // OpType identifies the operation that produced a computation graph node.
 type OpType int
@@ -92,7 +88,7 @@ type ComputationGraph struct {
 
 // leafNode attaches an empty GraphNode (nil backward) to a tensor.
 // Called at creation time when grad is enabled so that .Grad() is always available.
-func leafNode(ctx *shapes.Context, t *Tensor) {
+func leafNode(ctx *Context, t *Tensor) {
 	noGradCtx := ctx.NoGrad()
 	t.Computation = &ComputationGraphNode{
 		Output: t,
@@ -102,7 +98,7 @@ func leafNode(ctx *shapes.Context, t *Tensor) {
 
 // attachNode creates a GraphNode and attaches it to the result tensor.
 // Only called when grad is enabled.
-func attachNode(ctx *shapes.Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+func attachNode(ctx *Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
 	noGradCtx := ctx.NoGrad()
 	node := &ComputationGraphNode{
 		Output:   result,
@@ -115,21 +111,21 @@ func attachNode(ctx *shapes.Context, result *Tensor, op OpType, backward Backwar
 }
 
 // markIntermediate registers a tensor for freeing after the backward pass.
-func markIntermediate(ctx *shapes.Context, t *Tensor) {
+func markIntermediate(ctx *Context, t *Tensor) {
 	ctx.MarkIntermediate(unsafe.Pointer(t.cTensor))
 }
 
 // markIfIntermediate marks t only if it is not the same tensor as origin.
 // ReduceBroadcast may return its input unchanged when no reduction is needed;
 // in that case we must not free it.
-func markIfIntermediate(ctx *shapes.Context, t *Tensor, origin *Tensor) {
+func markIfIntermediate(ctx *Context, t *Tensor, origin *Tensor) {
 	if t != origin {
 		markIntermediate(ctx, t)
 	}
 }
 
 // FreeIntermediates frees all tensors marked as intermediate during backward.
-func FreeIntermediates(ctx *shapes.Context) {
+func FreeIntermediates(ctx *Context) {
 	cCtx := (*C.Context)(ctx.UnsafePtr())
 	for _, p := range ctx.Intermediates() {
 		ct := (*C.Tensor)(p)
@@ -173,7 +169,7 @@ func topo(graph *ComputationGraph, visited map[*ComputationGraphNode]bool, node 
 }
 
 // Backward runs backpropagation from tensor t through the computation graph.
-func (t *Tensor) Backward(ctx *shapes.Context) *ComputationGraph {
+func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
 	if t.Computation == nil {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}

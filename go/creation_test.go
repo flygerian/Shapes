@@ -1,15 +1,13 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"math"
 	"testing"
-
-	shapes "github.com/flygerian/shapes"
 )
 
 func TestFromFloat32(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}
@@ -35,7 +33,7 @@ func TestFromFloat32(t *testing.T) {
 }
 
 func TestFromFloat321D(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := []float32{3.14, 2.72, 1.41}
@@ -50,7 +48,7 @@ func TestFromFloat321D(t *testing.T) {
 }
 
 func TestFromFloat32SizeMismatch(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	defer func() {
@@ -63,7 +61,7 @@ func TestFromFloat32SizeMismatch(t *testing.T) {
 }
 
 func TestFromFloat32EmptyShape(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	result := FromFloat32(ctx, Shape{}, []float32{1.0})
@@ -73,7 +71,7 @@ func TestFromFloat32EmptyShape(t *testing.T) {
 }
 
 func TestFloatRandom(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	tensor := FloatRandom(ctx, Shape{3, 4})
@@ -97,7 +95,7 @@ func TestFloatRandom(t *testing.T) {
 }
 
 func TestFloatRandomNotAllSame(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	tensor := FloatRandom(ctx, Shape{100})
@@ -116,7 +114,7 @@ func TestFloatRandomNotAllSame(t *testing.T) {
 }
 
 func TestFromFloat32WithGrad(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	data := []float32{1.0, 2.0, 3.0}
@@ -136,7 +134,7 @@ func TestFromFloat32WithGrad(t *testing.T) {
 }
 
 func TestFromInt8(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := [][]int8{{1, 2, 3}, {4, 5, 6}}
@@ -162,7 +160,7 @@ func TestFromInt8(t *testing.T) {
 }
 
 func TestFromInt81D(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := []int8{10, 20, 30}
@@ -177,7 +175,7 @@ func TestFromInt81D(t *testing.T) {
 }
 
 func TestFromInt8RaggedArray(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	defer func() {
@@ -190,7 +188,7 @@ func TestFromInt8RaggedArray(t *testing.T) {
 }
 
 func TestFromInt8EmptyData(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	result := FromInt8(ctx, []int8{})
@@ -200,7 +198,7 @@ func TestFromInt8EmptyData(t *testing.T) {
 }
 
 func TestFromInt8WithGrad(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	data := []int8{1, 2, 3}
@@ -220,7 +218,7 @@ func TestFromInt8WithGrad(t *testing.T) {
 }
 
 func TestFromInt8NegativeValues(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := []int8{-128, -50, 0, 50, 127}
@@ -235,7 +233,7 @@ func TestFromInt8NegativeValues(t *testing.T) {
 }
 
 func TestFromInt83D(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := [][][]int8{
@@ -271,7 +269,7 @@ func TestFromInt83D(t *testing.T) {
 }
 
 func TestFromInt84D(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := [][][][]int8{
@@ -309,7 +307,7 @@ func TestFromInt84D(t *testing.T) {
 }
 
 func TestOneHotBasic(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// Simple 1D case: indices [0, 2, 1] with numClasses=3
@@ -343,7 +341,7 @@ func TestOneHotBasic(t *testing.T) {
 }
 
 func TestOneHot2DIndices(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 2D indices: [[0, 2], [1, 0]] with numClasses=3
@@ -384,7 +382,7 @@ func TestOneHot2DIndices(t *testing.T) {
 }
 
 func TestOneHotWithGrad(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	indices := FromInt8(ctx, []int8{0, 1})
@@ -400,7 +398,7 @@ func TestOneHotWithGrad(t *testing.T) {
 }
 
 func TestOneHotNilInput(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	result := OneHot(ctx, nil, 3)
@@ -410,7 +408,7 @@ func TestOneHotNilInput(t *testing.T) {
 }
 
 func TestOneHotZeroClasses(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	indices := FromInt8(ctx, []int8{0, 1})

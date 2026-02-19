@@ -1,12 +1,11 @@
 package optimizer
 
 import (
-	"github.com/flygerian/shapes"
-	"github.com/flygerian/shapes/tensor"
+	shapes "github.com/flygerian/shapes"
 )
 
-func ZeroGrad(ctx *shapes.Context, cg *tensor.ComputationGraph) {
+func ZeroGrad(ctx *shapes.Context, cg *shapes.ComputationGraph) {
 	for _, node := range cg.Nodes {
-		node.Grad = tensor.Zeros(ctx, tensor.ShapeOf(node.Grad))
+		node.Grad = shapes.Zeros(ctx, shapes.ShapeOf(node.Grad))
 	}
 }

@@ -1,14 +1,14 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"testing"
 
-	shapes "github.com/flygerian/shapes"
+	
 )
 
 func TestSumAlongDim0(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 tensor filled with 2s, sum along dim 0 → 1x3 of 4s
@@ -25,7 +25,7 @@ func TestSumAlongDim0(t *testing.T) {
 }
 
 func TestSumAlongDim1(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 tensor filled with 3s, sum along dim 1 → 2x1 of 9s
@@ -42,7 +42,7 @@ func TestSumAlongDim1(t *testing.T) {
 }
 
 func TestSumDimOutOfBounds(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 3}, 1)

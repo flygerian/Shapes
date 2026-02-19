@@ -9,7 +9,6 @@ import (
 	"unicode"
 
 	"github.com/flygerian/shapes"
-	"github.com/flygerian/shapes/tensor"
 	"github.com/flygerian/shapes/visual"
 )
 
@@ -116,22 +115,22 @@ func MakeMore_2(ctx *shapes.Context) {
 		}
 	}
 
-	X := tensor.FromInt8(ctx, x)
-	Y := tensor.FromInt8(ctx, y)
+	X := shapes.FromInt8(ctx, x)
+	Y := shapes.FromInt8(ctx, y)
 
 	newSection()
 
-	fmt.Printf("%v, %v, %v, %v\n", tensor.ShapeOf(X), X.Dtype(), tensor.ShapeOf(Y), Y.Dtype())
+	fmt.Printf("%v, %v, %v, %v\n", shapes.ShapeOf(X), X.Dtype(), shapes.ShapeOf(Y), Y.Dtype())
 
 	newSection()
 
-	C := tensor.FloatRandom(ctx, tensor.Shape{27, 2})
+	C := shapes.FloatRandom(ctx, shapes.Shape{27, 2})
 
-	idx := tensor.FromInt8(ctx, []int8{5})
+	idx := shapes.FromInt8(ctx, []int8{5})
 
 	visual.Print(ctx, idx)
 
-	oneHot := tensor.OneHot(ctx, idx, 27)
+	oneHot := shapes.OneHot(ctx, idx, 27)
 
 	newSection()
 

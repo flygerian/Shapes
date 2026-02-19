@@ -2,16 +2,15 @@ package layer
 
 import (
 	shapes "github.com/flygerian/shapes"
-	"github.com/flygerian/shapes/tensor"
 )
 
-func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) *tensor.Tensor {
-	var w, b *tensor.Tensor
+func Dense(inputSize int, outputSize int) func(*shapes.Context, *shapes.Tensor) *shapes.Tensor {
+	var w, b *shapes.Tensor
 
-	return func(ctx *shapes.Context, x *tensor.Tensor) *tensor.Tensor {
+	return func(ctx *shapes.Context, x *shapes.Tensor) *shapes.Tensor {
 		fusedCtx := ctx.Fused()
 
-		inputShape := tensor.ShapeOf(x)
+		inputShape := shapes.ShapeOf(x)
 		is1D := len(inputShape) == 1
 
 		// If 1D, promote to [1, n] so MatMul works.
@@ -23,8 +22,8 @@ func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) 
 		// Initialize weights once on first call.
 		if w == nil {
 			tensorLastDimSize := inputShape[len(inputShape)-1]
-			w = tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize), tensorLastDimSize})
-			b = tensor.FloatRandom(fusedCtx, tensor.Shape{uint32(outputSize)})
+			w = shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize), tensorLastDimSize})
+			b = shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize)})
 		}
 
 		// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
@@ -35,13 +34,13 @@ func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) 
 			o = o.Squeeze(fusedCtx)
 		}
 
-		tensor.AttachComputationGraphNode(ctx, o, tensor.OpDense, constructDenseBackwardPass, w, x, b)
+		shapes.AttachComputationGraphNode(ctx, o, shapes.OpDense, constructDenseBackwardPass, w, x, b)
 
 		return o
 	}
 }
 
-func constructDenseBackwardPass(ctx *shapes.Context, node *tensor.ComputationGraphNode) {
+func constructDenseBackwardPass(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
 	w := node.Inputs[0]
 	x := node.Inputs[1]
 	b := node.Inputs[2]
@@ -51,17 +50,17 @@ func constructDenseBackwardPass(ctx *shapes.Context, node *tensor.ComputationGra
 
 	// ∂L/∂w = gradᵀ @ x  ([out, batch] @ [batch, in] = [out, in])
 	dW := grad.Transpose(ctx).Mul(ctx, x.SafeUnSqueeze(ctx, 0))
-	gradW := tensor.ReduceBroadcast(ctx, w, dW)
+	gradW := shapes.ReduceBroadcast(ctx, w, dW)
 	w.Computation.Grad = w.Grad().Plus(ctx, gradW)
 
 	// ∂L/∂x = grad @ w  ([batch, out] @ [out, in] = [batch, in])
 	dX := grad.Mul(ctx, w)
-	gradX := tensor.ReduceBroadcast(ctx, x, dX)
+	gradX := shapes.ReduceBroadcast(ctx, x, dX)
 	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
 
 	// ∂L/∂b = grad (reduced to match b's shape)
-	gradB := tensor.ReduceBroadcast(ctx, b, grad)
+	gradB := shapes.ReduceBroadcast(ctx, b, grad)
 	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
 
-	node.Parameters = []*tensor.Tensor{w, b}
+	node.Parameters = []*shapes.Tensor{w, b}
 }

@@ -1,15 +1,13 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"math"
 	"testing"
-
-	shapes "github.com/flygerian/shapes"
 )
 
 func TestGetWithCoords(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	data := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0}
@@ -61,7 +59,7 @@ func TestGetWithCoords(t *testing.T) {
 }
 
 func TestGetWithTensor(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	t.Run("1D indices on 2D tensor", func(t *testing.T) {
@@ -160,7 +158,7 @@ func TestGetWithTensor(t *testing.T) {
 }
 
 func TestGetErrors(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	t.Run("no arguments", func(t *testing.T) {

@@ -1,14 +1,14 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"testing"
 
-	shapes "github.com/flygerian/shapes"
+	
 )
 
 func TestSlice(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 3x4 tensor filled with 5s, slice to [0:2, 1:3] → 2x2
@@ -27,7 +27,7 @@ func TestSlice(t *testing.T) {
 }
 
 func TestSliceInvalidRange(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{3, 4}, 1)
@@ -41,7 +41,7 @@ func TestSliceInvalidRange(t *testing.T) {
 }
 
 func TestReshape(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 → 3x2
@@ -60,7 +60,7 @@ func TestReshape(t *testing.T) {
 }
 
 func TestReshapeSizeMismatch(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 3}, 1)
@@ -74,7 +74,7 @@ func TestReshapeSizeMismatch(t *testing.T) {
 }
 
 func TestTranspose(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 filled with 4, transpose dims 0,1 → 3x2
@@ -93,7 +93,7 @@ func TestTranspose(t *testing.T) {
 }
 
 func TestTransposeDimOutOfBounds(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{2, 3}, 1)
@@ -107,7 +107,7 @@ func TestTransposeDimOutOfBounds(t *testing.T) {
 }
 
 func TestSqueeze(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 1x3x1 → 3
@@ -124,7 +124,7 @@ func TestSqueeze(t *testing.T) {
 }
 
 func TestUnSqueeze(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// shape [3] → unsqueeze at dim 0 → [1, 3]
@@ -141,7 +141,7 @@ func TestUnSqueeze(t *testing.T) {
 }
 
 func TestUnSqueezeDimOutOfBounds(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Int(ctx, Shape{3}, 1)

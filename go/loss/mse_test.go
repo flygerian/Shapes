@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	shapes "github.com/flygerian/shapes"
-	"github.com/flygerian/shapes/tensor"
 )
 
 func approxEq(a, b, tol float32) bool {
@@ -17,8 +16,8 @@ func TestMse(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
-	yGround := tensor.FromFloat32(ctx, tensor.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
-	yPred := tensor.FromFloat32(ctx, tensor.Shape{4}, []float32{0.5, -0.5, -0.8, 0.9})
+	yGround := shapes.FromFloat32(ctx, shapes.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
+	yPred := shapes.FromFloat32(ctx, shapes.Shape{4}, []float32{0.5, -0.5, -0.8, 0.9})
 
 	loss := Mse(ctx, yGround, yPred)
 
@@ -33,7 +32,7 @@ func TestMsePerfectPrediction(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
-	y := tensor.FromFloat32(ctx, tensor.Shape{3}, []float32{1.0, 2.0, 3.0})
+	y := shapes.FromFloat32(ctx, shapes.Shape{3}, []float32{1.0, 2.0, 3.0})
 
 	loss := Mse(ctx, y, y)
 
@@ -47,14 +46,14 @@ func TestMse2D(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
-	yGround := tensor.FromFloat32(ctx, tensor.Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
-	yPred := tensor.FromFloat32(ctx, tensor.Shape{2, 3}, []float32{2, 2, 2, 2, 2, 2})
+	yGround := shapes.FromFloat32(ctx, shapes.Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	yPred := shapes.FromFloat32(ctx, shapes.Shape{2, 3}, []float32{2, 2, 2, 2, 2, 2})
 
 	loss := Mse(ctx, yGround, yPred)
 
 	// Per-element squared errors: 1, 0, 1, 4, 9, 16. Sum = 31.0
 	// Shape after sum dim1: [2,1], after sum dim0: [1,1]
-	shape := tensor.ShapeOf(loss)
+	shape := shapes.ShapeOf(loss)
 
 	var got float32
 	if len(shape) == 2 {
@@ -73,8 +72,8 @@ func TestMseBackward(t *testing.T) {
 
 	// Scalar case: pred=1.5, ground=1.0 => loss = (0.5)^2 = 0.25
 	// d(loss)/d(pred) = 2*(pred-ground) = 1.0
-	yGround := tensor.Float(ctx, tensor.Shape{1}, 1.0)
-	yPred := tensor.Float(ctx, tensor.Shape{1}, 1.5)
+	yGround := shapes.Float(ctx, shapes.Shape{1}, 1.0)
+	yPred := shapes.Float(ctx, shapes.Shape{1}, 1.5)
 
 	loss := Mse(ctx, yGround, yPred)
 	loss.Backward(ctx)

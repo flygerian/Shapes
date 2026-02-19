@@ -8,19 +8,18 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/tensor"
 	"github.com/flygerian/shapes/visual"
 )
 
 func MakeMore_1(ctx *shapes.Context) {
 
-	xs := tensor.FromFloat32(
+	xs := shapes.FromFloat32(
 		ctx,
-		tensor.Shape{4, 3},
+		shapes.Shape{4, 3},
 		[]float32{2.0, 3.0, -1.0, 3.0, -1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, -1.0},
 	)
 
-	ys := tensor.FromFloat32(ctx, tensor.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
+	ys := shapes.FromFloat32(ctx, shapes.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
 
 	dense := layer.Dense(3, 10)
 	dens3 := layer.Dense(10, 1)
@@ -28,9 +27,9 @@ func MakeMore_1(ctx *shapes.Context) {
 	noGraph := ctx.NoGraph()
 	sgd := optimizer.SGD(noGraph, 0.01)
 
-	var l *tensor.Tensor
-	var computationGraph *tensor.ComputationGraph
-	var logits *tensor.Tensor
+	var l *shapes.Tensor
+	var computationGraph *shapes.ComputationGraph
+	var logits *shapes.Tensor
 
 	for range 20 {
 		denseOutput := dense(ctx, xs)

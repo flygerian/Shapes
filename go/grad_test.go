@@ -1,11 +1,11 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"math"
 	"testing"
 
-	shapes "github.com/flygerian/shapes"
+	
 )
 
 func approxEq(a, b, tol float32) bool {
@@ -13,7 +13,7 @@ func approxEq(a, b, tol float32) bool {
 }
 
 func TestBackwardAdd(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// a + b => da = 1, db = 1
@@ -37,7 +37,7 @@ func TestBackwardAdd(t *testing.T) {
 }
 
 func TestBackwardMultiply(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// c = a * b => da = b, db = a
@@ -61,7 +61,7 @@ func TestBackwardMultiply(t *testing.T) {
 }
 
 func TestBackwardSubtract(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// c = a - b => da = 1, db = -1
@@ -85,7 +85,7 @@ func TestBackwardSubtract(t *testing.T) {
 }
 
 func TestBackwardChain(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// Reproduce Karpathy's micrograd example:
@@ -136,7 +136,7 @@ func TestBackwardChain(t *testing.T) {
 }
 
 func TestBackwardNoGradNoPanic(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2}, 3.0)
@@ -150,7 +150,7 @@ func TestBackwardNoGradNoPanic(t *testing.T) {
 }
 
 func TestBackwardPanicsNoGraph(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2}, 3.0)
@@ -165,7 +165,7 @@ func TestBackwardPanicsNoGraph(t *testing.T) {
 }
 
 func TestLeafTensorHasGrad(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2}, 3.0)
@@ -184,7 +184,7 @@ func TestLeafTensorHasGrad(t *testing.T) {
 }
 
 func TestLeafBackwardNoOp(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// Calling Backward on a leaf tensor should not panic.
@@ -198,7 +198,7 @@ func TestLeafBackwardNoOp(t *testing.T) {
 }
 
 func TestGradPanicsNoNode(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2}, 3.0)

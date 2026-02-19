@@ -1,9 +1,11 @@
 package extract
 
-import "github.com/flygerian/shapes/tensor"
+import (
+	shapes "github.com/flygerian/shapes"
+)
 
-func Parameters(c *tensor.ComputationGraph) []*tensor.Tensor {
-	var parameters []*tensor.Tensor
+func Parameters(c *shapes.ComputationGraph) []*shapes.Tensor {
+	var parameters []*shapes.Tensor
 	for i := range len(c.Nodes) {
 		p := c.Nodes[i].Parameters
 		if p == nil {

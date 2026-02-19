@@ -1,14 +1,14 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"testing"
 
-	shapes "github.com/flygerian/shapes"
+	
 )
 
 func TestMul(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// 2x3 of 1.0 * 3x2 of 1.0 → 2x2 of 3.0
@@ -28,7 +28,7 @@ func TestMul(t *testing.T) {
 }
 
 func TestMulInnerDimMismatch(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 3}, 1.0)
@@ -43,7 +43,7 @@ func TestMulInnerDimMismatch(t *testing.T) {
 }
 
 func TestDot(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	// [2.0, 2.0, 2.0] · [3.0, 3.0, 3.0] = 18.0
@@ -59,7 +59,7 @@ func TestDot(t *testing.T) {
 }
 
 func TestDotDimMismatch(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{3}, 1.0)

@@ -1,15 +1,15 @@
-package tensor
+package shapes
 
 import (
 	"context"
 	"math"
 	"testing"
 
-	shapes "github.com/flygerian/shapes"
+	
 )
 
 func TestPow(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 2}, 3.0)
@@ -26,7 +26,7 @@ func TestPow(t *testing.T) {
 }
 
 func TestPowFractional(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2}, 4.0)
@@ -41,7 +41,7 @@ func TestPowFractional(t *testing.T) {
 }
 
 func TestPowBackwardSquare(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// x=3, x^2=9, d(x^2)/dx = 2x = 6
@@ -56,7 +56,7 @@ func TestPowBackwardSquare(t *testing.T) {
 }
 
 func TestPowBackwardCube(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// x=2, x^3=8, d(x^3)/dx = 3x^2 = 12
@@ -71,7 +71,7 @@ func TestPowBackwardCube(t *testing.T) {
 }
 
 func TestPowBackwardSqrt(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// x=4, x^0.5=2, d(x^0.5)/dx = 0.5 * x^(-0.5) = 0.5/2 = 0.25
@@ -86,7 +86,7 @@ func TestPowBackwardSqrt(t *testing.T) {
 }
 
 func TestPowBackwardMultiElement(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// x=[1,2,3], x^2=[1,4,9], d(x^2)/dx = 2x = [2,4,6]
@@ -104,7 +104,7 @@ func TestPowBackwardMultiElement(t *testing.T) {
 }
 
 func TestPowBackwardIdentity(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// x^1, d(x^1)/dx = 1
@@ -121,7 +121,7 @@ func TestPowBackwardIdentity(t *testing.T) {
 }
 
 func TestExp(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{2, 2}, 1.0)
@@ -139,7 +139,7 @@ func TestExp(t *testing.T) {
 }
 
 func TestNegate(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := FromFloat32(ctx, Shape{3}, []float32{1.0, -2.0, 3.0})
@@ -155,7 +155,7 @@ func TestNegate(t *testing.T) {
 }
 
 func TestNegateZeros(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Zeros(ctx, Shape{2, 2})
@@ -172,7 +172,7 @@ func TestNegateZeros(t *testing.T) {
 }
 
 func TestNegateBackward(t *testing.T) {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()
 
 	// -x, d(-x)/dx = -1
@@ -189,7 +189,7 @@ func TestNegateBackward(t *testing.T) {
 }
 
 func TestExpZero(t *testing.T) {
-	ctx := shapes.New(context.Background())
+	ctx := New(context.Background())
 	defer ctx.Close()
 
 	a := Float(ctx, Shape{3}, 0.0)

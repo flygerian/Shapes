@@ -1,8 +1,8 @@
-package tensor
+package shapes
 
 /*
-#cgo CFLAGS: -I../../base
-#cgo LDFLAGS: -L../../base/build -L../../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo CFLAGS: -I../base
+#cgo LDFLAGS: -L../base/build -L../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
 #include "tensor/tensor.h"
 #include "common.h"
@@ -18,11 +18,7 @@ static inline Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
 }
 */
 import "C"
-import (
-	"unsafe"
-
-	shapes "github.com/flygerian/shapes"
-)
+import "unsafe"
 
 type Shape = []uint32
 type Range = []uint32
@@ -35,7 +31,7 @@ type Tensor struct {
 }
 
 // dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
-func dim(ctx *shapes.Context, shape Shape) *C.Dim {
+func dim(ctx *Context, shape Shape) *C.Dim {
 	return C.makeDim(
 		(*C.Memory)(ctx.UnsafeMemory()),
 		(*C.dim_t)(unsafe.Pointer(&shape[0])),
@@ -44,14 +40,14 @@ func dim(ctx *shapes.Context, shape Shape) *C.Dim {
 }
 
 // track registers a tensor's C pointer with the context for lifetime management.
-func track(ctx *shapes.Context, t *Tensor) *Tensor {
+func track(ctx *Context, t *Tensor) *Tensor {
 	ctx.Track((*unsafe.Pointer)(unsafe.Pointer(&t.cTensor)))
 	return t
 }
 
 // resultString converts a C Result code to a human-readable string.
 func resultString(r uint32) string {
-	return shapes.ResultString(r)
+	return ResultString(r)
 }
 
 // ptrOffset returns an unsafe.Pointer offset by i elements of *C.dim_t size.
@@ -66,7 +62,7 @@ func (t *Tensor) UnsafeCPtr() unsafe.Pointer {
 
 // Track wraps a C tensor pointer into a Go Tensor and registers it with the context.
 // Used by external packages (e.g., activation) to create Tensor values from C pointers.
-func Track(ctx *shapes.Context, cPtr unsafe.Pointer) *Tensor {
+func Track(ctx *Context, cPtr unsafe.Pointer) *Tensor {
 	return track(ctx, &Tensor{cTensor: (*C.Tensor)(cPtr)})
 }
 
@@ -133,6 +129,6 @@ func (t *Tensor) Shape() Shape {
 }
 
 // AttachComputationGraphNode is the exported version of attachNode for use by external packages.
-func AttachComputationGraphNode(ctx *shapes.Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+func AttachComputationGraphNode(ctx *Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
 	attachNode(ctx, result, op, backward, inputs...)
 }
