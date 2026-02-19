@@ -8,8 +8,8 @@
 #include <string.h>
 
 Result emptyBackward(Context *ctx, GraphNode *g) {
-  (void) g;
-  (void) ctx;
+  (void)g;
+  (void)ctx;
 
   return OK;
 }
@@ -40,8 +40,12 @@ static void initializeGradient(Context *ctx, Tensor *t) {
       .shape = {.dims = gradDims, .numOfDims = t->shape.numOfDims, .multipliers = gradMultipliers}};
   memset(grad->values, 0, valueBytes);
 
-  *node = (GraphNode){
-      .output = t, .grad = grad, .inputs = NULL, .numInputs = 0, .backward = emptyBackward, .optype = 0};
+  *node = (GraphNode){.output = t,
+                      .grad = grad,
+                      .inputs = NULL,
+                      .numInputs = 0,
+                      .backward = emptyBackward,
+                      .optype = 0};
 
   t->computation = node;
 }
@@ -53,7 +57,7 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
   if (shape.numOfDims == 0) {
     tShape.dims = NULL;
     tShape.multipliers = NULL;
-    
+
     Tensor *t = allocate(ctx->memory, sizeof(Tensor));
     *t = (Tensor){.dtype = type,
                   .values = allocate(ctx->memory, getBytesForDtype(type)),
@@ -61,9 +65,9 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
                   .size = 1,
                   .isContigous = true};
     memset(t->values, 0, getBytesForDtype(type));
-    
+
     initializeGradient(ctx, t);
-    
+
     return t;
   }
 

@@ -252,8 +252,7 @@ static void test_tanh_backward_scalar(void) {
   f32 expected_grad = 1.0f - tanh_output * tanh_output;
   f32 *input_grad = (f32 *)input_node->grad->values;
 
-  ASSERT(fabsf(input_grad[0] - expected_grad) < 1e-6,
-         "Gradient should be 1 - tanh^2(output)");
+  ASSERT(fabsf(input_grad[0] - expected_grad) < 1e-6, "Gradient should be 1 - tanh^2(output)");
 
   freeMemory(mem);
 }
@@ -384,8 +383,7 @@ static void test_tanh_backward_f64(void) {
   for (u32 i = 0; i < 2; i++) {
     f64 local_grad = 1.0 - output_values[i] * output_values[i];
     f64 expected = grad_output[i] * local_grad;
-    ASSERT(fabs(input_grad[i] - expected) < 1e-10,
-           "F64 gradient should match with high precision");
+    ASSERT(fabs(input_grad[i] - expected) < 1e-10, "F64 gradient should match with high precision");
   }
 
   freeMemory(mem);
@@ -463,8 +461,7 @@ static void test_tanh_backward_accumulation(void) {
     f32 local_grad = 1.0f - output_values[i] * output_values[i];
     f32 new_grad = grad_output[i] * local_grad;
     f32 expected = (i == 0 ? 0.5f : 1.0f) + new_grad; // previous + new
-    ASSERT(fabsf(input_grad[i] - expected) < 1e-6,
-           "Gradients should accumulate (+=), not replace");
+    ASSERT(fabsf(input_grad[i] - expected) < 1e-6, "Gradients should accumulate (+=), not replace");
   }
 
   freeMemory(mem);
@@ -595,7 +592,7 @@ static void test_pow_fractional_power(void) {
   values[2] = 16.0f;
 
   Tensor result;
-  Result res = Pow(&ctx, t, 0.5f, &result);  // Square root
+  Result res = Pow(&ctx, t, 0.5f, &result); // Square root
 
   ASSERT_EQ(res, OK, "Pow should succeed with fractional power");
   f32 *output = (f32 *)result.values;
@@ -796,8 +793,8 @@ static void test_pow_backward_sqrt(void) {
 
   // Check gradient: d(x^0.5)/dx = 0.5 * x^-0.5 = 0.5 / sqrt(x)
   f32 *input_grad = (f32 *)input_node->grad->values;
-  f32 expected_0 = 0.5f / sqrtf(4.0f);  // 0.5 / 2 = 0.25
-  f32 expected_1 = 0.5f / sqrtf(9.0f);  // 0.5 / 3 ≈ 0.1667
+  f32 expected_0 = 0.5f / sqrtf(4.0f); // 0.5 / 2 = 0.25
+  f32 expected_1 = 0.5f / sqrtf(9.0f); // 0.5 / 3 ≈ 0.1667
 
   ASSERT(fabsf(input_grad[0] - expected_0) < 1e-5, "grad of sqrt(4) should be 0.25");
   ASSERT(fabsf(input_grad[1] - expected_1) < 1e-5, "grad of sqrt(9) should be ~0.1667");
@@ -944,8 +941,8 @@ static void test_pow_backward_accumulation(void) {
 
   // Verify gradients are ACCUMULATED (not replaced)
   // grad = previous + (grad_output * 2*x)
-  f32 expected_0 = 1.0f + (1.0f * 2.0f * 2.0f);  // 1 + 4 = 5
-  f32 expected_1 = 2.0f + (1.0f * 2.0f * 3.0f);  // 2 + 6 = 8
+  f32 expected_0 = 1.0f + (1.0f * 2.0f * 2.0f); // 1 + 4 = 5
+  f32 expected_1 = 2.0f + (1.0f * 2.0f * 3.0f); // 2 + 6 = 8
 
   ASSERT(fabsf(input_grad[0] - expected_0) < 1e-5, "Gradients should accumulate");
   ASSERT(fabsf(input_grad[1] - expected_1) < 1e-5, "Gradients should accumulate");

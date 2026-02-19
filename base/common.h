@@ -72,7 +72,7 @@ typedef struct {
   bool isContigous;
   Range *boundary;
   struct GraphNode *computation; // TODO: remove
-  char *label; // TODO remove
+  char *label;                   // TODO remove
 } Tensor;
 
 // remove
@@ -89,7 +89,7 @@ typedef struct ScreenConfig {
 
 typedef struct Context {
   Memory *memory;
-  bool grad; // remove
+  bool grad;                  // remove
   ScreenConfig *screenConfig; // remove
 } Context;
 
@@ -105,7 +105,7 @@ typedef struct GraphNode {
   u8 numInputs;
   BackwardFn backward;
   OpType optype;
-  void *metadata;  // Operation-specific data (e.g., power value for Pow)
+  void *metadata; // Operation-specific data (e.g., power value for Pow)
 } GraphNode;
 
 size_t getBytesForDtype(Dtype type);

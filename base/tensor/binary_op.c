@@ -64,8 +64,7 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
 
-      default:
-        return ERR_NOT_A_BINOP;
+      default: return ERR_NOT_A_BINOP;
     }
 
     VALUE_SET(output->values, x, result);
@@ -74,10 +73,14 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   *destination = *output;
   freeAlloc(ctx->memory, output);
 
-  if (opA != ops.a) FreeTensor(ctx, opA);
-  if (opB != ops.b) FreeTensor(ctx, opB);
-  if (ops.a != a) FreeViewTensor(ctx, ops.a);
-  if (ops.b != b) FreeViewTensor(ctx, ops.b);
+  if (opA != ops.a)
+    FreeTensor(ctx, opA);
+  if (opB != ops.b)
+    FreeTensor(ctx, opB);
+  if (ops.a != a)
+    FreeViewTensor(ctx, ops.a);
+  if (ops.b != b)
+    FreeViewTensor(ctx, ops.b);
 
   return OK;
 }
@@ -135,8 +138,10 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
     VALUE_SET(a->values, x, result);
   }
 
-  if (contiguousB != NULL) FreeTensor(ctx, contiguousB);
-  if (paddedB != NULL) FreeViewTensor(ctx, paddedB);
+  if (contiguousB != NULL)
+    FreeTensor(ctx, contiguousB);
+  if (paddedB != NULL)
+    FreeViewTensor(ctx, paddedB);
 
   return OK;
 }

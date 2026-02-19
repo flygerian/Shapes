@@ -32,7 +32,7 @@ char *GetItem(Context *ctx, Tensor *t) {
 }
 
 
-u64 calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
+tensor_size_t calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
   u64 numberOfValues = 1;
 
   for (int x = shape.numOfDims - 1; x >= 0; x--) {
@@ -68,6 +68,12 @@ bool isInvalidTensor(Tensor *t) {
     return true;
   }
   return false;
+}
+
+bool isIntType(Tensor *t) {
+  return t->dtype != I8 && t->dtype != I16 && t->dtype != I32 &&
+      t->dtype != I64 && t->dtype != U8 && t->dtype != U16 &&
+      t->dtype != U32 && t->dtype != U64;
 }
 
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {

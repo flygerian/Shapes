@@ -91,7 +91,11 @@ func TestSGDLossDecreases(t *testing.T) {
 	for _, p := range params {
 		shape := tensor.ShapeOf(p)
 		coords := make([]uint32, len(shape))
-		v := p.Grad().Get(coords...).Item().(float32)
+		args := make([]interface{}, len(coords))
+		for i, c := range coords {
+			args[i] = c
+		}
+		v := p.Grad().Get(args...).Item().(float32)
 		if !approxEq(v, 0, 1e-10) {
 			hasNonZeroGrad = true
 			break
@@ -145,7 +149,11 @@ func snapshotParams(t *testing.T, params []*tensor.Tensor) []float32 {
 		}
 		for flat := range total {
 			coords := unflattenIndex(flat, shape)
-			v := p.Get(coords...).Item().(float32)
+			args := make([]interface{}, len(coords))
+			for i, c := range coords {
+				args[i] = c
+			}
+			v := p.Get(args...).Item().(float32)
 			vals = append(vals, v)
 		}
 	}

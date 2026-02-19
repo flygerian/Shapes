@@ -11,6 +11,10 @@ static inline Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index,
 	return GetTensorAt(ctx, source, index, dest);
 }
 
+static inline Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest) {
+	return IndexWithTensor(ctx, source, indices, dest);
+}
+
 static inline Result wrap_GetScalar(Tensor *t, Value *result) {
 	return GetScalar(t, result);
 }
@@ -69,11 +73,56 @@ import (
 // If the tensor is multidimensional, returns a view of the sub-tensor.
 // If coordinates specify all dimensions, returns a 0-dimensional (scalar) tensor.
 // Panics if coordinates are invalid.
-func (t *Tensor) Get(coords ...uint32) *Tensor {
-	if len(coords) == 0 {
-		panic("shapes: Get requires at least one coordinate")
+//
+// Get can also accept a tensor as an argument to perform advanced indexing,
+// similar to PyTorch's x[indices] where indices is a tensor of integers.
+func (t *Tensor) Get(indices ...interface{}) *Tensor {
+	if len(indices) == 0 {
+		panic("shapes: Get requires at least one argument")
 	}
 
+	// Check if first argument is a tensor for advanced indexing
+	if len(indices) == 1 {
+		if idxTensor, ok := indices[0].(*Tensor); ok {
+			return t.getWithTensor(idxTensor)
+		}
+	}
+
+	// Otherwise, treat all arguments as coordinates
+	coords := make([]uint32, len(indices))
+	for i, v := range indices {
+		switch val := v.(type) {
+		case uint32:
+			coords[i] = val
+		case int:
+			if val < 0 {
+				panic("shapes: negative indices not supported")
+			}
+			coords[i] = uint32(val)
+		case uint:
+			coords[i] = uint32(val)
+		case uint64:
+			coords[i] = uint32(val)
+		case int32:
+			if val < 0 {
+				panic("shapes: negative indices not supported")
+			}
+			coords[i] = uint32(val)
+		case int64:
+			if val < 0 {
+				panic("shapes: negative indices not supported")
+			}
+			coords[i] = uint32(val)
+		default:
+			panic(fmt.Sprintf("shapes: Get expects uint32 coordinates or a *Tensor, got %T", v))
+		}
+	}
+
+	return t.getWithCoords(coords)
+}
+
+// getWithCoords returns a sub-tensor at the given coordinates.
+func (t *Tensor) getWithCoords(coords []uint32) *Tensor {
 	current := t
 	for _, idx := range coords {
 		if current.cTensor.shape.numOfDims == 0 {
@@ -92,6 +141,23 @@ func (t *Tensor) Get(coords ...uint32) *Tensor {
 		}
 	}
 	return current
+}
+
+// getWithTensor performs advanced indexing using a tensor of indices.
+// The indices tensor must contain integer values.
+func (t *Tensor) getWithTensor(indices *Tensor) *Tensor {
+	requireSameCtx(t, indices)
+
+	var result C.Tensor
+	cCtx := (*C.Context)(t.ctx.UnsafePtr())
+	res := C.wrap_IndexWithTensor(cCtx, t.cTensor, indices.cTensor, &result)
+	if res != C.OK {
+		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
+	}
+
+	return track(t.ctx, &Tensor{
+		cTensor: &result,
+	})
 }
 
 // Item extracts the scalar value from a 0-dimensional tensor.

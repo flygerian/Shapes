@@ -3180,7 +3180,8 @@ static void test_grad_t_zeros_with_grad(void) {
   ASSERT_EQ(t->computation->output, t, "output should point to the tensor");
   ASSERT_NULL(t->computation->inputs, "inputs should be NULL for leaf tensor");
   ASSERT_EQ(t->computation->numInputs, 0, "numInputs should be 0 for leaf tensor");
-  ASSERT_NOT_NULL(t->computation->backward, "backward should be emptyBackward (not NULL) for leaf tensor");
+  ASSERT_NOT_NULL(t->computation->backward,
+                  "backward should be emptyBackward (not NULL) for leaf tensor");
 
   freeMemory(mem);
 }
@@ -3410,7 +3411,7 @@ void run_tensor_tests(void) {
   test_squeeze_all_ones();
   test_squeeze_shares_data();
   test_squeeze_dim_specific();
-test_squeeze_after_sum();
+  test_squeeze_after_sum();
   // UnSqueeze tests
   test_unsqueeze_dim0();
   test_unsqueeze_middle();

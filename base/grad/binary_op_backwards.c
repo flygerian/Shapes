@@ -22,7 +22,8 @@ static GraphNode *contructGraphNode(Context *ctx, OpType type, Tensor *a, Tensor
 }
 
 // Reduces gradient to match input shape when broadcasting occurred
-static Result reduceGradForInput(Context *ctx, Tensor *input, Tensor *outputGrad, Tensor **reducedGrad) {
+static Result reduceGradForInput(Context *ctx, Tensor *input, Tensor *outputGrad,
+                                 Tensor **reducedGrad) {
   Context noGradCtx = NoGradContext(ctx);
   Tensor *current = outputGrad;
 
@@ -47,8 +48,8 @@ static Result reduceGradForInput(Context *ctx, Tensor *input, Tensor *outputGrad
 
   for (u8 input_d = 0; input_d < input->shape.numOfDims; input_d++) {
     u8 current_d = input_d + offset;
-    if (current_d < current->shape.numOfDims &&
-        input->shape.dims[input_d] == 1 && current->shape.dims[current_d] > 1) {
+    if (current_d < current->shape.numOfDims && input->shape.dims[input_d] == 1 &&
+        current->shape.dims[current_d] > 1) {
       Tensor *reduced = allocate(ctx->memory, sizeof(Tensor));
       Result res = Sum(&noGradCtx, current, reduced, current_d);
       if (res != OK) {

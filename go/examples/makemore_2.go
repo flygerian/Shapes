@@ -144,5 +144,5 @@ func MakeMore_2(ctx *shapes.Context) {
 	visual.Print(p)
 
 	fmt.Printf("5: \n")
-	visual.Print(C.Get(5))
+	visual.Print(C.Get(X))
 }

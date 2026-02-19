@@ -4,17 +4,17 @@
 #include "common.h"
 #include "result/result.h"
 
-#define COMPUTE_POW(val, power, dtype_enum, c_type, pow_fn)                                       \
+#define COMPUTE_POW(val, power, dtype_enum, c_type, pow_fn)                                        \
   case dtype_enum: {                                                                               \
     c_type num = (val)->as.c_type;                                                                 \
-    (val)->as.c_type = (c_type)pow_fn((double)num, (double)(power));                              \
+    (val)->as.c_type = (c_type)pow_fn((double)num, (double)(power));                               \
     return OK;                                                                                     \
   }
 
 #define COMPUTE_EXP(val, dtype_enum, c_type, exp_fn)                                               \
   case dtype_enum: {                                                                               \
     c_type num = (val)->as.c_type;                                                                 \
-    (val)->as.c_type = (c_type)exp_fn((double)num);                                               \
+    (val)->as.c_type = (c_type)exp_fn((double)num);                                                \
     return OK;                                                                                     \
   }
 

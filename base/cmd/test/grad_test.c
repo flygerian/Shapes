@@ -33,7 +33,7 @@ static void test_add_backward_no_broadcast(void) {
   // Set gradient on output
   f32 *c_grad_vals = (f32 *)c.computation->grad->values;
   for (u32 i = 0; i < 6; i++) {
-    c_grad_vals[i] = 1.0f;  // All ones gradient
+    c_grad_vals[i] = 1.0f; // All ones gradient
   }
 
   // Backward pass
@@ -262,7 +262,7 @@ static void test_add_backward_gradient_accumulation(void) {
   // Now backward pass on c
   f32 *c_grad_vals = (f32 *)c.computation->grad->values;
   for (u32 i = 0; i < 4; i++) {
-    c_grad_vals[i] = 1.0f;  // Set gradient from d
+    c_grad_vals[i] = 1.0f; // Set gradient from d
   }
 
   res = c.computation->backward(&ctx, c.computation);
@@ -293,8 +293,14 @@ static void test_multiply_backward_no_broadcast(void) {
   // Set values: a = [[2, 3], [4, 5]], b = [[1, 2], [3, 4]]
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
-  a_vals[0] = 2.0f; a_vals[1] = 3.0f; a_vals[2] = 4.0f; a_vals[3] = 5.0f;
-  b_vals[0] = 1.0f; b_vals[1] = 2.0f; b_vals[2] = 3.0f; b_vals[3] = 4.0f;
+  a_vals[0] = 2.0f;
+  a_vals[1] = 3.0f;
+  a_vals[2] = 4.0f;
+  a_vals[3] = 5.0f;
+  b_vals[0] = 1.0f;
+  b_vals[1] = 2.0f;
+  b_vals[2] = 3.0f;
+  b_vals[3] = 4.0f;
 
   // Forward pass: c = a * b
   Tensor c;
@@ -347,9 +353,11 @@ static void test_multiply_backward_broadcast_size1(void) {
   // Set values: a = [[2], [3], [4]], b = [[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3]]
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
-  a_vals[0] = 2.0f; a_vals[1] = 3.0f; a_vals[2] = 4.0f;
+  a_vals[0] = 2.0f;
+  a_vals[1] = 3.0f;
+  a_vals[2] = 4.0f;
   for (u32 i = 0; i < 15; i++) {
-    b_vals[i] = (f32)(i / 5 + 1);  // Row-wise: 1s, then 2s, then 3s
+    b_vals[i] = (f32)(i / 5 + 1); // Row-wise: 1s, then 2s, then 3s
   }
 
   // Forward pass: c = a * b
@@ -433,7 +441,7 @@ static void test_multiply_backward_scalar(void) {
   // Check gradients
   // For a: grad = sum(output_grad * b) = sum([1*1, 1*2, ..., 1*15]) = 1+2+...+15 = 120
   f32 *a_grad = (f32 *)a->computation->grad->values;
-  f32 expected_a_grad = (15.0f * 16.0f) / 2.0f;  // Sum of 1 to 15
+  f32 expected_a_grad = (15.0f * 16.0f) / 2.0f; // Sum of 1 to 15
   ASSERT(fabsf(a_grad[0] - expected_a_grad) < 1e-4, "a grad should be sum of 1 to 15 (120)");
 
   // For b: grad = output_grad * a = [1*2, 1*2, ...] = all 2.0
@@ -511,8 +519,10 @@ static void test_init_computation_graph_multilevel(void) {
   int temp_idx = -1;
   int d_idx = -1;
   for (size_t i = 0; i < graph->size; i++) {
-    if (graph->nodes[i] == temp.computation) temp_idx = i;
-    if (graph->nodes[i] == d.computation) d_idx = i;
+    if (graph->nodes[i] == temp.computation)
+      temp_idx = i;
+    if (graph->nodes[i] == d.computation)
+      d_idx = i;
   }
   ASSERT(temp_idx >= 0, "temp should be in graph");
   ASSERT(d_idx >= 0, "d should be in graph");
@@ -714,20 +724,23 @@ static void test_backward_complex_graph(void) {
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
   f32 *c_vals = (f32 *)c->values;
-  a_vals[0] = 2.0f; a_vals[1] = 3.0f;
-  b_vals[0] = 1.0f; b_vals[1] = 1.0f;
-  c_vals[0] = 1.0f; c_vals[1] = 2.0f;
+  a_vals[0] = 2.0f;
+  a_vals[1] = 3.0f;
+  b_vals[0] = 1.0f;
+  b_vals[1] = 1.0f;
+  c_vals[0] = 1.0f;
+  c_vals[1] = 2.0f;
 
   Tensor left;
-  Result res = Add(&ctx, a, b, &left);  // left = a + b = [3, 4]
+  Result res = Add(&ctx, a, b, &left); // left = a + b = [3, 4]
   ASSERT_EQ(res, OK, "Add should succeed");
 
   Tensor right;
-  res = Add(&ctx, a, c, &right);  // right = a + c = [3, 5]
+  res = Add(&ctx, a, c, &right); // right = a + c = [3, 5]
   ASSERT_EQ(res, OK, "Add should succeed");
 
   Tensor f;
-  res = Multiply(&ctx, &left, &right, &f);  // f = left * right = [9, 20]
+  res = Multiply(&ctx, &left, &right, &f); // f = left * right = [9, 20]
   ASSERT_EQ(res, OK, "Multiply should succeed");
 
   // Build computation graph and run backward
@@ -775,8 +788,12 @@ static void test_backward_with_pow(void) {
   // Set values: a = [1, 2, 3], b = [1, 1, 1]
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
-  a_vals[0] = 1.0f; a_vals[1] = 2.0f; a_vals[2] = 3.0f;
-  b_vals[0] = 1.0f; b_vals[1] = 1.0f; b_vals[2] = 1.0f;
+  a_vals[0] = 1.0f;
+  a_vals[1] = 2.0f;
+  a_vals[2] = 3.0f;
+  b_vals[0] = 1.0f;
+  b_vals[1] = 1.0f;
+  b_vals[2] = 1.0f;
 
   // temp = a + b = [2, 3, 4]
   Tensor temp;
@@ -831,8 +848,10 @@ static void test_backward_complex_with_pow(void) {
   // Set values: a = [2, 3], b = [5, 4]
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
-  a_vals[0] = 2.0f; a_vals[1] = 3.0f;
-  b_vals[0] = 5.0f; b_vals[1] = 4.0f;
+  a_vals[0] = 2.0f;
+  a_vals[1] = 3.0f;
+  b_vals[0] = 5.0f;
+  b_vals[1] = 4.0f;
 
   // a_squared = a^2 = [4, 9]
   Tensor a_squared;
@@ -885,8 +904,12 @@ static void test_divide_backward_composed(void) {
   // Set values: a = [6, 8, 10], b = [2, 4, 5]
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
-  a_vals[0] = 6.0f; a_vals[1] = 8.0f; a_vals[2] = 10.0f;
-  b_vals[0] = 2.0f; b_vals[1] = 4.0f; b_vals[2] = 5.0f;
+  a_vals[0] = 6.0f;
+  a_vals[1] = 8.0f;
+  a_vals[2] = 10.0f;
+  b_vals[0] = 2.0f;
+  b_vals[1] = 4.0f;
+  b_vals[2] = 5.0f;
 
   // Forward: c = a / b = [3, 2, 2]
   Tensor c;
@@ -942,9 +965,12 @@ static void test_divide_in_complex_graph(void) {
   f32 *a_vals = (f32 *)a->values;
   f32 *b_vals = (f32 *)b->values;
   f32 *c_vals = (f32 *)c->values;
-  a_vals[0] = 3.0f; a_vals[1] = 5.0f;
-  b_vals[0] = 1.0f; b_vals[1] = 3.0f;
-  c_vals[0] = 2.0f; c_vals[1] = 4.0f;
+  a_vals[0] = 3.0f;
+  a_vals[1] = 5.0f;
+  b_vals[0] = 1.0f;
+  b_vals[1] = 3.0f;
+  c_vals[0] = 2.0f;
+  c_vals[1] = 4.0f;
 
   // sum = a + b = [4, 8]
   Tensor sum;

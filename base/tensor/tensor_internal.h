@@ -22,4 +22,6 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);
 
+bool isIntType(Tensor *t);
+
 #endif

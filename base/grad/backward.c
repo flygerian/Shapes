@@ -21,14 +21,16 @@ bool contains(ComputationGraph *computationGraph, GraphNode *search) {
 void add(Context *ctx, ComputationGraph *computationGraph, GraphNode *node) {
   if ((computationGraph->size + 1) == computationGraph->capacity) {
     computationGraph->capacity = GROW_CAPACITY(computationGraph->capacity);
-    computationGraph->nodes = GROW_ARRAY(ctx->memory, GraphNode*, computationGraph->nodes, computationGraph->capacity);
+    computationGraph->nodes =
+        GROW_ARRAY(ctx->memory, GraphNode *, computationGraph->nodes, computationGraph->capacity);
   }
-  
+
   computationGraph->nodes[computationGraph->size] = node;
   computationGraph->size += 1;
 }
 
-void topo(Context *ctx, ComputationGraph *computationGraph, ComputationGraph *visited,  GraphNode *currentNode) {
+void topo(Context *ctx, ComputationGraph *computationGraph, ComputationGraph *visited,
+          GraphNode *currentNode) {
   if (contains(visited, currentNode)) {
     return;
   }
@@ -46,24 +48,23 @@ ComputationGraph *InitComputationGraph(Context *ctx, Tensor *t) {
   ComputationGraph *graph = allocate(ctx->memory, sizeof(ComputationGraph));
   graph->size = 0;
   graph->capacity = 8;
-  graph->nodes = (GraphNode **) allocate(ctx->memory, sizeof(GraphNode*) * graph->capacity);
-  
-  ComputationGraph visited = {
-    .capacity = 8,
-    .size = 0,
-    .nodes = (GraphNode**) allocate(ctx->memory, sizeof(GraphNode*) * 8)
-  };
+  graph->nodes = (GraphNode **)allocate(ctx->memory, sizeof(GraphNode *) * graph->capacity);
+
+  ComputationGraph visited = {.capacity = 8,
+                              .size = 0,
+                              .nodes =
+                                  (GraphNode **)allocate(ctx->memory, sizeof(GraphNode *) * 8)};
 
   topo(ctx, graph, &visited, t->computation);
 
-  freeAlloc(ctx->memory, (void*) visited.nodes);
-  
+  freeAlloc(ctx->memory, (void *)visited.nodes);
+
   return graph;
 }
 
 Result Backward(Context *ctx, ComputationGraph *computationGraph) {
   // Set the grad of the origin tensor to one
-  GraphNode *first = computationGraph->nodes[computationGraph->size -1];
+  GraphNode *first = computationGraph->nodes[computationGraph->size - 1];
   SetValues(first->grad, VALUE(F32, 1.0));
 
   // Iterate backwards through the graph (reverse topological order)

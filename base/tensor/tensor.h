@@ -21,6 +21,7 @@ Result GetAt(Tensor *t, Dim dim, Value *result);
 Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest);
 Result GetScalar(Tensor *t, Value *result);
 Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value);
+Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest);
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
 Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);

@@ -310,9 +310,14 @@ func printRecursive(w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim i
 
 // formatValue reads a single element from the tensor and returns its string representation.
 func formatValue(t *tensor.Tensor, coords []uint32) string {
+	// Convert []uint32 to []interface{} for Get function
+	args := make([]interface{}, len(coords))
+	for i, c := range coords {
+		args[i] = c
+	}
 	switch t.Dtype() {
 	case tensor.DtypeF16, tensor.DtypeF32, tensor.DtypeF64:
-		v := t.Get(coords...).Item().(float32)
+		v := t.Get(args...).Item().(float32)
 		s := fmt.Sprintf("%f", v)
 		if idx := strings.IndexByte(s, '.'); idx >= 0 {
 			s = strings.TrimRight(s, "0")
@@ -322,7 +327,7 @@ func formatValue(t *tensor.Tensor, coords []uint32) string {
 		}
 		return s
 	default:
-		v := t.Get(coords...).Item().(int8)
+		v := t.Get(args...).Item().(int8)
 		return fmt.Sprintf("%d", v)
 	}
 }

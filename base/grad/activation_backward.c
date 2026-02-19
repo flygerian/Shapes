@@ -47,8 +47,7 @@ Result tanhBackwards(Context *ctx, GraphNode *node) {
         grad_in_val.as.f64 += grad_out_val.as.f64 * local_grad;
         break;
       }
-      default:
-        return ERR_TANH_VALUE_NOT_FLOAT;
+      default: return ERR_TANH_VALUE_NOT_FLOAT;
     }
 
     VALUE_SET(grad_input->values, i, grad_in_val);
@@ -121,8 +120,7 @@ Result powBackwards(Context *ctx, GraphNode *node) {
         grad_in_val.as.f64 += grad_out_val.as.f64 * local_grad;
         break;
       }
-      default:
-        return ERR_POW_VALUE_NOT_FLOAT;
+      default: return ERR_POW_VALUE_NOT_FLOAT;
     }
 
     VALUE_SET(grad_input->values, i, grad_in_val);
