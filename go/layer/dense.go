@@ -35,7 +35,7 @@ func Dense(inputSize int, outputSize int) func(*shapes.Context, *tensor.Tensor) 
 			o = o.Squeeze(fusedCtx)
 		}
 
-		tensor.AttachComputationGraphNode(o, tensor.OpDense, constructDenseBackwardPass, w, x, b)
+		tensor.AttachComputationGraphNode(ctx, o, tensor.OpDense, constructDenseBackwardPass, w, x, b)
 
 		return o
 	}

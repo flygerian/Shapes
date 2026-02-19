@@ -30,13 +30,13 @@ func TestSGDUpdatesParameters(t *testing.T) {
 		t.Fatalf("expected 2 parameters (w, b), got %d", len(params))
 	}
 
-	before := snapshotParams(t, params)
+	before := snapshotParams(t, ctx, params)
 
 	noGraph := ctx.NoGraph()
 	step := SGD(noGraph, 0.01)
 	step(graph)
 
-	after := snapshotParams(t, params)
+	after := snapshotParams(t, ctx, params)
 
 	changed := false
 	for i := range before {
@@ -95,7 +95,7 @@ func TestSGDLossDecreases(t *testing.T) {
 		for i, c := range coords {
 			args[i] = c
 		}
-		v := p.Grad().Get(args...).Item().(float32)
+		v := p.Grad().Get(ctx, args...).Item().(float32)
 		if !approxEq(v, 0, 1e-10) {
 			hasNonZeroGrad = true
 			break
@@ -122,13 +122,13 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 	graph := o.Backward(ctx)
 
 	params := extract.Parameters(graph)
-	before := snapshotParams(t, params)
+	before := snapshotParams(t, ctx, params)
 
 	noGraph := ctx.NoGraph()
 	step := SGD(noGraph, lr)
 	step(graph)
 
-	after := snapshotParams(t, params)
+	after := snapshotParams(t, ctx, params)
 
 	deltas := make([]float32, len(before))
 	for i := range before {
@@ -138,7 +138,7 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 }
 
 // snapshotParams reads all float32 values from params using proper multi-dim coords.
-func snapshotParams(t *testing.T, params []*tensor.Tensor) []float32 {
+func snapshotParams(t *testing.T, ctx *shapes.Context, params []*tensor.Tensor) []float32 {
 	t.Helper()
 	var vals []float32
 	for _, p := range params {
@@ -153,7 +153,7 @@ func snapshotParams(t *testing.T, params []*tensor.Tensor) []float32 {
 			for i, c := range coords {
 				args[i] = c
 			}
-			v := p.Get(args...).Item().(float32)
+			v := p.Get(ctx, args...).Item().(float32)
 			vals = append(vals, v)
 		}
 	}

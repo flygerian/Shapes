@@ -67,6 +67,8 @@ static inline i64 value_as_i64(Value v) {
 import "C"
 import (
 	"fmt"
+
+	shapes "github.com/flygerian/shapes"
 )
 
 // Get returns a sub-tensor at the given coordinates.
@@ -76,7 +78,7 @@ import (
 //
 // Get can also accept a tensor as an argument to perform advanced indexing,
 // similar to PyTorch's x[indices] where indices is a tensor of integers.
-func (t *Tensor) Get(indices ...interface{}) *Tensor {
+func (t *Tensor) Get(ctx *shapes.Context, indices ...interface{}) *Tensor {
 	if len(indices) == 0 {
 		panic("shapes: Get requires at least one argument")
 	}
@@ -84,7 +86,7 @@ func (t *Tensor) Get(indices ...interface{}) *Tensor {
 	// Check if first argument is a tensor for advanced indexing
 	if len(indices) == 1 {
 		if idxTensor, ok := indices[0].(*Tensor); ok {
-			return t.getWithTensor(idxTensor)
+			return t.getWithTensor(ctx, idxTensor)
 		}
 	}
 
@@ -118,11 +120,11 @@ func (t *Tensor) Get(indices ...interface{}) *Tensor {
 		}
 	}
 
-	return t.getWithCoords(coords)
+	return t.getWithCoords(ctx, coords)
 }
 
 // getWithCoords returns a sub-tensor at the given coordinates.
-func (t *Tensor) getWithCoords(coords []uint32) *Tensor {
+func (t *Tensor) getWithCoords(ctx *shapes.Context, coords []uint32) *Tensor {
 	current := t
 	for _, idx := range coords {
 		if current.cTensor.shape.numOfDims == 0 {
@@ -130,14 +132,13 @@ func (t *Tensor) getWithCoords(coords []uint32) *Tensor {
 		}
 
 		var result C.Tensor
-		cCtx := (*C.Context)(t.ctx.UnsafePtr())
+		cCtx := (*C.Context)(ctx.UnsafePtr())
 		res := C.wrap_GetTensorAt(cCtx, current.cTensor, C.dim_t(idx), &result)
 		if res != C.OK {
 			panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 		}
 		current = &Tensor{
 			cTensor: &result,
-			ctx:     t.ctx,
 		}
 	}
 	return current
@@ -145,17 +146,15 @@ func (t *Tensor) getWithCoords(coords []uint32) *Tensor {
 
 // getWithTensor performs advanced indexing using a tensor of indices.
 // The indices tensor must contain integer values.
-func (t *Tensor) getWithTensor(indices *Tensor) *Tensor {
-	requireSameCtx(t, indices)
-
+func (t *Tensor) getWithTensor(ctx *shapes.Context, indices *Tensor) *Tensor {
 	var result C.Tensor
-	cCtx := (*C.Context)(t.ctx.UnsafePtr())
+	cCtx := (*C.Context)(ctx.UnsafePtr())
 	res := C.wrap_IndexWithTensor(cCtx, t.cTensor, indices.cTensor, &result)
 	if res != C.OK {
 		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 	}
 
-	return track(t.ctx, &Tensor{
+	return track(ctx, &Tensor{
 		cTensor: &result,
 	})
 }

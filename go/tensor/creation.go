@@ -52,7 +52,7 @@ func Zeros(ctx *shapes.Context, shape Shape) *Tensor {
 	cTensor := C.wrap_T_Zeros((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape))
 	t := track(ctx, &Tensor{cTensor: cTensor})
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 	return t
 }
@@ -65,7 +65,7 @@ func Int(ctx *shapes.Context, shape Shape, value int8) *Tensor {
 	cTensor := C.wrap_T_Int((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.i8(value))
 	t := track(ctx, &Tensor{cTensor: cTensor})
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 	return t
 }
@@ -78,7 +78,7 @@ func Float(ctx *shapes.Context, shape Shape, value float32) *Tensor {
 	cTensor := C.wrap_T_Float((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.f32(value))
 	t := track(ctx, &Tensor{cTensor: cTensor})
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 	return t
 }
@@ -100,7 +100,7 @@ func FromFloat32(ctx *shapes.Context, shape Shape, data []float32) *Tensor {
 	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(expected)*C.sizeof_float)
 
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 
 	return t
@@ -185,7 +185,7 @@ func FromInt8(ctx *shapes.Context, data interface{}) *Tensor {
 	C.memcpy(t.cTensor.values, unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
 
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 
 	return t
@@ -206,7 +206,7 @@ func FloatRandom(ctx *shapes.Context, shape Shape) *Tensor {
 	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
 
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 
 	return t
@@ -255,7 +255,7 @@ func OneHot(ctx *shapes.Context, indices *Tensor, numClasses uint32) *Tensor {
 	}
 	t := track(ctx, &Tensor{cTensor: cTensor})
 	if ctx.GradEnabled {
-		leafNode(t)
+		leafNode(ctx, t)
 	}
 	return t
 }

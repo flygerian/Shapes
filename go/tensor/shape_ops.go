@@ -158,7 +158,7 @@ func (t *Tensor) Reshape(ctx *shapes.Context, shape Shape) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled {
-		attachNode(out, OpReshape, reshapeBackward, t)
+		attachNode(ctx, out, OpReshape, reshapeBackward, t)
 	}
 	return out
 }
@@ -196,7 +196,7 @@ func (t *Tensor) Transpose(ctx *shapes.Context, dims ...uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled {
-		attachNode(out, OpTranspose, transposeBackward, t)
+		attachNode(ctx, out, OpTranspose, transposeBackward, t)
 		out.Computation.Metadata = [2]uint32{d0, d1}
 	}
 	return out
@@ -211,7 +211,7 @@ func (t *Tensor) Squeeze(ctx *shapes.Context) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled {
-		attachNode(out, OpSqueeze, squeezeBackward, t)
+		attachNode(ctx, out, OpSqueeze, squeezeBackward, t)
 	}
 	return out
 }
@@ -225,7 +225,7 @@ func (t *Tensor) SqueezeDim(ctx *shapes.Context, dim uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled {
-		attachNode(out, OpSqueezeDim, squeezeDimBackward, t)
+		attachNode(ctx, out, OpSqueezeDim, squeezeDimBackward, t)
 		out.Computation.Metadata = dim
 	}
 	return out
@@ -240,7 +240,7 @@ func (t *Tensor) UnSqueeze(ctx *shapes.Context, dim uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.GradEnabled {
-		attachNode(out, OpUnSqueeze, unSqueezeBackward, t)
+		attachNode(ctx, out, OpUnSqueeze, unSqueezeBackward, t)
 		out.Computation.Metadata = dim
 	}
 	return out

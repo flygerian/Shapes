@@ -129,20 +129,20 @@ func MakeMore_2(ctx *shapes.Context) {
 
 	idx := tensor.FromInt8(ctx, []int8{5})
 
-	visual.Print(idx)
+	visual.Print(ctx, idx)
 
 	oneHot := tensor.OneHot(ctx, idx, 27)
 
 	newSection()
 
 	fmt.Printf("One hot shapes: %v\n", oneHot.Squeeze(ctx).Shape())
-	visual.Print(oneHot)
+	visual.Print(ctx, oneHot)
 
 	p := oneHot.Mul(ctx, C).Squeeze(ctx)
 
 	fmt.Printf("Mul\n")
-	visual.Print(p)
+	visual.Print(ctx, p)
 
-	fmt.Printf("5: \n")
-	visual.Print(C.Get(X))
+	fmt.Printf("5: %v\n", C.Get(ctx, X).Shape())
+	visual.Print(ctx, C.Get(ctx, X).Get(ctx, 13, 2))
 }

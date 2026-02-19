@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	shapes "github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/tensor"
 )
 
@@ -111,12 +112,12 @@ func DrawLine(w io.Writer, from, to *Box) {
 }
 
 // Visualize renders the computation graph rooted at t to the terminal (os.Stdout).
-func Visualize(t *tensor.Tensor) {
-	VisualizeTo(os.Stdout, t)
+func Visualize(ctx *shapes.Context, t *tensor.Tensor) {
+	VisualizeTo(ctx, os.Stdout, t)
 }
 
 // VisualizeTo renders the computation graph rooted at t to the given writer.
-func VisualizeTo(w io.Writer, t *tensor.Tensor) {
+func VisualizeTo(ctx *shapes.Context, w io.Writer, t *tensor.Tensor) {
 	type entry struct {
 		tensor    *tensor.Tensor
 		level     int
@@ -185,7 +186,7 @@ func VisualizeTo(w io.Writer, t *tensor.Tensor) {
 			startX = 1
 		}
 
-		top, bottom := displayLabels(queue[i].tensor)
+		top, bottom := displayLabels(ctx, queue[i].tensor)
 		boxes[i] = Box{
 			x:          startX + idx*(boxWidth+boxGap),
 			y:          2 + lv*(boxHeight+vSpacing),
@@ -214,13 +215,13 @@ func VisualizeTo(w io.Writer, t *tensor.Tensor) {
 }
 
 // displayLabels builds the top and bottom text for a tensor node.
-func displayLabels(t *tensor.Tensor) (top, bottom string) {
+func displayLabels(ctx *shapes.Context, t *tensor.Tensor) (top, bottom string) {
 	label := t.Label
 	if label == "" {
 		label = "?"
 	}
 
-	val := formatScalar(t)
+	val := formatScalar(ctx, t)
 
 	node := t.Computation
 	if node == nil {
@@ -229,7 +230,7 @@ func displayLabels(t *tensor.Tensor) (top, bottom string) {
 
 	// Build top line with grad if available
 	if node.Grad != nil {
-		gradVal := formatScalar(node.Grad)
+		gradVal := formatScalar(ctx, node.Grad)
 		top = fmt.Sprintf("%s | %s | grad [%s]", label, val, gradVal)
 	} else {
 		top = fmt.Sprintf("%s | %s", label, val)
@@ -244,8 +245,8 @@ func displayLabels(t *tensor.Tensor) (top, bottom string) {
 }
 
 // formatScalar reads the scalar (index-0) value from a tensor and trims trailing zeros.
-func formatScalar(t *tensor.Tensor) string {
-	v := t.Get(0).Item().(float32)
+func formatScalar(ctx *shapes.Context, t *tensor.Tensor) string {
+	v := t.Get(ctx, 0).Item().(float32)
 	s := fmt.Sprintf("%f", v)
 	// Trim trailing zeros but keep at least one digit after decimal
 	if idx := strings.IndexByte(s, '.'); idx >= 0 {
@@ -258,12 +259,12 @@ func formatScalar(t *tensor.Tensor) string {
 }
 
 // Print renders the tensor's contents to os.Stdout in a nested bracket format.
-func Print(t *tensor.Tensor) {
-	PrintTo(os.Stdout, t)
+func Print(ctx *shapes.Context, t *tensor.Tensor) {
+	PrintTo(ctx, os.Stdout, t)
 }
 
 // PrintTo renders the tensor's contents to the given writer in a nested bracket format.
-func PrintTo(w io.Writer, t *tensor.Tensor) {
+func PrintTo(ctx *shapes.Context, w io.Writer, t *tensor.Tensor) {
 	shape := tensor.ShapeOf(t)
 	if len(shape) == 0 {
 		return
@@ -274,12 +275,12 @@ func PrintTo(w io.Writer, t *tensor.Tensor) {
 	}
 
 	coords := make([]uint32, len(shape))
-	printRecursive(w, t, shape, coords, 0)
+	printRecursive(ctx, w, t, shape, coords, 0)
 	fmt.Fprintln(w)
 }
 
 // printRecursive walks dimension by dimension, printing brackets and values.
-func printRecursive(w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim int) {
+func printRecursive(ctx *shapes.Context, w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim int) {
 	if dim == len(shape)-1 {
 		fmt.Fprint(w, "[")
 		for i := range shape[dim] {
@@ -287,7 +288,7 @@ func printRecursive(w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim i
 				fmt.Fprint(w, ", ")
 			}
 			coords[dim] = uint32(i)
-			fmt.Fprint(w, formatValue(t, coords))
+			fmt.Fprint(w, formatValue(ctx, t, coords))
 		}
 		fmt.Fprint(w, "]")
 		return
@@ -303,13 +304,13 @@ func printRecursive(w io.Writer, t *tensor.Tensor, shape, coords []uint32, dim i
 			}
 		}
 		coords[dim] = uint32(i)
-		printRecursive(w, t, shape, coords, dim+1)
+		printRecursive(ctx, w, t, shape, coords, dim+1)
 	}
 	fmt.Fprint(w, "]")
 }
 
 // formatValue reads a single element from the tensor and returns its string representation.
-func formatValue(t *tensor.Tensor, coords []uint32) string {
+func formatValue(ctx *shapes.Context, t *tensor.Tensor, coords []uint32) string {
 	// Convert []uint32 to []interface{} for Get function
 	args := make([]interface{}, len(coords))
 	for i, c := range coords {
@@ -317,7 +318,7 @@ func formatValue(t *tensor.Tensor, coords []uint32) string {
 	}
 	switch t.Dtype() {
 	case tensor.DtypeF16, tensor.DtypeF32, tensor.DtypeF64:
-		v := t.Get(args...).Item().(float32)
+		v := t.Get(ctx, args...).Item().(float32)
 		s := fmt.Sprintf("%f", v)
 		if idx := strings.IndexByte(s, '.'); idx >= 0 {
 			s = strings.TrimRight(s, "0")
@@ -327,7 +328,7 @@ func formatValue(t *tensor.Tensor, coords []uint32) string {
 		}
 		return s
 	default:
-		v := t.Get(args...).Item().(int8)
+		v := t.Get(ctx, args...).Item().(int8)
 		return fmt.Sprintf("%d", v)
 	}
 }

@@ -44,7 +44,6 @@ import shapes "github.com/flygerian/shapes"
 
 // Plus performs element-wise addition of t and other, returning a new tensor.
 func (t *Tensor) Plus(ctx *shapes.Context, other *Tensor) *Tensor {
-	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Add((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -52,14 +51,13 @@ func (t *Tensor) Plus(ctx *shapes.Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(out, OpAdd, addBackward, t, other)
+		attachNode(ctx, out, OpAdd, addBackward, t, other)
 	}
 	return out
 }
 
 // Minus performs element-wise subtraction of other from t, returning a new tensor.
 func (t *Tensor) Minus(ctx *shapes.Context, other *Tensor) *Tensor {
-	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Subtract((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -67,14 +65,13 @@ func (t *Tensor) Minus(ctx *shapes.Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(out, OpSubtract, subtractBackward, t, other)
+		attachNode(ctx, out, OpSubtract, subtractBackward, t, other)
 	}
 	return out
 }
 
 // Times performs element-wise multiplication of t and other, returning a new tensor.
 func (t *Tensor) Times(ctx *shapes.Context, other *Tensor) *Tensor {
-	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Multiply((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -82,14 +79,13 @@ func (t *Tensor) Times(ctx *shapes.Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(out, OpMultiply, multiplyBackward, t, other)
+		attachNode(ctx, out, OpMultiply, multiplyBackward, t, other)
 	}
 	return out
 }
 
 // Divide performs element-wise division of t by other, returning a new tensor.
 func (t *Tensor) Divide(ctx *shapes.Context, other *Tensor) *Tensor {
-	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Divide((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -97,14 +93,13 @@ func (t *Tensor) Divide(ctx *shapes.Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(out, OpDivide, divideBackward, t, other)
+		attachNode(ctx, out, OpDivide, divideBackward, t, other)
 	}
 	return out
 }
 
 // AddInPlace performs element-wise addition of other into t, modifying t in place.
 func (t *Tensor) AddInPlace(ctx *shapes.Context, other *Tensor) {
-	requireSameCtx(t, other)
 	result := C.wrap_AddInPlace((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))

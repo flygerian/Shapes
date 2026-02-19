@@ -17,7 +17,7 @@ func Tanh(ctx *shapes.Context, t *tensor.Tensor) *tensor.Tensor {
 	out := exp2x.Minus(noGrad, ones).Divide(noGrad, exp2x.Plus(noGrad, ones))
 
 	if ctx.BackwardEnabled {
-		tensor.AttachComputationGraphNode(out, tensor.OpTanh, tanhBackward, t)
+		tensor.AttachComputationGraphNode(ctx, out, tensor.OpTanh, tanhBackward, t)
 	}
 	return out
 }

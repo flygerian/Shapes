@@ -92,21 +92,21 @@ type ComputationGraph struct {
 
 // leafNode attaches an empty GraphNode (nil backward) to a tensor.
 // Called at creation time when grad is enabled so that .Grad() is always available.
-func leafNode(t *Tensor) {
-	ctx := t.ctx.NoGrad()
+func leafNode(ctx *shapes.Context, t *Tensor) {
+	noGradCtx := ctx.NoGrad()
 	t.Computation = &ComputationGraphNode{
 		Output: t,
-		Grad:   Zeros(ctx, shapeOf(t)),
+		Grad:   Zeros(noGradCtx, shapeOf(t)),
 	}
 }
 
 // attachNode creates a GraphNode and attaches it to the result tensor.
 // Only called when grad is enabled.
-func attachNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
-	ctx := result.ctx.NoGrad()
+func attachNode(ctx *shapes.Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+	noGradCtx := ctx.NoGrad()
 	node := &ComputationGraphNode{
 		Output:   result,
-		Grad:     Zeros(ctx, shapeOf(result)),
+		Grad:     Zeros(noGradCtx, shapeOf(result)),
 		Inputs:   inputs,
 		Backward: backward,
 		Op:       op,

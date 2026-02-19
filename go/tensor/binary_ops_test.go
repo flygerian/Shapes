@@ -18,7 +18,7 @@ func TestPlus(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got := result.Get(i, j).Item().(int8)
+			got := result.Get(ctx, i, j).Item().(int8)
 			if got != 8 {
 				t.Errorf("Plus[%d,%d] = %d, want 8", i, j, got)
 			}
@@ -37,7 +37,7 @@ func TestMinus(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got := result.Get(i, j).Item().(int8)
+			got := result.Get(ctx, i, j).Item().(int8)
 			if got != 6 {
 				t.Errorf("Minus[%d,%d] = %d, want 6", i, j, got)
 			}
@@ -56,7 +56,7 @@ func TestTimes(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got := result.Get(i, j).Item().(int8)
+			got := result.Get(ctx, i, j).Item().(int8)
 			if got != 21 {
 				t.Errorf("Times[%d,%d] = %d, want 21", i, j, got)
 			}
@@ -75,7 +75,7 @@ func TestDivide(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got := result.Get(i, j).Item().(float32)
+			got := result.Get(ctx, i, j).Item().(float32)
 			if got < 2.49 || got > 2.51 {
 				t.Errorf("Divide[%d,%d] = %f, want 2.5", i, j, got)
 			}
@@ -96,7 +96,7 @@ func TestBinaryOpChain(t *testing.T) {
 	result := sum.Times(ctx, c)
 
 	for i := range uint32(2) {
-		got := result.Get(i).Item().(int8)
+		got := result.Get(ctx, i).Item().(int8)
 		if got != 20 {
 			t.Errorf("Chain[%d] = %d, want 20", i, got)
 		}
@@ -114,7 +114,7 @@ func TestBinaryOpBroadcast(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got := result.Get(i, j).Item().(int8)
+			got := result.Get(ctx, i, j).Item().(int8)
 			if got != 7 {
 				t.Errorf("Broadcast[%d,%d] = %d, want 7", i, j, got)
 			}

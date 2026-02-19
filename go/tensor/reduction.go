@@ -26,7 +26,7 @@ func (t *Tensor) Sum(ctx *shapes.Context, dim uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(out, OpSum, sumBackward, t)
+		attachNode(ctx, out, OpSum, sumBackward, t)
 		out.Computation.Metadata = dim
 	}
 	return out

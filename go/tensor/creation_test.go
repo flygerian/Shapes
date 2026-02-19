@@ -26,7 +26,7 @@ func TestFromFloat32(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got := tensor.Get(i, j).Item().(float32)
+			got := tensor.Get(ctx, i, j).Item().(float32)
 			if float32(math.Abs(float64(got-expected[i][j]))) > 1e-5 {
 				t.Errorf("FromFloat32[%d,%d] = %f, want %f", i, j, got, expected[i][j])
 			}
@@ -42,7 +42,7 @@ func TestFromFloat321D(t *testing.T) {
 	tensor := FromFloat32(ctx, Shape{3}, data)
 
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("FromFloat32[%d] = %f, want %f", i, got, want)
 		}
@@ -88,7 +88,7 @@ func TestFloatRandom(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(4) {
-			v := tensor.Get(i, j).Item().(float32)
+			v := tensor.Get(ctx, i, j).Item().(float32)
 			if v < -1 || v > 1 {
 				t.Errorf("FloatRandom[%d,%d] = %f, want in [-1, 1]", i, j, v)
 			}
@@ -101,10 +101,10 @@ func TestFloatRandomNotAllSame(t *testing.T) {
 	defer ctx.Close()
 
 	tensor := FloatRandom(ctx, Shape{100})
-	first := tensor.Get(0).Item().(float32)
+	first := tensor.Get(ctx, 0).Item().(float32)
 	allSame := true
 	for i := range uint32(100) {
-		v := tensor.Get(i).Item().(float32)
+		v := tensor.Get(ctx, i).Item().(float32)
 		if v != first {
 			allSame = false
 			break
@@ -128,7 +128,7 @@ func TestFromFloat32WithGrad(t *testing.T) {
 
 	// Values should still be correct
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("FromFloat32[%d] = %f, want %f", i, got, want)
 		}
@@ -153,7 +153,7 @@ func TestFromInt8(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got := tensor.Get(i, j).Item().(int8)
+			got := tensor.Get(ctx, i, j).Item().(int8)
 			if got != expected[i][j] {
 				t.Errorf("FromInt8[%d,%d] = %d, want %d", i, j, got, expected[i][j])
 			}
@@ -169,7 +169,7 @@ func TestFromInt81D(t *testing.T) {
 	tensor := FromInt8(ctx, data)
 
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(int8)
+		got := tensor.Get(ctx, uint32(i)).Item().(int8)
 		if got != want {
 			t.Errorf("FromInt8[%d] = %d, want %d", i, got, want)
 		}
@@ -212,7 +212,7 @@ func TestFromInt8WithGrad(t *testing.T) {
 
 	// Values should still be correct
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(int8)
+		got := tensor.Get(ctx, uint32(i)).Item().(int8)
 		if got != want {
 			t.Errorf("FromInt8[%d] = %d, want %d", i, got, want)
 		}
@@ -227,7 +227,7 @@ func TestFromInt8NegativeValues(t *testing.T) {
 	tensor := FromInt8(ctx, data)
 
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(int8)
+		got := tensor.Get(ctx, uint32(i)).Item().(int8)
 		if got != want {
 			t.Errorf("FromInt8[%d] = %d, want %d", i, got, want)
 		}
@@ -261,7 +261,7 @@ func TestFromInt83D(t *testing.T) {
 	for i := range uint32(2) {
 		for j := range uint32(2) {
 			for k := range uint32(2) {
-				got := tensor.Get(i, j, k).Item().(int8)
+				got := tensor.Get(ctx, i, j, k).Item().(int8)
 				if got != expected[i][j][k] {
 					t.Errorf("FromInt8[%d,%d,%d] = %d, want %d", i, j, k, got, expected[i][j][k])
 				}
@@ -298,7 +298,7 @@ func TestFromInt84D(t *testing.T) {
 		for j := range uint32(2) {
 			for k := range uint32(1) {
 				for l := range uint32(2) {
-					got := tensor.Get(i, j, k, l).Item().(int8)
+					got := tensor.Get(ctx, i, j, k, l).Item().(int8)
 					if got != expected[i][j][k][l] {
 						t.Errorf("FromInt8[%d,%d,%d,%d] = %d, want %d", i, j, k, l, got, expected[i][j][k][l])
 					}
@@ -334,7 +334,7 @@ func TestOneHotBasic(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(3) {
-			got := oneHot.Get(i, j).Item().(float32)
+			got := oneHot.Get(ctx, i, j).Item().(float32)
 			if got != expected[i][j] {
 				t.Errorf("OneHot[%d,%d] = %f, want %f", i, j, got, expected[i][j])
 			}
@@ -361,24 +361,24 @@ func TestOneHot2DIndices(t *testing.T) {
 	}
 
 	// Check first row: [0, 2] -> [[1,0,0], [0,0,1]]
-	if oneHot.Get(0, 0, 0).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 0, 0, 0).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[0,0,0] = 1.0")
 	}
-	if oneHot.Get(0, 0, 1).Item().(float32) != 0.0 {
+	if oneHot.Get(ctx, 0, 0, 1).Item().(float32) != 0.0 {
 		t.Error("Expected oneHot[0,0,1] = 0.0")
 	}
-	if oneHot.Get(0, 0, 2).Item().(float32) != 0.0 {
+	if oneHot.Get(ctx, 0, 0, 2).Item().(float32) != 0.0 {
 		t.Error("Expected oneHot[0,0,2] = 0.0")
 	}
-	if oneHot.Get(0, 1, 2).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 0, 1, 2).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[0,1,2] = 1.0")
 	}
 
 	// Check second row: [1, 0] -> [[0,1,0], [1,0,0]]
-	if oneHot.Get(1, 0, 1).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 1, 0, 1).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[1,0,1] = 1.0")
 	}
-	if oneHot.Get(1, 1, 0).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 1, 1, 0).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[1,1,0] = 1.0")
 	}
 }

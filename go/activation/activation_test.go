@@ -21,7 +21,7 @@ func TestTanh(t *testing.T) {
 	a := tensor.Float(ctx, tensor.Shape{2}, 0.0)
 	result := Tanh(ctx, a)
 
-	got := result.Get(0).Item().(float32)
+	got := result.Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 0.0, 1e-5) {
 		t.Errorf("tanh(0) = %f, want 0.0", got)
 	}
@@ -34,7 +34,7 @@ func TestTanhValues(t *testing.T) {
 	a := tensor.Float(ctx, tensor.Shape{1}, 1.0)
 	result := Tanh(ctx, a)
 
-	got := result.Get(0).Item().(float32)
+	got := result.Get(ctx, 0).Item().(float32)
 	expected := float32(math.Tanh(1.0))
 	if !approxEq(got, expected, 1e-5) {
 		t.Errorf("tanh(1) = %f, want %f", got, expected)
@@ -52,7 +52,7 @@ func TestTanhBackward(t *testing.T) {
 
 	y.Backward(ctx)
 
-	got := x.Grad().Get(0).Item().(float32)
+	got := x.Grad().Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 1.0, 1e-5) {
 		t.Errorf("tanh'(0) = %f, want 1.0", got)
 	}
@@ -67,7 +67,7 @@ func TestTanhBackwardNonZero(t *testing.T) {
 	y := Tanh(ctx, x)
 	y.Backward(ctx)
 
-	got := x.Grad().Get(0).Item().(float32)
+	got := x.Grad().Get(ctx, 0).Item().(float32)
 	tanhVal := float32(math.Tanh(1.0))
 	expected := 1.0 - tanhVal*tanhVal
 	if !approxEq(got, expected, 1e-4) {

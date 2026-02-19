@@ -26,7 +26,6 @@ import shapes "github.com/flygerian/shapes"
 
 // Mul performs matrix multiplication of t and other, returning a new tensor.
 func (t *Tensor) Mul(ctx *shapes.Context, other *Tensor) *Tensor {
-	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_MatMul((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {
@@ -37,7 +36,6 @@ func (t *Tensor) Mul(ctx *shapes.Context, other *Tensor) *Tensor {
 
 // Dot computes the dot product of two 1-D tensors, returning a scalar tensor.
 func (t *Tensor) Dot(ctx *shapes.Context, other *Tensor) *Tensor {
-	requireSameCtx(t, other)
 	var dest *C.Tensor
 	result := C.wrap_Dot((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.cTensor, &dest)
 	if result != C.OK {

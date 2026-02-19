@@ -43,7 +43,7 @@ func MakeMore_1(ctx *shapes.Context) {
 		computationGraph = l.Backward(ctx)
 
 		fmt.Printf("Loss \n")
-		visual.Print(l)
+		visual.Print(ctx, l)
 
 		sgd(computationGraph)
 		optimizer.ZeroGrad(noGraph, computationGraph)
@@ -55,8 +55,8 @@ func MakeMore_1(ctx *shapes.Context) {
 	fmt.Println("Model parameters: ", len(parameters))
 
 	fmt.Printf("Output: \n")
-	visual.Print(logits)
+	visual.Print(ctx, logits)
 
 	fmt.Printf("Expected \n")
-	visual.Print(ys)
+	visual.Print(ctx, ys)
 }

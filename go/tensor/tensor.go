@@ -27,10 +27,9 @@ import (
 type Shape = []uint32
 type Range = []uint32
 
-// Tensor wraps a C Tensor pointer and holds a reference to the context it was created with.
+// Tensor wraps a C Tensor pointer.
 type Tensor struct {
 	cTensor     *C.Tensor
-	ctx         *shapes.Context
 	Computation *ComputationGraphNode
 	Label       string
 }
@@ -46,18 +45,8 @@ func dim(ctx *shapes.Context, shape Shape) *C.Dim {
 
 // track registers a tensor's C pointer with the context for lifetime management.
 func track(ctx *shapes.Context, t *Tensor) *Tensor {
-	t.ctx = ctx
 	ctx.Track((*unsafe.Pointer)(unsafe.Pointer(&t.cTensor)))
 	return t
-}
-
-// requireSameCtx checks that two tensors belong to the same context. Panics if not.
-// Compares underlying C context pointers so that NoGrad-derived contexts pass.
-func requireSameCtx(a, b *Tensor) *shapes.Context {
-	if a.ctx.UnsafePtr() != b.ctx.UnsafePtr() {
-		panic("shapes: tensors belong to different contexts")
-	}
-	return a.ctx
 }
 
 // resultString converts a C Result code to a human-readable string.
@@ -73,11 +62,6 @@ func ptrOffset(base *C.dim_t, i int) unsafe.Pointer {
 // UnsafeCPtr returns the C Tensor as an unsafe.Pointer for cross-package CGo casts.
 func (t *Tensor) UnsafeCPtr() unsafe.Pointer {
 	return unsafe.Pointer(t.cTensor)
-}
-
-// Context returns the shapes.Context this tensor belongs to.
-func (t *Tensor) Context() *shapes.Context {
-	return t.ctx
 }
 
 // Track wraps a C tensor pointer into a Go Tensor and registers it with the context.
@@ -149,6 +133,6 @@ func (t *Tensor) Shape() Shape {
 }
 
 // AttachComputationGraphNode is the exported version of attachNode for use by external packages.
-func AttachComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
-	attachNode(result, op, backward, inputs...)
+func AttachComputationGraphNode(ctx *shapes.Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+	attachNode(ctx, result, op, backward, inputs...)
 }
