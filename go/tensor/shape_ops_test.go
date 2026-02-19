@@ -18,7 +18,7 @@ func TestSlice(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(2) {
-			got := sliced.GetI8(i, j)
+			got := sliced.Get(i, j).Item().(int8)
 			if got != 5 {
 				t.Errorf("Slice[%d,%d] = %d, want 5", i, j, got)
 			}
@@ -51,7 +51,7 @@ func TestReshape(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(2) {
-			got := reshaped.GetI8(i, j)
+			got := reshaped.Get(i, j).Item().(int8)
 			if got != 7 {
 				t.Errorf("Reshape[%d,%d] = %d, want 7", i, j, got)
 			}
@@ -84,7 +84,7 @@ func TestTranspose(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(2) {
-			got := transposed.GetI8(i, j)
+			got := transposed.Get(i, j).Item().(int8)
 			if got != 4 {
 				t.Errorf("Transpose[%d,%d] = %d, want 4", i, j, got)
 			}
@@ -116,7 +116,7 @@ func TestSqueeze(t *testing.T) {
 	squeezed := a.Squeeze(ctx)
 
 	for i := range uint32(3) {
-		got := squeezed.GetI8(i)
+		got := squeezed.Get(i).Item().(int8)
 		if got != 9 {
 			t.Errorf("Squeeze[%d] = %d, want 9", i, got)
 		}
@@ -133,7 +133,7 @@ func TestUnSqueeze(t *testing.T) {
 	unsqueezed := a.UnSqueeze(ctx, 0)
 
 	for j := range uint32(3) {
-		got := unsqueezed.GetI8(0, j)
+		got := unsqueezed.Get(0, j).Item().(int8)
 		if got != 6 {
 			t.Errorf("UnSqueeze[0,%d] = %d, want 6", j, got)
 		}

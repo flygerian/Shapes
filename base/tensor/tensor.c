@@ -60,7 +60,14 @@ u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx) {
 }
 
 bool isInvalidTensor(Tensor *t) {
-  return t == NULL || t->values == NULL || t->shape.dims == NULL;
+  if (t == NULL || t->values == NULL) {
+    return true;
+  }
+  // 0-dimensional tensors have shape.dims == NULL, which is valid
+  if (t->shape.numOfDims > 0 && t->shape.dims == NULL) {
+    return true;
+  }
+  return false;
 }
 
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {

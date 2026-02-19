@@ -18,6 +18,8 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
 Result GetAt(Tensor *t, Dim dim, Value *result);
+Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest);
+Result GetScalar(Tensor *t, Value *result);
 Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value);
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
@@ -45,6 +47,7 @@ char *GetItem(Context *ctx, Tensor *t);
 Tensor *T_Zeros(Context *ctx, Dim shape);
 Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
+Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
 void SetValues(Tensor *t, Value value);
 
 // Tensor destruction

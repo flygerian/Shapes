@@ -23,10 +23,7 @@ func TestMse(t *testing.T) {
 	loss := Mse(ctx, yGround, yPred)
 
 	// Sum of squared errors: 0.25 + 0.25 + 0.04 + 0.01 = 0.55
-	got, err := loss.GetF32(0)
-	if err != nil {
-		t.Fatalf("GetF32(0): %v", err)
-	}
+	got := loss.Get(0).Item().(float32)
 	if !approxEq(got, 0.55, 1e-4) {
 		t.Errorf("Mse = %f, want 0.55", got)
 	}
@@ -40,10 +37,7 @@ func TestMsePerfectPrediction(t *testing.T) {
 
 	loss := Mse(ctx, y, y)
 
-	got, err := loss.GetF32(0)
-	if err != nil {
-		t.Fatalf("GetF32(0): %v", err)
-	}
+	got := loss.Get(0).Item().(float32)
 	if !approxEq(got, 0.0, 1e-6) {
 		t.Errorf("Mse = %f, want 0.0", got)
 	}
@@ -63,14 +57,10 @@ func TestMse2D(t *testing.T) {
 	shape := tensor.ShapeOf(loss)
 
 	var got float32
-	var err error
 	if len(shape) == 2 {
-		got, err = loss.GetF32(0, 0)
+		got = loss.Get(0, 0).Item().(float32)
 	} else {
-		got, err = loss.GetF32(0)
-	}
-	if err != nil {
-		t.Fatalf("GetF32: %v", err)
+		got = loss.Get(0).Item().(float32)
 	}
 	if !approxEq(got, 31.0, 1e-4) {
 		t.Errorf("Mse = %f, want 31.0", got)
@@ -94,10 +84,7 @@ func TestMseBackward(t *testing.T) {
 		t.Fatal("expected gradient on yPred")
 	}
 
-	got, err := predGrad.GetF32(0)
-	if err != nil {
-		t.Fatalf("GetF32(0): %v", err)
-	}
+	got := predGrad.Get(0).Item().(float32)
 	if !approxEq(got, 1.0, 1e-4) {
 		t.Errorf("d(loss)/d(yPred) = %f, want 1.0", got)
 	}

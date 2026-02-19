@@ -7,9 +7,12 @@ package tensor
 #include "tensor/tensor.h"
 #include "common.h"
 
-static inline Result wrap_GetAt(Tensor *t, dim_t *coords, u8 ndims, Value *out) {
-	Dim d = {.dims = coords, .numOfDims = ndims, .multipliers = NULL};
-	return GetAt(t, d, out);
+static inline Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
+	return GetTensorAt(ctx, source, index, dest);
+}
+
+static inline Result wrap_GetScalar(Tensor *t, Value *result) {
+	return GetScalar(t, result);
 }
 
 static inline double value_as_double(Value v) {
@@ -58,42 +61,56 @@ static inline i64 value_as_i64(Value v) {
 }
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+)
 
-// GetI8 reads an int8 value at the given coordinates.
+// Get returns a sub-tensor at the given coordinates.
+// If the tensor is multidimensional, returns a view of the sub-tensor.
+// If coordinates specify all dimensions, returns a 0-dimensional (scalar) tensor.
 // Panics if coordinates are invalid.
-func (t *Tensor) GetI8(coords ...uint32) int8 {
-	var v C.Value
-	result := C.wrap_GetAt(t.cTensor, (*C.dim_t)(unsafe.Pointer(&coords[0])), C.u8(len(coords)), &v)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
+func (t *Tensor) Get(coords ...uint32) *Tensor {
+	if len(coords) == 0 {
+		panic("shapes: Get requires at least one coordinate")
 	}
-	return int8(v.as[0])
+
+	current := t
+	for _, idx := range coords {
+		if current.cTensor.shape.numOfDims == 0 {
+			panic("shapes: cannot index a 0-dimensional tensor")
+		}
+
+		var result C.Tensor
+		cCtx := (*C.Context)(t.ctx.UnsafePtr())
+		res := C.wrap_GetTensorAt(cCtx, current.cTensor, C.dim_t(idx), &result)
+		if res != C.OK {
+			panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
+		}
+		current = &Tensor{
+			cTensor: &result,
+			ctx:     t.ctx,
+		}
+	}
+	return current
 }
 
-// GetF32 reads a float32 value at the given coordinates.
-// Panics if coordinates are invalid.
-func (t *Tensor) GetF32(coords ...uint32) float32 {
-	var v C.Value
-	result := C.wrap_GetAt(t.cTensor, (*C.dim_t)(unsafe.Pointer(&coords[0])), C.u8(len(coords)), &v)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
+// Item extracts the scalar value from a 0-dimensional tensor.
+// Returns the value as the appropriate Go type.
+// Panics if the tensor is not 0-dimensional.
+func (t *Tensor) Item() interface{} {
+	if t.cTensor.shape.numOfDims != 0 {
+		panic("shapes: Item() can only be called on 0-dimensional tensors")
 	}
-	return float32(*(*C.f32)(unsafe.Pointer(&v.as[0])))
-}
 
-// Get reads a value at the given coordinates and returns it as the appropriate Go type.
-// Panics if coordinates are invalid.
-func (t *Tensor) Get(coords ...uint32) interface{} {
 	var v C.Value
-	result := C.wrap_GetAt(t.cTensor, (*C.dim_t)(unsafe.Pointer(&coords[0])), C.u8(len(coords)), &v)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
+	res := C.wrap_GetScalar(t.cTensor, &v)
+	if res != C.OK {
+		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 	}
 
 	switch t.Dtype() {
 	case DtypeF16, DtypeF32, DtypeF64:
-		return float64(C.value_as_double(v))
+		return float32(C.value_as_double(v))
 	case DtypeU8:
 		return uint8(C.value_as_u64(v))
 	case DtypeU16:

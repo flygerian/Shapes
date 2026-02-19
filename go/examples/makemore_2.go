@@ -10,6 +10,7 @@ import (
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/tensor"
+	"github.com/flygerian/shapes/visual"
 )
 
 func set(input string) []rune {
@@ -81,7 +82,6 @@ func MakeMore_2(ctx *shapes.Context) {
 	itos := make(map[int8]rune)
 
 	for _, s := range chars {
-		// fmt.Printf("%d\n", s)
 		stoi[s] = toAlphaPos(s)
 		itos[toAlphaPos(s)] = s
 	}
@@ -100,6 +100,7 @@ func MakeMore_2(ctx *shapes.Context) {
 	var y []int8
 
 	newSection()
+
 	for _, word := range words[:5] {
 		context := make([]int8, blockSize)
 
@@ -126,5 +127,22 @@ func MakeMore_2(ctx *shapes.Context) {
 
 	C := tensor.FloatRandom(ctx, tensor.Shape{27, 2})
 
-	fmt.Printf("C[d]: %f", C.Slice(ctx, tensor.Range{5, 5}))
+	idx := tensor.FromInt8(ctx, []int8{5})
+
+	visual.Print(idx)
+
+	oneHot := tensor.OneHot(ctx, idx, 27)
+
+	newSection()
+
+	fmt.Printf("One hot shapes: %v\n", oneHot.Squeeze(ctx).Shape())
+	visual.Print(oneHot)
+
+	p := oneHot.Mul(ctx, C).Squeeze(ctx)
+
+	fmt.Printf("Mul\n")
+	visual.Print(p)
+
+	fmt.Printf("5: \n")
+	visual.Print(C.Get(5))
 }

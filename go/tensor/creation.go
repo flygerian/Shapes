@@ -32,6 +32,9 @@ static inline Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {
 	*out = dest;
 	return r;
 }
+static inline Tensor *wrap_T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
+	return T_OneHot(ctx, indices, numClasses);
+}
 */
 import "C"
 import (
@@ -235,4 +238,24 @@ func Clone(ctx *shapes.Context, src *Tensor) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	return track(ctx, &Tensor{cTensor: dest})
+}
+
+// OneHot creates a one-hot encoded tensor from indices.
+// The input tensor contains class indices, and the output will have an additional
+// dimension of size numClasses where each index is represented as a one-hot vector.
+// For example, indices [[0, 2], [1, 0]] with numClasses=3 becomes:
+// [[[1,0,0], [0,0,1]], [[0,1,0], [1,0,0]]]
+func OneHot(ctx *shapes.Context, indices *Tensor, numClasses uint32) *Tensor {
+	if indices == nil || numClasses == 0 {
+		return nil
+	}
+	cTensor := C.wrap_T_OneHot((*C.Context)(ctx.UnsafePtr()), indices.cTensor, C.dim_t(numClasses))
+	if cTensor == nil {
+		return nil
+	}
+	t := track(ctx, &Tensor{cTensor: cTensor})
+	if ctx.GradEnabled {
+		leafNode(t)
+	}
+	return t
 }
