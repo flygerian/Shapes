@@ -3724,6 +3724,228 @@ static void test_log_non_float_rejected(void) {
   freeMemory(mem);
 }
 
+// Max tests
+static void test_max_dim0(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 5, 3], [4, 2, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 5.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 2.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor dest;
+  Result r = Max(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "Max dim0 should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "Max result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 1, "Max result dim 0 should be 1");
+  ASSERT_EQ(dest.shape.dims[1], 3, "Max result dim 1 should be 3");
+
+  f32 *vals = (f32 *)dest.values;
+  ASSERT_EQ(vals[0], 4.0f, "Max[0,0] should be 4 (max of 1,4)");
+  ASSERT_EQ(vals[1], 5.0f, "Max[0,1] should be 5 (max of 5,2)");
+  ASSERT_EQ(vals[2], 6.0f, "Max[0,2] should be 6 (max of 3,6)");
+
+  freeMemory(mem);
+}
+
+static void test_max_dim1(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 5, 3], [4, 2, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 5.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 2.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor dest;
+  Result r = Max(&ctx, t, &dest, 1);
+  ASSERT_EQ(r, OK, "Max dim1 should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "Max result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 2, "Max result dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "Max result dim 1 should be 1");
+
+  f32 *vals = (f32 *)dest.values;
+  ASSERT_EQ(vals[0], 5.0f, "Max[0,0] should be 5 (max of 1,5,3)");
+  ASSERT_EQ(vals[1], 6.0f, "Max[1,0] should be 6 (max of 4,2,6)");
+
+  freeMemory(mem);
+}
+
+static void test_max_int_type(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+
+  // [[1, 5], [3, 2]]
+  ((i8 *)t->values)[0] = 1;
+  ((i8 *)t->values)[1] = 5;
+  ((i8 *)t->values)[2] = 3;
+  ((i8 *)t->values)[3] = 2;
+
+  Tensor dest;
+  Result r = Max(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "Max with int type should succeed");
+
+  i8 *vals = (i8 *)dest.values;
+  ASSERT_EQ(vals[0], 3, "Max[0,0] should be 3 (max of 1,3)");
+  ASSERT_EQ(vals[1], 5, "Max[0,1] should be 5 (max of 5,2)");
+
+  freeMemory(mem);
+}
+
+static void test_max_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor dest;
+  Result r = Max(&ctx, NULL, &dest, 0);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Max with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_max_dim_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  Tensor dest;
+  Result r = Max(&ctx, t, &dest, 5);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Max with out of bounds dim should fail");
+
+  freeMemory(mem);
+}
+
+static void test_max_non_contiguous(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 5, 3], [4, 2, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 5.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 2.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor transposed;
+  Transpose(&ctx, t, &transposed, 0, 1);
+
+  Tensor dest;
+  Result r = Max(&ctx, &transposed, &dest, 0);
+  ASSERT_EQ(r, OK, "Max on non-contiguous tensor should succeed");
+
+  freeMemory(mem);
+}
+
+// MeanDim tests
+static void test_meandim_dim0(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 2, 3], [4, 5, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 2.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 5.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor dest;
+  Result r = MeanDim(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "MeanDim dim0 should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 1, "MeanDim result dim 0 should be 1");
+  ASSERT_EQ(dest.shape.dims[1], 3, "MeanDim result dim 1 should be 3");
+
+  f32 *vals = (f32 *)dest.values;
+  ASSERT_EQ(vals[0], 2.5f, "MeanDim[0,0] should be 2.5 (mean of 1,4)");
+  ASSERT_EQ(vals[1], 3.5f, "MeanDim[0,1] should be 3.5 (mean of 2,5)");
+  ASSERT_EQ(vals[2], 4.5f, "MeanDim[0,2] should be 4.5 (mean of 3,6)");
+
+  freeMemory(mem);
+}
+
+static void test_meandim_dim1(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 2, 3], [4, 5, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 2.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 5.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor dest;
+  Result r = MeanDim(&ctx, t, &dest, 1);
+  ASSERT_EQ(r, OK, "MeanDim dim1 should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 2, "MeanDim result dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "MeanDim result dim 1 should be 1");
+
+  f32 *vals = (f32 *)dest.values;
+  ASSERT_EQ(vals[0], 2.0f, "MeanDim[0,0] should be 2 (mean of 1,2,3)");
+  ASSERT_EQ(vals[1], 5.0f, "MeanDim[1,0] should be 5 (mean of 4,5,6)");
+
+  freeMemory(mem);
+}
+
+static void test_meandim_non_float_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+
+  Tensor dest;
+  Result r = MeanDim(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "MeanDim with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
+static void test_meandim_dim_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  Tensor dest;
+  Result r = MeanDim(&ctx, t, &dest, 5);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "MeanDim with out of bounds dim should fail");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -3890,4 +4112,16 @@ void run_tensor_tests(void) {
   test_log_basic();
   test_log_null_tensor();
   test_log_non_float_rejected();
+  // Max tests
+  test_max_dim0();
+  test_max_dim1();
+  test_max_int_type();
+  test_max_null_tensor();
+  test_max_dim_out_of_bounds();
+  test_max_non_contiguous();
+  // MeanDim tests
+  test_meandim_dim0();
+  test_meandim_dim1();
+  test_meandim_non_float_rejected();
+  test_meandim_dim_out_of_bounds();
 }

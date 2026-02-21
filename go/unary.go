@@ -41,6 +41,20 @@ static inline Result wrap_Log(Context *ctx, Tensor *t, Tensor **out) {
 	*out = dest;
 	return r;
 }
+
+static inline Result wrap_Max(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = Max(ctx, t, dest, dim);
+	*out = dest;
+	return r;
+}
+
+static inline Result wrap_MeanDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = MeanDim(ctx, t, dest, dim);
+	*out = dest;
+	return r;
+}
 */
 import "C"
 
@@ -98,14 +112,25 @@ func (wt *WrappedTensor) Negate() *WrappedTensor {
 	return wt.context.Wrap(wt.tensor.Negate(wt.context))
 }
 
-// Mean computes the mean of all elements, returning a scalar tensor.
-func (t *Tensor) Mean(ctx *Context) *Tensor {
-	var dest *C.Tensor
-	result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
+// Mean computes the mean of all elements (no dims) or along a single dimension.
+func (t *Tensor) Mean(ctx *Context, dims ...uint32) *Tensor {
+	if len(dims) == 0 {
+		var dest *C.Tensor
+		result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+		if result != C.OK {
+			panic("shapes: " + resultString(uint32(result)))
+		}
+		return track(ctx, &Tensor{cTensor: dest})
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	if len(dims) == 1 {
+		var dest *C.Tensor
+		result := C.wrap_MeanDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
+		if result != C.OK {
+			panic("shapes: " + resultString(uint32(result)))
+		}
+		return track(ctx, &Tensor{cTensor: dest})
+	}
+	panic("shapes: mean expects 0 or 1 dim args")
 }
 
 // Log computes the natural logarithm of every element, returning a new tensor.
@@ -118,12 +143,37 @@ func (t *Tensor) Log(ctx *Context) *Tensor {
 	return track(ctx, &Tensor{cTensor: dest})
 }
 
-// Mean computes the mean of all elements, returning a scalar WrappedTensor.
-func (wt *WrappedTensor) Mean() *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Mean(wt.context))
+// Mean computes the mean of all elements (no dims) or along a single dimension.
+func (wt *WrappedTensor) Mean(dims ...uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Mean(wt.context, dims...))
 }
 
 // Log computes the natural logarithm of every element, returning a new WrappedTensor.
 func (wt *WrappedTensor) Log() *WrappedTensor {
 	return wt.context.Wrap(wt.tensor.Log(wt.context))
+}
+
+// Max reduces the tensor along a single dimension. If no dims provided, reduces all dims.
+func (t *Tensor) Max(ctx *Context, dims ...uint32) *Tensor {
+	if len(dims) == 0 {
+		out := t
+		for i := uint32(0); i < uint32(len(shapeOf(t))); i++ {
+			out = out.Max(ctx, i)
+		}
+		return out.Squeeze(ctx)
+	}
+	if len(dims) == 1 {
+		var dest *C.Tensor
+		result := C.wrap_Max((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
+		if result != C.OK {
+			panic("shapes: " + resultString(uint32(result)))
+		}
+		return track(ctx, &Tensor{cTensor: dest})
+	}
+	panic("shapes: max expects 0 or 1 dim args")
+}
+
+// Max reduces the tensor along a single dimension. If no dims provided, reduces all dims.
+func (wt *WrappedTensor) Max(dims ...uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Max(wt.context, dims...))
 }

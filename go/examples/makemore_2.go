@@ -10,6 +10,7 @@ import (
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/layer"
+	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/visual"
 )
 
@@ -154,25 +155,12 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 	h := l1(emb.Reshape(-1, 6))
 	logits := l2(h)
 
-	counts := logits.Exp()
+	fmt.Printf("Y.shape %v\n", Y.Shape())
+	fmt.Printf("Y.dtype %v\n", Y.Dtype())
 
-	fmt.Printf("Counts shape: %v\n", counts.Shape())
-
-	prob := counts.Divide(counts.Sum(1))
-
-	fmt.Printf("Probs.shape: %v\n", prob.Shape())
-
-	loss := prob.Get(shapesCtx.Arange(32).I32(), Y).Log().Mean().Negate()
+	yOneHot := shapesCtx.OneHot(Y, 27)
+	loss := loss.CrossEntropy(yOneHot, logits)
 
 	visual.Print(loss)
 
-	newSection()
-
-	fmt.Println("Large exp\n")
-
-	logits = shapesCtx.FromFloat32(shapes.Shape{4}, []float32{-100, -3, 0, 100}).F64()
-	counts = logits.Exp()
-	prob = counts.Divide(counts.Sum(0))
-
-	visual.Print(prob)
 }

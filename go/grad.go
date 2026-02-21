@@ -17,22 +17,24 @@ type BackwardFn func(ctx *Context, node *ComputationGraphNode)
 type OpType int
 
 const (
-	OpNone       OpType = iota
-	OpAdd               // +
-	OpSubtract          // -
-	OpMultiply          // *
-	OpDivide            // /
-	OpPow               // pow
-	OpExp               // exp
-	OpTanh              // tanh
-	OpDense             // wx + b
-	OpReshape           // reshape
-	OpTranspose         // transpose
-	OpSqueeze           // squeeze
-	OpSqueezeDim        // squeeze_dim
-	OpUnSqueeze         // unsqueeze
-	OpNegate            // negate
-	OpSum               // sum
+	OpNone         OpType = iota
+	OpAdd                 // +
+	OpSubtract            // -
+	OpMultiply            // *
+	OpDivide              // /
+	OpPow                 // pow
+	OpExp                 // exp
+	OpTanh                // tanh
+	OpDense               // wx + b
+	OpReshape             // reshape
+	OpTranspose           // transpose
+	OpSqueeze             // squeeze
+	OpSqueezeDim          // squeeze_dim
+	OpUnSqueeze           // unsqueeze
+	OpNegate              // negate
+	OpSum                 // sum
+	OpMse                 // mse loss
+	OpCrossEntropy        // cross-entropy loss
 )
 
 func (op OpType) String() string {
@@ -65,6 +67,10 @@ func (op OpType) String() string {
 		return "negate"
 	case OpSum:
 		return "sum"
+	case OpMse:
+		return "mse"
+	case OpCrossEntropy:
+		return "cross_entropy"
 	default:
 		return "?"
 	}
@@ -96,6 +102,12 @@ func leafNode(ctx *Context, t *Tensor) {
 	}
 }
 
+// NewComputationGraphNode attaches a computation graph node to result.
+// Used by external packages (e.g., layer, activation) to register custom backward passes.
+func (c *Context) NewComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+	attachNode(c, result, op, backward, inputs...)
+}
+
 // attachNode creates a GraphNode and attaches it to the result tensor.
 // Only called when grad is enabled.
 func attachNode(ctx *Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
@@ -122,6 +134,16 @@ func markIfIntermediate(ctx *Context, t *Tensor, origin *Tensor) {
 	if t != origin {
 		markIntermediate(ctx, t)
 	}
+}
+
+// MarkIntermediate is the exported version of markIntermediate for sub-packages.
+func MarkIntermediate(ctx *Context, t *Tensor) {
+	markIntermediate(ctx, t)
+}
+
+// MarkIfIntermediate is the exported version of markIfIntermediate for sub-packages.
+func MarkIfIntermediate(ctx *Context, t *Tensor, origin *Tensor) {
+	markIfIntermediate(ctx, t, origin)
 }
 
 // FreeIntermediates frees all tensors marked as intermediate during backward.

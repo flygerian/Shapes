@@ -4,14 +4,60 @@ import (
 	shapes "github.com/flygerian/shapes"
 )
 
-func Mse(ctx *shapes.Context, yGround *shapes.Tensor, yPred *shapes.Tensor) *shapes.Tensor {
-	se := yPred.Minus(ctx, yGround).Pow(ctx, 2)
+// Mse computes the mean squared error loss between ground truth and predictions.
+// yGround and yPred should be WrappedTensors with the same shape.
+// Returns: sum((yPred - yGround)^2) reduced to a scalar.
+func Mse(yGround *shapes.WrappedTensor, yPred *shapes.WrappedTensor) *shapes.WrappedTensor {
+	ctx := yPred.Context()
+	fusedCtx := ctx.Fused()
+
+	// Compute: (yPred - yGround)^2
+	diff := yPred.Tensor().Minus(fusedCtx, yGround.Tensor())
+	se := diff.Pow(fusedCtx, 2)
+	shapes.MarkIntermediate(ctx, diff) // diff is intermediate, consumed by Pow
+
+	// Sum over all dimensions to reduce to scalar
 	result := se
 	shape := shapes.ShapeOf(result)
 	for i := len(shape) - 1; i >= 0; i-- {
 		if shape[i] > 1 {
-			result = result.Sum(ctx, uint32(i))
+			prev := result
+			result = result.Sum(fusedCtx, uint32(i))
+			shapes.MarkIntermediate(ctx, prev) // previous result is intermediate
 		}
 	}
-	return result
+
+	ctx.NewComputationGraphNode(result, shapes.OpMse, mseBackward, yGround.Tensor(), yPred.Tensor())
+	return ctx.Wrap(result)
+}
+
+// mseBackward computes gradients for MSE loss.
+// loss = sum((yPred - yGround)^2)
+// ∂L/∂yPred = 2*(yPred - yGround)
+// ∂L/∂yGround = -2*(yPred - yGround)
+func mseBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
+	yGround := node.Inputs[0]
+	yPred := node.Inputs[1]
+
+	// ∂L/∂yPred = upstream_grad * 2*(yPred - yGround)
+	diff := yPred.Minus(ctx, yGround)
+	two := shapes.Float(ctx, shapes.ShapeOf(diff), 2.0)
+	localGrad := two.Times(ctx, diff)
+	gradYPred := node.Grad.Times(ctx, localGrad)
+	reducedYPred := shapes.ReduceBroadcast(ctx, yPred, gradYPred)
+	yPred.Computation.Grad = yPred.Grad().Plus(ctx, reducedYPred)
+	shapes.MarkIntermediate(ctx, diff)
+	shapes.MarkIntermediate(ctx, two)
+	shapes.MarkIntermediate(ctx, localGrad)
+	shapes.MarkIntermediate(ctx, gradYPred)
+	shapes.MarkIfIntermediate(ctx, reducedYPred, gradYPred)
+
+	// ∂L/∂yGround = upstream_grad * -2*(yPred - yGround)
+	negLocalGrad := localGrad.Negate(ctx)
+	gradYGround := node.Grad.Times(ctx, negLocalGrad)
+	reducedYGround := shapes.ReduceBroadcast(ctx, yGround, gradYGround)
+	yGround.Computation.Grad = yGround.Grad().Plus(ctx, reducedYGround)
+	shapes.MarkIntermediate(ctx, negLocalGrad)
+	shapes.MarkIntermediate(ctx, gradYGround)
+	shapes.MarkIfIntermediate(ctx, reducedYGround, gradYGround)
 }

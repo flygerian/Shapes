@@ -128,12 +128,6 @@ func (t *Tensor) Shape() Shape {
 	return shapeOf(t)
 }
 
-// NewComputationGraphNode attaches a computation graph node to result.
-// Used by external packages (e.g., layer, activation) to register custom backward passes.
-func (c *Context) NewComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
-	attachNode(c, result, op, backward, inputs...)
-}
-
 // Shape returns the shape of the WrappedTensor.
 func (wt *WrappedTensor) Shape() Shape {
 	return wt.tensor.Shape()

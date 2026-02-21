@@ -263,3 +263,139 @@ func TestLogOfOne(t *testing.T) {
 		}
 	}
 }
+
+// [[1,2,3],[4,5,6]] → max along dim0 → [[4,5,6]] (shape [1,3])
+func TestMaxDim0(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Max(ctx, 0)
+
+	if got, want := shapeOf(result), (Shape{1, 3}); len(got) != len(want) {
+		t.Fatalf("Max(dim=0) shape = %v, want %v", got, want)
+	} else {
+		for i, v := range want {
+			if got[i] != v {
+				t.Fatalf("Max(dim=0) shape = %v, want %v", got, want)
+			}
+		}
+	}
+
+	expected := []float32{4, 5, 6}
+	for j, want := range expected {
+		got := result.Get(ctx, 0, uint32(j)).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Max(dim=0)[0,%d] = %f, want %f", j, got, want)
+		}
+	}
+}
+
+// [[1,2,3],[4,5,6]] → max along dim1 → [[3],[6]] (shape [2,1])
+func TestMaxDim1(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Max(ctx, 1)
+
+	if got, want := shapeOf(result), (Shape{2, 1}); len(got) != len(want) {
+		t.Fatalf("Max(dim=1) shape = %v, want %v", got, want)
+	} else {
+		for i, v := range want {
+			if got[i] != v {
+				t.Fatalf("Max(dim=1) shape = %v, want %v", got, want)
+			}
+		}
+	}
+
+	expected := []float32{3, 6}
+	for i, want := range expected {
+		got := result.Get(ctx, uint32(i), 0).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Max(dim=1)[%d,0] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+// Max with no dims reduces everything → scalar shape [1]
+func TestMaxGlobal(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Max(ctx)
+
+	got := result.Get(ctx, 0).Item().(float32)
+	if !approxEq(got, 6.0, 1e-5) {
+		t.Errorf("Max(global) = %f, want 6.0", got)
+	}
+}
+
+// WrappedTensor.Max delegates correctly
+func TestMaxWrapped(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.FromFloat32(Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Max(1)
+
+	expected := []float32{3, 6}
+	for i, want := range expected {
+		got := result.Get(uint32(i), 0).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("WrappedTensor Max(dim=1)[%d,0] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+// [[1,2,3],[4,5,6]] → mean along dim0 → [[2.5,3.5,4.5]] (shape [1,3])
+func TestMeanDim0(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Mean(ctx, 0)
+
+	expected := []float32{2.5, 3.5, 4.5}
+	for j, want := range expected {
+		got := result.Get(ctx, 0, uint32(j)).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Mean(dim=0)[0,%d] = %f, want %f", j, got, want)
+		}
+	}
+}
+
+// [[1,2,3],[4,5,6]] → mean along dim1 → [[2.0],[5.0]] (shape [2,1])
+func TestMeanDim1(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Mean(ctx, 1)
+
+	expected := []float32{2.0, 5.0}
+	for i, want := range expected {
+		got := result.Get(ctx, uint32(i), 0).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Mean(dim=1)[%d,0] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+// WrappedTensor.Mean with dim delegates to MeanDim
+func TestMeanDimWrapped(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.FromFloat32(Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.Mean(1)
+
+	expected := []float32{2.0, 5.0}
+	for i, want := range expected {
+		got := result.Get(uint32(i), 0).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("WrappedTensor Mean(dim=1)[%d,0] = %f, want %f", i, got, want)
+		}
+	}
+}

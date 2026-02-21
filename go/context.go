@@ -104,9 +104,8 @@ func (c *Context) Fused() *Context {
 	return &Context{
 		Context:         c.Context,
 		cCtx:            c.cCtx,
-		tensors:         c.tensors,
-		intermediates:   c.intermediates,
-		GradEnabled:     c.GradEnabled,
+		tensors:         make([]*unsafe.Pointer, 0),
+		GradEnabled:     true,
 		BackwardEnabled: false,
 	}
 }

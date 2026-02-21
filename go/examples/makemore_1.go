@@ -36,7 +36,8 @@ func MakeMore_1(ctx *shapes.Context) {
 		logits = dens3(denseOutput)
 		logits.Tensor().Label = "logits"
 
-		l = loss.Mse(ctx, ys.Tensor(), logits.Squeeze().Tensor())
+		lossTensor := loss.Mse(ys, logits.Squeeze())
+		l = lossTensor.Tensor()
 		computationGraph = l.Backward(ctx)
 
 		fmt.Printf("Loss \n")
