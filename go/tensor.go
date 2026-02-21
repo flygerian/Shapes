@@ -128,7 +128,18 @@ func (t *Tensor) Shape() Shape {
 	return shapeOf(t)
 }
 
-// AttachComputationGraphNode is the exported version of attachNode for use by external packages.
-func AttachComputationGraphNode(ctx *Context, result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
-	attachNode(ctx, result, op, backward, inputs...)
+// NewComputationGraphNode attaches a computation graph node to result.
+// Used by external packages (e.g., layer, activation) to register custom backward passes.
+func (c *Context) NewComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
+	attachNode(c, result, op, backward, inputs...)
+}
+
+// Shape returns the shape of the WrappedTensor.
+func (wt *WrappedTensor) Shape() Shape {
+	return wt.tensor.Shape()
+}
+
+// Dtype returns the data type of the WrappedTensor.
+func (wt *WrappedTensor) Dtype() Dtype {
+	return wt.tensor.Dtype()
 }

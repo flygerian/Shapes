@@ -207,3 +207,18 @@ func (t *Tensor) Grad() *Tensor {
 func (t *Tensor) RequiresGrad() bool {
 	return t.Computation != nil
 }
+
+// Backward runs backpropagation from this WrappedTensor through the computation graph.
+func (wt *WrappedTensor) Backward() *ComputationGraph {
+	return wt.tensor.Backward(wt.context)
+}
+
+// Grad returns the gradient WrappedTensor. Panics if this tensor has no computation node.
+func (wt *WrappedTensor) Grad() *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Grad())
+}
+
+// RequiresGrad returns true if this WrappedTensor is part of a computation graph.
+func (wt *WrappedTensor) RequiresGrad() bool {
+	return wt.tensor.RequiresGrad()
+}

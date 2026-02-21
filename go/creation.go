@@ -228,6 +228,99 @@ func (t *Tensor) FreeView(ctx *Context) {
 	}
 }
 
+// Free releases the WrappedTensor's C memory back to the arena.
+// After Free, the WrappedTensor must not be used.
+func (wt *WrappedTensor) Free() {
+	wt.tensor.Free(wt.context)
+}
+
+// FreeView releases a view WrappedTensor's metadata back to the arena
+// without freeing the shared values.
+func (wt *WrappedTensor) FreeView() {
+	wt.tensor.FreeView(wt.context)
+}
+
+// --- Context creation methods ---
+
+// Zeros creates a tensor filled with zeros on the context, returning a WrappedTensor.
+// Returns nil for empty shape.
+func (c *Context) Zeros(shape Shape) *WrappedTensor {
+	t := Zeros(c, shape)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// Int creates a tensor filled with the given int8 value on the context, returning a WrappedTensor.
+// Returns nil for empty shape.
+func (c *Context) Int(shape Shape, value int8) *WrappedTensor {
+	t := Int(c, shape, value)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// Float creates a tensor filled with the given float32 value on the context, returning a WrappedTensor.
+// Returns nil for empty shape.
+func (c *Context) Float(shape Shape, value float32) *WrappedTensor {
+	t := Float(c, shape, value)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// FromFloat32 creates a tensor from a Go []float32 slice on the context, returning a WrappedTensor.
+// Panics if the number of elements in data does not match the shape.
+// Returns nil for empty shape.
+func (c *Context) FromFloat32(shape Shape, data []float32) *WrappedTensor {
+	t := FromFloat32(c, shape, data)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// FromInt8 creates a tensor from nested int8 slices on the context, returning a WrappedTensor.
+// Supports up to 4D tensors: []int8 (1D), [][]int8 (2D), [][][]int8 (3D), [][][][]int8 (4D).
+// Panics if nested slices have inconsistent lengths (ragged arrays).
+// Returns nil for empty data.
+func (c *Context) FromInt8(data interface{}) *WrappedTensor {
+	t := FromInt8(c, data)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// FloatRandom creates a tensor with random float32 values uniformly distributed in [-1, 1]
+// on the context, returning a WrappedTensor.
+// Returns nil for empty shape.
+func (c *Context) FloatRandom(shape Shape) *WrappedTensor {
+	t := FloatRandom(c, shape)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// Clone creates a deep copy of the given tensor on the context, returning a WrappedTensor.
+func (c *Context) Clone(src *WrappedTensor) *WrappedTensor {
+	return c.Wrap(Clone(c, src.tensor))
+}
+
+// OneHot creates a one-hot encoded tensor from indices on the context, returning a WrappedTensor.
+// Returns nil for nil indices or zero numClasses.
+func (c *Context) OneHot(indices *WrappedTensor, numClasses uint32) *WrappedTensor {
+	t := OneHot(c, indices.tensor, numClasses)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
 // Clone creates a deep copy of the tensor.
 func Clone(ctx *Context, src *Tensor) *Tensor {
 	var dest *C.Tensor

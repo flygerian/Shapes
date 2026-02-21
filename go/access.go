@@ -155,6 +155,21 @@ func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
 	})
 }
 
+// Get returns a sub-tensor at the given coordinates as a WrappedTensor.
+// If the first index is a *WrappedTensor, advanced indexing is performed using its inner tensor,
+// and both WrappedTensors must belong to the same context.
+// Otherwise, all indices are treated as integer coordinates.
+func (wt *WrappedTensor) Get(indices ...interface{}) *WrappedTensor {
+	// If using tensor indexing, validate contexts match
+	if len(indices) == 1 {
+		if idxWrapped, ok := indices[0].(*WrappedTensor); ok {
+			wt.validateSameContext(idxWrapped)
+			return wt.context.Wrap(wt.tensor.Get(wt.context, idxWrapped.tensor))
+		}
+	}
+	return wt.context.Wrap(wt.tensor.Get(wt.context, indices...))
+}
+
 // Item extracts the scalar value from a 0-dimensional tensor.
 // Returns the value as the appropriate Go type.
 // Panics if the tensor is not 0-dimensional.
@@ -191,4 +206,11 @@ func (t *Tensor) Item() interface{} {
 	default:
 		panic("shapes: unknown dtype")
 	}
+}
+
+// Item extracts the scalar value from a 0-dimensional WrappedTensor.
+// Returns the value as the appropriate Go type.
+// Panics if the tensor is not 0-dimensional.
+func (wt *WrappedTensor) Item() interface{} {
+	return wt.tensor.Item()
 }

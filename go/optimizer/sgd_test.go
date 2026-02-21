@@ -19,10 +19,10 @@ func TestSGDUpdatesParameters(t *testing.T) {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
-	graph := o.Backward(ctx)
+	o := dense(x)
+	graph := o.Backward()
 
 	params := extract.Parameters(graph)
 	if len(params) != 2 {
@@ -75,10 +75,10 @@ func TestSGDLossDecreases(t *testing.T) {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
-	graph := o.Backward(ctx)
+	o := dense(x)
+	graph := o.Backward()
 
 	params := extract.Parameters(graph)
 	if len(params) == 0 {
@@ -115,10 +115,10 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
-	graph := o.Backward(ctx)
+	o := dense(x)
+	graph := o.Backward()
 
 	params := extract.Parameters(graph)
 	before := snapshotParams(t, ctx, params)

@@ -30,3 +30,8 @@ func (t *Tensor) Sum(ctx *Context, dim uint32) *Tensor {
 	}
 	return out
 }
+
+// Sum reduces the tensor along the given dimension by summing, returning a new WrappedTensor.
+func (wt *WrappedTensor) Sum(dim uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Sum(wt.context, dim))
+}

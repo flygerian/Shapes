@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	shapes "github.com/flygerian/shapes"
-	
 )
 
 func approxEq(a, b, tol float32) bool {
@@ -18,8 +17,8 @@ func TestTanh(t *testing.T) {
 	defer ctx.Close()
 
 	// tanh(0) = 0, tanh(1) ≈ 0.7616
-	a := shapes.Float(ctx, shapes.Shape{2}, 0.0)
-	result := Tanh(ctx, a)
+	a := ctx.Float(shapes.Shape{2}, 0.0)
+	result := Tanh(ctx, a.Tensor())
 
 	got := result.Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 0.0, 1e-5) {
@@ -31,8 +30,8 @@ func TestTanhValues(t *testing.T) {
 	ctx := shapes.New(context.Background())
 	defer ctx.Close()
 
-	a := shapes.Float(ctx, shapes.Shape{1}, 1.0)
-	result := Tanh(ctx, a)
+	a := ctx.Float(shapes.Shape{1}, 1.0)
+	result := Tanh(ctx, a.Tensor())
 
 	got := result.Get(ctx, 0).Item().(float32)
 	expected := float32(math.Tanh(1.0))
@@ -47,12 +46,12 @@ func TestTanhBackward(t *testing.T) {
 
 	// tanh'(x) = 1 - tanh(x)^2
 	// At x=0: tanh(0)=0, tanh'(0) = 1 - 0 = 1
-	x := shapes.Float(ctx, shapes.Shape{1}, 0.0)
-	y := Tanh(ctx, x)
+	x := ctx.Float(shapes.Shape{1}, 0.0)
+	y := Tanh(ctx, x.Tensor())
 
 	y.Backward(ctx)
 
-	got := x.Grad().Get(ctx, 0).Item().(float32)
+	got := x.Tensor().Grad().Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 1.0, 1e-5) {
 		t.Errorf("tanh'(0) = %f, want 1.0", got)
 	}
@@ -63,11 +62,11 @@ func TestTanhBackwardNonZero(t *testing.T) {
 	defer ctx.Close()
 
 	// At x=1: tanh(1) ≈ 0.7616, tanh'(1) = 1 - 0.7616^2 ≈ 0.4200
-	x := shapes.Float(ctx, shapes.Shape{1}, 1.0)
-	y := Tanh(ctx, x)
+	x := ctx.Float(shapes.Shape{1}, 1.0)
+	y := Tanh(ctx, x.Tensor())
 	y.Backward(ctx)
 
-	got := x.Grad().Get(ctx, 0).Item().(float32)
+	got := x.Tensor().Grad().Get(ctx, 0).Item().(float32)
 	tanhVal := float32(math.Tanh(1.0))
 	expected := 1.0 - tanhVal*tanhVal
 	if !approxEq(got, expected, 1e-4) {

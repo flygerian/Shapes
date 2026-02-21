@@ -68,3 +68,18 @@ func (t *Tensor) Negate(ctx *Context) *Tensor {
 	}
 	return out
 }
+
+// Pow raises every element to the given power, returning a new WrappedTensor.
+func (wt *WrappedTensor) Pow(power float32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Pow(wt.context, power))
+}
+
+// Exp computes e^x for every element, returning a new WrappedTensor.
+func (wt *WrappedTensor) Exp() *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Exp(wt.context))
+}
+
+// Negate negates every element (-wt), returning a new WrappedTensor.
+func (wt *WrappedTensor) Negate() *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Negate(wt.context))
+}

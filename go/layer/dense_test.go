@@ -12,15 +12,15 @@ func TestDenseReturnsResult(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
+	o := dense(x)
 	if o == nil {
 		t.Fatal("Dense returned nil")
 	}
 
 	// x @ wᵀ + b: [1,3] @ [3,2] = [1,2]
-	shape := shapes.ShapeOf(o)
+	shape := o.Shape()
 	if len(shape) != 2 || shape[0] != 1 || shape[1] != 2 {
 		t.Fatalf("expected shape [1,2], got %v", shape)
 	}
@@ -31,15 +31,15 @@ func TestDenseBatchInput(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(4, 2)
-	x := shapes.Float(ctx, shapes.Shape{3, 4}, 1.0)
+	x := ctx.Float(shapes.Shape{3, 4}, 1.0)
 
-	o := dense(ctx, x)
+	o := dense(x)
 	if o == nil {
 		t.Fatal("Dense returned nil for batched input")
 	}
 
 	// x @ wᵀ + b: [3,4] @ [4,2] = [3,2]
-	shape := shapes.ShapeOf(o)
+	shape := o.Shape()
 	if len(shape) != 2 || shape[0] != 3 || shape[1] != 2 {
 		t.Fatalf("expected shape [3,2], got %v", shape)
 	}
@@ -50,16 +50,16 @@ func TestDense1DInput(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(5, 3)
-	x := shapes.Float(ctx, shapes.Shape{5}, 2.0)
+	x := ctx.Float(shapes.Shape{5}, 2.0)
 
-	o := dense(ctx, x)
+	o := dense(x)
 	if o == nil {
 		t.Fatal("Dense returned nil for 1D input")
 	}
 
 	// x unsqueezed to [1,5], x @ wᵀ = [1,5] @ [5,3] = [1,3]
 	// squeezed back to [3]
-	shape := shapes.ShapeOf(o)
+	shape := o.Shape()
 	if len(shape) != 1 || shape[0] != 3 {
 		t.Fatalf("expected shape [3], got %v", shape)
 	}
@@ -70,9 +70,9 @@ func TestDenseAlwaysAttachesGraph(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
+	o := dense(x)
 
 	if !o.RequiresGrad() {
 		t.Error("expected graph node to always be attached")
@@ -84,20 +84,20 @@ func TestDenseWithGradAttachesNode(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
+	o := dense(x)
 
 	if !o.RequiresGrad() {
 		t.Fatal("expected grad tracking when context has grad enabled")
 	}
 
-	if o.Computation.Op != shapes.OpDense {
-		t.Errorf("expected OpDense, got %s", o.Computation.Op)
+	if o.Tensor().Computation.Op != shapes.OpDense {
+		t.Errorf("expected OpDense, got %s", o.Tensor().Computation.Op)
 	}
 
-	if len(o.Computation.Inputs) != 3 {
-		t.Fatalf("expected 3 inputs (w, x, b), got %d", len(o.Computation.Inputs))
+	if len(o.Tensor().Computation.Inputs) != 3 {
+		t.Fatalf("expected 3 inputs (w, x, b), got %d", len(o.Tensor().Computation.Inputs))
 	}
 }
 
@@ -106,15 +106,15 @@ func TestDenseBackward1D(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{3}, 1.0)
+	x := ctx.Float(shapes.Shape{3}, 1.0)
 
-	o := dense(ctx, x)
-	o.Backward(ctx)
+	o := dense(x)
+	o.Backward()
 
 	// w is [2,3], x is [3], b is [2]
-	wGrad := o.Computation.Inputs[0].Grad()
-	xGrad := o.Computation.Inputs[1].Grad()
-	bGrad := o.Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs[2].Grad()
 
 	wGradShape := shapes.ShapeOf(wGrad)
 	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 3 {
@@ -137,15 +137,15 @@ func TestDenseBackward2D(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(4, 2)
-	x := shapes.Float(ctx, shapes.Shape{3, 4}, 1.0)
+	x := ctx.Float(shapes.Shape{3, 4}, 1.0)
 
-	o := dense(ctx, x)
-	o.Backward(ctx)
+	o := dense(x)
+	o.Backward()
 
 	// w is [2,4], x is [3,4], b is [2]
-	wGrad := o.Computation.Inputs[0].Grad()
-	xGrad := o.Computation.Inputs[1].Grad()
-	bGrad := o.Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs[2].Grad()
 
 	wGradShape := shapes.ShapeOf(wGrad)
 	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 4 {
@@ -168,15 +168,15 @@ func TestDenseBackward3D(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(5, 3)
-	x := shapes.Float(ctx, shapes.Shape{2, 4, 5}, 1.0)
+	x := ctx.Float(shapes.Shape{2, 4, 5}, 1.0)
 
-	o := dense(ctx, x)
-	o.Backward(ctx)
+	o := dense(x)
+	o.Backward()
 
 	// w is [3,5], x is [2,4,5], b is [3]
-	wGrad := o.Computation.Inputs[0].Grad()
-	xGrad := o.Computation.Inputs[1].Grad()
-	bGrad := o.Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs[2].Grad()
 
 	wGradShape := shapes.ShapeOf(wGrad)
 	if len(wGradShape) != 2 || wGradShape[0] != 3 || wGradShape[1] != 5 {
@@ -199,15 +199,15 @@ func TestDenseBackward4D(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(6, 4)
-	x := shapes.Float(ctx, shapes.Shape{2, 3, 5, 6}, 1.0)
+	x := ctx.Float(shapes.Shape{2, 3, 5, 6}, 1.0)
 
-	o := dense(ctx, x)
-	o.Backward(ctx)
+	o := dense(x)
+	o.Backward()
 
 	// w is [4,6], x is [2,3,5,6], b is [4]
-	wGrad := o.Computation.Inputs[0].Grad()
-	xGrad := o.Computation.Inputs[1].Grad()
-	bGrad := o.Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs[2].Grad()
 
 	wGradShape := shapes.ShapeOf(wGrad)
 	if len(wGradShape) != 2 || wGradShape[0] != 4 || wGradShape[1] != 6 {
@@ -230,12 +230,12 @@ func TestDenseInternalOpsHaveNoBackward(t *testing.T) {
 	defer ctx.Close()
 
 	dense := Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
+	o := dense(x)
 
-	w := o.Computation.Inputs[0]
-	b := o.Computation.Inputs[2]
+	w := o.Tensor().Computation.Inputs[0]
+	b := o.Tensor().Computation.Inputs[2]
 
 	if w.Computation != nil && w.Computation.Backward != nil {
 		t.Error("w should not have its own backward pass")
@@ -244,7 +244,7 @@ func TestDenseInternalOpsHaveNoBackward(t *testing.T) {
 		t.Error("b should not have its own backward pass")
 	}
 
-	if o.Computation.Backward == nil {
+	if o.Tensor().Computation.Backward == nil {
 		t.Error("Dense output should have a backward function")
 	}
 }

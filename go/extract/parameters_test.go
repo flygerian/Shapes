@@ -13,10 +13,10 @@ func TestParametersFromSingleDense(t *testing.T) {
 	defer ctx.Close()
 
 	dense := layer.Dense(3, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	o := dense(ctx, x)
-	graph := o.Backward(ctx)
+	o := dense(x)
+	graph := o.Backward()
 
 	params := Parameters(graph)
 	// Dense has w and b => 2 parameters.
@@ -41,11 +41,11 @@ func TestParametersFromMultipleDenseLayers(t *testing.T) {
 
 	dense1 := layer.Dense(3, 4)
 	dense2 := layer.Dense(4, 2)
-	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
+	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
-	h := dense1(ctx, x)
-	o := dense2(ctx, h)
-	graph := o.Backward(ctx)
+	h := dense1(x)
+	o := dense2(h)
+	graph := o.Backward()
 
 	params := Parameters(graph)
 	// Two dense layers, each with w and b => 4 parameters.
@@ -58,11 +58,11 @@ func TestParametersEmptyWithNoLayers(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Close()
 
-	a := shapes.Float(ctx, shapes.Shape{2}, 3.0)
-	b := shapes.Float(ctx, shapes.Shape{2}, 5.0)
+	a := ctx.Float(shapes.Shape{2}, 3.0)
+	b := ctx.Float(shapes.Shape{2}, 5.0)
 
-	c := a.Plus(ctx, b)
-	graph := c.Backward(ctx)
+	c := a.Plus(b)
+	graph := c.Backward()
 
 	params := Parameters(graph)
 	if len(params) != 0 {

@@ -260,3 +260,41 @@ func (t *Tensor) SafeUnSqueeze(ctx *Context, dims ...uint32) *Tensor {
 
 	return t.UnSqueeze(ctx, uint32(0))
 }
+
+// Slice creates a view into the tensor. Each range is a Range{start, end}
+// specifying a half-open interval for that dimension.
+func (wt *WrappedTensor) Slice(ranges ...Range) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Slice(wt.context, ranges...))
+}
+
+// Reshape returns a tensor with the same data but a different shape.
+func (wt *WrappedTensor) Reshape(shape Shape) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Reshape(wt.context, shape))
+}
+
+// Transpose swaps two dimensions, returning a view.
+// With no extra args it swaps the last two dimensions (the common default).
+// With two args it swaps those specific dimensions.
+func (wt *WrappedTensor) Transpose(dims ...uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Transpose(wt.context, dims...))
+}
+
+// Squeeze removes all dimensions of size 1, returning a view.
+func (wt *WrappedTensor) Squeeze() *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Squeeze(wt.context))
+}
+
+// SqueezeDim removes a single dimension at the given position (must be size 1), returning a view.
+func (wt *WrappedTensor) SqueezeDim(dim uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.SqueezeDim(wt.context, dim))
+}
+
+// UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
+func (wt *WrappedTensor) UnSqueeze(dim uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.UnSqueeze(wt.context, dim))
+}
+
+// SafeUnSqueeze inserts a new dimension at dim 0 only if the tensor is 1D.
+func (wt *WrappedTensor) SafeUnSqueeze(dims ...uint32) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.SafeUnSqueeze(wt.context, dims...))
+}

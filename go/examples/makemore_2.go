@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/flygerian/shapes"
+	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/visual"
 )
 
@@ -52,7 +53,7 @@ func newSection() {
 	fmt.Printf("\n\n................................................................................\n\n")
 }
 
-func MakeMore_2(ctx *shapes.Context) {
+func MakeMore_2(shapesCtx *shapes.Context) {
 	file, err := os.Open("names.txt")
 	if err != nil {
 		panic("Could not open file")
@@ -115,33 +116,38 @@ func MakeMore_2(ctx *shapes.Context) {
 		}
 	}
 
-	X := shapes.FromInt8(ctx, x)
-	Y := shapes.FromInt8(ctx, y)
+	X := shapesCtx.FromInt8(x)
+	Y := shapesCtx.FromInt8(y)
 
 	newSection()
 
-	fmt.Printf("%v, %v, %v, %v\n", shapes.ShapeOf(X), X.Dtype(), shapes.ShapeOf(Y), Y.Dtype())
+	fmt.Printf("%v, %v, %v, %v\n", X.Shape(), X.Dtype(), Y.Shape(), Y.Dtype())
 
 	newSection()
 
-	C := shapes.FloatRandom(ctx, shapes.Shape{27, 2})
+	C := shapesCtx.FloatRandom(shapes.Shape{27, 2})
 
-	idx := shapes.FromInt8(ctx, []int8{5})
+	idx := shapesCtx.FromInt8([]int8{5})
 
-	visual.Print(ctx, idx)
+	visual.Print(shapesCtx, idx.Tensor())
 
-	oneHot := shapes.OneHot(ctx, idx, 27)
+	oneHot := shapesCtx.OneHot(idx, 27)
 
 	newSection()
 
-	fmt.Printf("One hot shapes: %v\n", oneHot.Squeeze(ctx).Shape())
-	visual.Print(ctx, oneHot)
+	fmt.Printf("One hot shapes: %v\n", oneHot.Squeeze().Shape())
+	visual.Print(shapesCtx, oneHot.Tensor())
 
-	p := oneHot.Mul(ctx, C).Squeeze(ctx)
+	p := oneHot.Mul(C).Squeeze()
 
 	fmt.Printf("Mul\n")
-	visual.Print(ctx, p)
+	visual.Print(shapesCtx, p.Tensor())
 
-	fmt.Printf("5: %v\n", C.Get(ctx, X).Shape())
-	visual.Print(ctx, C.Get(ctx, X).Get(ctx, 13, 2))
+	newSection()
+
+	emb := C.Get(X)
+	fmt.Printf("Embedding table shape %v", emb.Shape())
+
+	l1 := layer.Dense(6, 100)
+
 }

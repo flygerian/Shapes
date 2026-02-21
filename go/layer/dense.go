@@ -4,37 +4,39 @@ import (
 	shapes "github.com/flygerian/shapes"
 )
 
-func Dense(inputSize int, outputSize int) func(*shapes.Context, *shapes.Tensor) *shapes.Tensor {
-	var w, b *shapes.Tensor
+func Dense(inputSize int, outputSize int) func(*shapes.WrappedTensor) *shapes.WrappedTensor {
+	var w, b *shapes.WrappedTensor
 
-	return func(ctx *shapes.Context, x *shapes.Tensor) *shapes.Tensor {
+	return func(x *shapes.WrappedTensor) *shapes.WrappedTensor {
+		ctx := x.Context()
 		fusedCtx := ctx.Fused()
 
-		inputShape := shapes.ShapeOf(x)
+		inputShape := x.Shape()
 		is1D := len(inputShape) == 1
 
 		// If 1D, promote to [1, n] so MatMul works.
 		input := x
 		if is1D {
-			input = x.UnSqueeze(fusedCtx, 0)
+			input = x.UnSqueeze(0)
 		}
 
 		// Initialize weights once on first call.
+		// Wrap with the original ctx so context validation passes on subsequent ops.
 		if w == nil {
 			tensorLastDimSize := inputShape[len(inputShape)-1]
-			w = shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize), tensorLastDimSize})
-			b = shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize)})
+			w = ctx.Wrap(shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize), tensorLastDimSize}))
+			b = ctx.Wrap(shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize)}))
 		}
 
 		// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
-		o := input.Mul(fusedCtx, w.Transpose(fusedCtx)).Plus(fusedCtx, b)
+		o := input.Mul(w.Transpose()).Plus(b)
 
 		// If 1D input, squeeze back to 1D output.
 		if is1D {
-			o = o.Squeeze(fusedCtx)
+			o = o.Squeeze()
 		}
 
-		shapes.AttachComputationGraphNode(ctx, o, shapes.OpDense, constructDenseBackwardPass, w, x, b)
+		ctx.NewComputationGraphNode(o.Tensor(), shapes.OpDense, constructDenseBackwardPass, w.Tensor(), x.Tensor(), b.Tensor())
 
 		return o
 	}

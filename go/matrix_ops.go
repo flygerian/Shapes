@@ -42,3 +42,15 @@ func (t *Tensor) Dot(ctx *Context, other *Tensor) *Tensor {
 	}
 	return track(ctx, &Tensor{cTensor: dest})
 }
+
+// Mul performs matrix multiplication of wt and other, returning a new WrappedTensor.
+func (wt *WrappedTensor) Mul(other *WrappedTensor) *WrappedTensor {
+	wt.validateSameContext(other)
+	return wt.context.Wrap(wt.tensor.Mul(wt.context, other.tensor))
+}
+
+// Dot computes the dot product of wt and other, returning a new WrappedTensor.
+func (wt *WrappedTensor) Dot(other *WrappedTensor) *WrappedTensor {
+	wt.validateSameContext(other)
+	return wt.context.Wrap(wt.tensor.Dot(wt.context, other.tensor))
+}

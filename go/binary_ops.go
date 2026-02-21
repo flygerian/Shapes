@@ -104,3 +104,33 @@ func (t *Tensor) AddInPlace(ctx *Context, other *Tensor) {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 }
+
+// Plus performs element-wise addition of wt and other, returning a new WrappedTensor.
+func (wt *WrappedTensor) Plus(other *WrappedTensor) *WrappedTensor {
+	wt.validateSameContext(other)
+	return wt.context.Wrap(wt.tensor.Plus(wt.context, other.tensor))
+}
+
+// Minus performs element-wise subtraction of other from wt, returning a new WrappedTensor.
+func (wt *WrappedTensor) Minus(other *WrappedTensor) *WrappedTensor {
+	wt.validateSameContext(other)
+	return wt.context.Wrap(wt.tensor.Minus(wt.context, other.tensor))
+}
+
+// Times performs element-wise multiplication of wt and other, returning a new WrappedTensor.
+func (wt *WrappedTensor) Times(other *WrappedTensor) *WrappedTensor {
+	wt.validateSameContext(other)
+	return wt.context.Wrap(wt.tensor.Times(wt.context, other.tensor))
+}
+
+// Divide performs element-wise division of wt by other, returning a new WrappedTensor.
+func (wt *WrappedTensor) Divide(other *WrappedTensor) *WrappedTensor {
+	wt.validateSameContext(other)
+	return wt.context.Wrap(wt.tensor.Divide(wt.context, other.tensor))
+}
+
+// AddInPlace performs element-wise addition of other into wt, modifying wt in place.
+func (wt *WrappedTensor) AddInPlace(other *WrappedTensor) {
+	wt.validateSameContext(other)
+	wt.tensor.AddInPlace(wt.context, other.tensor)
+}
