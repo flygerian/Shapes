@@ -127,3 +127,83 @@ Result Exp(Context *ctx, Tensor *t, Tensor *dest) {
 
   return OK;
 }
+
+static Result logValue(Value *v) {
+  switch (v->dtype) {
+    COMPUTE_LOG(v, F16, f16, log);
+    COMPUTE_LOG(v, F32, f32, log);
+    COMPUTE_LOG(v, F64, f64, log);
+
+    default: return ERR_LOG_VALUE_NOT_FLOAT;
+  }
+}
+
+Result Log(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
+    return ERR_LOG_VALUE_NOT_FLOAT;
+  }
+
+  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
+
+  for (size_t i = 0; i < t->size; i++) {
+    Value val;
+    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
+
+    Result result = logValue(&val);
+    if (result != OK) {
+      return result;
+    }
+
+    VALUE_SET(output->values, i, val);
+  }
+
+  *dest = *output;
+  freeAlloc(ctx->memory, output);
+
+  return OK;
+}
+
+Result Mean(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
+    return ERR_MEAN_VALUE_NOT_FLOAT;
+  }
+
+  f64 sum = 0.0;
+
+  for (size_t i = 0; i < t->size; i++) {
+    Value val;
+    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
+
+    switch (t->dtype) {
+      case F16: sum += (f64)val.as.f16; break;
+      case F32: sum += (f64)val.as.f32; break;
+      case F64: sum += val.as.f64; break;
+      default: return ERR_MEAN_VALUE_NOT_FLOAT;
+    }
+  }
+
+  f64 mean = sum / (f64)t->size;
+
+  dim_t dims[] = {1};
+  Tensor *output = t_Zeros(ctx, (Dim){.dims = dims, .numOfDims = 1}, t->dtype);
+
+  switch (t->dtype) {
+    case F16: ((f16 *)output->values)[0] = (f16)mean; break;
+    case F32: ((f32 *)output->values)[0] = (f32)mean; break;
+    case F64: ((f64 *)output->values)[0] = mean; break;
+    default: return ERR_MEAN_VALUE_NOT_FLOAT;
+  }
+
+  *dest = *output;
+  freeAlloc(ctx->memory, output);
+
+  return OK;
+}

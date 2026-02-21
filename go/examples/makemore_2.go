@@ -162,7 +162,17 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	fmt.Printf("Probs.shape: %v\n", prob.Shape())
 
-	yProps := prob.Get(shapesCtx.Arange(32).I32(), Y)
+	loss := prob.Get(shapesCtx.Arange(32).I32(), Y).Log().Mean().Negate()
 
-	visual.Print(yProps)
+	visual.Print(loss)
+
+	newSection()
+
+	fmt.Println("Large exp\n")
+
+	logits = shapesCtx.FromFloat32(shapes.Shape{4}, []float32{-100, -3, 0, 100}).F64()
+	counts = logits.Exp()
+	prob = counts.Divide(counts.Sum(0))
+
+	visual.Print(prob)
 }

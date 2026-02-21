@@ -28,4 +28,14 @@ Result Negate(Context *ctx, Tensor *t, Tensor *dest);
     return OK;                                                                                     \
   }
 
+#define COMPUTE_LOG(val, dtype_enum, c_type, log_fn)                                               \
+  case dtype_enum: {                                                                               \
+    c_type num = (val)->as.c_type;                                                                 \
+    (val)->as.c_type = (c_type)log_fn((double)num);                                                \
+    return OK;                                                                                     \
+  }
+
+Result Mean(Context *ctx, Tensor *t, Tensor *dest);
+Result Log(Context *ctx, Tensor *t, Tensor *dest);
+
 #endif

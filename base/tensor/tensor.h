@@ -40,6 +40,8 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
 Result Negate(Context *ctx, Tensor *t, Tensor *dest);
+Result Mean(Context *ctx, Tensor *t, Tensor *dest);
+Result Log(Context *ctx, Tensor *t, Tensor *dest);
 
 // Matrix ops
 Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);

@@ -3613,6 +3613,117 @@ static void test_index_with_tensor_2d_non_int_indices(void) {
   freeMemory(mem);
 }
 
+// Mean tests
+static void test_mean_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // Set values: [[1, 2, 3], [4, 5, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 2.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 5.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor dest;
+  Result r = Mean(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Mean should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 1, "Mean result should have 1 dimension");
+  ASSERT_EQ(dest.shape.dims[0], 1, "Mean result should have size 1");
+
+  f32 *vals = (f32 *)dest.values;
+  f32 expected = (1.0f + 2.0f + 3.0f + 4.0f + 5.0f + 6.0f) / 6.0f;
+  ASSERT_EQ(vals[0], expected, "Mean should be correct");
+
+  freeMemory(mem);
+}
+
+static void test_mean_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor dest;
+  Result r = Mean(&ctx, NULL, &dest);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Mean with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_mean_non_float_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+
+  Tensor dest;
+  Result r = Mean(&ctx, t, &dest);
+  ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "Mean with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
+// Log tests
+static void test_log_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 2};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // Set values: [[1.0, 2.718], [10.0, 100.0]]
+  // ln(1) = 0, ln(e) ≈ 1, ln(10) ≈ 2.302, ln(100) ≈ 4.605
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 2.71828f;
+  ((f32 *)t->values)[2] = 10.0f;
+  ((f32 *)t->values)[3] = 100.0f;
+
+  Tensor dest;
+  Result r = Log(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Log should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "Log result should preserve shape");
+  ASSERT_EQ(dest.shape.dims[0], 2, "Log result dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 2, "Log result dim 1 should be 2");
+
+  f32 *vals = (f32 *)dest.values;
+  f32 tolerance = 0.01f;
+  ASSERT(fabs(vals[0] - 0.0f) < tolerance, "ln(1) should be ~0");
+  ASSERT(fabs(vals[1] - 1.0f) < tolerance, "ln(e) should be ~1");
+  ASSERT(fabs(vals[2] - 2.303f) < tolerance, "ln(10) should be ~2.303");
+  ASSERT(fabs(vals[3] - 4.605f) < tolerance, "ln(100) should be ~4.605");
+
+  freeMemory(mem);
+}
+
+static void test_log_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor dest;
+  Result r = Log(&ctx, NULL, &dest);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Log with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_log_non_float_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+
+  Tensor dest;
+  Result r = Log(&ctx, t, &dest);
+  ASSERT_EQ(r, ERR_LOG_VALUE_NOT_FLOAT, "Log with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -3771,4 +3882,12 @@ void run_tensor_tests(void) {
   test_index_with_tensor_2d_mismatched_indices();
   test_index_with_tensor_2d_out_of_bounds();
   test_index_with_tensor_2d_non_int_indices();
+  // Mean tests
+  test_mean_basic();
+  test_mean_null_tensor();
+  test_mean_non_float_rejected();
+  // Log tests
+  test_log_basic();
+  test_log_null_tensor();
+  test_log_non_float_rejected();
 }

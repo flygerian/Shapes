@@ -200,3 +200,66 @@ func TestExpZero(t *testing.T) {
 		}
 	}
 }
+
+func TestMean(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.FromFloat32(Shape{2, 3}, []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0})
+	result := a.Mean()
+
+	// Mean of [1,2,3,4,5,6] = 21/6 = 3.5
+	got := result.Get(0).Item().(float32)
+	want := float32(3.5)
+	if !approxEq(got, want, 1e-5) {
+		t.Errorf("Mean = %f, want %f", got, want)
+	}
+}
+
+func TestMeanSingleElement(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.Float(Shape{1}, 42.0)
+	result := a.Mean()
+
+	got := result.Get(0).Item().(float32)
+	if !approxEq(got, 42.0, 1e-5) {
+		t.Errorf("Mean = %f, want 42.0", got)
+	}
+}
+
+func TestLog(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.FromFloat32(Shape{2, 2}, []float32{1.0, 2.71828, 10.0, 100.0})
+	result := a.Log()
+
+	// ln(1) = 0, ln(e) ≈ 1, ln(10) ≈ 2.303, ln(100) ≈ 4.605
+	expected := [][]float32{{0.0, 1.0}, {2.302585, 4.605170}}
+	for i := uint32(0); i < 2; i++ {
+		for j := uint32(0); j < 2; j++ {
+			got := result.Get(i, j).Item().(float32)
+			want := expected[i][j]
+			if !approxEq(got, want, 1e-4) {
+				t.Errorf("Log[%d,%d] = %f, want %f", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestLogOfOne(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.Float(Shape{3}, 1.0)
+	result := a.Log()
+
+	for i := range uint32(3) {
+		got := result.Get(i).Item().(float32)
+		if !approxEq(got, 0.0, 1e-5) {
+			t.Errorf("Log(1)[%d] = %f, want 0.0", i, got)
+		}
+	}
+}

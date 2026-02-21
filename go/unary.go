@@ -27,6 +27,20 @@ static inline Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
 	*out = dest;
 	return r;
 }
+
+static inline Result wrap_Mean(Context *ctx, Tensor *t, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = Mean(ctx, t, dest);
+	*out = dest;
+	return r;
+}
+
+static inline Result wrap_Log(Context *ctx, Tensor *t, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = Log(ctx, t, dest);
+	*out = dest;
+	return r;
+}
 */
 import "C"
 
@@ -82,4 +96,34 @@ func (wt *WrappedTensor) Exp() *WrappedTensor {
 // Negate negates every element (-wt), returning a new WrappedTensor.
 func (wt *WrappedTensor) Negate() *WrappedTensor {
 	return wt.context.Wrap(wt.tensor.Negate(wt.context))
+}
+
+// Mean computes the mean of all elements, returning a scalar tensor.
+func (t *Tensor) Mean(ctx *Context) *Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &Tensor{cTensor: dest})
+}
+
+// Log computes the natural logarithm of every element, returning a new tensor.
+func (t *Tensor) Log(ctx *Context) *Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Log((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &Tensor{cTensor: dest})
+}
+
+// Mean computes the mean of all elements, returning a scalar WrappedTensor.
+func (wt *WrappedTensor) Mean() *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Mean(wt.context))
+}
+
+// Log computes the natural logarithm of every element, returning a new WrappedTensor.
+func (wt *WrappedTensor) Log() *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Log(wt.context))
 }
