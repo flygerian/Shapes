@@ -10,10 +10,10 @@
 
 ## Architecture
 - `base/` — C99 core: arena allocator (`memory.{c,h}`), tensor ops (`tensor/`), autograd (`grad/`), types (`common.{c,h}`, `result/result.h`). Vendored OpenBLAS. Source of truth for all tensor behavior. See `base/AGENTS.md` for detailed C conventions.
-- `go/` — Go bindings (module `github.com/flygerian/shapes`) via CGo wrapping the C core. Root package (`context.go`) provides `Context` wrapping C's `Context` + Go's `context.Context`. Sub-packages: `memory/` (arena wrapper with finalizer), `tensor/` (tensor creation/ops), `cmd/main/` (example binary).
+- `go/` — Go bindings (module `github.com/flygerian/shapes`) via CGo wrapping the C core. Root package provides `Context`, `Tensor`, and `WrappedTensor`. Sub-packages: `activation/`, `layer/`, `loss/`, `optimizer/`, `extract/`, `visual/`. See `go/AGENTS.md` for detailed Go conventions.
 - New tensor ops go in C first (`base/tensor/`), then get exposed via Go bindings. High-level features (layers, training) belong in Go, not C.
 
 ## Code Style
 - **C**: C99 strict. PascalCase public API (`Add`, `MatMul`), camelCase internals/locals/fields, UPPER_SNAKE_CASE macros. `Result` return type for fallible ops; early-return on error. All allocations via arena (`allocate(ctx->memory, size)`) — never raw `malloc`. 2-space indent, K&R braces, 100-col limit. `#ifndef` header guards (`shapes_<module>_h`).
-- **Go**: Standard Go conventions. CGo wrappers hold C pointers via `unsafe.Pointer` casts between package-local `C.*` types. Use `runtime.SetFinalizer` as safety net but prefer explicit `Free()`/`Close()`. `LD_LIBRARY_PATH` must include OpenBLAS install dir for tests/runtime. Prefer `for i := range n` over C-style `for i := 0; i < n; i++`. Use `context.Background()` instead of `nil` when calling `shapes.New()`.
+- **Go**: Standard Go conventions. Dual API: `*Tensor` methods (explicit `ctx`) and `*WrappedTensor` methods (fluent, embedded context). Panics on error (never returns `error`). CGo wrappers use `static inline` C functions in preamble; cross-package bridging via `unsafe.Pointer`. Layers/optimizers are closures, not structs. `LD_LIBRARY_PATH` must include OpenBLAS install dir for tests/runtime. Prefer `for i := range n` over C-style loops. Use `context.Background()` instead of `nil` when calling `shapes.New()`. See `go/AGENTS.md` for full conventions.
 - Also see `CLAUDE.md` (root) and `base/CLAUDE.md` for additional context.
