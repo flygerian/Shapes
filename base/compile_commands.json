@@ -67,6 +67,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/OpenBLAS/install/include -I/home/olabode/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/cast.c.o -c /home/olabode/repos/Shapes/base/tensor/cast.c",
+  "file": "/home/olabode/repos/Shapes/base/tensor/cast.c",
+  "output": "CMakeFiles/shapes_core.dir/tensor/cast.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/OpenBLAS/install/include -I/home/olabode/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -o CMakeFiles/shapes_core.dir/grad/binary_op_backwards.c.o -c /home/olabode/repos/Shapes/base/grad/binary_op_backwards.c",
   "file": "/home/olabode/repos/Shapes/base/grad/binary_op_backwards.c",
   "output": "CMakeFiles/shapes_core.dir/grad/binary_op_backwards.c.o"
@@ -130,5 +136,11 @@
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/OpenBLAS/install/include -I/home/olabode/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/grad_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/grad_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/grad_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/grad_test.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/OpenBLAS/install/include -I/home/olabode/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
+  "file": "/home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
+  "output": "CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o"
 }
 ]

@@ -162,7 +162,7 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	fmt.Printf("Probs.shape: %v\n", prob.Shape())
 
-	yProps := prob.Get(shapesCtx.Arange(32), Y)
+	yProps := prob.Get(shapesCtx.Arange(32).I32(), Y)
 
 	visual.Print(yProps)
 }

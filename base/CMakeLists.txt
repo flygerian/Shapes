@@ -53,6 +53,7 @@ add_library(shapes_core
     tensor/creation.c
     tensor/destruction.c
     tensor/unary.c
+    tensor/cast.c
     grad/binary_op_backwards.c
     grad/activation_backward.c
     grad/backward.c
@@ -76,6 +77,7 @@ add_executable(shapes_test
     cmd/test/tensor_test.c
     cmd/test/unary_test.c
     cmd/test/grad_test.c
+    cmd/test/cast_test.c
 )
 target_link_libraries(shapes_test shapes_core)
 

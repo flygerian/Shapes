@@ -61,6 +61,10 @@ func ResultString(r uint32) string {
 		return "zero-dim tensor advanced indexing not allowed"
 	case C.ERR_ONLY_INT_TYPE_ALLOWED:
 		return "only int tensors allowed"
+	case C.ERR_TRUNCATING_CAST:
+		return "truncating cast"
+	case C.ERR_SIGN_MISMATCH_CAST:
+		return "sign mismatch in cast"
 	default:
 		return fmt.Sprintf("unknown error (%d)", int(r))
 	}

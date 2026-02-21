@@ -32,6 +32,9 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Clone(Context *ctx, Tensor *t, Tensor *dest);
 
+// Cast
+Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);
+
 // Unary
 Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
