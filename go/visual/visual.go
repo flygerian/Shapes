@@ -258,28 +258,28 @@ func formatScalar(ctx *shapes.Context, t *shapes.Tensor) string {
 }
 
 // Print renders the tensor's contents to os.Stdout in a nested bracket format.
-func Print(ctx *shapes.Context, t *shapes.Tensor) {
-	PrintTo(ctx, os.Stdout, t)
+func Print(t *shapes.WrappedTensor) {
+	PrintTo(os.Stdout, t)
 }
 
 // PrintTo renders the tensor's contents to the given writer in a nested bracket format.
-func PrintTo(ctx *shapes.Context, w io.Writer, t *shapes.Tensor) {
-	shape := shapes.ShapeOf(t)
+func PrintTo(w io.Writer, t *shapes.WrappedTensor) {
+	shape := t.Shape()
 	if len(shape) == 0 {
 		return
 	}
 
-	if t.Label != "" {
-		fmt.Fprintf(w, "%s: ", t.Label)
+	if t.Tensor().Label != "" {
+		fmt.Fprintf(w, "%s: ", t.Tensor().Label)
 	}
 
 	coords := make([]uint32, len(shape))
-	printRecursive(ctx, w, t, shape, coords, 0)
+	printRecursive(w, t, shape, coords, 0)
 	fmt.Fprintln(w)
 }
 
 // printRecursive walks dimension by dimension, printing brackets and values.
-func printRecursive(ctx *shapes.Context, w io.Writer, t *shapes.Tensor, shape, coords []uint32, dim int) {
+func printRecursive(w io.Writer, t *shapes.WrappedTensor, shape, coords []uint32, dim int) {
 	if dim == len(shape)-1 {
 		fmt.Fprint(w, "[")
 		for i := range shape[dim] {
@@ -287,7 +287,7 @@ func printRecursive(ctx *shapes.Context, w io.Writer, t *shapes.Tensor, shape, c
 				fmt.Fprint(w, ", ")
 			}
 			coords[dim] = uint32(i)
-			fmt.Fprint(w, formatValue(ctx, t, coords))
+			fmt.Fprint(w, formatValue(t, coords))
 		}
 		fmt.Fprint(w, "]")
 		return
@@ -298,18 +298,18 @@ func printRecursive(ctx *shapes.Context, w io.Writer, t *shapes.Tensor, shape, c
 		if i > 0 {
 			fmt.Fprint(w, ",\n")
 			fmt.Fprint(w, strings.Repeat(" ", dim+1))
-			if t.Label != "" {
-				fmt.Fprint(w, strings.Repeat(" ", len(t.Label)+2))
+			if t.Tensor().Label != "" {
+				fmt.Fprint(w, strings.Repeat(" ", len(t.Tensor().Label)+2))
 			}
 		}
 		coords[dim] = uint32(i)
-		printRecursive(ctx, w, t, shape, coords, dim+1)
+		printRecursive(w, t, shape, coords, dim+1)
 	}
 	fmt.Fprint(w, "]")
 }
 
 // formatValue reads a single element from the tensor and returns its string representation.
-func formatValue(ctx *shapes.Context, t *shapes.Tensor, coords []uint32) string {
+func formatValue(t *shapes.WrappedTensor, coords []uint32) string {
 	// Convert []uint32 to []interface{} for Get function
 	args := make([]interface{}, len(coords))
 	for i, c := range coords {
@@ -317,7 +317,7 @@ func formatValue(ctx *shapes.Context, t *shapes.Tensor, coords []uint32) string 
 	}
 	switch t.Dtype() {
 	case shapes.DtypeF16, shapes.DtypeF32, shapes.DtypeF64:
-		v := t.Get(ctx, args...).Item().(float32)
+		v := t.Get(args...).Item().(float32)
 		s := fmt.Sprintf("%f", v)
 		if idx := strings.IndexByte(s, '.'); idx >= 0 {
 			s = strings.TrimRight(s, "0")
@@ -327,7 +327,7 @@ func formatValue(ctx *shapes.Context, t *shapes.Tensor, coords []uint32) string 
 		}
 		return s
 	default:
-		v := t.Get(ctx, args...).Item().(int8)
+		v := t.Get(args...).Item().(int8)
 		return fmt.Sprintf("%d", v)
 	}
 }
