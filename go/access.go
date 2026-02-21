@@ -15,6 +15,10 @@ static inline Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *
 	return IndexWithTensor(ctx, source, indices, dest);
 }
 
+static inline Result wrap_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices, Tensor *dest) {
+	return IndexWithTensor2d(ctx, source, rowIndices, colIndices, dest);
+}
+
 static inline Result wrap_GetScalar(Tensor *t, Value *result) {
 	return GetScalar(t, result);
 }
@@ -74,12 +78,22 @@ import "fmt"
 //
 // Get can also accept a tensor as an argument to perform advanced indexing,
 // similar to PyTorch's x[indices] where indices is a tensor of integers.
+// When two tensors are provided, performs 2D advanced indexing.
 func (t *Tensor) Get(ctx *Context, indices ...interface{}) *Tensor {
 	if len(indices) == 0 {
 		panic("shapes: Get requires at least one argument")
 	}
 
-	// Check if first argument is a tensor for advanced indexing
+	// Check for two tensors (2D advanced indexing)
+	if len(indices) == 2 {
+		rowTensor, rowOk := indices[0].(*Tensor)
+		colTensor, colOk := indices[1].(*Tensor)
+		if rowOk && colOk {
+			return t.getWithTensor2d(ctx, rowTensor, colTensor)
+		}
+	}
+
+	// Check if first argument is a tensor for 1D advanced indexing
 	if len(indices) == 1 {
 		if idxTensor, ok := indices[0].(*Tensor); ok {
 			return t.getWithTensor(ctx, idxTensor)
@@ -155,12 +169,39 @@ func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
 	})
 }
 
+// getWithTensor2d performs 2D advanced indexing using two tensors of indices.
+// The row and column index tensors must contain integer values and have the same shape.
+func (t *Tensor) getWithTensor2d(ctx *Context, rowIndices, colIndices *Tensor) *Tensor {
+	var result C.Tensor
+	cCtx := (*C.Context)(ctx.UnsafePtr())
+	res := C.wrap_IndexWithTensor2d(cCtx, t.cTensor, rowIndices.cTensor, colIndices.cTensor, &result)
+	if res != C.OK {
+		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
+	}
+
+	return track(ctx, &Tensor{
+		cTensor: &result,
+	})
+}
+
 // Get returns a sub-tensor at the given coordinates as a WrappedTensor.
 // If the first index is a *WrappedTensor, advanced indexing is performed using its inner tensor,
 // and both WrappedTensors must belong to the same context.
+// If two *WrappedTensors are provided, 2D advanced indexing is performed.
 // Otherwise, all indices are treated as integer coordinates.
 func (wt *WrappedTensor) Get(indices ...interface{}) *WrappedTensor {
-	// If using tensor indexing, validate contexts match
+	// Check for two WrappedTensors (2D advanced indexing)
+	if len(indices) == 2 {
+		rowWrapped, rowOk := indices[0].(*WrappedTensor)
+		colWrapped, colOk := indices[1].(*WrappedTensor)
+		if rowOk && colOk {
+			wt.validateSameContext(rowWrapped)
+			wt.validateSameContext(colWrapped)
+			return wt.context.Wrap(wt.tensor.Get(wt.context, rowWrapped.tensor, colWrapped.tensor))
+		}
+	}
+
+	// If using single tensor indexing, validate contexts match
 	if len(indices) == 1 {
 		if idxWrapped, ok := indices[0].(*WrappedTensor); ok {
 			wt.validateSameContext(idxWrapped)

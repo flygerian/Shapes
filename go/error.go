@@ -51,8 +51,16 @@ func ResultString(r uint32) string {
 		return "tanh requires float values"
 	case C.ERR_POW_VALUE_NOT_FLOAT:
 		return "pow requires float values"
+	case C.ERR_EXP_VALUE_NOT_FLOAT:
+		return "exp requires float values"
+	case C.ERR_NEGATE_UNSUPPORTED_DTYPE:
+		return "negate unsupported dtype"
 	case C.ERR_NOT_A_BINOP:
 		return "not a binary operation"
+	case C.ERR_ZERO_DIM_TENSOR_ADVANCED_INDEXING:
+		return "zero-dim tensor advanced indexing not allowed"
+	case C.ERR_ONLY_INT_TYPE_ALLOWED:
+		return "only int tensors allowed"
 	default:
 		return fmt.Sprintf("unknown error (%d)", int(r))
 	}

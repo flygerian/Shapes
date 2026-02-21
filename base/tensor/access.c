@@ -283,3 +283,150 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
 
   return OK;
 }
+
+Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices,
+                         Tensor *dest) {
+  if (isInvalidTensor(source)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (isInvalidTensor(rowIndices)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (isInvalidTensor(colIndices)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (source->shape.numOfDims < 2) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (isIntType(rowIndices) || isIntType(colIndices)) {
+    return ERR_ONLY_INT_TYPE_ALLOWED;
+  }
+
+  if (rowIndices->size != colIndices->size) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  dim_t numRows = source->shape.dims[0];
+  dim_t numCols = source->shape.dims[1];
+
+  for (u64 i = 0; i < rowIndices->size; i++) {
+    Value rowVal, colVal;
+    VALUE_GET_FROM_ARR(rowIndices->values, i, &rowVal, rowIndices->dtype);
+    VALUE_GET_FROM_ARR(colIndices->values, i, &colVal, colIndices->dtype);
+
+    dim_t rowIdx, colIdx;
+    switch (rowIndices->dtype) {
+      case U8: rowIdx = rowVal.as.u8; break;
+      case U16: rowIdx = rowVal.as.u16; break;
+      case U32: rowIdx = rowVal.as.u32; break;
+      case U64: rowIdx = rowVal.as.u64; break;
+      case I8: rowIdx = (dim_t)rowVal.as.i8; break;
+      case I16: rowIdx = (dim_t)rowVal.as.i16; break;
+      case I32: rowIdx = (dim_t)rowVal.as.i32; break;
+      case I64: rowIdx = (dim_t)rowVal.as.i64; break;
+      default: return ERR_DTYPE_MISMATCH;
+    }
+
+    switch (colIndices->dtype) {
+      case U8: colIdx = colVal.as.u8; break;
+      case U16: colIdx = colVal.as.u16; break;
+      case U32: colIdx = colVal.as.u32; break;
+      case U64: colIdx = colVal.as.u64; break;
+      case I8: colIdx = (dim_t)colVal.as.i8; break;
+      case I16: colIdx = (dim_t)colVal.as.i16; break;
+      case I32: colIdx = (dim_t)colVal.as.i32; break;
+      case I64: colIdx = (dim_t)colVal.as.i64; break;
+      default: return ERR_DTYPE_MISMATCH;
+    }
+
+    if (rowIdx >= numRows || colIdx >= numCols) {
+      return ERR_OUT_OF_BOUNDS;
+    }
+  }
+
+  u8 newNumDims = rowIndices->shape.numOfDims + source->shape.numOfDims - 2;
+
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+
+  for (u8 i = 0; i < rowIndices->shape.numOfDims; i++) {
+    newDims[i] = rowIndices->shape.dims[i];
+  }
+
+  for (u8 i = 0; i < source->shape.numOfDims - 2; i++) {
+    newDims[rowIndices->shape.numOfDims + i] = source->shape.dims[i + 2];
+  }
+
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+  calculateNumValuesAndMultipliers(
+      (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = NULL}, newMultipliers);
+
+  tensor_size_t sliceSize = 1;
+  for (u8 i = 2; i < source->shape.numOfDims; i++) {
+    sliceSize *= source->shape.dims[i];
+  }
+
+  tensor_size_t destSize = rowIndices->size * sliceSize;
+
+  void *destValues = allocate(ctx->memory, getBytesForDtype(source->dtype) * destSize);
+
+  tensor_size_t destOffset = 0;
+  for (u64 i = 0; i < rowIndices->size; i++) {
+    Value rowVal, colVal;
+    VALUE_GET_FROM_ARR(rowIndices->values, i, &rowVal, rowIndices->dtype);
+    VALUE_GET_FROM_ARR(colIndices->values, i, &colVal, colIndices->dtype);
+
+    dim_t rowIdx, colIdx;
+    switch (rowIndices->dtype) {
+      case U8: rowIdx = rowVal.as.u8; break;
+      case U16: rowIdx = rowVal.as.u16; break;
+      case U32: rowIdx = rowVal.as.u32; break;
+      case U64: rowIdx = rowVal.as.u64; break;
+      case I8: rowIdx = (dim_t)rowVal.as.i8; break;
+      case I16: rowIdx = (dim_t)rowVal.as.i16; break;
+      case I32: rowIdx = (dim_t)rowVal.as.i32; break;
+      case I64: rowIdx = (dim_t)rowVal.as.i64; break;
+      default: return ERR_DTYPE_MISMATCH;
+    }
+
+    switch (colIndices->dtype) {
+      case U8: colIdx = colVal.as.u8; break;
+      case U16: colIdx = colVal.as.u16; break;
+      case U32: colIdx = colVal.as.u32; break;
+      case U64: colIdx = colVal.as.u64; break;
+      case I8: colIdx = (dim_t)colVal.as.i8; break;
+      case I16: colIdx = (dim_t)colVal.as.i16; break;
+      case I32: colIdx = (dim_t)colVal.as.i32; break;
+      case I64: colIdx = (dim_t)colVal.as.i64; break;
+      default: return ERR_DTYPE_MISMATCH;
+    }
+
+    u64 srcOffset;
+    if (source->isView && source->boundary) {
+      srcOffset = source->boundary->start + rowIdx * source->shape.multipliers[0] +
+                  colIdx * source->shape.multipliers[1];
+    } else {
+      srcOffset = rowIdx * source->shape.multipliers[0] + colIdx * source->shape.multipliers[1];
+    }
+
+    size_t bytesPerElem = getBytesForDtype(source->dtype);
+    memcpy((char *)destValues + destOffset * bytesPerElem,
+           (char *)source->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
+
+    destOffset += sliceSize;
+  }
+
+  *dest =
+      (Tensor){.dtype = source->dtype,
+               .values = destValues,
+               .size = destSize,
+               .isContigous = true,
+               .isView = false,
+               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
+               .boundary = NULL};
+
+  return OK;
+}

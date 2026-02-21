@@ -3427,6 +3427,192 @@ static void test_arange_with_grad(void) {
   freeMemory(mem);
 }
 
+static void test_index_with_tensor_2d_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Create 3x4 source tensor: [[0,1,2,3], [4,5,6,7], [8,9,10,11]]
+  u32 dims[] = {3, 4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u8 i = 0; i < 12; i++) {
+    ((f32 *)source->values)[i] = (f32)i;
+  }
+
+  // Create row and column indices: extract [0,1], [1,2], [2,3] -> [1, 6, 11]
+  u32 idxDims[] = {3};
+  Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)rowIndices->values)[0] = 0;
+  ((i8 *)rowIndices->values)[1] = 1;
+  ((i8 *)rowIndices->values)[2] = 2;
+
+  Tensor *colIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)colIndices->values)[0] = 1;
+  ((i8 *)colIndices->values)[1] = 2;
+  ((i8 *)colIndices->values)[2] = 3;
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
+  ASSERT_EQ(r, OK, "IndexWithTensor2d should succeed");
+  ASSERT_EQ(result.shape.numOfDims, 1, "Result should be 1D");
+  ASSERT_EQ(result.shape.dims[0], 3, "Result should have 3 elements");
+
+  f32 *vals = (f32 *)result.values;
+  ASSERT_EQ(vals[0], 1.0f, "First element should be 1 (source[0,1])");
+  ASSERT_EQ(vals[1], 6.0f, "Second element should be 6 (source[1,2])");
+  ASSERT_EQ(vals[2], 11.0f, "Third element should be 11 (source[2,3])");
+
+  freeMemory(mem);
+}
+
+static void test_index_with_tensor_2d_3d_source(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Create 2x3x4 source tensor
+  u32 dims[] = {2, 3, 4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 3}, 0.0f);
+  for (u8 i = 0; i < 24; i++) {
+    ((f32 *)source->values)[i] = (f32)i;
+  }
+
+  // Extract [0,0,:], [1,2,:] -> first 4 elements and last 4 elements
+  u32 idxDims[] = {2};
+  Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)rowIndices->values)[0] = 0;
+  ((i8 *)rowIndices->values)[1] = 1;
+
+  Tensor *colIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)colIndices->values)[0] = 0;
+  ((i8 *)colIndices->values)[1] = 2;
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
+  ASSERT_EQ(r, OK, "IndexWithTensor2d with 3D source should succeed");
+  ASSERT_EQ(result.shape.numOfDims, 2, "Result should be 2D");
+  ASSERT_EQ(result.shape.dims[0], 2, "Result dim 0 should be 2");
+  ASSERT_EQ(result.shape.dims[1], 4, "Result dim 1 should be 4");
+
+  f32 *vals = (f32 *)result.values;
+  // First row: source[0,0,:] = [0,1,2,3]
+  ASSERT_EQ(vals[0], 0.0f, "vals[0] should be 0");
+  ASSERT_EQ(vals[1], 1.0f, "vals[1] should be 1");
+  ASSERT_EQ(vals[2], 2.0f, "vals[2] should be 2");
+  ASSERT_EQ(vals[3], 3.0f, "vals[3] should be 3");
+  // Second row: source[1,2,:] = [20,21,22,23]
+  ASSERT_EQ(vals[4], 20.0f, "vals[4] should be 20");
+  ASSERT_EQ(vals[5], 21.0f, "vals[5] should be 21");
+  ASSERT_EQ(vals[6], 22.0f, "vals[6] should be 22");
+  ASSERT_EQ(vals[7], 23.0f, "vals[7] should be 23");
+
+  freeMemory(mem);
+}
+
+static void test_index_with_tensor_2d_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3, 4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  u32 idxDims[] = {2};
+  Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, NULL, indices, indices, &result);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Should fail with null source");
+
+  r = IndexWithTensor2d(&ctx, source, NULL, indices, &result);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Should fail with null row indices");
+
+  r = IndexWithTensor2d(&ctx, source, indices, NULL, &result);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Should fail with null col indices");
+
+  freeMemory(mem);
+}
+
+static void test_index_with_tensor_2d_insufficient_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 1D source should fail
+  u32 dims[] = {4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  u32 idxDims[] = {2};
+  Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, source, indices, indices, &result);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Should fail with 1D source");
+
+  freeMemory(mem);
+}
+
+static void test_index_with_tensor_2d_mismatched_indices(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3, 4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  u32 rowDims[] = {2};
+  u32 colDims[] = {3};
+  Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = rowDims, .numOfDims = 1}, 0);
+  Tensor *colIndices = T_Int(&ctx, (Dim){.dims = colDims, .numOfDims = 1}, 0);
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Should fail with mismatched index sizes");
+
+  freeMemory(mem);
+}
+
+static void test_index_with_tensor_2d_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3, 4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  u32 idxDims[] = {2};
+  Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)rowIndices->values)[0] = 0;
+  ((i8 *)rowIndices->values)[1] = 5; // Out of bounds
+
+  Tensor *colIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)colIndices->values)[0] = 0;
+  ((i8 *)colIndices->values)[1] = 0;
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
+  ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "Should fail with out of bounds row index");
+
+  // Reset and test column out of bounds
+  ((i8 *)rowIndices->values)[1] = 0;
+  ((i8 *)colIndices->values)[1] = 5; // Out of bounds
+
+  r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
+  ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "Should fail with out of bounds col index");
+
+  freeMemory(mem);
+}
+
+static void test_index_with_tensor_2d_non_int_indices(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {3, 4};
+  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  u32 idxDims[] = {2};
+  Tensor *floatIndices = T_Float(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0.0f);
+  Tensor *intIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+
+  Tensor result;
+  Result r = IndexWithTensor2d(&ctx, source, floatIndices, intIndices, &result);
+  ASSERT_EQ(r, ERR_ONLY_INT_TYPE_ALLOWED, "Should fail with float row indices");
+
+  r = IndexWithTensor2d(&ctx, source, intIndices, floatIndices, &result);
+  ASSERT_EQ(r, ERR_ONLY_INT_TYPE_ALLOWED, "Should fail with float col indices");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -3577,4 +3763,12 @@ void run_tensor_tests(void) {
   test_arange_empty_range_positive_step();
   test_arange_empty_range_negative_step();
   test_arange_with_grad();
+  // IndexWithTensor2d tests
+  test_index_with_tensor_2d_basic();
+  test_index_with_tensor_2d_3d_source();
+  test_index_with_tensor_2d_null_tensor();
+  test_index_with_tensor_2d_insufficient_dims();
+  test_index_with_tensor_2d_mismatched_indices();
+  test_index_with_tensor_2d_out_of_bounds();
+  test_index_with_tensor_2d_non_int_indices();
 }
