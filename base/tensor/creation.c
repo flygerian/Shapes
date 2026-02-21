@@ -151,6 +151,68 @@ Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
   return init;
 }
 
+Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
+  if (step == 0.0f) {
+    step = 1.0f;
+  }
+
+  // Calculate number of elements
+  // Use a small epsilon to handle floating-point precision issues
+  const f32 eps = 1e-6f;
+  tensor_size_t n = 0;
+  if (step > 0) {
+    if (start >= end) {
+      return NULL;
+    }
+    n = (tensor_size_t)((end - start + eps) / step);
+    // Ensure we don't include values >= end
+    while (n > 0 && start + (n - 1) * step >= end - eps) {
+      n--;
+    }
+  } else {
+    if (start <= end) {
+      return NULL;
+    }
+    n = (tensor_size_t)((start - end + eps) / (-step));
+    // Ensure we don't include values <= end
+    while (n > 0 && start + (n - 1) * step <= end + eps) {
+      n--;
+    }
+  }
+
+  if (n <= 0) {
+    return NULL;
+  }
+
+  // Create 1D shape
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
+  *dims = (dim_t)n;
+  *multipliers = 1;
+
+  Dim shape = {.dims = dims, .numOfDims = 1, .multipliers = multipliers};
+
+  // Allocate and fill values
+  Tensor *t = allocate(ctx->memory, sizeof(Tensor));
+  size_t bytesRequired = n * sizeof(f32);
+  *t = (Tensor){.dtype = F32,
+                .values = allocate(ctx->memory, bytesRequired),
+                .shape = shape,
+                .size = n,
+                .isContigous = true,
+                .isView = false,
+                .boundary = NULL};
+
+  f32 *values = (f32 *)t->values;
+  for (tensor_size_t i = 0; i < n; i++) {
+    values[i] = start + (f32)i * step;
+  }
+
+  initializeGradient(ctx, t);
+
+  return t;
+}
+
 Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   if (isInvalidTensor(indices)) {
     return NULL;

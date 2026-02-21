@@ -35,6 +35,9 @@ static inline Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {
 static inline Tensor *wrap_T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
 	return T_OneHot(ctx, indices, numClasses);
 }
+static inline Tensor *wrap_T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
+	return T_Arange(ctx, start, end, step);
+}
 */
 import "C"
 import (
@@ -349,4 +352,62 @@ func OneHot(ctx *Context, indices *Tensor, numClasses uint32) *Tensor {
 		leafNode(ctx, t)
 	}
 	return t
+}
+
+// Arange creates a 1D tensor with values from start to end (exclusive) with the given step.
+// Similar to PyTorch's torch.arange.
+// Supports variadic arguments:
+//   - Arange(ctx, end): range from 0 to end with step 1
+//   - Arange(ctx, start, end): range from start to end with step 1
+//   - Arange(ctx, start, end, step): range from start to end with given step
+//
+// Returns nil if the range is empty or invalid.
+func Arange(ctx *Context, args ...float32) *Tensor {
+	var start, end, step float32
+
+	switch len(args) {
+	case 1:
+		// arange(end): start=0, end=args[0], step=1
+		start = 0
+		end = args[0]
+		step = 1
+	case 2:
+		// arange(start, end): start=args[0], end=args[1], step=1
+		start = args[0]
+		end = args[1]
+		step = 1
+	case 3:
+		// arange(start, end, step)
+		start = args[0]
+		end = args[1]
+		step = args[2]
+	default:
+		panic("shapes: Arange requires 1, 2, or 3 arguments")
+	}
+
+	cTensor := C.wrap_T_Arange((*C.Context)(ctx.UnsafePtr()), C.f32(start), C.f32(end), C.f32(step))
+	if cTensor == nil {
+		return nil
+	}
+	t := track(ctx, &Tensor{cTensor: cTensor})
+	if ctx.GradEnabled {
+		leafNode(ctx, t)
+	}
+	return t
+}
+
+// Arange creates a 1D tensor with values from start to end (exclusive) with the given step,
+// returning a WrappedTensor. Similar to PyTorch's torch.arange.
+// Supports variadic arguments:
+//   - ctx.Arange(end): range from 0 to end with step 1
+//   - ctx.Arange(start, end): range from start to end with step 1
+//   - ctx.Arange(start, end, step): range from start to end with given step
+//
+// Returns nil if the range is empty or invalid.
+func (c *Context) Arange(args ...float32) *WrappedTensor {
+	t := Arange(c, args...)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
 }

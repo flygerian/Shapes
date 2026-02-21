@@ -49,6 +49,7 @@ Tensor *T_Zeros(Context *ctx, Dim shape);
 Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
 Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
+Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step);
 void SetValues(Tensor *t, Value value);
 
 // Tensor destruction

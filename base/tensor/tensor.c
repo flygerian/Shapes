@@ -71,9 +71,8 @@ bool isInvalidTensor(Tensor *t) {
 }
 
 bool isIntType(Tensor *t) {
-  return t->dtype != I8 && t->dtype != I16 && t->dtype != I32 &&
-      t->dtype != I64 && t->dtype != U8 && t->dtype != U16 &&
-      t->dtype != U32 && t->dtype != U64;
+  return t->dtype != I8 && t->dtype != I16 && t->dtype != I32 && t->dtype != I64 &&
+         t->dtype != U8 && t->dtype != U16 && t->dtype != U32 && t->dtype != U64;
 }
 
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {

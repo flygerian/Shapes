@@ -3313,6 +3313,120 @@ static void test_negate_unsigned_rejected(void) {
   freeMemory(mem);
 }
 
+// Arange tests
+static void test_arange_basic_positive_step(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *t = T_Arange(&ctx, 0.0f, 5.0f, 1.0f);
+  ASSERT_NOT_NULL(t, "Arange should create tensor");
+  ASSERT_EQ(t->shape.numOfDims, 1, "Arange should create 1D tensor");
+  ASSERT_EQ(t->shape.dims[0], 5, "Arange should have 5 elements");
+  ASSERT_EQ(t->dtype, F32, "Arange should create F32 tensor");
+
+  f32 *values = (f32 *)t->values;
+  ASSERT_EQ(values[0], 0.0f, "arange[0] should be 0");
+  ASSERT_EQ(values[1], 1.0f, "arange[1] should be 1");
+  ASSERT_EQ(values[2], 2.0f, "arange[2] should be 2");
+  ASSERT_EQ(values[3], 3.0f, "arange[3] should be 3");
+  ASSERT_EQ(values[4], 4.0f, "arange[4] should be 4");
+
+  freeMemory(mem);
+}
+
+static void test_arange_negative_step(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *t = T_Arange(&ctx, 10.0f, 0.0f, -2.0f);
+  ASSERT_NOT_NULL(t, "Arange with negative step should create tensor");
+  ASSERT_EQ(t->shape.dims[0], 5, "Arange should have 5 elements");
+
+  f32 *values = (f32 *)t->values;
+  ASSERT_EQ(values[0], 10.0f, "arange[0] should be 10");
+  ASSERT_EQ(values[1], 8.0f, "arange[1] should be 8");
+  ASSERT_EQ(values[2], 6.0f, "arange[2] should be 6");
+  ASSERT_EQ(values[3], 4.0f, "arange[3] should be 4");
+  ASSERT_EQ(values[4], 2.0f, "arange[4] should be 2");
+
+  freeMemory(mem);
+}
+
+static void test_arange_non_integer_step(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *t = T_Arange(&ctx, 1.0f, 5.0f, 0.5f);
+  ASSERT_NOT_NULL(t, "Arange with non-integer step should create tensor");
+  ASSERT_EQ(t->shape.dims[0], 8, "Arange should have 8 elements");
+
+  f32 *values = (f32 *)t->values;
+  ASSERT_EQ(values[0], 1.0f, "arange[0] should be 1.0");
+  ASSERT_EQ(values[1], 1.5f, "arange[1] should be 1.5");
+  ASSERT_EQ(values[2], 2.0f, "arange[2] should be 2.0");
+  ASSERT_EQ(values[7], 4.5f, "arange[7] should be 4.5");
+
+  freeMemory(mem);
+}
+
+static void test_arange_default_step(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Step of 0 should default to 1
+  Tensor *t = T_Arange(&ctx, 0.0f, 3.0f, 0.0f);
+  ASSERT_NOT_NULL(t, "Arange with step=0 should default to 1");
+  ASSERT_EQ(t->shape.dims[0], 3, "Arange should have 3 elements");
+
+  f32 *values = (f32 *)t->values;
+  ASSERT_EQ(values[0], 0.0f, "arange[0] should be 0");
+  ASSERT_EQ(values[1], 1.0f, "arange[1] should be 1");
+  ASSERT_EQ(values[2], 2.0f, "arange[2] should be 2");
+
+  freeMemory(mem);
+}
+
+static void test_arange_empty_range_positive_step(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // start >= end with positive step should return NULL
+  Tensor *t = T_Arange(&ctx, 5.0f, 5.0f, 1.0f);
+  ASSERT_NULL(t, "Arange with start >= end and positive step should return NULL");
+
+  t = T_Arange(&ctx, 10.0f, 5.0f, 1.0f);
+  ASSERT_NULL(t, "Arange with start > end and positive step should return NULL");
+
+  freeMemory(mem);
+}
+
+static void test_arange_empty_range_negative_step(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // start <= end with negative step should return NULL
+  Tensor *t = T_Arange(&ctx, 5.0f, 5.0f, -1.0f);
+  ASSERT_NULL(t, "Arange with start <= end and negative step should return NULL");
+
+  t = T_Arange(&ctx, 0.0f, 5.0f, -1.0f);
+  ASSERT_NULL(t, "Arange with start < end and negative step should return NULL");
+
+  freeMemory(mem);
+}
+
+static void test_arange_with_grad(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem, .grad = true};
+
+  Tensor *t = T_Arange(&ctx, 0.0f, 3.0f, 1.0f);
+  ASSERT_NOT_NULL(t, "Arange with grad should create tensor");
+  ASSERT_NOT_NULL(t->computation, "Arange should have computation node with grad enabled");
+  ASSERT_NOT_NULL(t->computation->grad, "Arange should have gradient tensor with grad enabled");
+  ASSERT_EQ(t->computation->grad->size, 3, "Gradient should have same size as tensor");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -3455,4 +3569,12 @@ void run_tensor_tests(void) {
   test_negate_f32();
   test_negate_already_negative();
   test_negate_unsigned_rejected();
+  // Arange tests
+  test_arange_basic_positive_step();
+  test_arange_negative_step();
+  test_arange_non_integer_step();
+  test_arange_default_step();
+  test_arange_empty_range_positive_step();
+  test_arange_empty_range_negative_step();
+  test_arange_with_grad();
 }

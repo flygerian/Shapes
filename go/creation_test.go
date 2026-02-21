@@ -419,3 +419,224 @@ func TestOneHotZeroClasses(t *testing.T) {
 		t.Error("expected nil for zero classes")
 	}
 }
+
+func TestArangeBasic(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.Arange(0.0, 5.0, 1.0)
+	if tensor == nil {
+		t.Fatal("Arange returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 5 {
+		t.Fatalf("expected shape [5], got %v", shape)
+	}
+
+	expected := []float32{0.0, 1.0, 2.0, 3.0, 4.0}
+	for i, want := range expected {
+		got := tensor.Get(uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeSingleArg(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Arange(5) should produce [0, 1, 2, 3, 4]
+	tensor := ctx.Arange(5.0)
+	if tensor == nil {
+		t.Fatal("Arange returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 5 {
+		t.Fatalf("expected shape [5], got %v", shape)
+	}
+
+	expected := []float32{0.0, 1.0, 2.0, 3.0, 4.0}
+	for i, want := range expected {
+		got := tensor.Get(uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeTwoArgs(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Arange(2, 7) should produce [2, 3, 4, 5, 6]
+	tensor := ctx.Arange(2.0, 7.0)
+	if tensor == nil {
+		t.Fatal("Arange returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 5 {
+		t.Fatalf("expected shape [5], got %v", shape)
+	}
+
+	expected := []float32{2.0, 3.0, 4.0, 5.0, 6.0}
+	for i, want := range expected {
+		got := tensor.Get(uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeNegativeStep(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.Arange(10.0, 0.0, -2.0)
+	if tensor == nil {
+		t.Fatal("Arange with negative step returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 5 {
+		t.Fatalf("expected shape [5], got %v", shape)
+	}
+
+	expected := []float32{10.0, 8.0, 6.0, 4.0, 2.0}
+	for i, want := range expected {
+		got := tensor.Get(uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeNonIntegerStep(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.Arange(1.0, 5.0, 0.5)
+	if tensor == nil {
+		t.Fatal("Arange with non-integer step returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 8 {
+		t.Fatalf("expected shape [8], got %v", shape)
+	}
+
+	expected := []float32{1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5}
+	for i, want := range expected {
+		got := tensor.Get(uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeDefaultStep(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Step of 0 should default to 1
+	tensor := ctx.Arange(0.0, 3.0, 0.0)
+	if tensor == nil {
+		t.Fatal("Arange with step=0 returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 3 {
+		t.Fatalf("expected shape [3], got %v", shape)
+	}
+
+	expected := []float32{0.0, 1.0, 2.0}
+	for i, want := range expected {
+		got := tensor.Get(uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeEmptyRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// start >= end with positive step should return nil
+	result := ctx.Arange(5.0, 5.0, 1.0)
+	if result != nil {
+		t.Error("expected nil for start >= end with positive step")
+	}
+
+	// start > end with positive step should return nil
+	result = ctx.Arange(10.0, 5.0, 1.0)
+	if result != nil {
+		t.Error("expected nil for start > end with positive step")
+	}
+
+	// start <= end with negative step should return nil
+	result = ctx.Arange(5.0, 5.0, -1.0)
+	if result != nil {
+		t.Error("expected nil for start <= end with negative step")
+	}
+
+	// start < end with negative step should return nil
+	result = ctx.Arange(0.0, 5.0, -1.0)
+	if result != nil {
+		t.Error("expected nil for start < end with negative step")
+	}
+}
+
+func TestArangeWithGrad(t *testing.T) {
+	ctx := New(context.Background(), WithGrad(true))
+	defer ctx.Close()
+
+	tensor := ctx.Arange(0.0, 3.0, 1.0)
+	if tensor == nil {
+		t.Fatal("Arange returned nil")
+	}
+
+	if !tensor.RequiresGrad() {
+		t.Fatal("expected grad tracking when context has grad enabled")
+	}
+}
+
+func TestArangeStandalone(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test the standalone Arange function (not the Context method)
+	tensor := Arange(ctx, 1.0, 5.0, 1.0)
+	if tensor == nil {
+		t.Fatal("Arange returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 1 || shape[0] != 4 {
+		t.Fatalf("expected shape [4], got %v", shape)
+	}
+
+	expected := []float32{1.0, 2.0, 3.0, 4.0}
+	for i, want := range expected {
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
+		if float32(math.Abs(float64(got-want))) > 1e-5 {
+			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestArangeInvalidArgs(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test with 0 arguments (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for 0 arguments")
+		}
+	}()
+	ctx.Arange()
+}
