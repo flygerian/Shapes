@@ -8,7 +8,6 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/visual"
 )
 
 func MakeMore_1(ctx *shapes.Context) {
@@ -41,7 +40,7 @@ func MakeMore_1(ctx *shapes.Context) {
 		computationGraph = l.Backward(ctx)
 
 		fmt.Printf("Loss \n")
-		visual.Print(ctx, l)
+		// visual.Print(l)
 
 		sgd(computationGraph)
 		optimizer.ZeroGrad(noGraph, computationGraph)
@@ -53,8 +52,8 @@ func MakeMore_1(ctx *shapes.Context) {
 	fmt.Println("Model parameters: ", len(parameters))
 
 	fmt.Printf("Output: \n")
-	visual.Print(ctx, logits.Tensor())
+	// visual.Print(ctx, logits.Tensor())
 
 	fmt.Printf("Expected \n")
-	visual.Print(ctx, ys.Tensor())
+	// visual.Print(ctx, ys.Tensor())
 }

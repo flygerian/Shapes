@@ -129,25 +129,38 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	idx := shapesCtx.FromInt8([]int8{5})
 
-	visual.Print(shapesCtx, idx.Tensor())
+	visual.Print(idx)
 
 	oneHot := shapesCtx.OneHot(idx, 27)
 
 	newSection()
 
 	fmt.Printf("One hot shapes: %v\n", oneHot.Squeeze().Shape())
-	visual.Print(shapesCtx, oneHot.Tensor())
+	visual.Print(oneHot)
 
 	p := oneHot.Mul(C).Squeeze()
 
 	fmt.Printf("Mul\n")
-	visual.Print(shapesCtx, p.Tensor())
+	visual.Print(p)
 
 	newSection()
 
 	emb := C.Get(X)
-	fmt.Printf("Embedding table shape %v", emb.Shape())
+	fmt.Printf("Embedding table shape %v\n", emb.Shape())
 
 	l1 := layer.Dense(6, 100)
+	l2 := layer.Dense(100, 27)
 
+	h := l1(emb.Reshape(-1, 6))
+	logits := l2(h)
+
+	counts := logits.Exp()
+
+	fmt.Printf("Counts shape: %v\n", counts.Shape())
+
+	prob := counts.Divide(counts.Sum(1))
+
+	fmt.Printf("Probs.shape: %v\n", prob.Shape())
+
+	visual.Print(prob.Get(0).Sum(0))
 }

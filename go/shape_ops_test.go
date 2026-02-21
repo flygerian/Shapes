@@ -45,7 +45,7 @@ func TestReshape(t *testing.T) {
 	// 2x3 → 3x2
 	a := ctx.Int(Shape{2, 3}, 7)
 
-	reshaped := a.Reshape(Shape{3, 2})
+	reshaped := a.Reshape(3, 2)
 
 	for i := range uint32(3) {
 		for j := range uint32(2) {
@@ -68,7 +68,88 @@ func TestReshapeSizeMismatch(t *testing.T) {
 			t.Fatal("expected panic for reshape size mismatch, got nil")
 		}
 	}()
-	a.Reshape(Shape{2, 2})
+	a.Reshape(2, 2)
+}
+
+func TestReshapeWithMinusOne(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// 2x3x4 = 24 elements, reshape to (-1, 4) should infer 6
+	a := ctx.Int(Shape{2, 3, 4}, 7)
+
+	reshaped := a.Reshape(-1, 4)
+
+	expectedShape := Shape{6, 4}
+	actualShape := reshaped.Shape()
+	if len(actualShape) != len(expectedShape) {
+		t.Fatalf("Reshape shape length mismatch: got %v, want %v", actualShape, expectedShape)
+	}
+	for i := range expectedShape {
+		if actualShape[i] != expectedShape[i] {
+			t.Errorf("Reshape shape[%d] = %d, want %d", i, actualShape[i], expectedShape[i])
+		}
+	}
+
+	// Verify data is preserved
+	for i := range uint32(6) {
+		for j := range uint32(4) {
+			got := reshaped.Get(i, j).Item().(int8)
+			if got != 7 {
+				t.Errorf("Reshape[%d,%d] = %d, want 7", i, j, got)
+			}
+		}
+	}
+}
+
+func TestReshapeWithMinusOneMiddle(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// 2x3x4 = 24 elements, reshape to (2, -1, 2) should infer 6
+	a := ctx.Int(Shape{2, 3, 4}, 5)
+
+	reshaped := a.Reshape(2, -1, 2)
+
+	expectedShape := Shape{2, 6, 2}
+	actualShape := reshaped.Shape()
+	if len(actualShape) != len(expectedShape) {
+		t.Fatalf("Reshape shape length mismatch: got %v, want %v", actualShape, expectedShape)
+	}
+	for i := range expectedShape {
+		if actualShape[i] != expectedShape[i] {
+			t.Errorf("Reshape shape[%d] = %d, want %d", i, actualShape[i], expectedShape[i])
+		}
+	}
+}
+
+func TestReshapeMultipleMinusOnePanics(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	a := ctx.Int(Shape{2, 3, 4}, 1)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for multiple -1 dimensions, got nil")
+		}
+	}()
+	a.Reshape(-1, -1, 4)
+}
+
+func TestReshapeMinusOneSizeMismatch(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// 2x3 = 6 elements, reshape to (-1, 4) would need 4 to divide 6 evenly
+	a := ctx.Int(Shape{2, 3}, 1)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for -1 reshape size mismatch, got nil")
+		}
+	}()
+	a.Reshape(-1, 4)
 }
 
 func TestTranspose(t *testing.T) {

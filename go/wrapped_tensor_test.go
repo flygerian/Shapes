@@ -324,7 +324,7 @@ func TestWrappedReshape(t *testing.T) {
 	defer ctx.Close()
 
 	wt := ctx.Float(Shape{2, 3}, 1.0)
-	result := wt.Reshape(Shape{3, 2})
+	result := wt.Reshape(3, 2)
 
 	s := result.Shape()
 	if s[0] != 3 || s[1] != 2 {

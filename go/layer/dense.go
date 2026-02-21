@@ -1,6 +1,8 @@
 package layer
 
 import (
+	"fmt"
+
 	shapes "github.com/flygerian/shapes"
 )
 
@@ -20,12 +22,16 @@ func Dense(inputSize int, outputSize int) func(*shapes.WrappedTensor) *shapes.Wr
 			input = x.UnSqueeze(0)
 		}
 
+		tensorLastDimSize := inputShape[len(inputShape)-1]
+		if tensorLastDimSize != uint32(inputSize) {
+			err := fmt.Errorf("shapes: Dense layer expecting dim size %d on dim[1] of input got dim size %d", inputSize, tensorLastDimSize)
+			panic(err)
+		}
+
 		// Initialize weights once on first call.
-		// Wrap with the original ctx so context validation passes on subsequent ops.
 		if w == nil {
-			tensorLastDimSize := inputShape[len(inputShape)-1]
-			w = ctx.Wrap(shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize), tensorLastDimSize}))
-			b = ctx.Wrap(shapes.FloatRandom(fusedCtx, shapes.Shape{uint32(outputSize)}))
+			w = fusedCtx.FloatRandom(shapes.Shape{uint32(outputSize), uint32(inputSize)})
+			b = fusedCtx.FloatRandom(shapes.Shape{uint32(outputSize)})
 		}
 
 		// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])

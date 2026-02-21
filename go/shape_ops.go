@@ -147,7 +147,47 @@ func (t *Tensor) Slice(ctx *Context, ranges ...Range) *Tensor {
 }
 
 // Reshape returns a tensor with the same data but a different shape.
-func (t *Tensor) Reshape(ctx *Context, shape Shape) *Tensor {
+// Use -1 for one dimension to infer it automatically based on total element count.
+func (t *Tensor) Reshape(ctx *Context, dims ...int) *Tensor {
+	// Calculate total elements in the tensor
+	totalElements := uint32(1)
+	currentShape := shapeOf(t)
+	for _, s := range currentShape {
+		totalElements *= s
+	}
+
+	// Find -1 position and calculate product of known dimensions
+	inferredIndex := -1
+	knownProduct := uint32(1)
+	for i, d := range dims {
+		if d == -1 {
+			if inferredIndex != -1 {
+				panic("shapes: reshape can only have one -1 dimension")
+			}
+			inferredIndex = i
+		} else if d < 0 {
+			panic("shapes: reshape dimensions must be positive or -1")
+		} else {
+			knownProduct *= uint32(d)
+		}
+	}
+
+	// Convert to uint32 shape, inferring -1 if present
+	shape := make(Shape, len(dims))
+	for i, d := range dims {
+		if d == -1 {
+			if knownProduct == 0 {
+				panic("shapes: cannot infer dimension when other dimensions are zero")
+			}
+			if totalElements%knownProduct != 0 {
+				panic("shapes: reshape size mismatch - cannot infer dimension")
+			}
+			shape[i] = totalElements / knownProduct
+		} else {
+			shape[i] = uint32(d)
+		}
+	}
+
 	var dest *C.Tensor
 	d := dim(ctx, shape)
 	result := C.wrap_Reshape((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, d)
@@ -268,8 +308,9 @@ func (wt *WrappedTensor) Slice(ranges ...Range) *WrappedTensor {
 }
 
 // Reshape returns a tensor with the same data but a different shape.
-func (wt *WrappedTensor) Reshape(shape Shape) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Reshape(wt.context, shape))
+// Use -1 for one dimension to infer it automatically based on total element count.
+func (wt *WrappedTensor) Reshape(dims ...int) *WrappedTensor {
+	return wt.context.Wrap(wt.tensor.Reshape(wt.context, dims...))
 }
 
 // Transpose swaps two dimensions, returning a view.

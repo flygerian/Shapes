@@ -4,7 +4,11 @@ package shapes
 func reshapeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	origShape := shapeOf(x)
-	gradX := node.Grad.Reshape(ctx, origShape)
+	intShape := make([]int, len(origShape))
+	for i, s := range origShape {
+		intShape[i] = int(s)
+	}
+	gradX := node.Grad.Reshape(ctx, intShape...)
 	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
 	markIntermediate(ctx, gradX)
 }
@@ -22,7 +26,11 @@ func transposeBackward(ctx *Context, node *ComputationGraphNode) {
 func squeezeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
 	origShape := shapeOf(x)
-	gradX := node.Grad.Reshape(ctx, origShape)
+	intShape := make([]int, len(origShape))
+	for i, s := range origShape {
+		intShape[i] = int(s)
+	}
+	gradX := node.Grad.Reshape(ctx, intShape...)
 	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
 	markIntermediate(ctx, gradX)
 }

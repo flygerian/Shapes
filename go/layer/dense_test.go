@@ -248,3 +248,19 @@ func TestDenseInternalOpsHaveNoBackward(t *testing.T) {
 		t.Error("Dense output should have a backward function")
 	}
 }
+
+func TestDensePanicsOnMismatchedInputSize(t *testing.T) {
+	ctx := shapes.New(context.Background())
+	defer ctx.Close()
+
+	dense := Dense(3, 2)
+	x := ctx.Float(shapes.Shape{1, 5}, 1.0)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for mismatched input size, got nil")
+		}
+	}()
+
+	dense(x)
+}
