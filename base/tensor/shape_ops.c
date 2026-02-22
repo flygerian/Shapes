@@ -35,9 +35,9 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
     u32 dimsize = (r.end - r.start);
     newShape.dims[x] = dimsize;
 
-    if (source->isView) {
-      boundary[x] = (Range){.start = source->boundary->start + ranges[x].start,
-                            .end = source->boundary->start + ranges[x].end};
+    if (source->isView && source->boundary) {
+      boundary[x] = (Range){.start = source->boundary[x].start + ranges[x].start,
+                            .end = source->boundary[x].start + ranges[x].end};
     } else {
       boundary[x] = ranges[x];
     }
@@ -139,6 +139,16 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   newMultipliers[transposeDims[0]] = newMultipliers[transposeDims[1]];
   newMultipliers[transposeDims[1]] = tempMultiplier;
 
+  // Deep-copy and permute boundary to avoid shared-pointer double-free.
+  Range *newBoundary = NULL;
+  if (source->boundary != NULL) {
+    newBoundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+    memcpy(newBoundary, source->boundary, sizeof(Range) * source->shape.numOfDims);
+    Range tmp = newBoundary[transposeDims[0]];
+    newBoundary[transposeDims[0]] = newBoundary[transposeDims[1]];
+    newBoundary[transposeDims[1]] = tmp;
+  }
+
   *dest = (Tensor){.dtype = source->dtype,
                    .values = source->values,
                    .size = source->size,
@@ -147,7 +157,7 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
                    .shape = {.dims = newDims,
                              .numOfDims = source->shape.numOfDims,
                              .multipliers = newMultipliers},
-                   .boundary = source->boundary};
+                   .boundary = newBoundary};
 
   return OK;
 }
@@ -196,13 +206,30 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
   calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims}, newMultipliers);
 
+  // Deep-copy boundary for surviving dims only to avoid shared-pointer double-free.
+  Range *newBoundary = NULL;
+  if (t->boundary != NULL) {
+    newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    u8 bIdx = 0;
+    if (newNumDims == 1 && t->shape.dims[0] == 1) {
+      // All-ones edge case: kept first dim
+      newBoundary[0] = t->boundary[0];
+    } else {
+      for (u8 i = 0; i < t->shape.numOfDims; i++) {
+        if (t->shape.dims[i] != 1) {
+          newBoundary[bIdx++] = t->boundary[i];
+        }
+      }
+    }
+  }
+
   *dest =
       (Tensor){.dtype = t->dtype,
                .values = t->values,
                .size = t->size,
                .isContigous = t->isContigous,
                .isView = true,
-               .boundary = t->boundary,
+               .boundary = newBoundary,
                .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
 
   return OK;
@@ -224,6 +251,12 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   if (t->shape.numOfDims == 1) {
     *dest = *t;
     dest->isView = true;
+    // Deep-copy boundary to avoid shared-pointer double-free.
+    if (t->boundary != NULL) {
+      Range *newBoundary = allocate(ctx->memory, sizeof(Range));
+      newBoundary[0] = t->boundary[0];
+      dest->boundary = newBoundary;
+    }
     return OK;
   }
 
@@ -241,13 +274,25 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims}, newMultipliers);
 
+  // Deep-copy boundary excluding the squeezed dim to avoid shared-pointer double-free.
+  Range *newBoundary = NULL;
+  if (t->boundary != NULL) {
+    newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    u8 bIdx = 0;
+    for (u8 i = 0; i < t->shape.numOfDims; i++) {
+      if (i != dim) {
+        newBoundary[bIdx++] = t->boundary[i];
+      }
+    }
+  }
+
   *dest =
       (Tensor){.dtype = t->dtype,
                .values = t->values,
                .size = t->size,
                .isContigous = t->isContigous,
                .isView = true,
-               .boundary = t->boundary,
+               .boundary = newBoundary,
                .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
 
   return OK;
@@ -287,13 +332,28 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     newMultipliers[i] = t->shape.multipliers[i - 1];
   }
 
+  // Deep-copy boundary with the new dimension inserted to avoid shared-pointer double-free.
+  Range *newBoundary = NULL;
+  if (t->boundary != NULL) {
+    newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    for (u8 i = 0; i < newNumDims; i++) {
+      if (i < dim) {
+        newBoundary[i] = t->boundary[i];
+      } else if (i == dim) {
+        newBoundary[i] = (Range){.start = 0, .end = 1};
+      } else {
+        newBoundary[i] = t->boundary[i - 1];
+      }
+    }
+  }
+
   *dest =
       (Tensor){.dtype = t->dtype,
                .values = t->values,
                .size = t->size,
                .isContigous = t->isContigous,
                .isView = true,
-               .boundary = t->boundary,
+               .boundary = newBoundary,
                .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
 
   return OK;

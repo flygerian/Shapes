@@ -230,7 +230,8 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numBeforeDim = 0;
   Result numBeforeResult = calculateNumElementsBeforeDim(workingTensor, dim, &numBeforeDim);
   if (numBeforeResult != OK) {
-    if (!t->isContigous) FreeTensor(ctx, workingTensor);
+    if (!t->isContigous)
+      FreeTensor(ctx, workingTensor);
     return numBeforeResult;
   }
 
@@ -239,20 +240,20 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numAfterDim = 0;
   Result numAfterResult = calculateNumElementsAfterDim(workingTensor, dim, &numAfterDim);
   if (numAfterResult != OK) {
-    if (!t->isContigous) FreeTensor(ctx, workingTensor);
+    if (!t->isContigous)
+      FreeTensor(ctx, workingTensor);
     return numAfterResult;
   }
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
-  *dest = (Tensor){
-    .dtype = workingTensor->dtype,
-    .isContigous = true,
-    .isView = false,
-    .size = resultSize,
-    .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
-    .boundary = NULL,
-    .computation = NULL
-  };
+  *dest =
+      (Tensor){.dtype = workingTensor->dtype,
+               .isContigous = true,
+               .isView = false,
+               .size = resultSize,
+               .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
+               .boundary = NULL,
+               .computation = NULL};
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -280,11 +281,11 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   dest->shape = (Dim){
-    .numOfDims = workingTensor->shape.numOfDims,
-    .dims = allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims),
-    .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * workingTensor->shape.numOfDims)
-  };
-  memcpy(dest->shape.dims, workingTensor->shape.dims, sizeof(dim_t) * workingTensor->shape.numOfDims);
+      .numOfDims = workingTensor->shape.numOfDims,
+      .dims = allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims),
+      .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * workingTensor->shape.numOfDims)};
+  memcpy(dest->shape.dims, workingTensor->shape.dims,
+         sizeof(dim_t) * workingTensor->shape.numOfDims);
   dest->shape.dims[dim] = 1;
   calculateNumValuesAndMultipliers(dest->shape, dest->shape.multipliers);
 
@@ -297,17 +298,50 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
 static void maxValueForType(Value *max, void *values, tensor_size_t idx, Dtype dtype) {
   switch (dtype) {
-    case U8: if (((u8 *)values)[idx] > max->as.u8) max->as.u8 = ((u8 *)values)[idx]; break;
-    case U16: if (((u16 *)values)[idx] > max->as.u16) max->as.u16 = ((u16 *)values)[idx]; break;
-    case U32: if (((u32 *)values)[idx] > max->as.u32) max->as.u32 = ((u32 *)values)[idx]; break;
-    case U64: if (((u64 *)values)[idx] > max->as.u64) max->as.u64 = ((u64 *)values)[idx]; break;
-    case I8: if (((i8 *)values)[idx] > max->as.i8) max->as.i8 = ((i8 *)values)[idx]; break;
-    case I16: if (((i16 *)values)[idx] > max->as.i16) max->as.i16 = ((i16 *)values)[idx]; break;
-    case I32: if (((i32 *)values)[idx] > max->as.i32) max->as.i32 = ((i32 *)values)[idx]; break;
-    case I64: if (((i64 *)values)[idx] > max->as.i64) max->as.i64 = ((i64 *)values)[idx]; break;
-    case F16: if (((f16 *)values)[idx] > max->as.f16) max->as.f16 = ((f16 *)values)[idx]; break;
-    case F32: if (((f32 *)values)[idx] > max->as.f32) max->as.f32 = ((f32 *)values)[idx]; break;
-    case F64: if (((f64 *)values)[idx] > max->as.f64) max->as.f64 = ((f64 *)values)[idx]; break;
+    case U8:
+      if (((u8 *)values)[idx] > max->as.u8)
+        max->as.u8 = ((u8 *)values)[idx];
+      break;
+    case U16:
+      if (((u16 *)values)[idx] > max->as.u16)
+        max->as.u16 = ((u16 *)values)[idx];
+      break;
+    case U32:
+      if (((u32 *)values)[idx] > max->as.u32)
+        max->as.u32 = ((u32 *)values)[idx];
+      break;
+    case U64:
+      if (((u64 *)values)[idx] > max->as.u64)
+        max->as.u64 = ((u64 *)values)[idx];
+      break;
+    case I8:
+      if (((i8 *)values)[idx] > max->as.i8)
+        max->as.i8 = ((i8 *)values)[idx];
+      break;
+    case I16:
+      if (((i16 *)values)[idx] > max->as.i16)
+        max->as.i16 = ((i16 *)values)[idx];
+      break;
+    case I32:
+      if (((i32 *)values)[idx] > max->as.i32)
+        max->as.i32 = ((i32 *)values)[idx];
+      break;
+    case I64:
+      if (((i64 *)values)[idx] > max->as.i64)
+        max->as.i64 = ((i64 *)values)[idx];
+      break;
+    case F16:
+      if (((f16 *)values)[idx] > max->as.f16)
+        max->as.f16 = ((f16 *)values)[idx];
+      break;
+    case F32:
+      if (((f32 *)values)[idx] > max->as.f32)
+        max->as.f32 = ((f32 *)values)[idx];
+      break;
+    case F64:
+      if (((f64 *)values)[idx] > max->as.f64)
+        max->as.f64 = ((f64 *)values)[idx];
+      break;
   }
 }
 
@@ -348,7 +382,8 @@ Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numBeforeDim = 0;
   Result numBeforeResult = calculateNumElementsBeforeDim(workingTensor, dim, &numBeforeDim);
   if (numBeforeResult != OK) {
-    if (!t->isContigous) FreeTensor(ctx, workingTensor);
+    if (!t->isContigous)
+      FreeTensor(ctx, workingTensor);
     return numBeforeResult;
   }
 
@@ -357,20 +392,20 @@ Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numAfterDim = 0;
   Result numAfterResult = calculateNumElementsAfterDim(workingTensor, dim, &numAfterDim);
   if (numAfterResult != OK) {
-    if (!t->isContigous) FreeTensor(ctx, workingTensor);
+    if (!t->isContigous)
+      FreeTensor(ctx, workingTensor);
     return numAfterResult;
   }
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
-  *dest = (Tensor){
-    .dtype = workingTensor->dtype,
-    .isContigous = true,
-    .isView = false,
-    .size = resultSize,
-    .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
-    .boundary = NULL,
-    .computation = NULL
-  };
+  *dest =
+      (Tensor){.dtype = workingTensor->dtype,
+               .isContigous = true,
+               .isView = false,
+               .size = resultSize,
+               .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
+               .boundary = NULL,
+               .computation = NULL};
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -389,11 +424,11 @@ Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   dest->shape = (Dim){
-    .numOfDims = workingTensor->shape.numOfDims,
-    .dims = allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims),
-    .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * workingTensor->shape.numOfDims)
-  };
-  memcpy(dest->shape.dims, workingTensor->shape.dims, sizeof(dim_t) * workingTensor->shape.numOfDims);
+      .numOfDims = workingTensor->shape.numOfDims,
+      .dims = allocate(ctx->memory, sizeof(dim_t) * workingTensor->shape.numOfDims),
+      .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * workingTensor->shape.numOfDims)};
+  memcpy(dest->shape.dims, workingTensor->shape.dims,
+         sizeof(dim_t) * workingTensor->shape.numOfDims);
   dest->shape.dims[dim] = 1;
   calculateNumValuesAndMultipliers(dest->shape, dest->shape.multipliers);
 

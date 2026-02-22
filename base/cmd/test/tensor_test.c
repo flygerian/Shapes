@@ -2791,6 +2791,274 @@ static void test_clone_null_tensor(void) {
   freeMemory(mem);
 }
 
+// Phase 1 tests: view offset/boundary correctness
+
+// Test 1: Slice boundary propagation – GetAt on a 2D slice with non-zero starts
+static void test_view_slice_boundary_propagation(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 4x5 tensor, values[i][j] = i*5 + j
+  u32 dims[] = {4, 5};
+  Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u32 i = 0; i < 4; i++) {
+    for (u32 j = 0; j < 5; j++) {
+      ((f32 *)x->values)[i * 5 + j] = (f32)(i * 5 + j);
+    }
+  }
+
+  // Slice rows 1-3 (exclusive), cols 2-5 (exclusive) -> 2x3 view
+  Tensor s;
+  Result r = Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  ASSERT_EQ(r, OK, "slice should succeed");
+  ASSERT_EQ(s.shape.dims[0], 2, "slice dim[0] should be 2");
+  ASSERT_EQ(s.shape.dims[1], 3, "slice dim[1] should be 3");
+
+  // s[0,0] should be x[1,2] = 1*5+2 = 7
+  u32 idx00[] = {0, 0};
+  Value result;
+  GetAt(&s, (Dim){.dims = idx00, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 7.0f, "s[0,0] should be x[1,2]=7");
+
+  // s[0,2] should be x[1,4] = 1*5+4 = 9
+  u32 idx02[] = {0, 2};
+  GetAt(&s, (Dim){.dims = idx02, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 9.0f, "s[0,2] should be x[1,4]=9");
+
+  // s[1,0] should be x[2,2] = 2*5+2 = 12
+  u32 idx10[] = {1, 0};
+  GetAt(&s, (Dim){.dims = idx10, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 12.0f, "s[1,0] should be x[2,2]=12");
+
+  // s[1,2] should be x[2,4] = 2*5+4 = 14
+  u32 idx12[] = {1, 2};
+  GetAt(&s, (Dim){.dims = idx12, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 14.0f, "s[1,2] should be x[2,4]=14");
+
+  freeMemory(mem);
+}
+
+// Test 2: Nested slice correctness
+static void test_view_nested_slice_correctness(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 6x6 tensor, values[i][j] = i*6 + j
+  u32 dims[] = {6, 6};
+  Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u32 i = 0; i < 6; i++) {
+    for (u32 j = 0; j < 6; j++) {
+      ((f32 *)x->values)[i * 6 + j] = (f32)(i * 6 + j);
+    }
+  }
+
+  // s1 = x[1:5, 1:5] -> 4x4
+  Tensor s1;
+  Slice(&ctx, x, &s1, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+
+  // s2 = s1[1:3, 1:3] -> 2x2, which maps to x[2:4, 2:4]
+  Tensor s2;
+  Result r = Slice(&ctx, &s1, &s2, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  ASSERT_EQ(r, OK, "nested slice should succeed");
+  ASSERT_EQ(s2.shape.dims[0], 2, "nested slice dim[0] should be 2");
+  ASSERT_EQ(s2.shape.dims[1], 2, "nested slice dim[1] should be 2");
+
+  // s2[0,0] = x[2,2] = 2*6+2 = 14
+  u32 idx00[] = {0, 0};
+  Value result;
+  GetAt(&s2, (Dim){.dims = idx00, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 14.0f, "s2[0,0] should be x[2,2]=14");
+
+  // s2[0,1] = x[2,3] = 2*6+3 = 15
+  u32 idx01[] = {0, 1};
+  GetAt(&s2, (Dim){.dims = idx01, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 15.0f, "s2[0,1] should be x[2,3]=15");
+
+  // s2[1,0] = x[3,2] = 3*6+2 = 20
+  u32 idx10[] = {1, 0};
+  GetAt(&s2, (Dim){.dims = idx10, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 20.0f, "s2[1,0] should be x[3,2]=20");
+
+  // s2[1,1] = x[3,3] = 3*6+3 = 21
+  u32 idx11[] = {1, 1};
+  GetAt(&s2, (Dim){.dims = idx11, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 21.0f, "s2[1,1] should be x[3,3]=21");
+
+  freeMemory(mem);
+}
+
+// Test 3: GetTensorAt on a sliced tensor
+static void test_view_get_tensor_at_on_slice(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 5x4 tensor, values[i][j] = i*4 + j
+  u32 dims[] = {5, 4};
+  Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u32 i = 0; i < 5; i++) {
+    for (u32 j = 0; j < 4; j++) {
+      ((f32 *)x->values)[i * 4 + j] = (f32)(i * 4 + j);
+    }
+  }
+
+  // s = x[2:5, 0:4] -> 3x4 view (row offset = 2)
+  Tensor s;
+  Slice(&ctx, x, &s, (Range){.start = 2, .end = 5}, (Range){.start = 0, .end = 4});
+
+  // row = GetTensorAt(s, 1) -> should be x[3, :] = [12, 13, 14, 15]
+  Tensor row;
+  Result r = GetTensorAt(&ctx, &s, 1, &row);
+  ASSERT_EQ(r, OK, "GetTensorAt on slice should succeed");
+  ASSERT_EQ(row.shape.numOfDims, 1, "row should be 1D");
+  ASSERT_EQ(row.shape.dims[0], 4, "row should have 4 elements");
+
+  u32 idx[] = {0};
+  Value result;
+  GetAt(&row, (Dim){.dims = idx, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.f32, 12.0f, "row[0] should be x[3,0]=12");
+
+  u32 idx2[] = {3};
+  GetAt(&row, (Dim){.dims = idx2, .numOfDims = 1}, &result);
+  ASSERT_EQ(result.as.f32, 15.0f, "row[3] should be x[3,3]=15");
+
+  freeMemory(mem);
+}
+
+// Test 4: Advanced indexing on view input (read correctness)
+static void test_view_advanced_indexing_on_slice(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 6x4 tensor, values[i][j] = i*4 + j
+  u32 dims[] = {6, 4};
+  Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u32 i = 0; i < 6; i++) {
+    for (u32 j = 0; j < 4; j++) {
+      ((f32 *)x->values)[i * 4 + j] = (f32)(i * 4 + j);
+    }
+  }
+
+  // s = x[2:6, 0:4] -> 4x4 (row offset = 2; rows 2,3,4,5 of x)
+  Tensor s;
+  Slice(&ctx, x, &s, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
+
+  // IndexWithTensor(s, [0, 2]) should gather s[0,:] and s[2,:] = x[2,:] and x[4,:]
+  u32 idxDims[] = {2};
+  Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  ((i8 *)indices->values)[0] = 0;
+  ((i8 *)indices->values)[1] = 2;
+
+  Tensor result;
+  Result r = IndexWithTensor(&ctx, &s, indices, &result);
+  ASSERT_EQ(r, OK, "IndexWithTensor on slice should succeed");
+  ASSERT_EQ(result.shape.numOfDims, 2, "result should be 2D");
+  ASSERT_EQ(result.shape.dims[0], 2, "result dim[0] should be 2");
+  ASSERT_EQ(result.shape.dims[1], 4, "result dim[1] should be 4");
+
+  f32 *vals = (f32 *)result.values;
+  // s[0,:] = x[2,:] = [8,9,10,11]
+  ASSERT_EQ(vals[0], 8.0f, "result[0,0] should be x[2,0]=8");
+  ASSERT_EQ(vals[1], 9.0f, "result[0,1] should be x[2,1]=9");
+  ASSERT_EQ(vals[2], 10.0f, "result[0,2] should be x[2,2]=10");
+  ASSERT_EQ(vals[3], 11.0f, "result[0,3] should be x[2,3]=11");
+  // s[2,:] = x[4,:] = [16,17,18,19]
+  ASSERT_EQ(vals[4], 16.0f, "result[1,0] should be x[4,0]=16");
+  ASSERT_EQ(vals[5], 17.0f, "result[1,1] should be x[4,1]=17");
+  ASSERT_EQ(vals[6], 18.0f, "result[1,2] should be x[4,2]=18");
+  ASSERT_EQ(vals[7], 19.0f, "result[1,3] should be x[4,3]=19");
+
+  freeMemory(mem);
+}
+
+// Test: AddInPlace on a slice view mutates the correct region of the base tensor
+static void test_add_in_place_on_slice_view(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 4x4 base tensor with values [0..15]
+  u32 dims[] = {4, 4};
+  Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u32 i = 0; i < 16; i++) {
+    ((f32 *)x->values)[i] = (f32)i;
+  }
+
+  // s = x[1:3, 1:3] -> 2x2 view covering x[1,1], x[1,2], x[2,1], x[2,2] = 5,6,9,10
+  Tensor s;
+  Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+
+  // ones = 2x2 tensor of all 1.0
+  Tensor *ones = T_Float(&ctx, (Dim){.dims = (u32[]){2, 2}, .numOfDims = 2}, 1.0f);
+
+  Result r = AddInPlace(&ctx, &s, ones);
+  ASSERT_EQ(r, OK, "AddInPlace on slice view should succeed");
+
+  // Verify base tensor: unchanged regions outside slice
+  ASSERT_EQ(((f32 *)x->values)[0], 0.0f, "x[0,0] should be unchanged (0)");
+  ASSERT_EQ(((f32 *)x->values)[3], 3.0f, "x[0,3] should be unchanged (3)");
+  ASSERT_EQ(((f32 *)x->values)[15], 15.0f, "x[3,3] should be unchanged (15)");
+
+  // Slice region should be incremented: 5->6, 6->7, 9->10, 10->11
+  ASSERT_EQ(((f32 *)x->values)[5], 6.0f, "x[1,1] should be 6 after +1");
+  ASSERT_EQ(((f32 *)x->values)[6], 7.0f, "x[1,2] should be 7 after +1");
+  ASSERT_EQ(((f32 *)x->values)[9], 10.0f, "x[2,1] should be 10 after +1");
+  ASSERT_EQ(((f32 *)x->values)[10], 11.0f, "x[2,2] should be 11 after +1");
+
+  freeMemory(mem);
+}
+
+// Test: Boundary deep-copy safety - each view gets its own boundary array
+// so modifying or zeroing one boundary does not corrupt another.
+static void test_view_boundary_deep_copy_transpose(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // 3x4 base tensor, values[i][j] = i*4 + j (0..11)
+  u32 dims[] = {3, 4};
+  Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  for (u32 i = 0; i < 12; i++) {
+    ((f32 *)x->values)[i] = (f32)i;
+  }
+
+  // s = x[1:3, 0:4] -> 2x4 view (rows 1 and 2 of x)
+  Tensor s;
+  Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 4});
+
+  // t = Transpose(s, 0, 1) -> 4x2 view
+  Tensor t;
+  Result r = Transpose(&ctx, &s, &t, (dim_t)0, (dim_t)1);
+  ASSERT_EQ(r, OK, "Transpose of slice should succeed");
+
+  // Verify s and t have DIFFERENT boundary pointers (deep-copy)
+  ASSERT_NEQ((uintptr_t)s.boundary, (uintptr_t)t.boundary,
+             "s and t should have independent boundary arrays");
+
+  // Verify correct values through both views
+  // s[0,0] = x[1,0] = 4
+  u32 s00[] = {0, 0};
+  Value result;
+  GetAt(&s, (Dim){.dims = s00, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 4.0f, "s[0,0] should be x[1,0]=4");
+
+  // t[0,0] = s[0,0] = x[1,0] = 4
+  u32 t00[] = {0, 0};
+  GetAt(&t, (Dim){.dims = t00, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should be x[1,0]=4");
+
+  // t[1,0] = s[0,1] = x[1,1] = 5
+  u32 t10[] = {1, 0};
+  GetAt(&t, (Dim){.dims = t10, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 5.0f, "t[1,0] should be x[1,1]=5");
+
+  // Corrupt s's boundary to prove t is unaffected
+  s.boundary[0].start = 999;
+
+  // t should still read correctly
+  GetAt(&t, (Dim){.dims = t00, .numOfDims = 2}, &result);
+  ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should still be 4 after corrupting s boundary");
+
+  freeMemory(mem);
+}
+
 static void test_slice_boundary_access(void) {
   u32 dims[] = {5, 5};
   TestTensor tt = createZerosTensor(dims, 2);
@@ -3981,6 +4249,13 @@ void run_tensor_tests(void) {
   test_slice_of_slice();
   test_slice_large_4d_tensor();
   test_slice_boundary_access();
+  // View correctness tests (Phase 1)
+  test_view_slice_boundary_propagation();
+  test_view_nested_slice_correctness();
+  test_view_get_tensor_at_on_slice();
+  test_view_advanced_indexing_on_slice();
+  test_add_in_place_on_slice_view();
+  test_view_boundary_deep_copy_transpose();
   // Reshape tests
   test_reshape_basic_2d_to_1d();
   test_reshape_1d_to_2d();

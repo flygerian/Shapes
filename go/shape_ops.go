@@ -143,7 +143,15 @@ func (t *Tensor) Slice(ctx *Context, ranges ...Range) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.BackwardEnabled {
+		// Deep-copy ranges so metadata is stable after the caller's slice goes out of scope.
+		copiedRanges := make([]Range, len(ranges))
+		copy(copiedRanges, ranges)
+		attachNode(ctx, out, OpSlice, sliceBackward, t)
+		out.Computation.Metadata = copiedRanges
+	}
+	return out
 }
 
 // Reshape returns a tensor with the same data but a different shape.
@@ -195,7 +203,7 @@ func (t *Tensor) Reshape(ctx *Context, dims ...int) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled {
+	if ctx.BackwardEnabled {
 		attachNode(ctx, out, OpReshape, reshapeBackward, t)
 	}
 	return out
@@ -233,7 +241,7 @@ func (t *Tensor) Transpose(ctx *Context, dims ...uint32) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled {
+	if ctx.BackwardEnabled {
 		attachNode(ctx, out, OpTranspose, transposeBackward, t)
 		out.Computation.Metadata = [2]uint32{d0, d1}
 	}
@@ -248,7 +256,7 @@ func (t *Tensor) Squeeze(ctx *Context) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled {
+	if ctx.BackwardEnabled {
 		attachNode(ctx, out, OpSqueeze, squeezeBackward, t)
 	}
 	return out
@@ -262,7 +270,7 @@ func (t *Tensor) SqueezeDim(ctx *Context, dim uint32) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled {
+	if ctx.BackwardEnabled {
 		attachNode(ctx, out, OpSqueezeDim, squeezeDimBackward, t)
 		out.Computation.Metadata = dim
 	}
@@ -277,7 +285,7 @@ func (t *Tensor) UnSqueeze(ctx *Context, dim uint32) *Tensor {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.GradEnabled {
+	if ctx.BackwardEnabled {
 		attachNode(ctx, out, OpUnSqueeze, unSqueezeBackward, t)
 		out.Computation.Metadata = dim
 	}

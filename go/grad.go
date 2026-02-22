@@ -20,25 +20,29 @@ type BackwardFn func(ctx *Context, node *ComputationGraphNode)
 type OpType int
 
 const (
-	OpNone         OpType = iota
-	OpAdd                 // +
-	OpSubtract            // -
-	OpMultiply            // *
-	OpDivide              // /
-	OpPow                 // pow
-	OpExp                 // exp
-	OpTanh                // tanh
-	OpDense               // wx + b
-	OpReshape             // reshape
-	OpTranspose           // transpose
-	OpSqueeze             // squeeze
-	OpSqueezeDim          // squeeze_dim
-	OpUnSqueeze           // unsqueeze
-	OpNegate              // negate
-	OpSum                 // sum
-	OpMse                 // mse loss
-	OpCrossEntropy        // cross-entropy loss
-	OpOneHot              // one-hot encoding
+	OpNone              OpType = iota
+	OpAdd                      // +
+	OpSubtract                 // -
+	OpMultiply                 // *
+	OpDivide                   // /
+	OpPow                      // pow
+	OpExp                      // exp
+	OpTanh                     // tanh
+	OpDense                    // wx + b
+	OpReshape                  // reshape
+	OpTranspose                // transpose
+	OpSqueeze                  // squeeze
+	OpSqueezeDim               // squeeze_dim
+	OpUnSqueeze                // unsqueeze
+	OpNegate                   // negate
+	OpSum                      // sum
+	OpMse                      // mse loss
+	OpCrossEntropy             // cross-entropy loss
+	OpOneHot                   // one-hot encoding
+	OpGetTensorAt              // view row-selection (Get with scalar index)
+	OpSlice                    // view slice
+	OpIndexWithTensor          // advanced 1D gather
+	OpIndexWithTensor2d        // advanced 2D gather
 )
 
 func (op OpType) String() string {
@@ -77,6 +81,14 @@ func (op OpType) String() string {
 		return "cross_entropy"
 	case OpOneHot:
 		return "one_hot"
+	case OpGetTensorAt:
+		return "get_tensor_at"
+	case OpSlice:
+		return "slice"
+	case OpIndexWithTensor:
+		return "index_with_tensor"
+	case OpIndexWithTensor2d:
+		return "index_with_tensor2d"
 	default:
 		return "?"
 	}

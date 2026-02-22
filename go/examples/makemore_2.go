@@ -150,30 +150,30 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 	l1 := layer.Dense(6, 100)
 	l2 := layer.Dense(100, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.0001)
+	sgd := optimizer.SGD(shapesCtx, 0.001)
 
-	for i := range 10 {
+	for i := range 100 {
 
 		emb := C.Get(X)
 		emb.Tensor().Label = "emb"
-		fmt.Printf("Embedding table shape %v\n", emb.Shape())
+		// fmt.Printf("Embedding table shape %v\n", emb.Shape())
 
 		h := l1(emb.Reshape(-1, 6))
 		h.Tensor().Label = "h"
 		logits := l2(h)
 		logits.Tensor().Label = "logits"
 
-		fmt.Printf("Y.shape %v\n", Y.Shape())
-		fmt.Printf("Y.dtype %v\n", Y.Dtype())
+		// fmt.Printf("Y.shape %v\n", Y.Shape())
+		// fmt.Printf("Y.dtype %v\n", Y.Dtype())
 
 		yOneHot := shapesCtx.OneHot(Y, 27)
 		oneHot.Tensor().Label = "one_hot"
 		loss := loss.CrossEntropy(yOneHot, logits)
-		loss.Tensor().Label = "Loss"
 
 		graph := loss.Backward()
 
-		fmt.Printf("Epoch %d, Loss: %v", i, loss.Item())
+		fmt.Printf("Epoch %d, Loss: ", i)
+		visual.Print(loss)
 
 		optimizer.ZeroGrad(shapesCtx, graph)
 		sgd(graph)

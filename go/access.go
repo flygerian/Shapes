@@ -7,16 +7,25 @@ package shapes
 #include "tensor/tensor.h"
 #include "common.h"
 
-static inline Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
-	return GetTensorAt(ctx, source, index, dest);
+static inline Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = GetTensorAt(ctx, source, index, dest);
+	*out = dest;
+	return r;
 }
 
-static inline Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest) {
-	return IndexWithTensor(ctx, source, indices, dest);
+static inline Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = IndexWithTensor(ctx, source, indices, dest);
+	*out = dest;
+	return r;
 }
 
-static inline Result wrap_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices, Tensor *dest) {
-	return IndexWithTensor2d(ctx, source, rowIndices, colIndices, dest);
+static inline Result wrap_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = IndexWithTensor2d(ctx, source, rowIndices, colIndices, dest);
+	*out = dest;
+	return r;
 }
 
 static inline Result wrap_GetScalar(Tensor *t, Value *result) {
@@ -141,14 +150,17 @@ func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
 			panic("shapes: cannot index a 0-dimensional tensor")
 		}
 
-		var result C.Tensor
+		prevInput := current
+		var dest *C.Tensor
 		cCtx := (*C.Context)(ctx.UnsafePtr())
-		res := C.wrap_GetTensorAt(cCtx, current.cTensor, C.dim_t(idx), &result)
+		res := C.wrap_GetTensorAt(cCtx, current.cTensor, C.dim_t(idx), &dest)
 		if res != C.OK {
 			panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 		}
-		current = &Tensor{
-			cTensor: &result,
+		current = track(ctx, &Tensor{cTensor: dest})
+		if ctx.BackwardEnabled {
+			attachNode(ctx, current, OpGetTensorAt, getTensorAtBackward, prevInput)
+			current.Computation.Metadata = idx
 		}
 	}
 	return current
@@ -157,31 +169,37 @@ func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
 // getWithTensor performs advanced indexing using a tensor of indices.
 // The indices tensor must contain integer values.
 func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
-	var result C.Tensor
+	var dest *C.Tensor
 	cCtx := (*C.Context)(ctx.UnsafePtr())
-	res := C.wrap_IndexWithTensor(cCtx, t.cTensor, indices.cTensor, &result)
+	res := C.wrap_IndexWithTensor(cCtx, t.cTensor, indices.cTensor, &dest)
 	if res != C.OK {
 		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 	}
 
-	return track(ctx, &Tensor{
-		cTensor: &result,
-	})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.BackwardEnabled {
+		attachNode(ctx, out, OpIndexWithTensor, indexWithTensorBackward, t)
+		out.Computation.Metadata = indices
+	}
+	return out
 }
 
 // getWithTensor2d performs 2D advanced indexing using two tensors of indices.
 // The row and column index tensors must contain integer values and have the same shape.
 func (t *Tensor) getWithTensor2d(ctx *Context, rowIndices, colIndices *Tensor) *Tensor {
-	var result C.Tensor
+	var dest *C.Tensor
 	cCtx := (*C.Context)(ctx.UnsafePtr())
-	res := C.wrap_IndexWithTensor2d(cCtx, t.cTensor, rowIndices.cTensor, colIndices.cTensor, &result)
+	res := C.wrap_IndexWithTensor2d(cCtx, t.cTensor, rowIndices.cTensor, colIndices.cTensor, &dest)
 	if res != C.OK {
 		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 	}
 
-	return track(ctx, &Tensor{
-		cTensor: &result,
-	})
+	out := track(ctx, &Tensor{cTensor: dest})
+	if ctx.BackwardEnabled {
+		attachNode(ctx, out, OpIndexWithTensor2d, indexWithTensor2dBackward, t)
+		out.Computation.Metadata = [2]*Tensor{rowIndices, colIndices}
+	}
+	return out
 }
 
 // Get returns a sub-tensor at the given coordinates as a WrappedTensor.

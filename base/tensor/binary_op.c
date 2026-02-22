@@ -106,9 +106,6 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
     paddedB = ops.b;
   }
 
-  if (!a->isContigous) {
-    return ERR_DIM_MISMATCH;
-  }
   Tensor *contiguousB = NULL;
   if (!opB->isContigous) {
     opB = copyToContiguous(ctx, opB);
@@ -119,23 +116,27 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
   dim_t bCoords[a->shape.numOfDims];
 
   for (tensor_size_t x = 0; x < a->size; x++) {
+    // Unravel using a's logical shape (ignoring boundary).
     unravel_index(x, &a->shape, currentCoord);
+
+    // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
+    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
 
     for (u8 d = 0; d < a->shape.numOfDims; d++) {
       bCoords[d] = currentCoord[d] % opB->shape.dims[d];
     }
 
     Value aVal;
-    VALUE_GET_FROM_ARR(a->values, x, &aVal, a->dtype);
+    VALUE_GET_FROM_ARR(a->values, aStorageIdx, &aVal, a->dtype);
 
     Value bVal;
-    u64 idx = getContigousIdxFromCoord(opB, bCoords);
-    VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
+    u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
+    VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
 
     Value result;
     VALUE_BINOP(result, aVal, bVal, +);
 
-    VALUE_SET(a->values, x, result);
+    VALUE_SET(a->values, aStorageIdx, result);
   }
 
   if (contiguousB != NULL)
