@@ -395,6 +395,70 @@ func TestOneHotWithGrad(t *testing.T) {
 	if !oneHot.RequiresGrad() {
 		t.Fatal("expected grad tracking when context has grad enabled")
 	}
+
+	// OneHot must be an intermediate node (with indices as input), not a leaf.
+	// This ensures the backward pass can traverse through it.
+	node := oneHot.Tensor().Computation
+	if node.Backward == nil {
+		t.Fatal("expected OneHot to register a backward function (not a leaf node)")
+	}
+	if len(node.Inputs) != 1 {
+		t.Fatalf("expected 1 input on OneHot node, got %d", len(node.Inputs))
+	}
+	if node.Op != OpOneHot {
+		t.Fatalf("expected Op == OpOneHot, got %v", node.Op)
+	}
+}
+
+func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
+	// Verifies that:
+	// 1. Backward does not panic when traversing through a OneHot node.
+	// 2. Gradients flow to tensors that used the OneHot output (downstream ops).
+	ctx := New(context.Background(), WithGrad(true))
+	defer ctx.Close()
+
+	indices := ctx.FromInt8([]int8{0, 1}) // 2 samples: class 0 and class 1
+
+	// numClasses=2 → shape [2, 2]
+	oneHot := ctx.OneHot(indices, 2)
+
+	// Downstream op: sum over all elements (scalar output for easy backward).
+	// grad of sum w.r.t. oneHot is all-ones — but since OneHot backward is a no-op,
+	// oneHot.Grad() stays all-zeros (no panic, no accumulation).
+	result := oneHot.Tensor().Sum(ctx, 0).Sum(ctx, 0)
+
+	// This must not panic.
+	result.Backward(ctx)
+
+	// oneHot.Grad() should exist and be populated by the downstream sum backward.
+	grad := oneHot.Tensor().Grad()
+	if grad == nil {
+		t.Fatal("expected grad tensor on oneHot output")
+	}
+	// The no-op backward means gradient does NOT propagate to indices,
+	// but oneHot.Grad() is set by the upstream sum backward (all-ones for sum).
+	gradShape := ShapeOf(grad)
+	for i := range gradShape[0] {
+		for j := range gradShape[1] {
+			v := grad.Get(ctx, i, j).Item().(float32)
+			if v != 1.0 {
+				t.Errorf("oneHot.Grad()[%d,%d] = %f, want 1.0 (sum backward)", i, j, v)
+			}
+		}
+	}
+
+	// indices.Grad() should remain zero — no gradient flows through discrete indices.
+	indicesGrad := indices.Tensor().Grad()
+	if indicesGrad == nil {
+		t.Fatal("expected grad tensor on indices")
+	}
+	indicesShape := ShapeOf(indicesGrad)
+	for i := range indicesShape[0] {
+		v := indicesGrad.Get(ctx, i).Item().(float32)
+		if v != 0.0 {
+			t.Errorf("indices.Grad()[%d] = %f, want 0.0 (no gradient through discrete indices)", i, v)
+		}
+	}
 }
 
 func TestOneHotNilInput(t *testing.T) {

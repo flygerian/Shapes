@@ -11,6 +11,7 @@ import (
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
+	"github.com/flygerian/shapes/optimizer"
 	"github.com/flygerian/shapes/visual"
 )
 
@@ -146,21 +147,36 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	newSection()
 
-	emb := C.Get(X)
-	fmt.Printf("Embedding table shape %v\n", emb.Shape())
-
 	l1 := layer.Dense(6, 100)
 	l2 := layer.Dense(100, 27)
 
-	h := l1(emb.Reshape(-1, 6))
-	logits := l2(h)
+	sgd := optimizer.SGD(shapesCtx, 0.0001)
 
-	fmt.Printf("Y.shape %v\n", Y.Shape())
-	fmt.Printf("Y.dtype %v\n", Y.Dtype())
+	for i := range 10 {
 
-	yOneHot := shapesCtx.OneHot(Y, 27)
-	loss := loss.CrossEntropy(yOneHot, logits)
+		emb := C.Get(X)
+		emb.Tensor().Label = "emb"
+		fmt.Printf("Embedding table shape %v\n", emb.Shape())
 
-	visual.Print(loss)
+		h := l1(emb.Reshape(-1, 6))
+		h.Tensor().Label = "h"
+		logits := l2(h)
+		logits.Tensor().Label = "logits"
+
+		fmt.Printf("Y.shape %v\n", Y.Shape())
+		fmt.Printf("Y.dtype %v\n", Y.Dtype())
+
+		yOneHot := shapesCtx.OneHot(Y, 27)
+		oneHot.Tensor().Label = "one_hot"
+		loss := loss.CrossEntropy(yOneHot, logits)
+		loss.Tensor().Label = "Loss"
+
+		graph := loss.Backward()
+
+		fmt.Printf("Epoch %d, Loss: %v", i, loss.Item())
+
+		optimizer.ZeroGrad(shapesCtx, graph)
+		sgd(graph)
+	}
 
 }

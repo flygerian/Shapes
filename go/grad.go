@@ -8,7 +8,10 @@ package shapes
 #include "common.h"
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // BackwardFn is the signature for backward pass functions.
 type BackwardFn func(ctx *Context, node *ComputationGraphNode)
@@ -35,6 +38,7 @@ const (
 	OpSum                 // sum
 	OpMse                 // mse loss
 	OpCrossEntropy        // cross-entropy loss
+	OpOneHot              // one-hot encoding
 )
 
 func (op OpType) String() string {
@@ -71,6 +75,8 @@ func (op OpType) String() string {
 		return "mse"
 	case OpCrossEntropy:
 		return "cross_entropy"
+	case OpOneHot:
+		return "one_hot"
 	default:
 		return "?"
 	}
@@ -220,7 +226,11 @@ func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
 // Grad returns the gradient tensor. Panics if this tensor has no computation node.
 func (t *Tensor) Grad() *Tensor {
 	if t.Computation == nil {
-		panic("shapes: tensor has no computation graph node")
+		err := "shapes: tensor has no computation graph node"
+		if t.Label != "" {
+			err = err + fmt.Sprintf(" %s", t.Label)
+		}
+		panic(err)
 	}
 	return t.Computation.Grad
 }

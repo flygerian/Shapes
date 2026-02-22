@@ -44,6 +44,10 @@ func squeezeDimBackward(ctx *Context, node *ComputationGraphNode) {
 	markIntermediate(ctx, gradX)
 }
 
+// oneHotBackward is a no-op: indices are discrete integers and have no gradient.
+// The node is registered so the computation graph can traverse through OneHot.
+func oneHotBackward(_ *Context, _ *ComputationGraphNode) {}
+
 // unSqueezeBackward squeezes the gradient at the dim that was unsqueezed.
 func unSqueezeBackward(ctx *Context, node *ComputationGraphNode) {
 	x := node.Inputs[0]
