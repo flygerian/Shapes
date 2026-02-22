@@ -7,16 +7,16 @@ import (
 // Tanh applies the hyperbolic tangent activation element-wise, returning a new tensor.
 // tanh(x) = (e^(2x) - 1) / (e^(2x) + 1)
 func Tanh(ctx *shapes.Context, t *shapes.Tensor) *shapes.Tensor {
-	noGrad := ctx.NoGrad()
+	fusedCtx := ctx.Fused()
 
-	two := shapes.Float(noGrad, shapes.ShapeOf(t), 2.0)
-	ones := shapes.Float(noGrad, shapes.ShapeOf(t), 1.0)
+	two := shapes.Float(fusedCtx, shapes.ShapeOf(t), 2.0)
+	ones := shapes.Float(fusedCtx, shapes.ShapeOf(t), 1.0)
 
-	exp2x := t.Times(noGrad, two).Exp(noGrad)
-	out := exp2x.Minus(noGrad, ones).Divide(noGrad, exp2x.Plus(noGrad, ones))
+	exp2x := t.Times(fusedCtx, two).Exp(fusedCtx)
+	out := exp2x.Minus(fusedCtx, ones).Divide(fusedCtx, exp2x.Plus(fusedCtx, ones))
 
 	if ctx.BackwardEnabled {
-		ctx.NewComputationGraphNode(out, shapes.OpTanh, tanhBackward, t)
+		fusedCtx.NewComputationGraphNode(out, shapes.OpTanh, tanhBackward, t)
 	}
 	return out
 }

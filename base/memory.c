@@ -8,17 +8,22 @@
 #include <string.h>
 #include <unistd.h>
 
-Memory *initializeMemory() {
+Memory *initializeArena(size_t arenaSize) {
   Memory *head;
-  head = malloc(sizeof(Memory) + ALLOCATION); // return the top of the heap;
+  head = malloc(sizeof(Memory) + arenaSize); // return the top of the heap;
                                               // top of the heap
   assert(head != NULL);
 
-  head->capacity = ALLOCATION;
+  head->capacity = arenaSize;
   head->allocated = 0;
 
   return head;
 }
+
+Memory *initializeMemory() {
+  return initializeArena((size_t) DEFAULT_ALLOCATION);
+}
+
 
 void *findAvailableSpace(Memory *memory, size_t size) {
   size_t idxToCheck = 0;
@@ -187,4 +192,38 @@ void freeAlloc(Memory *memory, void *ptr) {
 
 void freeMemory(Memory *memory) {
   free(memory);
+}
+
+
+void printMemoryFragmentationChart(Memory *memory) {
+  printf("== Memory Fragmentation Chart ==\n");
+  printf("Allocated: %zu / %zu bytes\n\n", memory->allocated, memory->capacity);
+
+  uint8_t *arena = ARENA(memory);
+  size_t byteIdx = 0;
+  int col = 0;
+
+  while (byteIdx < memory->allocated) {
+    blockheader *header = (blockheader *)(arena + byteIdx);
+    size_t blockSize =
+        sizeof(blockheader) + header->blockSize + sizeof(blockfooter);
+
+    if (header->free) {
+      printf("(%d) ", header->blockSize);
+    } else {
+      printf("%d ", header->blockSize);
+    }
+
+    col++;
+    if (col == 16) {
+      printf("\n");
+      col = 0;
+    }
+
+    byteIdx += blockSize;
+  }
+
+  if (col != 0) {
+    printf("\n");
+  }
 }

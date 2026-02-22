@@ -30,9 +30,8 @@ func CrossEntropy(yGround *shapes.WrappedTensor, logits *shapes.WrappedTensor) *
 	perSampleLoss := yGround.Tensor().Times(fusedCtx, logProbs).Sum(fusedCtx, classDim)
 	result := perSampleLoss.Mean(fusedCtx).Negate(fusedCtx)
 
-	ctx.NewComputationGraphNode(result, shapes.OpCrossEntropy, crossEntropyBackward, yGround.Tensor(), logits.Tensor())
-	// Store probs for use in the backward pass.
-	result.Computation.Metadata = probs
+	// Use Saved API to keep probs alive for backward, then register via fusedCtx for sweeping
+	fusedCtx.NewComputationGraphNodeSaved(result, shapes.OpCrossEntropy, crossEntropyBackward, []*shapes.Tensor{probs}, yGround.Tensor(), logits.Tensor())
 
 	return ctx.Wrap(result)
 }
@@ -48,7 +47,7 @@ func CrossEntropy(yGround *shapes.WrappedTensor, logits *shapes.WrappedTensor) *
 func crossEntropyBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
 	yGround := node.Inputs[0]
 	logits := node.Inputs[1]
-	probs := node.Metadata.(*shapes.Tensor)
+	probs := node.Saved[0]
 
 	// batch_size is the leading dimension (or 1 for a single 1D sample).
 	logitsShape := shapes.ShapeOf(logits)
@@ -64,9 +63,4 @@ func crossEntropyBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode
 	gradLogits := node.Grad.Times(ctx, localGrad)
 	reducedLogits := shapes.ReduceBroadcast(ctx, logits, gradLogits)
 	logits.Computation.Grad = logits.Grad().Plus(ctx, reducedLogits)
-
-	shapes.MarkIntermediate(ctx, n)
-	shapes.MarkIntermediate(ctx, localGrad)
-	shapes.MarkIntermediate(ctx, gradLogits)
-	shapes.MarkIfIntermediate(ctx, reducedLogits, gradLogits)
 }

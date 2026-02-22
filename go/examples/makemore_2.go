@@ -12,7 +12,6 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/visual"
 )
 
 func set(input string) []rune {
@@ -103,7 +102,7 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	newSection()
 
-	for _, word := range words[:5] {
+	for _, word := range words {
 		context := make([]int8, blockSize)
 
 		runes := []rune(word + ".")
@@ -112,7 +111,7 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 			ix := stoi[ch]
 			y = append(y, ix)
 
-			fmt.Printf("%s ---> %s\n", printFromAphabetPos(context, itos), printFromAphabetPos([]int8{ix}, itos))
+			// fmt.Printf("%s ---> %s\n", printFromAphabetPos(context, itos), printFromAphabetPos([]int8{ix}, itos))
 
 			context = append(append([]int8{}, context[1:]...), ix)
 		}
@@ -121,62 +120,46 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 	X := shapesCtx.FromInt8(x)
 	Y := shapesCtx.FromInt8(y)
 
-	newSection()
+	// newSection()
 
-	fmt.Printf("%v, %v, %v, %v\n", X.Shape(), X.Dtype(), Y.Shape(), Y.Dtype())
+	// fmt.Printf("%v, %v, %v, %v\n", X.Shape(), X.Dtype(), Y.Shape(), Y.Dtype())
 
-	newSection()
+	// newSection()
 
 	C := shapesCtx.FloatRandom(shapes.Shape{27, 2})
-
-	idx := shapesCtx.FromInt8([]int8{5})
-
-	visual.Print(idx)
-
-	oneHot := shapesCtx.OneHot(idx, 27)
-
-	newSection()
-
-	fmt.Printf("One hot shapes: %v\n", oneHot.Squeeze().Shape())
-	visual.Print(oneHot)
-
-	p := oneHot.Mul(C).Squeeze()
-
-	fmt.Printf("Mul\n")
-	visual.Print(p)
 
 	newSection()
 
 	l1 := layer.Dense(6, 100)
 	l2 := layer.Dense(100, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.001)
+	sgd := optimizer.SGD(shapesCtx, 0.1)
+
+	shapesCtx.PrintMemoryFragmentationChart()
 
 	for i := range 100 {
-
+		// Forward pass
 		emb := C.Get(X)
 		emb.Tensor().Label = "emb"
-		// fmt.Printf("Embedding table shape %v\n", emb.Shape())
 
 		h := l1(emb.Reshape(-1, 6))
 		h.Tensor().Label = "h"
 		logits := l2(h)
 		logits.Tensor().Label = "logits"
 
-		// fmt.Printf("Y.shape %v\n", Y.Shape())
-		// fmt.Printf("Y.dtype %v\n", Y.Dtype())
-
 		yOneHot := shapesCtx.OneHot(Y, 27)
-		oneHot.Tensor().Label = "one_hot"
-		loss := loss.CrossEntropy(yOneHot, logits)
+		yOneHot.Tensor().Label = "one_hot"
 
-		graph := loss.Backward()
+		lossValue := loss.CrossEntropy(yOneHot, logits)
 
-		fmt.Printf("Epoch %d, Loss: ", i)
-		visual.Print(loss)
+		fmt.Printf("Epoch %d, Loss: %f\n", i, lossValue.Get(0).Item())
 
-		optimizer.ZeroGrad(shapesCtx, graph)
+		// Backward pass
+		graph := lossValue.Backward()
+
+		// Update parameters
 		sgd(graph)
+		optimizer.ZeroGrad(shapesCtx, graph)
 	}
 
 }

@@ -14,20 +14,17 @@ func Mse(yGround *shapes.WrappedTensor, yPred *shapes.WrappedTensor) *shapes.Wra
 	// Compute: (yPred - yGround)^2
 	diff := yPred.Tensor().Minus(fusedCtx, yGround.Tensor())
 	se := diff.Pow(fusedCtx, 2)
-	shapes.MarkIntermediate(ctx, diff) // diff is intermediate, consumed by Pow
 
 	// Sum over all dimensions to reduce to scalar
 	result := se
 	shape := shapes.ShapeOf(result)
 	for i := len(shape) - 1; i >= 0; i-- {
 		if shape[i] > 1 {
-			prev := result
 			result = result.Sum(fusedCtx, uint32(i))
-			shapes.MarkIntermediate(ctx, prev) // previous result is intermediate
 		}
 	}
 
-	ctx.NewComputationGraphNode(result, shapes.OpMse, mseBackward, yGround.Tensor(), yPred.Tensor())
+	fusedCtx.NewComputationGraphNode(result, shapes.OpMse, mseBackward, yGround.Tensor(), yPred.Tensor())
 	return ctx.Wrap(result)
 }
 
@@ -46,18 +43,10 @@ func mseBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
 	gradYPred := node.Grad.Times(ctx, localGrad)
 	reducedYPred := shapes.ReduceBroadcast(ctx, yPred, gradYPred)
 	yPred.Computation.Grad = yPred.Grad().Plus(ctx, reducedYPred)
-	shapes.MarkIntermediate(ctx, diff)
-	shapes.MarkIntermediate(ctx, two)
-	shapes.MarkIntermediate(ctx, localGrad)
-	shapes.MarkIntermediate(ctx, gradYPred)
-	shapes.MarkIfIntermediate(ctx, reducedYPred, gradYPred)
 
 	// ∂L/∂yGround = upstream_grad * -2*(yPred - yGround)
 	negLocalGrad := localGrad.Negate(ctx)
 	gradYGround := node.Grad.Times(ctx, negLocalGrad)
 	reducedYGround := shapes.ReduceBroadcast(ctx, yGround, gradYGround)
 	yGround.Computation.Grad = yGround.Grad().Plus(ctx, reducedYGround)
-	shapes.MarkIntermediate(ctx, negLocalGrad)
-	shapes.MarkIntermediate(ctx, gradYGround)
-	shapes.MarkIfIntermediate(ctx, reducedYGround, gradYGround)
 }

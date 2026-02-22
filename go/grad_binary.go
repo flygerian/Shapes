@@ -9,11 +9,9 @@ func addBackward(ctx *Context, node *ComputationGraphNode) {
 
 	gradA := reduceBroadcast(ctx, a, node.Grad)
 	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
-	markIfIntermediate(ctx, gradA, node.Grad)
 
 	gradB := reduceBroadcast(ctx, b, node.Grad)
 	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
-	markIfIntermediate(ctx, gradB, node.Grad)
 }
 
 // subtractBackward computes gradients for element-wise subtraction.
@@ -24,13 +22,10 @@ func subtractBackward(ctx *Context, node *ComputationGraphNode) {
 
 	gradA := reduceBroadcast(ctx, a, node.Grad)
 	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
-	markIfIntermediate(ctx, gradA, node.Grad)
 
 	negGrad := node.Grad.Negate(ctx)
 	gradB := reduceBroadcast(ctx, b, negGrad)
 	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
-	markIntermediate(ctx, negGrad)
-	markIfIntermediate(ctx, gradB, negGrad)
 }
 
 // multiplyBackward computes gradients for element-wise multiplication.
@@ -43,15 +38,11 @@ func multiplyBackward(ctx *Context, node *ComputationGraphNode) {
 	gradTimesB := node.Grad.Times(ctx, b)
 	gradA := reduceBroadcast(ctx, a, gradTimesB)
 	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
-	markIntermediate(ctx, gradTimesB)
-	markIfIntermediate(ctx, gradA, gradTimesB)
 
 	// grad_b = output_grad * a
 	gradTimesA := node.Grad.Times(ctx, a)
 	gradB := reduceBroadcast(ctx, b, gradTimesA)
 	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
-	markIntermediate(ctx, gradTimesA)
-	markIfIntermediate(ctx, gradB, gradTimesA)
 }
 
 // divideBackward computes gradients for element-wise division.
@@ -64,8 +55,6 @@ func divideBackward(ctx *Context, node *ComputationGraphNode) {
 	gradDivB := node.Grad.Divide(ctx, b)
 	gradA := reduceBroadcast(ctx, a, gradDivB)
 	a.Computation.Grad = a.Grad().Plus(ctx, gradA)
-	markIntermediate(ctx, gradDivB)
-	markIfIntermediate(ctx, gradA, gradDivB)
 
 	// grad_b = output_grad * (-a / b^2)
 	negA := a.Negate(ctx)
@@ -74,11 +63,6 @@ func divideBackward(ctx *Context, node *ComputationGraphNode) {
 	gradTimesNeg := node.Grad.Times(ctx, negADivB2)
 	gradB := reduceBroadcast(ctx, b, gradTimesNeg)
 	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
-	markIntermediate(ctx, negA)
-	markIntermediate(ctx, bSquared)
-	markIntermediate(ctx, negADivB2)
-	markIntermediate(ctx, gradTimesNeg)
-	markIfIntermediate(ctx, gradB, gradTimesNeg)
 }
 
 // powBackward computes gradients for element-wise power.
@@ -92,10 +76,6 @@ func powBackward(ctx *Context, node *ComputationGraphNode) {
 	localGrad := coeff.Times(ctx, xPow)
 	gradX := node.Grad.Times(ctx, localGrad)
 	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
-	markIntermediate(ctx, coeff)
-	markIntermediate(ctx, xPow)
-	markIntermediate(ctx, localGrad)
-	markIntermediate(ctx, gradX)
 }
 
 // negateBackward computes gradients for element-wise negation.
@@ -104,7 +84,6 @@ func negateBackward(ctx *Context, node *ComputationGraphNode) {
 	t := node.Inputs[0]
 	gradT := node.Grad.Negate(ctx)
 	t.Computation.Grad = t.Grad().Plus(ctx, gradT)
-	markIntermediate(ctx, gradT)
 }
 
 // sumBackward computes gradients for sum reduction along a dimension.
@@ -115,8 +94,6 @@ func sumBackward(ctx *Context, node *ComputationGraphNode) {
 	ones := Float(ctx, inputShape, 1.0)
 	gradX := ones.Times(ctx, node.Grad)
 	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
-	markIntermediate(ctx, ones)
-	markIntermediate(ctx, gradX)
 }
 
 // ReduceBroadcast sums the gradient along dimensions that were broadcast
@@ -138,25 +115,16 @@ func reduceBroadcast(ctx *Context, input *Tensor, grad *Tensor) *Tensor {
 	}
 
 	for range dimDiff {
-		prev := current
 		summed := current.Sum(ctx, 0)
 		current = summed.SqueezeDim(ctx, 0)
-		if prev != grad {
-			markIntermediate(ctx, prev)
-		}
-		markIntermediate(ctx, summed)
 	}
 
 	// Sum along dimensions where input has size 1 but grad has size > 1.
 	currentShape := shapeOf(current)
 	for d := range inputShape {
 		if inputShape[d] == 1 && currentShape[d] > 1 {
-			prev := current
 			current = current.Sum(ctx, uint32(d))
 			currentShape = shapeOf(current)
-			if prev != grad {
-				markIntermediate(ctx, prev)
-			}
 		}
 	}
 

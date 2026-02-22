@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define ALLOCATION 1024 * 1024 * 64 // 64mb
+#define DEFAULT_ALLOCATION 1024 * 1024 * 64 // 64mb
 
 #define ARENA(memory) ((uint8_t *)(memory + 1))
 
@@ -31,9 +31,11 @@ typedef struct {
 } Memory;
 
 Memory *initializeMemory();
+Memory *initializeArena(size_t arenaSize);
 void *allocate(Memory *memory, size_t size);
 void *reallocate(Memory *memory, void *ptr, size_t size);
 void freeAlloc(Memory *memory, void *ptr);
 void freeMemory(Memory *memory);
+void printMemoryFragmentationChart(Memory *memory);
 
 #endif

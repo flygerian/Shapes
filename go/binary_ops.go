@@ -50,7 +50,7 @@ func (t *Tensor) Plus(ctx *Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpAdd, addBackward, t, other)
+		ctx.newNode(out, OpAdd, addBackward, nil, t, other)
 	}
 	return out
 }
@@ -64,7 +64,7 @@ func (t *Tensor) Minus(ctx *Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpSubtract, subtractBackward, t, other)
+		ctx.newNode(out, OpSubtract, subtractBackward, nil, t, other)
 	}
 	return out
 }
@@ -78,7 +78,7 @@ func (t *Tensor) Times(ctx *Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpMultiply, multiplyBackward, t, other)
+		ctx.newNode(out, OpMultiply, multiplyBackward, nil, t, other)
 	}
 	return out
 }
@@ -92,7 +92,7 @@ func (t *Tensor) Divide(ctx *Context, other *Tensor) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpDivide, divideBackward, t, other)
+		ctx.newNode(out, OpDivide, divideBackward, nil, t, other)
 	}
 	return out
 }

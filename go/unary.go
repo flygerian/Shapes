@@ -67,7 +67,7 @@ func (t *Tensor) Pow(ctx *Context, power float32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpPow, powBackward, t)
+		ctx.newNode(out, OpPow, powBackward, nil, t)
 		out.Computation.Metadata = power
 	}
 	return out
@@ -92,7 +92,7 @@ func (t *Tensor) Negate(ctx *Context) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpNegate, negateBackward, t)
+		ctx.newNode(out, OpNegate, negateBackward, nil, t)
 	}
 	return out
 }

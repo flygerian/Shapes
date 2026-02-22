@@ -30,7 +30,6 @@ func getTensorAtBackward(ctx *Context, node *ComputationGraphNode) {
 	// Get a view into x.Grad at position idx.
 	dxView := x.Grad().Get(ctx, idx)
 	dxView.AddInPlace(ctx, node.Grad)
-	markIntermediate(ctx, dxView)
 }
 
 // sliceBackward propagates gradient through a Slice op.
@@ -42,7 +41,6 @@ func sliceBackward(ctx *Context, node *ComputationGraphNode) {
 
 	dxView := x.Grad().Slice(ctx, ranges...)
 	dxView.AddInPlace(ctx, node.Grad)
-	markIntermediate(ctx, dxView)
 }
 
 // indexWithTensorBackward propagates gradient through IndexWithTensor (1D advanced gather).

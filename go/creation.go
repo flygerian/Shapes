@@ -349,7 +349,7 @@ func OneHot(ctx *Context, indices *Tensor, numClasses uint32) *Tensor {
 	}
 	t := track(ctx, &Tensor{cTensor: cTensor})
 	if ctx.GradEnabled {
-		attachNode(ctx, t, OpOneHot, oneHotBackward, indices)
+		ctx.newNode(t, OpOneHot, oneHotBackward, nil, indices)
 	}
 	return t
 }

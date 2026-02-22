@@ -159,7 +159,7 @@ func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
 		}
 		current = track(ctx, &Tensor{cTensor: dest})
 		if ctx.BackwardEnabled {
-			attachNode(ctx, current, OpGetTensorAt, getTensorAtBackward, prevInput)
+			ctx.newNode(current, OpGetTensorAt, getTensorAtBackward, nil, prevInput)
 			current.Computation.Metadata = idx
 		}
 	}
@@ -178,7 +178,7 @@ func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
 
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpIndexWithTensor, indexWithTensorBackward, t)
+		ctx.newNode(out, OpIndexWithTensor, indexWithTensorBackward, nil, t)
 		out.Computation.Metadata = indices
 	}
 	return out
@@ -196,7 +196,7 @@ func (t *Tensor) getWithTensor2d(ctx *Context, rowIndices, colIndices *Tensor) *
 
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpIndexWithTensor2d, indexWithTensor2dBackward, t)
+		ctx.newNode(out, OpIndexWithTensor2d, indexWithTensor2dBackward, nil, t)
 		out.Computation.Metadata = [2]*Tensor{rowIndices, colIndices}
 	}
 	return out

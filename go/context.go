@@ -13,14 +13,15 @@ import (
 #include "memory.h"
 #include <stdlib.h>
 
-static inline Context *newContext(bool grad) {
-	Memory *mem = initializeMemory();
+static inline Context *newContext(bool grad, size_t arenaSize) {
+	Memory *mem = initializeArena(arenaSize);
 	Context *ctx = allocate(mem, sizeof(Context));
 	ctx->memory = mem;
 	ctx->grad = grad;
 	ctx->screenConfig = NULL;
 	return ctx;
 }
+
 */
 import "C"
 
@@ -30,9 +31,13 @@ import "C"
 type Context struct {
 	stdctx.Context  // Embedded Go context for cancellation/deadlines
 	cCtx            *C.Context
-	tensors         []*unsafe.Pointer // tracked C tensor pointers, nilled on Close TODO: be sure about the copying behaviour here
-	intermediates   []unsafe.Pointer  // C tensor pointers to free after backward pass
-	GradEnabled     bool              // Go-level grad tracking (C context always has grad=false)
+	root            *Context          // root context (nil if this is root)
+	handles         []*unsafe.Pointer // root only: all tracked handles, nilled on Close
+	locals          []*unsafe.Pointer // this ctx: tensors created through this ctx
+	intermediates   []unsafe.Pointer  // root only: C tensor pointers queued for FreeIntermediates
+	arenaSize       int
+	ownsMemory      bool // true for root context
+	GradEnabled     bool // Go-level grad tracking (C context always has grad=false)
 	BackwardEnabled bool
 }
 
@@ -49,12 +54,22 @@ func New(parent stdctx.Context, opts ...Option) *Context {
 	}
 
 	ctx := &Context{
-		Context: parent,
-		cCtx:    C.newContext(C.bool(false)),
+		Context:       parent,
+		handles:       make([]*unsafe.Pointer, 0),
+		locals:        make([]*unsafe.Pointer, 0),
+		intermediates: make([]unsafe.Pointer, 0),
+		ownsMemory:    true,
 	}
+	ctx.root = ctx
 
 	for _, opt := range opts {
 		opt(ctx)
+	}
+
+	if ctx.arenaSize != 0 {
+		ctx.cCtx = C.newContext(C.bool(false), C.size_t(ctx.arenaSize))
+	} else {
+		ctx.cCtx = C.newContext(C.bool(false), 1024*1024*64)
 	}
 
 	return ctx
@@ -62,15 +77,27 @@ func New(parent stdctx.Context, opts ...Option) *Context {
 
 // Close releases the C context resources.
 // All tensors created under this context become invalid after Close.
+// Only the root context frees memory; derived contexts are no-ops.
 func (c *Context) Close() {
+	if !c.ownsMemory {
+		return
+	}
 	if c.cCtx != nil && c.cCtx.memory != nil {
-		for _, p := range c.tensors {
-			*p = nil
+		for _, p := range c.handles {
+			if p != nil {
+				*p = nil
+			}
 		}
-		c.tensors = nil
+		c.handles = nil
+		c.locals = nil
 		C.freeMemory(c.cCtx.memory)
 		c.cCtx = nil
 	}
+}
+
+func (c *Context) PrintMemoryFragmentationChart() {
+	C.printMemoryFragmentationChart((*C.Memory)(c.UnsafeMemory()))
+
 }
 
 // Ptr returns the C Context pointer for passing to C functions.
@@ -84,44 +111,43 @@ func (c *Context) UnsafePtr() unsafe.Pointer {
 	return unsafe.Pointer(c.cCtx)
 }
 
-// NoGrad returns a new Context that shares the same C context and memory
-// but has gradient tracking disabled. In this context gradients are not created for new tensors
-func (c *Context) NoGrad() *Context {
+// derive creates a new derived context sharing the same C context and root.
+// Fresh locals slice; handles and intermediates are root-owned.
+func (c *Context) derive(gradEnabled, backwardEnabled bool) *Context {
 	return &Context{
 		Context:         c.Context,
 		cCtx:            c.cCtx,
-		tensors:         c.tensors,
-		intermediates:   c.intermediates,
-		GradEnabled:     false,
-		BackwardEnabled: c.BackwardEnabled,
+		root:            c.root,
+		locals:          make([]*unsafe.Pointer, 0),
+		ownsMemory:      false,
+		GradEnabled:     gradEnabled,
+		BackwardEnabled: backwardEnabled,
 	}
+}
+
+// NoGrad returns a new Context that shares the same C context and memory
+// but has gradient tracking disabled. In this context gradients are not created for new tensors
+func (c *Context) NoGrad() *Context {
+	return c.derive(false, c.BackwardEnabled)
 }
 
 // Fused returns a new Context that shares the same C context and memory
 // but turns of backward passes for any ops used in that context.
 // Meant for doing compund operations where the caller might want to specify the backward pass manually
 func (c *Context) Fused() *Context {
-	return &Context{
-		Context:         c.Context,
-		cCtx:            c.cCtx,
-		tensors:         make([]*unsafe.Pointer, 0),
-		GradEnabled:     true,
-		BackwardEnabled: false,
-	}
+	return c.derive(true, false)
 }
 
 // NoGraph() returns a new Context that shares the same C context and memory
 // turns off all gradient tacking. For use in backward pass only
-
 func (c *Context) NoGraph() *Context {
-	return &Context{
-		Context:         c.Context,
-		cCtx:            c.cCtx,
-		tensors:         c.tensors,
-		intermediates:   c.intermediates,
-		GradEnabled:     false,
-		BackwardEnabled: false,
-	}
+	return c.derive(false, false)
+}
+
+// OpSubcontext returns a fresh subcontext for a single backward op.
+// Shares arena and root; backward/graph disabled; fresh locals for sweeping.
+func (c *Context) OpSubcontext() *Context {
+	return c.derive(false, false)
 }
 
 func (c *Context) Memory() *C.Memory {
@@ -134,24 +160,27 @@ func (c *Context) UnsafeMemory() unsafe.Pointer {
 }
 
 // Track registers a C pointer so it gets nilled on Close().
+// Appends to root.handles (for cleanup) and c.locals (for intermediate marking).
 // The tensor package calls this when creating tensors.
 func (c *Context) Track(p *unsafe.Pointer) {
-	c.tensors = append(c.tensors, p)
+	c.root.handles = append(c.root.handles, p)
+	c.locals = append(c.locals, p)
 }
 
 // MarkIntermediate registers a C tensor pointer for freeing after backward.
+// Always appends to root's intermediates list.
 func (c *Context) MarkIntermediate(p unsafe.Pointer) {
-	c.intermediates = append(c.intermediates, p)
+	c.root.intermediates = append(c.root.intermediates, p)
 }
 
-// Intermediates returns the list of intermediate C tensor pointers.
+// Intermediates returns the list of intermediate C tensor pointers from root.
 func (c *Context) Intermediates() []unsafe.Pointer {
-	return c.intermediates
+	return c.root.intermediates
 }
 
 // ClearIntermediates resets the intermediate list after they have been freed.
 func (c *Context) ClearIntermediates() {
-	c.intermediates = c.intermediates[:0]
+	c.root.intermediates = c.root.intermediates[:0]
 }
 
 // Option is a function that configures a Context.
@@ -162,5 +191,11 @@ func WithGrad(enabled bool) Option {
 	return func(c *Context) {
 		c.GradEnabled = enabled
 		c.BackwardEnabled = enabled
+	}
+}
+
+func WithArenaSize(size int) Option {
+	return func(c *Context) {
+		c.arenaSize = size
 	}
 }

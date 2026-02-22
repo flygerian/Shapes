@@ -42,7 +42,8 @@ func Dense(inputSize int, outputSize int) func(*shapes.WrappedTensor) *shapes.Wr
 			o = o.Squeeze()
 		}
 
-		ctx.NewComputationGraphNode(o.Tensor(), shapes.OpDense, constructDenseBackwardPass, w.Tensor(), x.Tensor(), b.Tensor())
+		// Register node via fusedCtx so forward temporaries are swept automatically
+		fusedCtx.NewComputationGraphNode(o.Tensor(), shapes.OpDense, constructDenseBackwardPass, w.Tensor(), x.Tensor(), b.Tensor())
 
 		return o
 	}

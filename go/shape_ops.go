@@ -148,7 +148,7 @@ func (t *Tensor) Slice(ctx *Context, ranges ...Range) *Tensor {
 		// Deep-copy ranges so metadata is stable after the caller's slice goes out of scope.
 		copiedRanges := make([]Range, len(ranges))
 		copy(copiedRanges, ranges)
-		attachNode(ctx, out, OpSlice, sliceBackward, t)
+		ctx.newNode(out, OpSlice, sliceBackward, nil, t)
 		out.Computation.Metadata = copiedRanges
 	}
 	return out
@@ -204,7 +204,7 @@ func (t *Tensor) Reshape(ctx *Context, dims ...int) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpReshape, reshapeBackward, t)
+		ctx.newNode(out, OpReshape, reshapeBackward, nil, t)
 	}
 	return out
 }
@@ -242,7 +242,7 @@ func (t *Tensor) Transpose(ctx *Context, dims ...uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpTranspose, transposeBackward, t)
+		ctx.newNode(out, OpTranspose, transposeBackward, nil, t)
 		out.Computation.Metadata = [2]uint32{d0, d1}
 	}
 	return out
@@ -257,7 +257,7 @@ func (t *Tensor) Squeeze(ctx *Context) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpSqueeze, squeezeBackward, t)
+		ctx.newNode(out, OpSqueeze, squeezeBackward, nil, t)
 	}
 	return out
 }
@@ -271,7 +271,7 @@ func (t *Tensor) SqueezeDim(ctx *Context, dim uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpSqueezeDim, squeezeDimBackward, t)
+		ctx.newNode(out, OpSqueezeDim, squeezeDimBackward, nil, t)
 		out.Computation.Metadata = dim
 	}
 	return out
@@ -286,7 +286,7 @@ func (t *Tensor) UnSqueeze(ctx *Context, dim uint32) *Tensor {
 	}
 	out := track(ctx, &Tensor{cTensor: dest})
 	if ctx.BackwardEnabled {
-		attachNode(ctx, out, OpUnSqueeze, unSqueezeBackward, t)
+		ctx.newNode(out, OpUnSqueeze, unSqueezeBackward, nil, t)
 		out.Computation.Metadata = dim
 	}
 	return out

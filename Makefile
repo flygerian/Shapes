@@ -78,7 +78,7 @@ build-base: $(OPENBLAS_LIB)
 # Build Go bindings
 build-go: build-base
 	@echo "==> Building Go bindings..."
-	cd $(GO_DIR) && go build -v ./cmd/main
+	cd $(GO_DIR) && CGO_CFLAGS="-O0 -g" go build -gcflags="all=-N -l"  -ldflags="-compressdwarf=false" -v ./cmd/main
 	@echo "==> Go build complete!"
 	@echo ""
 	@echo "To run: cd go && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main"
@@ -93,6 +93,13 @@ debug: build-base
 	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
 	@echo "==> Launching Delve debugger..."
 	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) dlv exec ./main
+
+
+debug-go-gdb: build-base
+	@echo "==> Building Go binary with debug flags..."
+	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
+	@echo "==> Launching Delve debugger..."
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) gdb ./main
 
 # Run all tests
 test: build-base build-go
