@@ -128,6 +128,12 @@ func (t *Tensor) Shape() Shape {
 	return shapeOf(t)
 }
 
+// UnsafeCTensor returns the underlying C tensor pointer for use in CGo calls from subpackages.
+// This is unsafe and should only be used when necessary.
+func (t *Tensor) UnsafeCTensor() unsafe.Pointer {
+	return unsafe.Pointer(t.cTensor)
+}
+
 // Shape returns the shape of the WrappedTensor.
 func (wt *WrappedTensor) Shape() Shape {
 	return wt.tensor.Shape()
