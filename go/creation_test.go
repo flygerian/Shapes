@@ -113,6 +113,261 @@ func TestFloatRandomNotAllSame(t *testing.T) {
 	}
 }
 
+func TestFloatRandomWithRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.FloatRandom(Shape{3, 4}, 0.5, 2.5)
+	if tensor == nil {
+		t.Fatal("FloatRandom with range returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 2 || shape[0] != 3 || shape[1] != 4 {
+		t.Fatalf("expected shape [3,4], got %v", shape)
+	}
+
+	for i := range uint32(3) {
+		for j := range uint32(4) {
+			v := tensor.Get(i, j).Item().(float32)
+			if v < 0.5 || v > 2.5 {
+				t.Errorf("FloatRandom[%d,%d] = %f, want in [0.5, 2.5]", i, j, v)
+			}
+		}
+	}
+}
+
+func TestFloatRandomWithNegativeRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.FloatRandom(Shape{50}, -5.0, -2.0)
+	if tensor == nil {
+		t.Fatal("FloatRandom with negative range returned nil")
+	}
+
+	for i := range uint32(50) {
+		v := tensor.Get(i).Item().(float32)
+		if v < -5.0 || v > -2.0 {
+			t.Errorf("FloatRandom[%d] = %f, want in [-5.0, -2.0]", i, v)
+		}
+	}
+}
+
+func TestFloatRandomRangeInvalidArgs(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test with 1 argument (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for 1 range argument")
+		}
+	}()
+	ctx.FloatRandom(Shape{3}, 1.0)
+}
+
+func TestFloatRandomRangeMinGreaterThanMax(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test with min > max (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for min > max")
+		}
+	}()
+	ctx.FloatRandom(Shape{3}, 5.0, 2.0)
+}
+
+func TestFloatRandomStandaloneWithRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test the standalone FloatRandom function with custom range
+	tensor := FloatRandom(ctx, Shape{20}, 10.0, 20.0)
+	if tensor == nil {
+		t.Fatal("FloatRandom standalone with range returned nil")
+	}
+
+	for i := range uint32(20) {
+		v := tensor.Get(ctx, i).Item().(float32)
+		if v < 10.0 || v > 20.0 {
+			t.Errorf("FloatRandom[%d] = %f, want in [10.0, 20.0]", i, v)
+		}
+	}
+}
+
+func TestIntRandom(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.IntRandom(Shape{3, 4})
+	if tensor == nil {
+		t.Fatal("IntRandom returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 2 || shape[0] != 3 || shape[1] != 4 {
+		t.Fatalf("expected shape [3,4], got %v", shape)
+	}
+
+	for i := range uint32(3) {
+		for j := range uint32(4) {
+			v := tensor.Get(i, j).Item().(int8)
+			if v < -128 || v > 127 {
+				t.Errorf("IntRandom[%d,%d] = %d, want in [-128, 127]", i, j, v)
+			}
+		}
+	}
+}
+
+func TestIntRandomNotAllSame(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.IntRandom(Shape{100})
+	first := tensor.Get(0).Item().(int8)
+	allSame := true
+	for i := range uint32(100) {
+		v := tensor.Get(i).Item().(int8)
+		if v != first {
+			allSame = false
+			break
+		}
+	}
+	if allSame {
+		t.Error("expected random values, but all elements are the same")
+	}
+}
+
+func TestIntRandomWithRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.IntRandom(Shape{3, 4}, 5, 15)
+	if tensor == nil {
+		t.Fatal("IntRandom with range returned nil")
+	}
+
+	shape := tensor.Shape()
+	if len(shape) != 2 || shape[0] != 3 || shape[1] != 4 {
+		t.Fatalf("expected shape [3,4], got %v", shape)
+	}
+
+	for i := range uint32(3) {
+		for j := range uint32(4) {
+			v := tensor.Get(i, j).Item().(int8)
+			if v < 5 || v > 15 {
+				t.Errorf("IntRandom[%d,%d] = %d, want in [5, 15]", i, j, v)
+			}
+		}
+	}
+}
+
+func TestIntRandomWithNegativeRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	tensor := ctx.IntRandom(Shape{50}, -50, -20)
+	if tensor == nil {
+		t.Fatal("IntRandom with negative range returned nil")
+	}
+
+	for i := range uint32(50) {
+		v := tensor.Get(i).Item().(int8)
+		if v < -50 || v > -20 {
+			t.Errorf("IntRandom[%d] = %d, want in [-50, -20]", i, v)
+		}
+	}
+}
+
+func TestIntRandomRangeInvalidArgs(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test with 1 argument (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for 1 range argument")
+		}
+	}()
+	ctx.IntRandom(Shape{3}, 1)
+}
+
+func TestIntRandomRangeMinGreaterThanMax(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test with min > max (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for min > max")
+		}
+	}()
+	ctx.IntRandom(Shape{3}, 50, 20)
+}
+
+func TestIntRandomStandaloneWithRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test the standalone IntRandom function with custom range
+	tensor := IntRandom(ctx, Shape{20}, 10, 30)
+	if tensor == nil {
+		t.Fatal("IntRandom standalone with range returned nil")
+	}
+
+	for i := range uint32(20) {
+		v := tensor.Get(ctx, i).Item().(int8)
+		if v < 10 || v > 30 {
+			t.Errorf("IntRandom[%d] = %d, want in [10, 30]", i, v)
+		}
+	}
+}
+
+func TestIntRandomZeroRange(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	// Test with min == max (should return all same value)
+	tensor := ctx.IntRandom(Shape{10}, 42, 42)
+	if tensor == nil {
+		t.Fatal("IntRandom with zero range returned nil")
+	}
+
+	for i := range uint32(10) {
+		v := tensor.Get(i).Item().(int8)
+		if v != 42 {
+			t.Errorf("IntRandom[%d] = %d, want 42", i, v)
+		}
+	}
+}
+
+func TestIntRandomEmptyShape(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Close()
+
+	result := ctx.IntRandom(Shape{})
+	if result != nil {
+		t.Error("expected nil for empty shape")
+	}
+}
+
+func TestIntRandomWithGrad(t *testing.T) {
+	ctx := New(context.Background(), WithGrad(true))
+	defer ctx.Close()
+
+	tensor := ctx.IntRandom(Shape{3})
+	if tensor == nil {
+		t.Fatal("IntRandom returned nil")
+	}
+
+	if !tensor.RequiresGrad() {
+		t.Fatal("expected grad tracking when context has grad enabled")
+	}
+}
+
 func TestFromFloat32WithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Close()

@@ -192,19 +192,80 @@ func FromInt8(ctx *Context, data interface{}) *Tensor {
 	return t
 }
 
-// FloatRandom creates a tensor with random float32 values uniformly distributed in [-1, 1].
-func FloatRandom(ctx *Context, shape Shape) *Tensor {
+// FloatRandom creates a tensor with random float32 values.
+// If no range is provided, values are uniformly distributed in [-1, 1].
+// If min and max are provided, values are uniformly distributed in [min, max].
+// Panics if only min is provided without max.
+func FloatRandom(ctx *Context, shape Shape, rng ...float32) *Tensor {
 	if len(shape) == 0 {
 		return nil
+	}
+
+	// Parse range argument
+	var min, max float32
+	switch len(rng) {
+	case 0:
+		// Default range: [-1, 1]
+		min, max = -1, 1
+	case 2:
+		// Custom range: [min, max]
+		min, max = rng[0], rng[1]
+		if min > max {
+			panic("shapes: FloatRandom requires min <= max")
+		}
+	default:
+		panic("shapes: FloatRandom requires 0 or 2 range arguments (min, max)")
 	}
 
 	t := Zeros(ctx, shape)
 	n := int(t.cTensor.size)
 	data := make([]float32, n)
+	scale := max - min
 	for i := range n {
-		data[i] = rand.Float32()*2 - 1
+		data[i] = rand.Float32()*scale + min
 	}
 	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
+
+	if ctx.GradEnabled {
+		leafNode(ctx, t)
+	}
+
+	return t
+}
+
+// IntRandom creates a tensor with random int8 values.
+// If no range is provided, values are uniformly distributed in [-128, 127] (full int8 range).
+// If min and max are provided, values are uniformly distributed in [min, max] (inclusive).
+// Panics if only min is provided without max.
+func IntRandom(ctx *Context, shape Shape, rng ...int8) *Tensor {
+	if len(shape) == 0 {
+		return nil
+	}
+
+	// Parse range argument
+	var min, max int8
+	switch len(rng) {
+	case 0:
+		// Default range: full int8 range [-128, 127]
+		min, max = -128, 127
+	case 2:
+		// Custom range: [min, max]
+		min, max = rng[0], rng[1]
+		if min > max {
+			panic("shapes: IntRandom requires min <= max")
+		}
+	default:
+		panic("shapes: IntRandom requires 0 or 2 range arguments (min, max)")
+	}
+
+	t := Int(ctx, shape, 0)
+	n := int(t.cTensor.size)
+	data := make([]int8, n)
+	rangeSize := int(max) - int(min) + 1 // +1 because max is inclusive
+	for i := range n {
+		data[i] = int8(rand.Intn(rangeSize) + int(min))
+	}
+	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n))
 
 	if ctx.GradEnabled {
 		leafNode(ctx, t)
@@ -298,11 +359,26 @@ func (c *Context) FromInt8(data interface{}) *WrappedTensor {
 	return c.Wrap(t)
 }
 
-// FloatRandom creates a tensor with random float32 values uniformly distributed in [-1, 1]
-// on the context, returning a WrappedTensor.
+// FloatRandom creates a tensor with random float32 values on the context, returning a WrappedTensor.
+// If no range is provided, values are uniformly distributed in [-1, 1].
+// If min and max are provided, values are uniformly distributed in [min, max].
+// Panics if only min is provided without max.
 // Returns nil for empty shape.
-func (c *Context) FloatRandom(shape Shape) *WrappedTensor {
-	t := FloatRandom(c, shape)
+func (c *Context) FloatRandom(shape Shape, rng ...float32) *WrappedTensor {
+	t := FloatRandom(c, shape, rng...)
+	if t == nil {
+		return nil
+	}
+	return c.Wrap(t)
+}
+
+// IntRandom creates a tensor with random int8 values on the context, returning a WrappedTensor.
+// If no range is provided, values are uniformly distributed in [-128, 127] (full int8 range).
+// If min and max are provided, values are uniformly distributed in [min, max] (inclusive).
+// Panics if only min is provided without max.
+// Returns nil for empty shape.
+func (c *Context) IntRandom(shape Shape, rng ...int8) *WrappedTensor {
+	t := IntRandom(c, shape, rng...)
 	if t == nil {
 		return nil
 	}
