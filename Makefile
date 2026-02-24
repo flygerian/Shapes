@@ -69,8 +69,8 @@ $(OPENBLAS_LIB):
 build: build-base build-go
 
 build-base: $(OPENBLAS_LIB)
-	@echo "==> Configuring C library (Release mode)..."
-	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	@echo "==> Configuring C library..."
+	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug
 	@echo "==> Building C library..."
 	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> C build complete!"
@@ -87,15 +87,23 @@ build-go: build-base
 run: build-go
 	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main
 
-# Debug the Go binary with Delve
-debug: build-base
+# Debug the Go binary with Delve (ASan disabled to avoid CGo/Go runtime conflicts)
+debug: $(OPENBLAS_LIB)
+	@echo "==> Configuring C library (ASan disabled for Go debug)..."
+	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=OFF
+	@echo "==> Building C library..."
+	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> Building Go binary with debug flags..."
 	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
 	@echo "==> Launching Delve debugger..."
 	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) dlv exec ./main
 
 
-debug-go-gdb: build-base
+debug-gdb: $(OPENBLAS_LIB)
+	@echo "==> Configuring C library (ASan disabled for Go debug)..."
+	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=OFF
+	@echo "==> Building C library..."
+	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> Building Go binary with debug flags..."
 	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
 	@echo "==> Launching Delve debugger..."

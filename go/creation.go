@@ -32,6 +32,9 @@ static inline Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {
 	*out = dest;
 	return r;
 }
+static inline Result wrap_Copy(Context *ctx, Tensor *src, Tensor *dest) {
+	return Clone(ctx, src, dest);
+}
 static inline Tensor *wrap_T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
 	return T_OneHot(ctx, indices, numClasses);
 }
@@ -388,6 +391,10 @@ func (c *Context) IntRandom(shape Shape, rng ...int8) *WrappedTensor {
 // Clone creates a deep copy of the given tensor on the context, returning a WrappedTensor.
 func (c *Context) Clone(src *WrappedTensor) *WrappedTensor {
 	return c.Wrap(Clone(c, src.tensor))
+}
+
+func (c *Context) Copy(src *WrappedTensor, dest *WrappedTensor) {
+	C.wrap_Copy((*C.Context)(c.UnsafePtr()), src.tensor.cTensor, dest.tensor.cTensor)
 }
 
 // OneHot creates a one-hot encoded tensor from indices on the context, returning a WrappedTensor.

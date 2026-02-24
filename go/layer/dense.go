@@ -6,12 +6,19 @@ import (
 	shapes "github.com/flygerian/shapes"
 )
 
-func Dense(inputSize int, outputSize int) func(*shapes.WrappedTensor) *shapes.WrappedTensor {
-	var w, b *shapes.WrappedTensor
+func Dense(outerCtx *shapes.Context, inputSize int, outputSize int) func(*shapes.WrappedTensor) *shapes.WrappedTensor {
+	var w, b, o *shapes.WrappedTensor
+
+	// Initialize the hidden state
+	w = outerCtx.FloatRandom(shapes.Shape{uint32(outputSize), uint32(inputSize)})
+	b = outerCtx.FloatRandom(shapes.Shape{uint32(outputSize)})
 
 	return func(x *shapes.WrappedTensor) *shapes.WrappedTensor {
-		ctx := x.Context()
-		fusedCtx := ctx.Fused()
+
+		// They need to live outsize of the fused scope
+
+		// Initialize a fused context
+		fusedCtx := outerCtx.Fused()
 
 		inputShape := x.Shape()
 		is1D := len(inputShape) == 1
@@ -28,19 +35,21 @@ func Dense(inputSize int, outputSize int) func(*shapes.WrappedTensor) *shapes.Wr
 			panic(err)
 		}
 
-		// Initialize weights once on first call.
-		if w == nil {
-			w = fusedCtx.FloatRandom(shapes.Shape{uint32(outputSize), uint32(inputSize)})
-			b = fusedCtx.FloatRandom(shapes.Shape{uint32(outputSize)})
-		}
-
 		// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
-		o := input.Mul(w.Transpose()).Plus(b)
+		output := input.Mul(w.Transpose()).Plus(b)
 
 		// If 1D input, squeeze back to 1D output.
 		if is1D {
-			o = o.Squeeze()
+			output = output.Squeeze()
 		}
+
+		// If o is not initialized output declared, create o in the outer ctx
+		if o == nil {
+			o = outerCtx.Zeros(output.Shape())
+		}
+
+		// Clone the result into o
+		outerCtx.Copy(output, o)
 
 		// Register node via fusedCtx so forward temporaries are swept automatically
 		fusedCtx.NewComputationGraphNode(o.Tensor(), shapes.OpDense, constructDenseBackwardPass, w.Tensor(), x.Tensor(), b.Tensor())

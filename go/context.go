@@ -14,7 +14,7 @@ import (
 #include <stdlib.h>
 
 static inline Context *newContext(bool grad, size_t arenaSize) {
-	Memory *mem = initializeArena(arenaSize);
+	Memory *mem = initializeArena(arenaSize, 1);
 	Context *ctx = allocate(mem, sizeof(Context));
 	ctx->memory = mem;
 	ctx->grad = grad;
@@ -180,7 +180,31 @@ func (c *Context) Intermediates() []unsafe.Pointer {
 
 // ClearIntermediates resets the intermediate list after they have been freed.
 func (c *Context) ClearIntermediates() {
+
+	// Filter out the intermediate tensors from the list of global pointers
+	var newHandles []*unsafe.Pointer
+	for _, tensorPtr := range c.handles {
+		for _, intTensorPtr := range c.intermediates {
+			if tensorPtr != (*unsafe.Pointer)(intTensorPtr) {
+				newHandles = append(newHandles, tensorPtr)
+			}
+		}
+	}
+
+	c.root.handles = newHandles
 	c.root.intermediates = c.root.intermediates[:0]
+}
+
+func (c *Context) NumTrackTensors() int {
+	return len(c.handles)
+}
+
+func (c *Context) NumFreeBlocks() int {
+	return int(c.cCtx.memory.numFreeBlocks)
+}
+
+func (c *Context) NumAllocatedBlocks() int {
+	return int(c.cCtx.memory.numBlocks) - c.NumFreeBlocks()
 }
 
 // Option is a function that configures a Context.

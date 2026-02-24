@@ -47,7 +47,7 @@ func CrossEntropy(yGround *shapes.WrappedTensor, logits *shapes.WrappedTensor) *
 func crossEntropyBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
 	yGround := node.Inputs[0]
 	logits := node.Inputs[1]
-	probs := node.Saved[0]
+	probs := node.HiddenState[0]
 
 	// batch_size is the leading dimension (or 1 for a single 1D sample).
 	logitsShape := shapes.ShapeOf(logits)

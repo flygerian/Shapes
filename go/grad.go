@@ -96,14 +96,14 @@ func (op OpType) String() string {
 
 // ComputationGraphNode represents a node in the autograd computation graph.
 type ComputationGraphNode struct {
-	Output     *Tensor
-	Grad       *Tensor
-	Inputs     []*Tensor
-	Saved      []*Tensor // tensors required in backward, created during forward
-	Backward   BackwardFn
-	Op         OpType
-	Parameters []*Tensor
-	Metadata   any
+	Inputs      []*Tensor
+	HiddenState []*Tensor // tensors required in backward, created during forward
+	Output      *Tensor
+	Backward    BackwardFn
+	Grad        *Tensor
+	Op          OpType
+	Parameters  []*Tensor
+	Metadata    any
 }
 
 // ComputationGraph holds topologically sorted graph nodes.
@@ -139,12 +139,12 @@ func (c *Context) NewComputationGraphNodeSaved(result *Tensor, op OpType, backwa
 func (c *Context) newNode(result *Tensor, op OpType, backward BackwardFn, saved []*Tensor, inputs ...*Tensor) {
 	noGradCtx := c.NoGrad()
 	node := &ComputationGraphNode{
-		Output:   result,
-		Grad:     Zeros(noGradCtx, shapeOf(result)),
-		Inputs:   inputs,
-		Saved:    saved,
-		Backward: backward,
-		Op:       op,
+		Output:      result,
+		Grad:        Zeros(noGradCtx, shapeOf(result)),
+		Inputs:      inputs,
+		HiddenState: saved,
+		Backward:    backward,
+		Op:          op,
 	}
 	result.Computation = node
 
@@ -152,11 +152,7 @@ func (c *Context) newNode(result *Tensor, op OpType, backward BackwardFn, saved 
 	// Keep: result, all inputs, all saved tensors
 	if !c.ownsMemory && !c.GradEnabled && !c.BackwardEnabled {
 		// This is likely a fused/subcontext - mark all locals except keepers
-		keep := make([]*Tensor, 0, 1+len(inputs)+len(saved))
-		keep = append(keep, result)
-		keep = append(keep, inputs...)
-		keep = append(keep, saved...)
-		markIntermediatesFromLocals(c, keep...)
+		markIntermediatesFromLocals(c, saved...)
 	}
 }
 
@@ -225,6 +221,7 @@ func FreeIntermediates(ctx *Context) {
 	}
 
 	// Deduplicate to prevent double-free
+	fmt.Printf("Freeing %d intermediates\n", len(intermediates))
 	seen := make(map[unsafe.Pointer]bool, len(intermediates))
 	for _, p := range intermediates {
 		if seen[p] {
@@ -293,19 +290,21 @@ func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
 			node.Backward(opCtx, node)
 
 			// Sweep opCtx.locals: keep input grads and node.Grad
+			// TODO this should probably be deleted
 			keep := make([]*Tensor, 0, len(node.Inputs)+1)
 			for _, inp := range node.Inputs {
 				if inp.Computation != nil && inp.Computation.Grad != nil {
 					keep = append(keep, inp.Computation.Grad)
 				}
 			}
+
 			if node.Grad != nil {
 				keep = append(keep, node.Grad)
 			}
 			markIntermediatesFromLocals(opCtx, keep...)
 
 			// Mark saved tensors as intermediate (no longer needed after this node's backward)
-			for _, saved := range node.Saved {
+			for _, saved := range node.HiddenState {
 				if saved != nil {
 					markIntermediate(opCtx, saved)
 				}

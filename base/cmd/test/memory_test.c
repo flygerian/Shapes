@@ -19,7 +19,8 @@ static size_t fillArena(Memory *mem, size_t blockSize, void **ptrs, size_t maxPt
   size_t n = 0;
   while (n < maxPtrs) {
     void *p = allocate(mem, blockSize);
-    if (p == NULL) break;
+    if (p == NULL)
+      break;
     ptrs[n++] = p;
   }
   return n;
@@ -96,7 +97,8 @@ static void test_footer_offset_resolves_to_header(void) {
   blockfooter *footer = (blockfooter *)((uint8_t *)ptr + size);
 
   size_t expectedOffset = (uint8_t *)hdr - arena;
-  ASSERT_EQ(footer->headerOffset, expectedOffset, "footer headerOffset should equal header's arena offset");
+  ASSERT_EQ(footer->headerOffset, expectedOffset,
+            "footer headerOffset should equal header's arena offset");
 
   blockheader *hdrFromFooter = (blockheader *)(arena + footer->headerOffset);
   ASSERT_EQ(hdrFromFooter, hdr, "footer headerOffset should resolve back to the same header");
@@ -412,6 +414,95 @@ static void test_returns_null_when_out_of_memory(void) {
 }
 
 // ---------------------------------------------------------------------------
+// numFreeBlocks tracking
+// ---------------------------------------------------------------------------
+
+static void test_num_free_blocks_starts_at_zero(void) {
+  Memory *mem = initializeMemory();
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)0, "numFreeBlocks should be 0 on init");
+  freeMemory(mem);
+}
+
+static void test_num_free_blocks_unchanged_after_allocate(void) {
+  Memory *mem = initializeMemory();
+  allocate(mem, 64);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)0, "numFreeBlocks should stay 0 after allocate");
+  freeMemory(mem);
+}
+
+static void test_num_free_blocks_increments_on_free(void) {
+  Memory *mem = initializeMemory();
+  void *ptr = allocate(mem, 64);
+  freeAlloc(mem, ptr);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after freeing one block");
+  freeMemory(mem);
+}
+
+static void test_num_free_blocks_decrements_on_reuse(void) {
+  size_t blockSz = 256;
+  Memory *mem = initializeArena(totalBlockSize(blockSz), 1);
+
+  void *ptr = allocate(mem, blockSz);
+  freeAlloc(mem, ptr);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after free");
+
+  // Arena is full so next allocate goes through findAvailableSpace; no split
+  // possible because the leftover would be zero-sized.
+  allocate(mem, blockSz);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)0,
+            "numFreeBlocks should be 0 after reusing the free block");
+  freeMemory(mem);
+}
+
+static void test_num_free_blocks_split_adds_free_remainder(void) {
+  size_t largeSize = 256;
+  size_t smallSize = 64;
+  Memory *mem = initializeArena(totalBlockSize(largeSize), 1);
+
+  void *large = allocate(mem, largeSize);
+  freeAlloc(mem, large);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after freeing large block");
+
+  // Allocating smaller triggers a split: the reused block becomes allocated and
+  // the remainder is a new free block, so numFreeBlocks stays at 1.
+  allocate(mem, smallSize);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1,
+            "numFreeBlocks should be 1 after split (reused block consumed, remainder free)");
+  freeMemory(mem);
+}
+
+static void test_num_free_blocks_coalesce_reduces_count(void) {
+  Memory *mem = initializeMemory();
+  void *ptr1 = allocate(mem, 32);
+  void *ptr2 = allocate(mem, 64);
+
+  freeAlloc(mem, ptr1);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after first free");
+
+  // Freeing the adjacent block triggers coalesceBackwards, merging two free
+  // blocks into one, so numFreeBlocks goes back to 1 (not 2).
+  freeAlloc(mem, ptr2);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1,
+            "numFreeBlocks should stay 1 after coalescing two adjacent free blocks");
+  freeMemory(mem);
+}
+
+static void test_num_free_blocks_multiple_isolated_free_blocks(void) {
+  Memory *mem = initializeMemory();
+  void *ptr1 = allocate(mem, 32);
+  allocate(mem, 16); // separator — keeps ptr1 and ptr3 non-adjacent
+  void *ptr3 = allocate(mem, 64);
+  allocate(mem, 16); // separator
+
+  freeAlloc(mem, ptr1);
+  freeAlloc(mem, ptr3);
+
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)2,
+            "numFreeBlocks should be 2 for two non-adjacent free blocks");
+  freeMemory(mem);
+}
+
+// ---------------------------------------------------------------------------
 // Test runner
 // ---------------------------------------------------------------------------
 
@@ -455,4 +546,13 @@ void run_memory_tests(void) {
   test_allocate_reuses_first_free_block();
   test_allocate_skips_allocated_blocks();
   test_returns_null_when_out_of_memory();
+
+  // numFreeBlocks tracking
+  test_num_free_blocks_starts_at_zero();
+  test_num_free_blocks_unchanged_after_allocate();
+  test_num_free_blocks_increments_on_free();
+  test_num_free_blocks_decrements_on_reuse();
+  test_num_free_blocks_split_adds_free_remainder();
+  test_num_free_blocks_coalesce_reduces_count();
+  test_num_free_blocks_multiple_isolated_free_blocks();
 }

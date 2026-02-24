@@ -149,23 +149,28 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 		yOneHot := shapesCtx.OneHot(y_batch, 27)
 		yOneHot.Tensor().Label = "one_hot"
 
-		fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
-		fmt.Printf("logits.shape: %v\n", logits.Shape())
+		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
+		// fmt.Printf("logits.shape: %v\n", logits.Shape())
 
 		lossValue := loss.CrossEntropy(yOneHot, logits)
 
 		return lossValue
 	}
 
-	for i := range 500 {
+	fmt.Printf("Tensors before training: %v\n", shapesCtx.NumTrackTensors())
+	fmt.Printf("Blocks before training: %v\n", shapesCtx.NumAllocatedBlocks())
 
+	for i := range 1000 {
+
+		fmt.Printf("Tensors before forward pass: %v\n", shapesCtx.NumTrackTensors())
+		fmt.Printf("Blocks before forward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		ix := shapesCtx.FloatRandom(shapes.Shape{32}, 0, float32(X.Shape()[0])).I64()
 
 		// Forward pass
 		emb := C.Get(X.Get(ix))
 		y_batch := Y.Get(ix)
 
-		fmt.Printf("Emb shape: %v\n", emb.Shape())
+		// fmt.Printf("Emb shape: %v\n", emb.Shape())
 
 		emb.Tensor().Label = "emb"
 
@@ -173,8 +178,12 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 		fmt.Printf("Epoch %d, Loss: %f\n", i, lossValue.Get(0).Item())
 
+		fmt.Printf("Tensors before backward pass: %v\n", shapesCtx.NumTrackTensors())
+		fmt.Printf("Blocks before backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		// Backward pass
 		graph := lossValue.Backward()
+		fmt.Printf("Tensors after backward pass: %v\n", shapesCtx.NumTrackTensors())
+		fmt.Printf("Blocks after backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 
 		// Update parameters
 		sgd(graph)

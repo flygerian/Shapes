@@ -138,11 +138,11 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
   }
 
   if (dest->isView) {
-    return  ERR_COPY_DESTINATION_VIEW;
+    return ERR_COPY_DESTINATION_VIEW;
   }
-  
+
   if (src->size != dest->size) {
-    return  ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE; 
+    return ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE;
   }
 
   if (src->dtype != dest->dtype) {
@@ -156,7 +156,8 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
     srcContigous = src;
   }
 
-  memcpy(dest->values, srcContigous->values, srcContigous->size * getBytesForDtype(srcContigous->dtype));
+  memcpy(dest->values, srcContigous->values,
+         srcContigous->size * getBytesForDtype(srcContigous->dtype));
 
   if (!src->isContigous) {
     // Free the intermediate contigous tensor

@@ -7,16 +7,18 @@
 
 #define DEFAULT_ALLOCATION 1024 * 1024 * 64 // 64mb
 
-#define NEXT_BLOCK_OFFSET(blockHeader) (sizeof(blockheader) + blockHeader->blockSize + sizeof(blockfooter))
+#define NEXT_BLOCK_OFFSET(blockHeader)                                                             \
+  (sizeof(blockheader) + blockHeader->blockSize + sizeof(blockfooter))
 
 
 #define ARENA(memory) ((uint8_t *)(memory + 1))
 
-#define BLOCK_HEADER(ptr) ((blockheader *) ((uint8_t *)(ptr) - sizeof(blockheader)))
+#define BLOCK_HEADER(ptr)                       ((blockheader *)((uint8_t *)(ptr) - sizeof(blockheader)))
 #define BLOCK_HEADER_OFFSET(arena, blockHeader) ((uint8_t *)blockHeader - arena)
 
 
-#define BLOCK_FOOTER(blockHeader) ((blockfooter *)((uint8_t *)(blockHeader) + sizeof(blockheader) + blockHeader->blockSize))
+#define BLOCK_FOOTER(blockHeader)                                                                  \
+  ((blockfooter *)((uint8_t *)(blockHeader) + sizeof(blockheader) + blockHeader->blockSize))
 
 #define TOTAL_BLOCK_SIZE(blockSize) (blockSize + (sizeof(blockheader) + sizeof(blockfooter)))
 
@@ -38,6 +40,7 @@ typedef struct {
   size_t capacity;
   size_t allocated;
   size_t numBlocks;
+  size_t numFreeBlocks;
   size_t minBlockSize;
 } Memory;
 

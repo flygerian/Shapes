@@ -10,7 +10,7 @@ import (
 const Mb = 1024 * 1024
 
 func main() {
-	ctx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(1024*Mb))
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(100*Mb))
 	defer ctx.Close()
 
 	examples.MakeMore_2(ctx)
