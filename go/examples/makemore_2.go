@@ -12,6 +12,7 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/optimizer"
+	"github.com/flygerian/shapes/visual"
 )
 
 func set(input string) []rune {
@@ -170,22 +171,6 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 		lossValue := forward(emb, y_batch)
 
-		// h := l1(emb.Reshape(-1, 6))
-		// fmt.Printf("h.shape: %v\n", h.Shape())
-		//
-		// h.Tensor().Label = "h"
-		// logits := l2(h)
-		//
-		// logits.Tensor().Label = "logits"
-		//
-		// yOneHot := shapesCtx.OneHot(y_batch, 27)
-		// yOneHot.Tensor().Label = "one_hot"
-		//
-		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
-		// fmt.Printf("logits.shape: %v\n", logits.Shape())
-		//
-		// lossValue := loss.CrossEntropy(yOneHot, logits)
-
 		fmt.Printf("Epoch %d, Loss: %f\n", i, lossValue.Get(0).Item())
 
 		// Backward pass
@@ -196,7 +181,12 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 		optimizer.ZeroGrad(shapesCtx, graph)
 
 		newSection()
-
 	}
+
+	newSection()
+
+	fullLoss := forward(C.Get((X)), Y)
+	fmt.Printf("Full loss: ")
+	visual.Print(fullLoss)
 
 }
