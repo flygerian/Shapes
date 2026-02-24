@@ -21,11 +21,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-# Enable AddressSanitizer in Debug builds
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+# Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
+option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
   add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
   add_link_options(-fsanitize=address)
 endif()
+
+
 
 find_library(OPENBLAS_LIB
   NAMES openblas

@@ -19,8 +19,8 @@ func MakeMore_1(ctx *shapes.Context) {
 
 	ys := ctx.FromFloat32(shapes.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
 
-	dense := layer.Dense(3, 10)
-	dens3 := layer.Dense(10, 1)
+	dense := layer.Dense(ctx, 3, 10)
+	dens3 := layer.Dense(ctx, 10, 1)
 
 	noGraph := ctx.NoGraph()
 	sgd := optimizer.SGD(noGraph, 0.01)

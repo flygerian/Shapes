@@ -34,6 +34,7 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest);
 Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Clone(Context *ctx, Tensor *t, Tensor *dest);
+Result Copy(Context *ctx, Tensor *src, Tensor *dest);
 
 // Cast
 Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);

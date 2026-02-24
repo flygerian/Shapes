@@ -130,27 +130,61 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	newSection()
 
-	l1 := layer.Dense(6, 100)
-	l2 := layer.Dense(100, 27)
+	l1 := layer.Dense(shapesCtx, 6, 100)
+	l2 := layer.Dense(shapesCtx, 100, 27)
 
 	sgd := optimizer.SGD(shapesCtx, 0.1)
 
-	shapesCtx.PrintMemoryFragmentationChart()
+	forward := func(x_batch *shapes.WrappedTensor, y_batch *shapes.WrappedTensor) *shapes.WrappedTensor {
 
-	for i := range 100 {
-		// Forward pass
-		emb := C.Get(X)
-		emb.Tensor().Label = "emb"
+		h := l1(x_batch.Reshape(-1, 6))
+		fmt.Printf("h.shape: %v\n", h.Shape())
 
-		h := l1(emb.Reshape(-1, 6))
 		h.Tensor().Label = "h"
 		logits := l2(h)
+
 		logits.Tensor().Label = "logits"
 
-		yOneHot := shapesCtx.OneHot(Y, 27)
+		yOneHot := shapesCtx.OneHot(y_batch, 27)
 		yOneHot.Tensor().Label = "one_hot"
 
+		fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
+		fmt.Printf("logits.shape: %v\n", logits.Shape())
+
 		lossValue := loss.CrossEntropy(yOneHot, logits)
+
+		return lossValue
+	}
+
+	for i := range 500 {
+
+		ix := shapesCtx.FloatRandom(shapes.Shape{32}, 0, float32(X.Shape()[0])).I64()
+
+		// Forward pass
+		emb := C.Get(X.Get(ix))
+		y_batch := Y.Get(ix)
+
+		fmt.Printf("Emb shape: %v\n", emb.Shape())
+
+		emb.Tensor().Label = "emb"
+
+		lossValue := forward(emb, y_batch)
+
+		// h := l1(emb.Reshape(-1, 6))
+		// fmt.Printf("h.shape: %v\n", h.Shape())
+		//
+		// h.Tensor().Label = "h"
+		// logits := l2(h)
+		//
+		// logits.Tensor().Label = "logits"
+		//
+		// yOneHot := shapesCtx.OneHot(y_batch, 27)
+		// yOneHot.Tensor().Label = "one_hot"
+		//
+		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
+		// fmt.Printf("logits.shape: %v\n", logits.Shape())
+		//
+		// lossValue := loss.CrossEntropy(yOneHot, logits)
 
 		fmt.Printf("Epoch %d, Loss: %f\n", i, lossValue.Get(0).Item())
 
@@ -160,6 +194,9 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 		// Update parameters
 		sgd(graph)
 		optimizer.ZeroGrad(shapesCtx, graph)
+
+		newSection()
+
 	}
 
 }

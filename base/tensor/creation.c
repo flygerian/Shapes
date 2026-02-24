@@ -5,6 +5,7 @@
 #include "tensor_internal.h"
 #include "../memory.h"
 #include <complex.h>
+#include <stddef.h>
 #include <string.h>
 
 Result emptyBackward(Context *ctx, GraphNode *g) {
@@ -127,6 +128,40 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
                              .multipliers = newMultipliers}};
 
   initializeGradient(ctx, dest);
+
+  return OK;
+}
+
+Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
+  if (isInvalidTensor(src) || isInvalidTensor(dest)) {
+    return ERR_COPY_REQUIRES_INITIALIZED_TENSORS;
+  }
+
+  if (dest->isView) {
+    return  ERR_COPY_DESTINATION_VIEW;
+  }
+  
+  if (src->size != dest->size) {
+    return  ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE; 
+  }
+
+  if (src->dtype != dest->dtype) {
+    return ERR_COPY_SAME_DTYPE;
+  }
+
+  Tensor *srcContigous;
+  if (!src->isContigous) {
+    srcContigous = copyToContiguous(ctx, src);
+  } else {
+    srcContigous = src;
+  }
+
+  memcpy(dest->values, srcContigous->values, srcContigous->size * getBytesForDtype(srcContigous->dtype));
+
+  if (!src->isContigous) {
+    // Free the intermediate contigous tensor
+    FreeTensor(ctx, srcContigous);
+  }
 
   return OK;
 }
