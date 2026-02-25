@@ -15,10 +15,9 @@ func Dense(outerCtx *shapes.Context, inputSize int, outputSize int) func(*shapes
 
 	return func(x *shapes.WrappedTensor) *shapes.WrappedTensor {
 
-		// They need to live outsize of the fused scope
-
 		// Initialize a fused context
 		fusedCtx := outerCtx.Fused()
+		defer fusedCtx.Done()
 
 		inputShape := x.Shape()
 		is1D := len(inputShape) == 1
@@ -43,42 +42,47 @@ func Dense(outerCtx *shapes.Context, inputSize int, outputSize int) func(*shapes
 			output = output.Squeeze()
 		}
 
+		// Result area
+
 		// If o is not initialized output declared, create o in the outer ctx
 		if o == nil {
 			o = outerCtx.Zeros(output.Shape())
 		}
 
-		// Clone the result into o
+		// Clone the result into o because this context frees
 		outerCtx.Copy(output, o)
 
 		// Register node via fusedCtx so forward temporaries are swept automatically
-		fusedCtx.NewComputationGraphNode(o.Tensor(), shapes.OpDense, constructDenseBackwardPass, w.Tensor(), x.Tensor(), b.Tensor())
+		inputs := []*shapes.Tensor{x.Tensor()}
+		parameters := []*shapes.Tensor{x.Tensor()}
+		outerCtx.NewComputationGraphNode(o.Tensor(), shapes.OpDense, constructDenseBackwardPass, inputs, parameters, []*shapes.Tensor{})
 
 		return o
 	}
 }
 
-func constructDenseBackwardPass(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
-	w := node.Inputs[0]
-	x := node.Inputs[1]
-	b := node.Inputs[2]
+func constructDenseBackwardPass(ctx *shapes.Context, node shapes.ComputationGraphNode) {
+	ctx = ctx.NoGraph()
+	defer ctx.Done()
+
+	w := node.Inputs()[0]
+	x := node.Inputs()[1]
+	b := node.Inputs()[2]
 
 	// Forward: o = x @ wᵀ + b
-	grad := node.Grad.SafeUnSqueeze(ctx, 0)
+	grad := node.Grad().SafeUnSqueeze(ctx, 0)
 
 	// ∂L/∂w = gradᵀ @ x  ([out, batch] @ [batch, in] = [out, in])
 	dW := grad.Transpose(ctx).Mul(ctx, x.SafeUnSqueeze(ctx, 0))
 	gradW := shapes.ReduceBroadcast(ctx, w, dW)
-	w.Computation.Grad = w.Grad().Plus(ctx, gradW)
+	w.Grad().Accumulate(ctx, gradW)
 
 	// ∂L/∂x = grad @ w  ([batch, out] @ [out, in] = [batch, in])
 	dX := grad.Mul(ctx, w)
 	gradX := shapes.ReduceBroadcast(ctx, x, dX)
-	x.Computation.Grad = x.Grad().Plus(ctx, gradX)
+	x.Grad().Accumulate(ctx, gradX)
 
 	// ∂L/∂b = grad (reduced to match b's shape)
 	gradB := shapes.ReduceBroadcast(ctx, b, grad)
-	b.Computation.Grad = b.Grad().Plus(ctx, gradB)
-
-	node.Parameters = []*shapes.Tensor{w, b}
+	b.Grad().Accumulate(ctx, gradB)
 }

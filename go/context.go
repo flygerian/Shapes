@@ -29,16 +29,18 @@ import "C"
 // It satisfies the context.Context interface while providing access to
 // the shapes C library context.
 type Context struct {
-	stdctx.Context  // Embedded Go context for cancellation/deadlines
-	cCtx            *C.Context
-	root            *Context          // root context (nil if this is root)
-	handles         []*unsafe.Pointer // root only: all tracked handles, nilled on Close
-	locals          []*unsafe.Pointer // this ctx: tensors created through this ctx
-	intermediates   []unsafe.Pointer  // root only: C tensor pointers queued for FreeIntermediates
-	arenaSize       int
-	ownsMemory      bool // true for root context
+	stdctx.Context // Embedded Go context for cancellation/deadlines
+	cCtx           *C.Context
+	root           *Context  // root context (nil if this is root)
+	handles        []*Tensor // root only: all tracked handles, nilled on Close
+	locals         []*Tensor // this ctx: tensors created through this ctx
+	freeList       []*Tensor // root only: C tensor pointers queued for FreeIntermediates
+	arenaSize      int
+	ownsMemory     bool // true for root context
+
 	GradEnabled     bool // Go-level grad tracking (C context always has grad=false)
 	BackwardEnabled bool
+	Cleanup         bool
 }
 
 // New creates a new Context with the given parent Go context.
@@ -54,11 +56,11 @@ func New(parent stdctx.Context, opts ...Option) *Context {
 	}
 
 	ctx := &Context{
-		Context:       parent,
-		handles:       make([]*unsafe.Pointer, 0),
-		locals:        make([]*unsafe.Pointer, 0),
-		intermediates: make([]unsafe.Pointer, 0),
-		ownsMemory:    true,
+		Context:    parent,
+		handles:    make([]*Tensor, 0),
+		locals:     make([]*Tensor, 0),
+		freeList:   make([]*Tensor, 0),
+		ownsMemory: true,
 	}
 	ctx.root = ctx
 
@@ -78,16 +80,24 @@ func New(parent stdctx.Context, opts ...Option) *Context {
 // Close releases the C context resources.
 // All tensors created under this context become invalid after Close.
 // Only the root context frees memory; derived contexts are no-ops.
-func (c *Context) Close() {
+func (c *Context) Done() {
+
+	if c.Cleanup {
+		c.freeList = append(c.freeList, c.locals...)
+		c.locals = nil
+	}
+
 	if !c.ownsMemory {
 		return
 	}
+
 	if c.cCtx != nil && c.cCtx.memory != nil {
 		for _, p := range c.handles {
 			if p != nil {
-				*p = nil
+				p.Free(c)
 			}
 		}
+
 		c.handles = nil
 		c.locals = nil
 		C.freeMemory(c.cCtx.memory)
@@ -118,10 +128,11 @@ func (c *Context) derive(gradEnabled, backwardEnabled bool) *Context {
 		Context:         c.Context,
 		cCtx:            c.cCtx,
 		root:            c.root,
-		locals:          make([]*unsafe.Pointer, 0),
+		locals:          make([]*Tensor, 0),
 		ownsMemory:      false,
 		GradEnabled:     gradEnabled,
 		BackwardEnabled: backwardEnabled,
+		Cleanup:         true,
 	}
 }
 
@@ -162,37 +173,9 @@ func (c *Context) UnsafeMemory() unsafe.Pointer {
 // Track registers a C pointer so it gets nilled on Close().
 // Appends to root.handles (for cleanup) and c.locals (for intermediate marking).
 // The tensor package calls this when creating tensors.
-func (c *Context) Track(p *unsafe.Pointer) {
-	c.root.handles = append(c.root.handles, p)
-	c.locals = append(c.locals, p)
-}
-
-// MarkIntermediate registers a C tensor pointer for freeing after backward.
-// Always appends to root's intermediates list.
-func (c *Context) MarkIntermediate(p unsafe.Pointer) {
-	c.root.intermediates = append(c.root.intermediates, p)
-}
-
-// Intermediates returns the list of intermediate C tensor pointers from root.
-func (c *Context) Intermediates() []unsafe.Pointer {
-	return c.root.intermediates
-}
-
-// ClearIntermediates resets the intermediate list after they have been freed.
-func (c *Context) ClearIntermediates() {
-
-	// Filter out the intermediate tensors from the list of global pointers
-	var newHandles []*unsafe.Pointer
-	for _, tensorPtr := range c.handles {
-		for _, intTensorPtr := range c.intermediates {
-			if tensorPtr != (*unsafe.Pointer)(intTensorPtr) {
-				newHandles = append(newHandles, tensorPtr)
-			}
-		}
-	}
-
-	c.root.handles = newHandles
-	c.root.intermediates = c.root.intermediates[:0]
+func (c *Context) Track(t *Tensor) {
+	c.root.handles = append(c.root.handles, t)
+	c.locals = append(c.locals, t)
 }
 
 func (c *Context) NumTrackTensors() int {
@@ -222,4 +205,36 @@ func WithArenaSize(size int) Option {
 	return func(c *Context) {
 		c.arenaSize = size
 	}
+}
+
+// MarkIntermediate registers a C tensor pointer for freeing after backward.
+// Always appends to root's intermediates list.
+func (c *Context) Mark(t *Tensor) {
+	c.root.freeList = append(c.root.freeList, t)
+}
+
+func (ctx *Context) Sweep() {
+	cCtx := (*C.Context)(ctx.UnsafePtr())
+
+	if len(ctx.freeList) == 0 {
+		return
+	}
+
+	// Deduplicate to prevent double-free
+	seen := make(map[unsafe.Pointer]bool, len(ctx.freeList))
+	for _, t := range ctx.freeList {
+		p := unsafe.Pointer(t.cTensor)
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		ct := (*C.Tensor)(p)
+		if ct.isView {
+			C.FreeViewTensor(cCtx, ct)
+		} else {
+			C.FreeTensor(cCtx, ct)
+		}
+	}
+
+	ctx.freeList = make([]*Tensor, 0)
 }

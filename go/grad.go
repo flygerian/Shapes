@@ -13,9 +13,6 @@ import (
 	"unsafe"
 )
 
-// BackwardFn is the signature for backward pass functions.
-type BackwardFn func(ctx *Context, node *ComputationGraphNode)
-
 // OpType identifies the operation that produced a computation graph node.
 type OpType int
 
@@ -94,148 +91,64 @@ func (op OpType) String() string {
 	}
 }
 
-// ComputationGraphNode represents a node in the autograd computation graph.
-type ComputationGraphNode struct {
-	Inputs      []*Tensor
-	HiddenState []*Tensor // tensors required in backward, created during forward
-	Output      *Tensor
-	Backward    BackwardFn
-	Grad        *Tensor
-	Op          OpType
-	Parameters  []*Tensor
-	Metadata    any
+type GradTensor interface {
+	HasNonMutatingBinaryOps
+	HasShapeOps
+	Accumulate(ctx *Context, operaandB *Tensor)
+}
+
+type ComputationGraphNode interface {
+	Inputs() []*Tensor
+	Grad() GradTensor
+	Metadata() []*Tensor
+}
+
+// BackwardFn is the signature for backward pass functions.
+type BackwardFn func(ctx *Context, node ComputationGraphNode)
+
+// Computation represents a node in the autograd computation graph.
+type Computation struct {
+	Inputs     []*Tensor
+	Backward   BackwardFn
+	Op         OpType
+	Parameters []*Tensor
+	Metadata   []*Tensor
+
+	grad *Tensor
 }
 
 // ComputationGraph holds topologically sorted graph nodes.
 type ComputationGraph struct {
-	Nodes []*ComputationGraphNode
+	Nodes []*Computation
 }
 
 // leafNode attaches an empty GraphNode (nil backward) to a tensor.
 // Called at creation time when grad is enabled so that .Grad() is always available.
 func leafNode(ctx *Context, t *Tensor) {
 	noGradCtx := ctx.NoGrad()
-	t.Computation = &ComputationGraphNode{
-		Output: t,
-		Grad:   Zeros(noGradCtx, shapeOf(t)),
+	t.Computation = &Computation{
+		grad: Zeros(noGradCtx, shapeOf(t)),
 	}
 }
 
 // NewComputationGraphNode attaches a computation graph node to result.
 // Used by external packages (e.g., layer, activation) to register custom backward passes.
-func (c *Context) NewComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs ...*Tensor) {
-	c.newNode(result, op, backward, nil, inputs...)
-}
-
-// NewComputationGraphNodeSaved attaches a computation graph node with saved tensors to result.
-// Saved tensors are those required during backward but not necessarily inputs.
-func (c *Context) NewComputationGraphNodeSaved(result *Tensor, op OpType, backward BackwardFn, saved []*Tensor, inputs ...*Tensor) {
-	c.newNode(result, op, backward, saved, inputs...)
+func (c *Context) NewComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs []*Tensor, parameters []*Tensor, metadata []*Tensor) {
+	c.newNode(result, op, backward, nil, inputs, parameters)
 }
 
 // newNode creates a GraphNode and attaches it to the result tensor.
 // Internal helper used by both NewComputationGraphNode and NewComputationGraphNodeSaved.
 // When called on a fused context, sweeps locals to mark forward intermediates.
-func (c *Context) newNode(result *Tensor, op OpType, backward BackwardFn, saved []*Tensor, inputs ...*Tensor) {
-	noGradCtx := c.NoGrad()
-	node := &ComputationGraphNode{
-		Output:      result,
-		Grad:        Zeros(noGradCtx, shapeOf(result)),
-		Inputs:      inputs,
-		HiddenState: saved,
-		Backward:    backward,
-		Op:          op,
+func (c *Context) newNode(result *Tensor, op OpType, backward BackwardFn, saved []*Tensor, inputs []*Tensor, parameters []*Tensor) {
+	node := &Computation{
+		grad:       Zeros(c.NoGrad(), shapeOf(result)),
+		Inputs:     inputs,
+		Backward:   backward,
+		Op:         op,
+		Parameters: parameters,
 	}
 	result.Computation = node
-
-	// If this is a fused/subcontext, sweep locals to mark intermediates
-	// Keep: result, all inputs, all saved tensors
-	if !c.ownsMemory && !c.GradEnabled && !c.BackwardEnabled {
-		// This is likely a fused/subcontext - mark all locals except keepers
-		markIntermediatesFromLocals(c, saved...)
-	}
-}
-
-// markIntermediate registers a tensor for freeing after the backward pass.
-func markIntermediate(ctx *Context, t *Tensor) {
-	ctx.MarkIntermediate(unsafe.Pointer(t.cTensor))
-}
-
-// markIfIntermediate marks t only if it is not the same tensor as origin.
-// ReduceBroadcast may return its input unchanged when no reduction is needed;
-// in that case we must not free it.
-func markIfIntermediate(ctx *Context, t *Tensor, origin *Tensor) {
-	if t != origin {
-		markIntermediate(ctx, t)
-	}
-}
-
-// MarkIntermediate is the exported version of markIntermediate for sub-packages.
-func MarkIntermediate(ctx *Context, t *Tensor) {
-	markIntermediate(ctx, t)
-}
-
-// MarkIfIntermediate is the exported version of markIfIntermediate for sub-packages.
-func MarkIfIntermediate(ctx *Context, t *Tensor, origin *Tensor) {
-	markIfIntermediate(ctx, t, origin)
-}
-
-// markIntermediatesFromLocals marks all tensors in ctx.locals as intermediate,
-// except those in keepSet. This is used for automatic cleanup of temporaries.
-func markIntermediatesFromLocals(ctx *Context, keepTensors ...*Tensor) {
-	if len(ctx.locals) == 0 {
-		return
-	}
-
-	// Build keep-set keyed by C tensor pointer
-	keepSet := make(map[unsafe.Pointer]bool, len(keepTensors))
-	for _, t := range keepTensors {
-		if t != nil && t.cTensor != nil {
-			keepSet[unsafe.Pointer(t.cTensor)] = true
-		}
-	}
-
-	// Iterate locals and mark non-keep tensors as intermediate
-	for _, handle := range ctx.locals {
-		if handle == nil || *handle == nil {
-			continue
-		}
-		ctPtr := unsafe.Pointer(*handle)
-		if !keepSet[ctPtr] {
-			ctx.MarkIntermediate(ctPtr)
-		}
-	}
-
-	// Clear locals after sweeping
-	ctx.locals = ctx.locals[:0]
-}
-
-// FreeIntermediates frees all tensors marked as intermediate during backward.
-// Deduplicates pointers to prevent double-free.
-func FreeIntermediates(ctx *Context) {
-	cCtx := (*C.Context)(ctx.UnsafePtr())
-	intermediates := ctx.Intermediates()
-	if len(intermediates) == 0 {
-		ctx.ClearIntermediates()
-		return
-	}
-
-	// Deduplicate to prevent double-free
-	fmt.Printf("Freeing %d intermediates\n", len(intermediates))
-	seen := make(map[unsafe.Pointer]bool, len(intermediates))
-	for _, p := range intermediates {
-		if seen[p] {
-			continue
-		}
-		seen[p] = true
-		ct := (*C.Tensor)(p)
-		if ct.isView {
-			C.FreeViewTensor(cCtx, ct)
-		} else {
-			C.FreeTensor(cCtx, ct)
-		}
-	}
-	ctx.ClearIntermediates()
 }
 
 // shapeOf extracts the shape from a tensor's C representation.
@@ -252,12 +165,12 @@ func shapeOf(t *Tensor) Shape {
 // buildGraph performs a topological sort starting from the output tensor.
 func buildGraph(t *Tensor) *ComputationGraph {
 	graph := &ComputationGraph{}
-	visited := make(map[*ComputationGraphNode]bool)
+	visited := make(map[*Computation]bool)
 	topo(graph, visited, t.Computation)
 	return graph
 }
 
-func topo(graph *ComputationGraph, visited map[*ComputationGraphNode]bool, node *ComputationGraphNode) {
+func topo(graph *ComputationGraph, visited map[*Computation]bool, node *Computation) {
 	if node == nil || visited[node] {
 		return
 	}
@@ -277,7 +190,7 @@ func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
 	noGraphCtx := ctx.NoGraph()
 	// Seed the output gradient with ones.
 	onesShape := shapeOf(t)
-	t.Computation.Grad = Float(noGraphCtx, onesShape, 1.0)
+	t.Grad().Accumulate(noGraphCtx, Float(noGraphCtx, onesShape, 1.0))
 
 	graph := buildGraph(t)
 
@@ -287,28 +200,7 @@ func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
 		if node.Backward != nil {
 			// Create fresh op subcontext per node for sweeping
 			opCtx := noGraphCtx.OpSubcontext()
-			node.Backward(opCtx, node)
-
-			// Sweep opCtx.locals: keep input grads and node.Grad
-			// TODO this should probably be deleted
-			keep := make([]*Tensor, 0, len(node.Inputs)+1)
-			for _, inp := range node.Inputs {
-				if inp.Computation != nil && inp.Computation.Grad != nil {
-					keep = append(keep, inp.Computation.Grad)
-				}
-			}
-
-			if node.Grad != nil {
-				keep = append(keep, node.Grad)
-			}
-			markIntermediatesFromLocals(opCtx, keep...)
-
-			// Mark saved tensors as intermediate (no longer needed after this node's backward)
-			for _, saved := range node.HiddenState {
-				if saved != nil {
-					markIntermediate(opCtx, saved)
-				}
-			}
+			node.Backward(opCtx, t)
 		}
 	}
 
@@ -319,7 +211,7 @@ func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
 }
 
 // Grad returns the gradient tensor. Panics if this tensor has no computation node.
-func (t *Tensor) Grad() *Tensor {
+func (t *Tensor) Grad() GradTensor {
 	if t.Computation == nil {
 		err := "shapes: tensor has no computation graph node"
 		if t.Label != "" {
@@ -327,7 +219,19 @@ func (t *Tensor) Grad() *Tensor {
 		}
 		panic(err)
 	}
-	return t.Computation.Grad
+	return t.Computation.grad
+}
+
+func (t *Tensor) Accumulate(ctx *Context, operaandB *Tensor) {
+	t.AddInPlace(ctx, operaandB)
+}
+
+func (t *Tensor) Metadata() []*Tensor {
+	return t.Computation.Metadata
+}
+
+func (t *Tensor) Inputs() []*Tensor {
+	return t.Computation.Inputs
 }
 
 // RequiresGrad returns true if this tensor is part of a computation graph.
@@ -341,8 +245,8 @@ func (wt *WrappedTensor) Backward() *ComputationGraph {
 }
 
 // Grad returns the gradient WrappedTensor. Panics if this tensor has no computation node.
-func (wt *WrappedTensor) Grad() *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Grad())
+func (wt *WrappedTensor) Grad() GradTensor {
+	return wt.tensor.Grad()
 }
 
 // RequiresGrad returns true if this WrappedTensor is part of a computation graph.
