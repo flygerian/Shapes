@@ -99,6 +99,16 @@ import (
 	"unsafe"
 )
 
+type HasShapeOps interface {
+	Slice(ctx *Context, ranges ...Range) *Tensor
+	Reshape(ctx *Context, dims ...int) *Tensor
+	Transpose(ctx *Context, dims ...uint32) *Tensor
+	Squeeze(ctx *Context) *Tensor
+	SqueezeDim(ctx *Context, dim uint32) *Tensor
+	UnSqueeze(ctx *Context, dim uint32) *Tensor
+	SafeUnSqueeze(ctx *Context, dims ...uint32) *Tensor
+}
+
 // TODO shape ops should be exact clones of the tensor
 // Slice creates a view into the tensor. Each range is a Range{start, end}
 // specifying a half-open interval for that dimension.
