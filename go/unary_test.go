@@ -8,7 +8,7 @@ import (
 
 func TestPow(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2, 2}, 3.0)
 	result := a.Pow(2.0)
@@ -25,7 +25,7 @@ func TestPow(t *testing.T) {
 
 func TestPowFractional(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2}, 4.0)
 	result := a.Pow(0.5)
@@ -40,14 +40,14 @@ func TestPowFractional(t *testing.T) {
 
 func TestPowBackwardSquare(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// x=3, x^2=9, d(x^2)/dx = 2x = 6
 	x := ctx.Float(Shape{1}, 3.0)
 	y := x.Pow(2.0)
 	y.Backward()
 
-	got := x.Grad().Get(0).Item().(float32)
+	got := x.Grad().(*Tensor).Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 6.0, 1e-4) {
 		t.Errorf("d(x^2)/dx at x=3 = %f, want 6.0", got)
 	}
@@ -55,14 +55,14 @@ func TestPowBackwardSquare(t *testing.T) {
 
 func TestPowBackwardCube(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// x=2, x^3=8, d(x^3)/dx = 3x^2 = 12
 	x := ctx.Float(Shape{1}, 2.0)
 	y := x.Pow(3.0)
 	y.Backward()
 
-	got := x.Grad().Get(0).Item().(float32)
+	got := x.Grad().(*Tensor).Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 12.0, 1e-4) {
 		t.Errorf("d(x^3)/dx at x=2 = %f, want 12.0", got)
 	}
@@ -70,14 +70,14 @@ func TestPowBackwardCube(t *testing.T) {
 
 func TestPowBackwardSqrt(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// x=4, x^0.5=2, d(x^0.5)/dx = 0.5 * x^(-0.5) = 0.5/2 = 0.25
 	x := ctx.Float(Shape{1}, 4.0)
 	y := x.Pow(0.5)
 	y.Backward()
 
-	got := x.Grad().Get(0).Item().(float32)
+	got := x.Grad().(*Tensor).Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 0.25, 1e-4) {
 		t.Errorf("d(x^0.5)/dx at x=4 = %f, want 0.25", got)
 	}
@@ -85,7 +85,7 @@ func TestPowBackwardSqrt(t *testing.T) {
 
 func TestPowBackwardMultiElement(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// x=[1,2,3], x^2=[1,4,9], d(x^2)/dx = 2x = [2,4,6]
 	x := ctx.FromFloat32(Shape{3}, []float32{1.0, 2.0, 3.0})
@@ -94,7 +94,7 @@ func TestPowBackwardMultiElement(t *testing.T) {
 
 	expected := []float32{2.0, 4.0, 6.0}
 	for i, want := range expected {
-		got := x.Grad().Get(uint32(i)).Item().(float32)
+		got := x.Grad().(*Tensor).Get(ctx, uint32(i)).Item().(float32)
 		if !approxEq(got, want, 1e-4) {
 			t.Errorf("d(x^2)/dx[%d] = %f, want %f", i, got, want)
 		}
@@ -103,7 +103,7 @@ func TestPowBackwardMultiElement(t *testing.T) {
 
 func TestPowBackwardIdentity(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// x^1, d(x^1)/dx = 1
 	x := ctx.Float(Shape{2}, 5.0)
@@ -111,7 +111,7 @@ func TestPowBackwardIdentity(t *testing.T) {
 	y.Backward()
 
 	for i := range uint32(2) {
-		got := x.Grad().Get(i).Item().(float32)
+		got := x.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(got, 1.0, 1e-4) {
 			t.Errorf("d(x^1)/dx[%d] = %f, want 1.0", i, got)
 		}
@@ -120,7 +120,7 @@ func TestPowBackwardIdentity(t *testing.T) {
 
 func TestExp(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2, 2}, 1.0)
 	result := a.Exp()
@@ -138,7 +138,7 @@ func TestExp(t *testing.T) {
 
 func TestNegate(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.FromFloat32(Shape{3}, []float32{1.0, -2.0, 3.0})
 	result := a.Negate()
@@ -154,7 +154,7 @@ func TestNegate(t *testing.T) {
 
 func TestNegateZeros(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Zeros(Shape{2, 2})
 	result := a.Negate()
@@ -171,7 +171,7 @@ func TestNegateZeros(t *testing.T) {
 
 func TestNegateBackward(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// -x, d(-x)/dx = -1
 	x := ctx.FromFloat32(Shape{3}, []float32{1.0, -2.0, 3.0})
@@ -179,7 +179,7 @@ func TestNegateBackward(t *testing.T) {
 	y.Backward()
 
 	for i := range uint32(3) {
-		got := x.Grad().Get(i).Item().(float32)
+		got := x.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(got, -1.0, 1e-5) {
 			t.Errorf("grad[%d] = %f, want -1.0", i, got)
 		}
@@ -188,7 +188,7 @@ func TestNegateBackward(t *testing.T) {
 
 func TestExpZero(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{3}, 0.0)
 	result := a.Exp()
@@ -203,7 +203,7 @@ func TestExpZero(t *testing.T) {
 
 func TestMean(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.FromFloat32(Shape{2, 3}, []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0})
 	result := a.Mean()
@@ -218,7 +218,7 @@ func TestMean(t *testing.T) {
 
 func TestMeanSingleElement(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{1}, 42.0)
 	result := a.Mean()
@@ -231,7 +231,7 @@ func TestMeanSingleElement(t *testing.T) {
 
 func TestLog(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.FromFloat32(Shape{2, 2}, []float32{1.0, 2.71828, 10.0, 100.0})
 	result := a.Log()
@@ -251,7 +251,7 @@ func TestLog(t *testing.T) {
 
 func TestLogOfOne(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{3}, 1.0)
 	result := a.Log()
@@ -267,7 +267,7 @@ func TestLogOfOne(t *testing.T) {
 // [[1,2,3],[4,5,6]] → max along dim0 → [[4,5,6]] (shape [1,3])
 func TestMaxDim0(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Max(ctx, 0)
@@ -294,7 +294,7 @@ func TestMaxDim0(t *testing.T) {
 // [[1,2,3],[4,5,6]] → max along dim1 → [[3],[6]] (shape [2,1])
 func TestMaxDim1(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Max(ctx, 1)
@@ -321,7 +321,7 @@ func TestMaxDim1(t *testing.T) {
 // Max with no dims reduces everything → scalar shape [1]
 func TestMaxGlobal(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Max(ctx)
@@ -335,7 +335,7 @@ func TestMaxGlobal(t *testing.T) {
 // WrappedTensor.Max delegates correctly
 func TestMaxWrapped(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.FromFloat32(Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Max(1)
@@ -352,7 +352,7 @@ func TestMaxWrapped(t *testing.T) {
 // [[1,2,3],[4,5,6]] → mean along dim0 → [[2.5,3.5,4.5]] (shape [1,3])
 func TestMeanDim0(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Mean(ctx, 0)
@@ -369,7 +369,7 @@ func TestMeanDim0(t *testing.T) {
 // [[1,2,3],[4,5,6]] → mean along dim1 → [[2.0],[5.0]] (shape [2,1])
 func TestMeanDim1(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Mean(ctx, 1)
@@ -386,7 +386,7 @@ func TestMeanDim1(t *testing.T) {
 // WrappedTensor.Mean with dim delegates to MeanDim
 func TestMeanDimWrapped(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.FromFloat32(Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Mean(1)

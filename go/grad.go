@@ -10,7 +10,6 @@ package shapes
 import "C"
 import (
 	"fmt"
-	"unsafe"
 )
 
 // OpType identifies the operation that produced a computation graph node.
@@ -92,67 +91,54 @@ func (op OpType) String() string {
 }
 
 type GradTensor interface {
-	HasNonMutatingBinaryOps
-	HasShapeOps
-	Accumulate(ctx *Context, operaandB *Tensor)
+	hasNonMutatingBinaryOps
+	hasShapeOps
+	hadReductionOps
+	hasUnaryOps
+
+	Accumulate(ctx Context, operandB Tensor)
+	Get(ctx Context, indices ...interface{}) Tensor
 }
 
 type ComputationGraphNode interface {
-	Inputs() []*Tensor
+	Inputs() []Tensor
 	Grad() GradTensor
-	Metadata() []*Tensor
+	Metadata() any
+	HiddenState() []Tensor
+	SetValuesToZero()
 }
 
 // BackwardFn is the signature for backward pass functions.
-type BackwardFn func(ctx *Context, node ComputationGraphNode)
+type BackwardFn func(ctx Context, node ComputationGraphNode)
+
+type hasBackward interface {
+	Backward(ctx Context) ComputationGraph
+}
 
 // Computation represents a node in the autograd computation graph.
 type Computation struct {
-	Inputs     []*Tensor
-	Backward   BackwardFn
-	Op         OpType
-	Parameters []*Tensor
-	Metadata   []*Tensor
+	inputs      []Tensor
+	backward    BackwardFn
+	op          OpType
+	hiddenState []Tensor
+	meta        any
 
-	grad *Tensor
+	grad Tensor
 }
 
 // ComputationGraph holds topologically sorted graph nodes.
-type ComputationGraph struct {
-	Nodes []*Computation
-}
+type ComputationGraph []ComputationGraphNode
 
 // leafNode attaches an empty GraphNode (nil backward) to a tensor.
 // Called at creation time when grad is enabled so that .Grad() is always available.
-func leafNode(ctx *Context, t *Tensor) {
-	noGradCtx := ctx.NoGrad()
-	t.Computation = &Computation{
-		grad: Zeros(noGradCtx, shapeOf(t)),
+func leafNode(ctx Context, t *tensor) {
+	t.computation = &Computation{
+		grad: Zeros(ctx.NoGrad(WithPersistence()), t.Shape()),
 	}
-}
-
-// NewComputationGraphNode attaches a computation graph node to result.
-// Used by external packages (e.g., layer, activation) to register custom backward passes.
-func (c *Context) NewComputationGraphNode(result *Tensor, op OpType, backward BackwardFn, inputs []*Tensor, parameters []*Tensor, metadata []*Tensor) {
-	c.newNode(result, op, backward, nil, inputs, parameters)
-}
-
-// newNode creates a GraphNode and attaches it to the result tensor.
-// Internal helper used by both NewComputationGraphNode and NewComputationGraphNodeSaved.
-// When called on a fused context, sweeps locals to mark forward intermediates.
-func (c *Context) newNode(result *Tensor, op OpType, backward BackwardFn, saved []*Tensor, inputs []*Tensor, parameters []*Tensor) {
-	node := &Computation{
-		grad:       Zeros(c.NoGrad(), shapeOf(result)),
-		Inputs:     inputs,
-		Backward:   backward,
-		Op:         op,
-		Parameters: parameters,
-	}
-	result.Computation = node
 }
 
 // shapeOf extracts the shape from a tensor's C representation.
-func shapeOf(t *Tensor) Shape {
+func shapeOf(t *tensor) Shape {
 	numDims := int(t.cTensor.shape.numOfDims)
 	shape := make(Shape, numDims)
 	dims := t.cTensor.shape.dims
@@ -163,55 +149,55 @@ func shapeOf(t *Tensor) Shape {
 }
 
 // buildGraph performs a topological sort starting from the output tensor.
-func buildGraph(t *Tensor) *ComputationGraph {
-	graph := &ComputationGraph{}
-	visited := make(map[*Computation]bool)
-	topo(graph, visited, t.Computation)
+func buildGraph(t *tensor) ComputationGraph {
+	var graph []ComputationGraphNode
+	visited := make(map[ComputationGraphNode]bool)
+	topo(&graph, visited, t)
 	return graph
 }
 
-func topo(graph *ComputationGraph, visited map[*Computation]bool, node *Computation) {
+func topo(graph *[]ComputationGraphNode, visited map[ComputationGraphNode]bool, node ComputationGraphNode) {
 	if node == nil || visited[node] {
 		return
 	}
+
 	visited[node] = true
-	for _, inp := range node.Inputs {
-		topo(graph, visited, inp.Computation)
+	for _, inp := range node.Inputs() {
+		topo(graph, visited, inp)
 	}
-	graph.Nodes = append(graph.Nodes, node)
+
+	*graph = append(*graph, node)
 }
 
 // Backward runs backpropagation from tensor t through the computation graph.
-func (t *Tensor) Backward(ctx *Context) *ComputationGraph {
+func (t *tensor) Backward(ctx Context) ComputationGraph {
 	if t.Computation == nil {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
 
 	noGraphCtx := ctx.NoGraph()
+	defer noGraphCtx.Finish()
 	// Seed the output gradient with ones.
-	onesShape := shapeOf(t)
+	onesShape := t.Shape()
 	t.Grad().Accumulate(noGraphCtx, Float(noGraphCtx, onesShape, 1.0))
 
 	graph := buildGraph(t)
 
 	// Walk in reverse topological order.
-	for i := len(graph.Nodes) - 1; i >= 0; i-- {
-		node := graph.Nodes[i]
-		if node.Backward != nil {
-			// Create fresh op subcontext per node for sweeping
-			opCtx := noGraphCtx.OpSubcontext()
-			node.Backward(opCtx, t)
+	for i := len(graph) - 1; i >= 0; i-- {
+		node := graph[i]
+		if node.(*tensor).computation.backward != nil {
+			node.(*tensor).computation.backward(noGraphCtx, node)
 		}
 	}
 
-	// Free all tensors marked as intermediate during the backprop
-	FreeIntermediates(noGraphCtx)
+	// Stage all backward intermediates into root.freeList for the caller to sweep.
 
 	return graph
 }
 
 // Grad returns the gradient tensor. Panics if this tensor has no computation node.
-func (t *Tensor) Grad() GradTensor {
+func (t *tensor) Grad() GradTensor {
 	if t.Computation == nil {
 		err := "shapes: tensor has no computation graph node"
 		if t.Label != "" {
@@ -219,37 +205,26 @@ func (t *Tensor) Grad() GradTensor {
 		}
 		panic(err)
 	}
-	return t.Computation.grad
+	return t.computation.grad
 }
 
-func (t *Tensor) Accumulate(ctx *Context, operaandB *Tensor) {
-	t.AddInPlace(ctx, operaandB)
+func (t *tensor) Accumulate(ctx Context, operandB Tensor) {
+	t.AddInPlace(ctx, operandB)
 }
 
-func (t *Tensor) Metadata() []*Tensor {
-	return t.Computation.Metadata
+func (t *tensor) Metadata() any {
+	return t.computation.meta
 }
 
-func (t *Tensor) Inputs() []*Tensor {
-	return t.Computation.Inputs
+func (t *tensor) Inputs() []Tensor {
+	return t.computation.inputs
 }
 
 // RequiresGrad returns true if this tensor is part of a computation graph.
-func (t *Tensor) RequiresGrad() bool {
+func (t *tensor) RequiresGrad() bool {
 	return t.Computation != nil
 }
 
-// Backward runs backpropagation from this WrappedTensor through the computation graph.
-func (wt *WrappedTensor) Backward() *ComputationGraph {
-	return wt.tensor.Backward(wt.context)
-}
-
-// Grad returns the gradient WrappedTensor. Panics if this tensor has no computation node.
-func (wt *WrappedTensor) Grad() GradTensor {
-	return wt.tensor.Grad()
-}
-
-// RequiresGrad returns true if this WrappedTensor is part of a computation graph.
-func (wt *WrappedTensor) RequiresGrad() bool {
-	return wt.tensor.RequiresGrad()
+func (t *tensor) HiddenState() []Tensor {
+	return t.computation.hiddenState
 }

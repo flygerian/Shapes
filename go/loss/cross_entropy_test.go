@@ -15,7 +15,7 @@ import (
 
 func TestCrossEntropy(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// One-hot encoded: class 1 is the true label
 	yGround := ctx.FromFloat32(shapes.Shape{4}, []float32{0.0, 1.0, 0.0, 0.0})
@@ -35,7 +35,7 @@ func TestCrossEntropy(t *testing.T) {
 
 func TestCrossEntropyPerfectPrediction(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Perfect prediction: logit for true class (class 1) is large, others are very small.
 	// softmax([0, 10, 0]) ≈ [0, 1, 0] → loss ≈ -log(1) ≈ 0.
@@ -52,7 +52,7 @@ func TestCrossEntropyPerfectPrediction(t *testing.T) {
 
 func TestCrossEntropy2D(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Batch of 2 samples, 3 classes each.
 	// Sample 1: true class 0 — logits [log(8), log(1), log(1)] → softmax [0.8, 0.1, 0.1]
@@ -79,7 +79,7 @@ func TestCrossEntropy2D(t *testing.T) {
 
 func TestCrossEntropyBackward(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2-class case, single sample (1D).
 	// yGround = [1, 0] (true class is 0)
@@ -97,8 +97,8 @@ func TestCrossEntropyBackward(t *testing.T) {
 		t.Fatal("expected gradient on logits")
 	}
 
-	got0 := logitsGrad.Get(ctx, 0).Item().(float32)
-	got1 := logitsGrad.Get(ctx, 1).Item().(float32)
+	got0 := logitsGrad.(*shapes.Tensor).Get(ctx, 0).Item().(float32)
+	got1 := logitsGrad.(*shapes.Tensor).Get(ctx, 1).Item().(float32)
 	if !approxEq(got0, -0.5, 1e-4) {
 		t.Errorf("d(loss)/d(logits[0]) = %f, want -0.5", got0)
 	}
@@ -109,7 +109,7 @@ func TestCrossEntropyBackward(t *testing.T) {
 
 func TestCrossEntropyIncorrectPrediction(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// True label: class 0
 	// Logits: [log(1), log(8), log(1)] → softmax ≈ [0.1, 0.8, 0.1]

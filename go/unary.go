@@ -58,69 +58,63 @@ static inline Result wrap_MeanDim(Context *ctx, Tensor *t, dim_t dim, Tensor **o
 */
 import "C"
 
+type hasUnaryOps interface {
+	Pow(ctx Context, power float32) Tensor
+	Exp(ctx Context) Tensor
+	Negate(ctx Context) Tensor
+	Log(ctx Context) Tensor
+	Mean(ctx Context, dims ...uint32) Tensor
+	Max(ctx Context, dims ...uint32) Tensor
+}
+
 // Pow raises every element to the given power, returning a new tensor.
-func (t *Tensor) Pow(ctx *Context, power float32) *Tensor {
+func (t *tensor) Pow(ctx Context, power float32) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Pow((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.f32(power), &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpPow, powBackward, nil, t)
-		out.Computation.Metadata = power
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpPow, powBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = power
 	}
 	return out
 }
 
 // Exp computes e^x for every element, returning a new tensor.
-func (t *Tensor) Exp(ctx *Context) *Tensor {
+func (t *tensor) Exp(ctx Context) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Exp((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
+	return track(ctx, &tensor{cTensor: dest})
 }
 
 // Negate negates every element (-t), returning a new tensor.
-func (t *Tensor) Negate(ctx *Context) *Tensor {
+func (t *tensor) Negate(ctx Context) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Negate((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpNegate, negateBackward, nil, t)
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpNegate, negateBackward, []Tensor{t}, []Tensor{}, nil)
 	}
 	return out
 }
 
-// Pow raises every element to the given power, returning a new WrappedTensor.
-func (wt *WrappedTensor) Pow(power float32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Pow(wt.context, power))
-}
-
-// Exp computes e^x for every element, returning a new WrappedTensor.
-func (wt *WrappedTensor) Exp() *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Exp(wt.context))
-}
-
-// Negate negates every element (-wt), returning a new WrappedTensor.
-func (wt *WrappedTensor) Negate() *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Negate(wt.context))
-}
-
 // Mean computes the mean of all elements (no dims) or along a single dimension.
-func (t *Tensor) Mean(ctx *Context, dims ...uint32) *Tensor {
+func (t *tensor) Mean(ctx Context, dims ...uint32) Tensor {
 	if len(dims) == 0 {
 		var dest *C.Tensor
 		result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 		if result != C.OK {
 			panic("shapes: " + resultString(uint32(result)))
 		}
-		return track(ctx, &Tensor{cTensor: dest})
+		return track(ctx, &tensor{cTensor: dest})
 	}
 	if len(dims) == 1 {
 		var dest *C.Tensor
@@ -128,37 +122,27 @@ func (t *Tensor) Mean(ctx *Context, dims ...uint32) *Tensor {
 		if result != C.OK {
 			panic("shapes: " + resultString(uint32(result)))
 		}
-		return track(ctx, &Tensor{cTensor: dest})
+		return track(ctx, &tensor{cTensor: dest})
 	}
 	panic("shapes: mean expects 0 or 1 dim args")
 }
 
 // Log computes the natural logarithm of every element, returning a new tensor.
-func (t *Tensor) Log(ctx *Context) *Tensor {
+func (t *tensor) Log(ctx Context) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Log((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &Tensor{cTensor: dest})
-}
-
-// Mean computes the mean of all elements (no dims) or along a single dimension.
-func (wt *WrappedTensor) Mean(dims ...uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Mean(wt.context, dims...))
-}
-
-// Log computes the natural logarithm of every element, returning a new WrappedTensor.
-func (wt *WrappedTensor) Log() *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Log(wt.context))
+	return track(ctx, &tensor{cTensor: dest})
 }
 
 // Max reduces the tensor along a single dimension. If no dims provided, reduces all dims.
-func (t *Tensor) Max(ctx *Context, dims ...uint32) *Tensor {
+func (t *tensor) Max(ctx Context, dims ...uint32) Tensor {
 	if len(dims) == 0 {
 		out := t
 		for i := uint32(0); i < uint32(len(shapeOf(t))); i++ {
-			out = out.Max(ctx, i)
+			out = out.Max(ctx, i).(*tensor)
 		}
 		return out.Squeeze(ctx)
 	}
@@ -168,12 +152,7 @@ func (t *Tensor) Max(ctx *Context, dims ...uint32) *Tensor {
 		if result != C.OK {
 			panic("shapes: " + resultString(uint32(result)))
 		}
-		return track(ctx, &Tensor{cTensor: dest})
+		return track(ctx, &tensor{cTensor: dest})
 	}
 	panic("shapes: max expects 0 or 1 dim args")
-}
-
-// Max reduces the tensor along a single dimension. If no dims provided, reduces all dims.
-func (wt *WrappedTensor) Max(dims ...uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Max(wt.context, dims...))
 }

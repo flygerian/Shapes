@@ -49,63 +49,50 @@ import (
 )
 
 // Zeros creates a tensor filled with zeros.
-func Zeros(ctx *Context, shape Shape) *Tensor {
+func Zeros(ctx Context, shape Shape) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
 	cTensor := C.wrap_T_Zeros((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape))
-	t := track(ctx, &Tensor{cTensor: cTensor})
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	t := track(ctx, &tensor{cTensor: cTensor})
 	return t
 }
 
 // Int creates a tensor filled with the given int8 value.
-func Int(ctx *Context, shape Shape, value int8) *Tensor {
+func Int(ctx Context, shape Shape, value int8) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
 	cTensor := C.wrap_T_Int((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.i8(value))
-	t := track(ctx, &Tensor{cTensor: cTensor})
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	t := track(ctx, &tensor{cTensor: cTensor})
 	return t
 }
 
 // Float creates a tensor filled with the given float32 value.
-func Float(ctx *Context, shape Shape, value float32) *Tensor {
+func Float(ctx Context, shape Shape, value float32) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
 	cTensor := C.wrap_T_Float((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.f32(value))
-	t := track(ctx, &Tensor{cTensor: cTensor})
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	t := track(ctx, &tensor{cTensor: cTensor})
 	return t
 }
 
 // FromFloat32 creates a tensor from a Go []float32 slice with the given shape.
 // Panics if the number of elements in data does not match the shape.
-func FromFloat32(ctx *Context, shape Shape, data []float32) *Tensor {
+func FromFloat32(ctx Context, shape Shape, data []float32) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
 
 	t := Zeros(ctx, shape)
 
-	expected := int(t.cTensor.size)
+	expected := int(t.(*tensor).cTensor.size)
 	if len(data) != expected {
 		panic("shapes: data length does not match shape")
 	}
 
-	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(expected)*C.sizeof_float)
-
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&data[0]), C.size_t(expected)*C.sizeof_float)
 
 	return t
 }
@@ -162,7 +149,7 @@ func fromInt8_4D(data [][][][]int8) (Shape, []int8, bool) {
 // Supports up to 4D tensors: []int8 (1D), [][]int8 (2D), [][][]int8 (3D), [][][][]int8 (4D).
 // Panics if nested slices have inconsistent lengths (ragged arrays).
 // Returns nil for empty data.
-func FromInt8(ctx *Context, data interface{}) *Tensor {
+func FromInt8(ctx Context, data interface{}) Tensor {
 	var shape Shape
 	var flatData []int8
 	var isEmpty bool
@@ -186,11 +173,7 @@ func FromInt8(ctx *Context, data interface{}) *Tensor {
 
 	t := Int(ctx, shape, 0)
 
-	C.memcpy(t.cTensor.values, unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
-
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
 
 	return t
 }
@@ -199,7 +182,7 @@ func FromInt8(ctx *Context, data interface{}) *Tensor {
 // If no range is provided, values are uniformly distributed in [-1, 1].
 // If min and max are provided, values are uniformly distributed in [min, max].
 // Panics if only min is provided without max.
-func FloatRandom(ctx *Context, shape Shape, rng ...float32) *Tensor {
+func FloatRandom(ctx Context, shape Shape, rng ...float32) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -221,17 +204,13 @@ func FloatRandom(ctx *Context, shape Shape, rng ...float32) *Tensor {
 	}
 
 	t := Zeros(ctx, shape)
-	n := int(t.cTensor.size)
+	n := int(t.(*tensor).cTensor.size)
 	data := make([]float32, n)
 	scale := max - min
 	for i := range n {
 		data[i] = rand.Float32()*scale + min
 	}
-	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
-
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
 
 	return t
 }
@@ -240,7 +219,7 @@ func FloatRandom(ctx *Context, shape Shape, rng ...float32) *Tensor {
 // If no range is provided, values are uniformly distributed in [-128, 127] (full int8 range).
 // If min and max are provided, values are uniformly distributed in [min, max] (inclusive).
 // Panics if only min is provided without max.
-func IntRandom(ctx *Context, shape Shape, rng ...int8) *Tensor {
+func IntRandom(ctx Context, shape Shape, rng ...int8) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
@@ -262,178 +241,34 @@ func IntRandom(ctx *Context, shape Shape, rng ...int8) *Tensor {
 	}
 
 	t := Int(ctx, shape, 0)
-	n := int(t.cTensor.size)
+	n := int(t.(*tensor).cTensor.size)
 	data := make([]int8, n)
 	rangeSize := int(max) - int(min) + 1 // +1 because max is inclusive
 	for i := range n {
 		data[i] = int8(rand.Intn(rangeSize) + int(min))
 	}
-	C.memcpy(t.cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n))
-
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n))
 
 	return t
 }
 
-// Free releases the tensor's C memory back to the arena.
-// The tensor must not be a view. After Free, the tensor must not be used.
-func (t *Tensor) Free(ctx *Context) {
-	result := C.FreeTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
-	}
-}
-
-// FreeView releases a view tensor's metadata (dims, multipliers, boundary)
-// back to the arena without freeing the shared values.
-func (t *Tensor) FreeView(ctx *Context) {
-	result := C.FreeViewTensor((*C.Context)(ctx.UnsafePtr()), t.cTensor)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
-	}
-}
-
-// Free releases the WrappedTensor's C memory back to the arena.
-// After Free, the WrappedTensor must not be used.
-func (wt *WrappedTensor) Free() {
-	wt.tensor.Free(wt.context)
-}
-
-// FreeView releases a view WrappedTensor's metadata back to the arena
-// without freeing the shared values.
-func (wt *WrappedTensor) FreeView() {
-	wt.tensor.FreeView(wt.context)
-}
-
 // --- Context creation methods ---
-
-// Zeros creates a tensor filled with zeros on the context, returning a WrappedTensor.
-// Returns nil for empty shape.
-func (c *Context) Zeros(shape Shape) *WrappedTensor {
-	t := Zeros(c, shape)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// Int creates a tensor filled with the given int8 value on the context, returning a WrappedTensor.
-// Returns nil for empty shape.
-func (c *Context) Int(shape Shape, value int8) *WrappedTensor {
-	t := Int(c, shape, value)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// Float creates a tensor filled with the given float32 value on the context, returning a WrappedTensor.
-// Returns nil for empty shape.
-func (c *Context) Float(shape Shape, value float32) *WrappedTensor {
-	t := Float(c, shape, value)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// FromFloat32 creates a tensor from a Go []float32 slice on the context, returning a WrappedTensor.
-// Panics if the number of elements in data does not match the shape.
-// Returns nil for empty shape.
-func (c *Context) FromFloat32(shape Shape, data []float32) *WrappedTensor {
-	t := FromFloat32(c, shape, data)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// FromInt8 creates a tensor from nested int8 slices on the context, returning a WrappedTensor.
-// Supports up to 4D tensors: []int8 (1D), [][]int8 (2D), [][][]int8 (3D), [][][][]int8 (4D).
-// Panics if nested slices have inconsistent lengths (ragged arrays).
-// Returns nil for empty data.
-func (c *Context) FromInt8(data interface{}) *WrappedTensor {
-	t := FromInt8(c, data)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// FloatRandom creates a tensor with random float32 values on the context, returning a WrappedTensor.
-// If no range is provided, values are uniformly distributed in [-1, 1].
-// If min and max are provided, values are uniformly distributed in [min, max].
-// Panics if only min is provided without max.
-// Returns nil for empty shape.
-func (c *Context) FloatRandom(shape Shape, rng ...float32) *WrappedTensor {
-	t := FloatRandom(c, shape, rng...)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// IntRandom creates a tensor with random int8 values on the context, returning a WrappedTensor.
-// If no range is provided, values are uniformly distributed in [-128, 127] (full int8 range).
-// If min and max are provided, values are uniformly distributed in [min, max] (inclusive).
-// Panics if only min is provided without max.
-// Returns nil for empty shape.
-func (c *Context) IntRandom(shape Shape, rng ...int8) *WrappedTensor {
-	t := IntRandom(c, shape, rng...)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// Clone creates a deep copy of the given tensor on the context, returning a WrappedTensor.
-func (c *Context) Clone(src *WrappedTensor) *WrappedTensor {
-	return c.Wrap(Clone(c, src.tensor))
-}
-
-func (c *Context) Copy(src *WrappedTensor, dest *WrappedTensor) {
-	C.wrap_Copy((*C.Context)(c.UnsafePtr()), src.tensor.cTensor, dest.tensor.cTensor)
-}
-
-// OneHot creates a one-hot encoded tensor from indices on the context, returning a WrappedTensor.
-// Returns nil for nil indices or zero numClasses.
-func (c *Context) OneHot(indices *WrappedTensor, numClasses uint32) *WrappedTensor {
-	t := OneHot(c, indices.tensor, numClasses)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
-}
-
-// Clone creates a deep copy of the tensor.
-func Clone(ctx *Context, src *Tensor) *Tensor {
-	var dest *C.Tensor
-	result := C.wrap_Clone((*C.Context)(ctx.UnsafePtr()), src.cTensor, &dest)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
-	}
-	return track(ctx, &Tensor{cTensor: dest})
-}
 
 // OneHot creates a one-hot encoded tensor from indices.
 // The input tensor contains class indices, and the output will have an additional
 // dimension of size numClasses where each index is represented as a one-hot vector.
 // For example, indices [[0, 2], [1, 0]] with numClasses=3 becomes:
 // [[[1,0,0], [0,0,1]], [[0,1,0], [1,0,0]]]
-func OneHot(ctx *Context, indices *Tensor, numClasses uint32) *Tensor {
+func OneHot(ctx Context, indices Tensor, numClasses uint32) Tensor {
 	if indices == nil || numClasses == 0 {
 		return nil
 	}
-	cTensor := C.wrap_T_OneHot((*C.Context)(ctx.UnsafePtr()), indices.cTensor, C.dim_t(numClasses))
+	cTensor := C.wrap_T_OneHot((*C.Context)(ctx.UnsafePtr()), indices.(*tensor).cTensor, C.dim_t(numClasses))
 	if cTensor == nil {
 		return nil
 	}
-	t := track(ctx, &Tensor{cTensor: cTensor})
-	if ctx.GradEnabled {
-		ctx.newNode(t, OpOneHot, oneHotBackward, nil, indices)
-	}
+
+	t := track(ctx, &tensor{cTensor: cTensor})
 	return t
 }
 
@@ -445,7 +280,7 @@ func OneHot(ctx *Context, indices *Tensor, numClasses uint32) *Tensor {
 //   - Arange(ctx, start, end, step): range from start to end with given step
 //
 // Returns nil if the range is empty or invalid.
-func Arange(ctx *Context, args ...float32) *Tensor {
+func Arange(ctx Context, args ...float32) Tensor {
 	var start, end, step float32
 
 	switch len(args) {
@@ -472,25 +307,6 @@ func Arange(ctx *Context, args ...float32) *Tensor {
 	if cTensor == nil {
 		return nil
 	}
-	t := track(ctx, &Tensor{cTensor: cTensor})
-	if ctx.GradEnabled {
-		leafNode(ctx, t)
-	}
+	t := track(ctx, &tensor{cTensor: cTensor})
 	return t
-}
-
-// Arange creates a 1D tensor with values from start to end (exclusive) with the given step,
-// returning a WrappedTensor. Similar to PyTorch's torch.arange.
-// Supports variadic arguments:
-//   - ctx.Arange(end): range from 0 to end with step 1
-//   - ctx.Arange(start, end): range from start to end with step 1
-//   - ctx.Arange(start, end, step): range from start to end with given step
-//
-// Returns nil if the range is empty or invalid.
-func (c *Context) Arange(args ...float32) *WrappedTensor {
-	t := Arange(c, args...)
-	if t == nil {
-		return nil
-	}
-	return c.Wrap(t)
 }

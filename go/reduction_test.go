@@ -7,7 +7,7 @@ import (
 
 func TestSumAlongDim0(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3 tensor filled with 2s, sum along dim 0 → 1x3 of 4s
 	a := ctx.Int(Shape{2, 3}, 2)
@@ -24,7 +24,7 @@ func TestSumAlongDim0(t *testing.T) {
 
 func TestSumAlongDim1(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3 tensor filled with 3s, sum along dim 1 → 2x1 of 9s
 	a := ctx.Int(Shape{2, 3}, 3)
@@ -41,7 +41,7 @@ func TestSumAlongDim1(t *testing.T) {
 
 func TestSumDimOutOfBounds(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3}, 1)
 

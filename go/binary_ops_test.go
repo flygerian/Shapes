@@ -7,7 +7,7 @@ import (
 
 func TestPlus(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 2}, 3)
 	b := ctx.Int(Shape{2, 2}, 5)
@@ -26,7 +26,7 @@ func TestPlus(t *testing.T) {
 
 func TestMinus(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3}, 10)
 	b := ctx.Int(Shape{2, 3}, 4)
@@ -45,7 +45,7 @@ func TestMinus(t *testing.T) {
 
 func TestTimes(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 2}, 3)
 	b := ctx.Int(Shape{2, 2}, 7)
@@ -64,7 +64,7 @@ func TestTimes(t *testing.T) {
 
 func TestDivide(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2, 2}, 10.0)
 	b := ctx.Float(Shape{2, 2}, 4.0)
@@ -83,7 +83,7 @@ func TestDivide(t *testing.T) {
 
 func TestBinaryOpChain(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2}, 2)
 	b := ctx.Int(Shape{2}, 3)
@@ -103,7 +103,7 @@ func TestBinaryOpChain(t *testing.T) {
 
 func TestBinaryOpBroadcast(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3}, 5)
 	b := ctx.Int(Shape{1, 3}, 2)
@@ -122,7 +122,7 @@ func TestBinaryOpBroadcast(t *testing.T) {
 
 func TestBinaryOpDtypeMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2}, 1)
 	b := ctx.Float(Shape{2}, 1.0)

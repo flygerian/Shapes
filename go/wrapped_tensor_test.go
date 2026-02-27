@@ -9,7 +9,7 @@ import (
 
 func TestWrap(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := Float(ctx, Shape{2, 2}, 1.0)
 	wt := ctx.Wrap(tensor)
@@ -26,7 +26,7 @@ func TestWrap(t *testing.T) {
 
 func TestWrappedShape(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{3, 4}, 0.0)
 	s := wt.Shape()
@@ -37,7 +37,7 @@ func TestWrappedShape(t *testing.T) {
 
 func TestWrappedDtype(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2}, 0.0)
 	if wt.Dtype() != DtypeF32 {
@@ -49,7 +49,7 @@ func TestWrappedDtype(t *testing.T) {
 
 func TestWrappedPlus(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 2}, 3)
 	b := ctx.Int(Shape{2, 2}, 5)
@@ -68,7 +68,7 @@ func TestWrappedPlus(t *testing.T) {
 
 func TestWrappedMinus(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3}, 10)
 	b := ctx.Int(Shape{2, 3}, 4)
@@ -87,7 +87,7 @@ func TestWrappedMinus(t *testing.T) {
 
 func TestWrappedTimes(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 2}, 3)
 	b := ctx.Int(Shape{2, 2}, 7)
@@ -106,7 +106,7 @@ func TestWrappedTimes(t *testing.T) {
 
 func TestWrappedDivide(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2, 2}, 10.0)
 	b := ctx.Float(Shape{2, 2}, 4.0)
@@ -125,7 +125,7 @@ func TestWrappedDivide(t *testing.T) {
 
 func TestWrappedAddInPlace(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2}, 3)
 	b := ctx.Int(Shape{2}, 5)
@@ -144,7 +144,7 @@ func TestWrappedAddInPlace(t *testing.T) {
 
 func TestWrappedChaining(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2}, 2)
 	b := ctx.Int(Shape{2}, 3)
@@ -165,9 +165,9 @@ func TestWrappedChaining(t *testing.T) {
 
 func TestWrappedContextMismatchPanic(t *testing.T) {
 	ctx1 := New(context.Background())
-	defer ctx1.Close()
+	defer ctx1.Finish()
 	ctx2 := New(context.Background())
-	defer ctx2.Close()
+	defer ctx2.Finish()
 
 	a := ctx1.Int(Shape{2}, 1)
 	b := ctx2.Int(Shape{2}, 2)
@@ -182,9 +182,9 @@ func TestWrappedContextMismatchPanic(t *testing.T) {
 
 func TestWrappedContextMismatchMinus(t *testing.T) {
 	ctx1 := New(context.Background())
-	defer ctx1.Close()
+	defer ctx1.Finish()
 	ctx2 := New(context.Background())
-	defer ctx2.Close()
+	defer ctx2.Finish()
 
 	a := ctx1.Int(Shape{2}, 10)
 	b := ctx2.Int(Shape{2}, 5)
@@ -199,9 +199,9 @@ func TestWrappedContextMismatchMinus(t *testing.T) {
 
 func TestWrappedContextMismatchMul(t *testing.T) {
 	ctx1 := New(context.Background())
-	defer ctx1.Close()
+	defer ctx1.Finish()
 	ctx2 := New(context.Background())
-	defer ctx2.Close()
+	defer ctx2.Finish()
 
 	a := ctx1.Float(Shape{2, 2}, 1.0)
 	b := ctx2.Float(Shape{2, 2}, 1.0)
@@ -216,9 +216,9 @@ func TestWrappedContextMismatchMul(t *testing.T) {
 
 func TestWrappedContextMismatchDot(t *testing.T) {
 	ctx1 := New(context.Background())
-	defer ctx1.Close()
+	defer ctx1.Finish()
 	ctx2 := New(context.Background())
-	defer ctx2.Close()
+	defer ctx2.Finish()
 
 	a := ctx1.Float(Shape{3}, 1.0)
 	b := ctx2.Float(Shape{3}, 2.0)
@@ -233,9 +233,9 @@ func TestWrappedContextMismatchDot(t *testing.T) {
 
 func TestWrappedContextMismatchAddInPlace(t *testing.T) {
 	ctx1 := New(context.Background())
-	defer ctx1.Close()
+	defer ctx1.Finish()
 	ctx2 := New(context.Background())
-	defer ctx2.Close()
+	defer ctx2.Finish()
 
 	a := ctx1.Int(Shape{2}, 1)
 	b := ctx2.Int(Shape{2}, 2)
@@ -252,7 +252,7 @@ func TestWrappedContextMismatchAddInPlace(t *testing.T) {
 
 func TestWrappedPow(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2}, 3.0)
 	result := wt.Pow(2.0)
@@ -267,7 +267,7 @@ func TestWrappedPow(t *testing.T) {
 
 func TestWrappedExp(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2}, 0.0)
 	result := wt.Exp()
@@ -282,7 +282,7 @@ func TestWrappedExp(t *testing.T) {
 
 func TestWrappedNegate(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2}, 5.0)
 	result := wt.Negate()
@@ -299,7 +299,7 @@ func TestWrappedNegate(t *testing.T) {
 
 func TestWrappedSum(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2, 3}, 1.0)
 	result := wt.Sum(1)
@@ -321,7 +321,7 @@ func TestWrappedSum(t *testing.T) {
 
 func TestWrappedReshape(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2, 3}, 1.0)
 	result := wt.Reshape(3, 2)
@@ -334,7 +334,7 @@ func TestWrappedReshape(t *testing.T) {
 
 func TestWrappedTranspose(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{2, 3}, 1.0)
 	result := wt.Transpose()
@@ -347,7 +347,7 @@ func TestWrappedTranspose(t *testing.T) {
 
 func TestWrappedSqueeze(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{1, 3, 1}, 0.0)
 	result := wt.Squeeze()
@@ -360,7 +360,7 @@ func TestWrappedSqueeze(t *testing.T) {
 
 func TestWrappedSqueezeDim(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{1, 3}, 0.0)
 	result := wt.SqueezeDim(0)
@@ -373,7 +373,7 @@ func TestWrappedSqueezeDim(t *testing.T) {
 
 func TestWrappedUnSqueeze(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{3}, 0.0)
 	result := wt.UnSqueeze(0)
@@ -386,7 +386,7 @@ func TestWrappedUnSqueeze(t *testing.T) {
 
 func TestWrappedSlice(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Float(Shape{4, 4}, 1.0)
 	result := wt.Slice(Range{1, 3}, Range{0, 4})
@@ -401,7 +401,7 @@ func TestWrappedSlice(t *testing.T) {
 
 func TestWrappedMul(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2, 3}, 1.0)
 	b := ctx.Float(Shape{3, 2}, 1.0)
@@ -424,7 +424,7 @@ func TestWrappedMul(t *testing.T) {
 
 func TestWrappedDot(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{3}, 2.0)
 	b := ctx.Float(Shape{3}, 3.0)
@@ -441,7 +441,7 @@ func TestWrappedDot(t *testing.T) {
 
 func TestWrappedGet(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Int(Shape{3, 3}, 7)
 	got := wt.Get(1, 2).Item().(int8)
@@ -452,7 +452,7 @@ func TestWrappedGet(t *testing.T) {
 
 func TestWrappedItem(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	wt := ctx.Int(Shape{2, 2}, 5)
 	got := wt.Get(0, 0).Item().(int8)

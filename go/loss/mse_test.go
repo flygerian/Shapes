@@ -14,7 +14,7 @@ func approxEq(a, b, tol float32) bool {
 
 func TestMse(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	yGround := ctx.FromFloat32(shapes.Shape{4}, []float32{1.0, -1.0, -1.0, 1.0})
 	yPred := ctx.FromFloat32(shapes.Shape{4}, []float32{0.5, -0.5, -0.8, 0.9})
@@ -30,7 +30,7 @@ func TestMse(t *testing.T) {
 
 func TestMsePerfectPrediction(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	y := ctx.FromFloat32(shapes.Shape{3}, []float32{1.0, 2.0, 3.0})
 
@@ -44,7 +44,7 @@ func TestMsePerfectPrediction(t *testing.T) {
 
 func TestMse2D(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	yGround := ctx.FromFloat32(shapes.Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	yPred := ctx.FromFloat32(shapes.Shape{2, 3}, []float32{2, 2, 2, 2, 2, 2})
@@ -67,7 +67,7 @@ func TestMse2D(t *testing.T) {
 
 func TestMseBackward(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Scalar case: pred=1.5, ground=1.0 => loss = (0.5)^2 = 0.25
 	// d(loss)/d(pred) = 2*(pred-ground) = 1.0
@@ -82,7 +82,7 @@ func TestMseBackward(t *testing.T) {
 		t.Fatal("expected gradient on yPred")
 	}
 
-	got := predGrad.Get(ctx, 0).Item().(float32)
+	got := predGrad.(*shapes.Tensor).Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 1.0, 1e-4) {
 		t.Errorf("d(loss)/d(yPred) = %f, want 1.0", got)
 	}

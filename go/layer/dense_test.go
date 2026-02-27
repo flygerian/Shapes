@@ -9,9 +9,9 @@ import (
 
 func TestDenseReturnsResult(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(3, 2)
+	dense := Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
@@ -28,9 +28,9 @@ func TestDenseReturnsResult(t *testing.T) {
 
 func TestDenseBatchInput(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(4, 2)
+	dense := Dense(ctx, 4, 2)
 	x := ctx.Float(shapes.Shape{3, 4}, 1.0)
 
 	o := dense(x)
@@ -47,9 +47,9 @@ func TestDenseBatchInput(t *testing.T) {
 
 func TestDense1DInput(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(5, 3)
+	dense := Dense(ctx, 5, 3)
 	x := ctx.Float(shapes.Shape{5}, 2.0)
 
 	o := dense(x)
@@ -67,9 +67,9 @@ func TestDense1DInput(t *testing.T) {
 
 func TestDenseAlwaysAttachesGraph(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(3, 2)
+	dense := Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
@@ -81,9 +81,9 @@ func TestDenseAlwaysAttachesGraph(t *testing.T) {
 
 func TestDenseWithGradAttachesNode(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(3, 2)
+	dense := Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
@@ -96,37 +96,37 @@ func TestDenseWithGradAttachesNode(t *testing.T) {
 		t.Errorf("expected OpDense, got %s", o.Tensor().Computation.Op)
 	}
 
-	if len(o.Tensor().Computation.Inputs) != 3 {
-		t.Fatalf("expected 3 inputs (w, x, b), got %d", len(o.Tensor().Computation.Inputs))
+	if len(o.Tensor().Computation.Inputs()) != 3 {
+		t.Fatalf("expected 3 inputs (w, x, b), got %d", len(o.Tensor().Computation.Inputs()))
 	}
 }
 
 func TestDenseBackward1D(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(3, 2)
+	dense := Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{3}, 1.0)
 
 	o := dense(x)
 	o.Backward()
 
 	// w is [2,3], x is [3], b is [2]
-	wGrad := o.Tensor().Computation.Inputs[0].Grad()
-	xGrad := o.Tensor().Computation.Inputs[1].Grad()
-	bGrad := o.Tensor().Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs()[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs()[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs()[2].Grad()
 
-	wGradShape := shapes.ShapeOf(wGrad)
+	wGradShape := shapes.ShapeOf(wGrad.(*shapes.Tensor))
 	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 3 {
 		t.Fatalf("expected wGrad shape [2,3], got %v", wGradShape)
 	}
 
-	xGradShape := shapes.ShapeOf(xGrad)
+	xGradShape := shapes.ShapeOf(xGrad.(*shapes.Tensor))
 	if len(xGradShape) != 1 || xGradShape[0] != 3 {
 		t.Fatalf("expected xGrad shape [3], got %v", xGradShape)
 	}
 
-	bGradShape := shapes.ShapeOf(bGrad)
+	bGradShape := shapes.ShapeOf(bGrad.(*shapes.Tensor))
 	if len(bGradShape) != 1 || bGradShape[0] != 2 {
 		t.Fatalf("expected bGrad shape [2], got %v", bGradShape)
 	}
@@ -134,30 +134,30 @@ func TestDenseBackward1D(t *testing.T) {
 
 func TestDenseBackward2D(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(4, 2)
+	dense := Dense(ctx, 4, 2)
 	x := ctx.Float(shapes.Shape{3, 4}, 1.0)
 
 	o := dense(x)
 	o.Backward()
 
 	// w is [2,4], x is [3,4], b is [2]
-	wGrad := o.Tensor().Computation.Inputs[0].Grad()
-	xGrad := o.Tensor().Computation.Inputs[1].Grad()
-	bGrad := o.Tensor().Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs()[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs()[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs()[2].Grad()
 
-	wGradShape := shapes.ShapeOf(wGrad)
+	wGradShape := shapes.ShapeOf(wGrad.(*shapes.Tensor))
 	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 4 {
 		t.Fatalf("expected wGrad shape [2,4], got %v", wGradShape)
 	}
 
-	xGradShape := shapes.ShapeOf(xGrad)
+	xGradShape := shapes.ShapeOf(xGrad.(*shapes.Tensor))
 	if len(xGradShape) != 2 || xGradShape[0] != 3 || xGradShape[1] != 4 {
 		t.Fatalf("expected xGrad shape [3,4], got %v", xGradShape)
 	}
 
-	bGradShape := shapes.ShapeOf(bGrad)
+	bGradShape := shapes.ShapeOf(bGrad.(*shapes.Tensor))
 	if len(bGradShape) != 1 || bGradShape[0] != 2 {
 		t.Fatalf("expected bGrad shape [2], got %v", bGradShape)
 	}
@@ -165,30 +165,30 @@ func TestDenseBackward2D(t *testing.T) {
 
 func TestDenseBackward3D(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(5, 3)
+	dense := Dense(ctx, 5, 3)
 	x := ctx.Float(shapes.Shape{2, 4, 5}, 1.0)
 
 	o := dense(x)
 	o.Backward()
 
 	// w is [3,5], x is [2,4,5], b is [3]
-	wGrad := o.Tensor().Computation.Inputs[0].Grad()
-	xGrad := o.Tensor().Computation.Inputs[1].Grad()
-	bGrad := o.Tensor().Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs()[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs()[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs()[2].Grad()
 
-	wGradShape := shapes.ShapeOf(wGrad)
+	wGradShape := shapes.ShapeOf(wGrad.(*shapes.Tensor))
 	if len(wGradShape) != 2 || wGradShape[0] != 3 || wGradShape[1] != 5 {
 		t.Fatalf("expected wGrad shape [3,5], got %v", wGradShape)
 	}
 
-	xGradShape := shapes.ShapeOf(xGrad)
+	xGradShape := shapes.ShapeOf(xGrad.(*shapes.Tensor))
 	if len(xGradShape) != 3 || xGradShape[0] != 2 || xGradShape[1] != 4 || xGradShape[2] != 5 {
 		t.Fatalf("expected xGrad shape [2,4,5], got %v", xGradShape)
 	}
 
-	bGradShape := shapes.ShapeOf(bGrad)
+	bGradShape := shapes.ShapeOf(bGrad.(*shapes.Tensor))
 	if len(bGradShape) != 1 || bGradShape[0] != 3 {
 		t.Fatalf("expected bGrad shape [3], got %v", bGradShape)
 	}
@@ -196,30 +196,30 @@ func TestDenseBackward3D(t *testing.T) {
 
 func TestDenseBackward4D(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(6, 4)
+	dense := Dense(ctx, 6, 4)
 	x := ctx.Float(shapes.Shape{2, 3, 5, 6}, 1.0)
 
 	o := dense(x)
 	o.Backward()
 
 	// w is [4,6], x is [2,3,5,6], b is [4]
-	wGrad := o.Tensor().Computation.Inputs[0].Grad()
-	xGrad := o.Tensor().Computation.Inputs[1].Grad()
-	bGrad := o.Tensor().Computation.Inputs[2].Grad()
+	wGrad := o.Tensor().Computation.Inputs()[0].Grad()
+	xGrad := o.Tensor().Computation.Inputs()[1].Grad()
+	bGrad := o.Tensor().Computation.Inputs()[2].Grad()
 
-	wGradShape := shapes.ShapeOf(wGrad)
+	wGradShape := shapes.ShapeOf(wGrad.(*shapes.Tensor))
 	if len(wGradShape) != 2 || wGradShape[0] != 4 || wGradShape[1] != 6 {
 		t.Fatalf("expected wGrad shape [4,6], got %v", wGradShape)
 	}
 
-	xGradShape := shapes.ShapeOf(xGrad)
+	xGradShape := shapes.ShapeOf(xGrad.(*shapes.Tensor))
 	if len(xGradShape) != 4 || xGradShape[0] != 2 || xGradShape[1] != 3 || xGradShape[2] != 5 || xGradShape[3] != 6 {
 		t.Fatalf("expected xGrad shape [2,3,5,6], got %v", xGradShape)
 	}
 
-	bGradShape := shapes.ShapeOf(bGrad)
+	bGradShape := shapes.ShapeOf(bGrad.(*shapes.Tensor))
 	if len(bGradShape) != 1 || bGradShape[0] != 4 {
 		t.Fatalf("expected bGrad shape [4], got %v", bGradShape)
 	}
@@ -227,15 +227,15 @@ func TestDenseBackward4D(t *testing.T) {
 
 func TestDenseInternalOpsHaveNoBackward(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(3, 2)
+	dense := Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
 
-	w := o.Tensor().Computation.Inputs[0]
-	b := o.Tensor().Computation.Inputs[2]
+	w := o.Tensor().Computation.Inputs()[0]
+	b := o.Tensor().Computation.Inputs()[2]
 
 	if w.Computation != nil && w.Computation.Backward != nil {
 		t.Error("w should not have its own backward pass")
@@ -251,9 +251,9 @@ func TestDenseInternalOpsHaveNoBackward(t *testing.T) {
 
 func TestDensePanicsOnMismatchedInputSize(t *testing.T) {
 	ctx := shapes.New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := Dense(3, 2)
+	dense := Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 5}, 1.0)
 
 	defer func() {

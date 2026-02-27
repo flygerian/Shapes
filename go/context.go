@@ -2,6 +2,7 @@ package shapes
 
 import (
 	stdctx "context"
+	"fmt"
 	"unsafe"
 )
 
@@ -27,8 +28,8 @@ static inline Context *newContext(bool grad, size_t arenaSize) {
 import "C"
 
 type Context interface {
-	Mark(t *Tensor)
-	Track(t *Tensor)
+	Mark(t Tensor)
+	Track(t Tensor)
 
 	NoGrad(options ...subContextOption) SubContext
 	Fused(options ...subContextOption) SubContext
@@ -36,12 +37,18 @@ type Context interface {
 
 	GradEnabled() bool
 	BackwardEnabled() bool
+
+	UnsafeMemory() unsafe.Pointer
+	UnsafePtr() unsafe.Pointer
+
+	NumAllocatedBlocks() int
+	NumFreeBlocks() int
+	Sweep()
 }
 
 type MainContext interface {
 	Context
 
-	UnsafePtr() unsafe.Pointer
 	Finish()
 }
 
@@ -55,6 +62,7 @@ type shapesCtx struct {
 
 	gradEnabled     bool
 	backwardEnabled bool
+	persistant      bool
 }
 
 // New creates a new Context with the given parent Go context.
@@ -70,8 +78,8 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 	}
 
 	ctx := &mainContext{
-		handles:  make([]*Tensor, 0),
-		freeList: make([]*Tensor, 0),
+		handles:  make([]Tensor, 0),
+		freeList: make([]Tensor, 0),
 	}
 
 	for _, opt := range opts {
@@ -92,10 +100,11 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 // the shapes C library context.
 type mainContext struct {
 	shapesCtx
-	cCtx      *C.Context
-	handles   []*Tensor // root only: all tracked handles, nilled on Close
-	freeList  []*Tensor // root only: C tensor pointers queued for FreeIntermediates
-	arenaSize int
+	cCtx              *C.Context
+	handles           []Tensor // root only: all tracked handles, nilled on Close
+	freeList          []Tensor // root only: C tensor pointers queued for FreeIntermediates
+	persistentTensors []Tensor
+	arenaSize         int
 }
 
 // Finish releases the C context resources.
@@ -105,7 +114,7 @@ type mainContext struct {
 func (c *mainContext) Finish() {
 	if c.cCtx != nil && c.cCtx.memory != nil {
 		for _, p := range c.handles {
-			if p != nil && p.cTensor != nil {
+			if p != nil {
 				c.Free(p)
 			}
 		}
@@ -115,18 +124,18 @@ func (c *mainContext) Finish() {
 	}
 }
 
-func (c *mainContext) Free(t *Tensor) {
-	if bool(t.cTensor.isView) {
+func (c *mainContext) Free(t Tensor) {
+	if bool(t.(*tensor).cTensor.isView) {
 		c.freeView(t)
 	} else {
 		c.freeTensor(t)
 	}
 
-	t.cTensor = nil
+	t.(*tensor).cTensor = nil
 }
 
-func (c *mainContext) freeTensor(t *Tensor) {
-	result := C.FreeTensor((*C.Context)(c.UnsafePtr()), t.cTensor)
+func (c *mainContext) freeTensor(t Tensor) {
+	result := C.FreeTensor((*C.Context)(c.UnsafePtr()), t.(*tensor).cTensor)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
@@ -134,8 +143,8 @@ func (c *mainContext) freeTensor(t *Tensor) {
 
 // FreeView releases a view tensor's metadata (dims, multipliers, boundary)
 // back to the arena without freeing the shared values.
-func (c *mainContext) freeView(t *Tensor) {
-	result := C.FreeViewTensor((*C.Context)(c.UnsafePtr()), t.cTensor)
+func (c *mainContext) freeView(t Tensor) {
+	result := C.FreeViewTensor((*C.Context)(c.UnsafePtr()), t.(*tensor).cTensor)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
@@ -177,8 +186,11 @@ func (c *mainContext) UnsafeMemory() unsafe.Pointer {
 // Track registers a C pointer so it gets nilled on Close().
 // Appends to root.handles (for cleanup) and c.locals (for intermediate marking).
 // The tensor package calls this when creating tensors.
-func (c *mainContext) Track(t *Tensor) {
+func (c *mainContext) Track(t Tensor) {
 	c.handles = append(c.handles, t)
+	if c.persistant {
+		c.persistentTensors = append(c.persistentTensors, t)
+	}
 }
 
 func (c *mainContext) PrintMemoryFragmentationChart() {
@@ -199,7 +211,7 @@ func (c *mainContext) NumAllocatedBlocks() int {
 
 // MarkIntermediate registers a C tensor pointer for freeing after backward.
 // Always appends to root's intermediates list.
-func (c *mainContext) Mark(t *Tensor) {
+func (c *mainContext) Mark(t Tensor) {
 	c.freeList = append(c.freeList, t)
 }
 
@@ -213,22 +225,25 @@ func (ctx *mainContext) Sweep() {
 	// Deduplicate to prevent double-free; nil cTensor after freeing.
 	seen := make(map[unsafe.Pointer]bool, len(ctx.freeList))
 	for _, t := range ctx.freeList {
-		if t.cTensor == nil {
-			continue
-		}
-		p := unsafe.Pointer(t.cTensor)
+		p := unsafe.Pointer(t.(*tensor).cTensor)
 		if seen[p] {
-			t.cTensor = nil
 			continue
 		}
+
 		seen[p] = true
 		ct := (*C.Tensor)(p)
+
+		if ct == nil {
+			continue
+		}
+
 		if ct.isView {
 			C.FreeViewTensor(cCtx, ct)
 		} else {
 			C.FreeTensor(cCtx, ct)
 		}
-		t.cTensor = nil
+
+		t.(*tensor).cTensor = nil
 	}
 
 	ctx.freeList = ctx.freeList[:0]
@@ -236,7 +251,7 @@ func (ctx *mainContext) Sweep() {
 	// Compact root.handles: remove entries whose cTensor has been nilled.
 	live := ctx.handles[:0]
 	for _, t := range ctx.handles {
-		if t.cTensor != nil {
+		if t.(*tensor).cTensor != nil {
 			live = append(live, t)
 		}
 	}
@@ -256,24 +271,40 @@ func (c *mainContext) GradEnabled() bool {
 type subContext struct {
 	shapesCtx
 	parent Context
-	locals []*Tensor // this ctx: tensors created through this ctx
+	locals []Tensor // this ctx: tensors created through this ctx
 
 	op OpType
 
-	inputs      []*Tensor
-	hiddenState []*Tensor
-	result      *Tensor
+	inputs      []Tensor
+	hiddenState []Tensor
+	result      Tensor
 	metadata    any
 	backward    BackwardFn
 }
 
-func (sc *subContext) Mark(t *Tensor) {
+func (sc *subContext) Mark(t Tensor) {
 	sc.parent.Mark(t)
 }
 
 func (sc *subContext) Finish(options ...subContextOption) {
+	applySubContextOptions(sc, options...)
+
+	if sc.gradEnabled {
+		sc.prepareResultForBackwardPass()
+	}
+
+	sc.cleanup()
+}
+
+func (sc *subContext) cleanup() {
+	if sc.persistant {
+		fmt.Printf("Ignoring tensors in persisitent context")
+		return
+	}
+
 	for _, t := range sc.locals {
-		if t == sc.result {
+		// Some context may not produce a result so it's worth checking if the result is present
+		if sc.result != nil && (t.(*tensor).cTensor == sc.result.(*tensor).cTensor || t.(*tensor).cTensor == sc.result.Computation().grad.(*tensor).cTensor) {
 			continue
 		}
 
@@ -302,22 +333,16 @@ func (c *subContext) NoGraph(options ...subContextOption) SubContext {
 	return noGraph(c, options...)
 }
 
-func (sc *subContext) Track(t *Tensor) {
+func (sc *subContext) Track(t Tensor) {
 	sc.parent.Track(t)
 	sc.locals = append(sc.locals, t)
+
 }
 
 // NewComputationGraphNode attaches a computation graph node to result.
 // Used by external packages (e.g., layer, activation) to register custom backward passes.
 func (c *subContext) prepareResultForBackwardPass() {
-	c.result.Computation.inputs = c.inputs
-	c.result.Computation.backward = c.backward
-	c.result.Computation.op = c.op
-
-	if c.result.Computation.parameters == nil {
-		c.result.Computation.parameters = []*Tensor{}
-		c.result.Computation.parameters = append(c.result.Computation.parameters, c.hiddenState...)
-	}
+	toComputationGraphNode(c.result, c.op, c.backward, c.inputs, c.hiddenState, c.metadata)
 }
 
 func (c *subContext) BackwardEnabled() bool {
@@ -328,24 +353,49 @@ func (c *subContext) GradEnabled() bool {
 	return c.gradEnabled
 }
 
+// UnsafePtr returns the C Context as an unsafe.Pointer for cross-package CGo casts.
+func (c *subContext) UnsafePtr() unsafe.Pointer {
+	return c.parent.UnsafePtr()
+}
+
+// UnsafeMemory returns the C Memory as an unsafe.Pointer for cross-package CGo casts.
+func (c *subContext) UnsafeMemory() unsafe.Pointer {
+	return c.parent.UnsafeMemory()
+}
+
+func (c *subContext) NumFreeBlocks() int {
+	return c.parent.NumFreeBlocks()
+}
+
+func (c *subContext) NumAllocatedBlocks() int {
+	return c.parent.NumAllocatedBlocks()
+}
+
+func (ctx *subContext) Sweep() {
+	ctx.parent.Sweep()
+}
+
 // ---------------------------- funcs ----------------------------
+
+func applySubContextOptions(sc *subContext, options ...subContextOption) {
+	for _, opt := range options {
+		opt(sc)
+	}
+}
 
 // derive creates a new derived context sharing the same C context and root.
 // Fresh locals slice; handles and intermediates are root-owned.
 func derive(ctx Context, gradEnabled, backwardEnabled bool, options ...subContextOption) SubContext {
 	sc := &subContext{
 		parent: ctx,
-		locals: make([]*Tensor, 0),
+		locals: make([]Tensor, 0),
 		shapesCtx: shapesCtx{
-			backwardEnabled: gradEnabled,
+			backwardEnabled: backwardEnabled,
 			gradEnabled:     gradEnabled,
 		},
 	}
 
-	for _, opt := range options {
-		opt(sc)
-	}
-
+	applySubContextOptions(sc, options...)
 	return sc
 }
 
@@ -371,8 +421,31 @@ func fused(c Context, options ...subContextOption) SubContext {
 // NoGraph() returns a new Context that shares the same C context and memory
 // turns off all gradient tacking. For use in backward pass only
 func noGraph(c Context, options ...subContextOption) SubContext {
-	if !c.GradEnabled() {
-		panic("Creating NoGrad context from a context where gradients are not tracked")
-	}
 	return derive(c, false, false, options...)
+}
+
+func toComputationGraphNode(
+	result Tensor,
+	op OpType,
+	backwardFn BackwardFn,
+	inputs []Tensor,
+	hiddenState []Tensor,
+	metadata any,
+) {
+
+	if backwardFn == nil {
+		panic("Preparing for backward pass but no backward function was provided")
+	}
+
+	resultTensor := result.(*tensor)
+
+	resultTensor.computation.inputs = inputs
+	resultTensor.computation.backward = backwardFn
+	resultTensor.computation.op = op
+	resultTensor.computation.meta = metadata
+
+	if resultTensor.computation.hiddenState == nil {
+		resultTensor.computation.hiddenState = []Tensor{}
+		resultTensor.computation.hiddenState = hiddenState
+	}
 }

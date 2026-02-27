@@ -8,7 +8,7 @@ import (
 
 func TestFromFloat32(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}
 	tensor := ctx.FromFloat32(Shape{2, 3}, data)
@@ -34,7 +34,7 @@ func TestFromFloat32(t *testing.T) {
 
 func TestFromFloat321D(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []float32{3.14, 2.72, 1.41}
 	tensor := ctx.FromFloat32(Shape{3}, data)
@@ -49,7 +49,7 @@ func TestFromFloat321D(t *testing.T) {
 
 func TestFromFloat32SizeMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -62,7 +62,7 @@ func TestFromFloat32SizeMismatch(t *testing.T) {
 
 func TestFromFloat32EmptyShape(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	result := ctx.FromFloat32(Shape{}, []float32{1.0})
 	if result != nil {
@@ -72,7 +72,7 @@ func TestFromFloat32EmptyShape(t *testing.T) {
 
 func TestFloatRandom(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.FloatRandom(Shape{3, 4})
 	if tensor == nil {
@@ -96,7 +96,7 @@ func TestFloatRandom(t *testing.T) {
 
 func TestFloatRandomNotAllSame(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.FloatRandom(Shape{100})
 	first := tensor.Get(0).Item().(float32)
@@ -115,7 +115,7 @@ func TestFloatRandomNotAllSame(t *testing.T) {
 
 func TestFloatRandomWithRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.FloatRandom(Shape{3, 4}, 0.5, 2.5)
 	if tensor == nil {
@@ -139,7 +139,7 @@ func TestFloatRandomWithRange(t *testing.T) {
 
 func TestFloatRandomWithNegativeRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.FloatRandom(Shape{50}, -5.0, -2.0)
 	if tensor == nil {
@@ -156,7 +156,7 @@ func TestFloatRandomWithNegativeRange(t *testing.T) {
 
 func TestFloatRandomRangeInvalidArgs(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test with 1 argument (should panic)
 	defer func() {
@@ -169,7 +169,7 @@ func TestFloatRandomRangeInvalidArgs(t *testing.T) {
 
 func TestFloatRandomRangeMinGreaterThanMax(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test with min > max (should panic)
 	defer func() {
@@ -182,7 +182,7 @@ func TestFloatRandomRangeMinGreaterThanMax(t *testing.T) {
 
 func TestFloatRandomStandaloneWithRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test the standalone FloatRandom function with custom range
 	tensor := FloatRandom(ctx, Shape{20}, 10.0, 20.0)
@@ -200,7 +200,7 @@ func TestFloatRandomStandaloneWithRange(t *testing.T) {
 
 func TestIntRandom(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.IntRandom(Shape{3, 4})
 	if tensor == nil {
@@ -224,7 +224,7 @@ func TestIntRandom(t *testing.T) {
 
 func TestIntRandomNotAllSame(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.IntRandom(Shape{100})
 	first := tensor.Get(0).Item().(int8)
@@ -243,7 +243,7 @@ func TestIntRandomNotAllSame(t *testing.T) {
 
 func TestIntRandomWithRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.IntRandom(Shape{3, 4}, 5, 15)
 	if tensor == nil {
@@ -267,7 +267,7 @@ func TestIntRandomWithRange(t *testing.T) {
 
 func TestIntRandomWithNegativeRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.IntRandom(Shape{50}, -50, -20)
 	if tensor == nil {
@@ -284,7 +284,7 @@ func TestIntRandomWithNegativeRange(t *testing.T) {
 
 func TestIntRandomRangeInvalidArgs(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test with 1 argument (should panic)
 	defer func() {
@@ -297,7 +297,7 @@ func TestIntRandomRangeInvalidArgs(t *testing.T) {
 
 func TestIntRandomRangeMinGreaterThanMax(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test with min > max (should panic)
 	defer func() {
@@ -310,7 +310,7 @@ func TestIntRandomRangeMinGreaterThanMax(t *testing.T) {
 
 func TestIntRandomStandaloneWithRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test the standalone IntRandom function with custom range
 	tensor := IntRandom(ctx, Shape{20}, 10, 30)
@@ -328,7 +328,7 @@ func TestIntRandomStandaloneWithRange(t *testing.T) {
 
 func TestIntRandomZeroRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test with min == max (should return all same value)
 	tensor := ctx.IntRandom(Shape{10}, 42, 42)
@@ -346,7 +346,7 @@ func TestIntRandomZeroRange(t *testing.T) {
 
 func TestIntRandomEmptyShape(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	result := ctx.IntRandom(Shape{})
 	if result != nil {
@@ -356,7 +356,7 @@ func TestIntRandomEmptyShape(t *testing.T) {
 
 func TestIntRandomWithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.IntRandom(Shape{3})
 	if tensor == nil {
@@ -370,7 +370,7 @@ func TestIntRandomWithGrad(t *testing.T) {
 
 func TestFromFloat32WithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []float32{1.0, 2.0, 3.0}
 	tensor := ctx.FromFloat32(Shape{3}, data)
@@ -390,7 +390,7 @@ func TestFromFloat32WithGrad(t *testing.T) {
 
 func TestFromInt8(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := [][]int8{{1, 2, 3}, {4, 5, 6}}
 	tensor := ctx.FromInt8(data)
@@ -416,7 +416,7 @@ func TestFromInt8(t *testing.T) {
 
 func TestFromInt81D(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []int8{10, 20, 30}
 	tensor := ctx.FromInt8(data)
@@ -431,7 +431,7 @@ func TestFromInt81D(t *testing.T) {
 
 func TestFromInt8RaggedArray(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -444,7 +444,7 @@ func TestFromInt8RaggedArray(t *testing.T) {
 
 func TestFromInt8EmptyData(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	result := ctx.FromInt8([]int8{})
 	if result != nil {
@@ -454,7 +454,7 @@ func TestFromInt8EmptyData(t *testing.T) {
 
 func TestFromInt8WithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []int8{1, 2, 3}
 	tensor := ctx.FromInt8(data)
@@ -474,7 +474,7 @@ func TestFromInt8WithGrad(t *testing.T) {
 
 func TestFromInt8NegativeValues(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []int8{-128, -50, 0, 50, 127}
 	tensor := ctx.FromInt8(data)
@@ -489,7 +489,7 @@ func TestFromInt8NegativeValues(t *testing.T) {
 
 func TestFromInt83D(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := [][][]int8{
 		{{1, 2}, {3, 4}},
@@ -525,7 +525,7 @@ func TestFromInt83D(t *testing.T) {
 
 func TestFromInt84D(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := [][][][]int8{
 		{{{1, 2}}, {{3, 4}}},
@@ -563,7 +563,7 @@ func TestFromInt84D(t *testing.T) {
 
 func TestOneHotBasic(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Simple 1D case: indices [0, 2, 1] with numClasses=3
 	// Should produce: [[1,0,0], [0,0,1], [0,1,0]]
@@ -597,7 +597,7 @@ func TestOneHotBasic(t *testing.T) {
 
 func TestOneHot2DIndices(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2D indices: [[0, 2], [1, 0]] with numClasses=3
 	// Should produce shape [2, 2, 3]
@@ -638,7 +638,7 @@ func TestOneHot2DIndices(t *testing.T) {
 
 func TestOneHotWithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	indices := ctx.FromInt8([]int8{0, 1})
 	oneHot := ctx.OneHot(indices, 2)
@@ -657,8 +657,8 @@ func TestOneHotWithGrad(t *testing.T) {
 	if node.Backward == nil {
 		t.Fatal("expected OneHot to register a backward function (not a leaf node)")
 	}
-	if len(node.Inputs) != 1 {
-		t.Fatalf("expected 1 input on OneHot node, got %d", len(node.Inputs))
+	if len(node.Inputs()) != 1 {
+		t.Fatalf("expected 1 input on OneHot node, got %d", len(node.Inputs()))
 	}
 	if node.Op != OpOneHot {
 		t.Fatalf("expected Op == OpOneHot, got %v", node.Op)
@@ -670,7 +670,7 @@ func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
 	// 1. Backward does not panic when traversing through a OneHot node.
 	// 2. Gradients flow to tensors that used the OneHot output (downstream ops).
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	indices := ctx.FromInt8([]int8{0, 1}) // 2 samples: class 0 and class 1
 
@@ -686,7 +686,7 @@ func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
 	result.Backward(ctx)
 
 	// oneHot.Grad() should exist and be populated by the downstream sum backward.
-	grad := oneHot.Tensor().Grad()
+	grad := oneHot.Tensor().Grad().(*Tensor)
 	if grad == nil {
 		t.Fatal("expected grad tensor on oneHot output")
 	}
@@ -703,7 +703,7 @@ func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
 	}
 
 	// indices.Grad() should remain zero — no gradient flows through discrete indices.
-	indicesGrad := indices.Tensor().Grad()
+	indicesGrad := indices.Tensor().Grad().(*Tensor)
 	if indicesGrad == nil {
 		t.Fatal("expected grad tensor on indices")
 	}
@@ -718,7 +718,7 @@ func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
 
 func TestOneHotNilInput(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -730,7 +730,7 @@ func TestOneHotNilInput(t *testing.T) {
 
 func TestOneHotZeroClasses(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	indices := ctx.FromInt8([]int8{0, 1})
 	result := ctx.OneHot(indices, 0)
@@ -741,7 +741,7 @@ func TestOneHotZeroClasses(t *testing.T) {
 
 func TestArangeBasic(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.Arange(0.0, 5.0, 1.0)
 	if tensor == nil {
@@ -764,7 +764,7 @@ func TestArangeBasic(t *testing.T) {
 
 func TestArangeSingleArg(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Arange(5) should produce [0, 1, 2, 3, 4]
 	tensor := ctx.Arange(5.0)
@@ -788,7 +788,7 @@ func TestArangeSingleArg(t *testing.T) {
 
 func TestArangeTwoArgs(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Arange(2, 7) should produce [2, 3, 4, 5, 6]
 	tensor := ctx.Arange(2.0, 7.0)
@@ -812,7 +812,7 @@ func TestArangeTwoArgs(t *testing.T) {
 
 func TestArangeNegativeStep(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.Arange(10.0, 0.0, -2.0)
 	if tensor == nil {
@@ -835,7 +835,7 @@ func TestArangeNegativeStep(t *testing.T) {
 
 func TestArangeNonIntegerStep(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.Arange(1.0, 5.0, 0.5)
 	if tensor == nil {
@@ -858,7 +858,7 @@ func TestArangeNonIntegerStep(t *testing.T) {
 
 func TestArangeDefaultStep(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Step of 0 should default to 1
 	tensor := ctx.Arange(0.0, 3.0, 0.0)
@@ -882,7 +882,7 @@ func TestArangeDefaultStep(t *testing.T) {
 
 func TestArangeEmptyRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// start >= end with positive step should return nil
 	result := ctx.Arange(5.0, 5.0, 1.0)
@@ -911,7 +911,7 @@ func TestArangeEmptyRange(t *testing.T) {
 
 func TestArangeWithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	tensor := ctx.Arange(0.0, 3.0, 1.0)
 	if tensor == nil {
@@ -925,7 +925,7 @@ func TestArangeWithGrad(t *testing.T) {
 
 func TestArangeStandalone(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test the standalone Arange function (not the Context method)
 	tensor := Arange(ctx, 1.0, 5.0, 1.0)
@@ -949,7 +949,7 @@ func TestArangeStandalone(t *testing.T) {
 
 func TestArangeInvalidArgs(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Test with 0 arguments (should panic)
 	defer func() {

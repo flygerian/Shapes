@@ -8,7 +8,7 @@ import (
 
 func TestGetWithCoords(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0}
 	source := ctx.FromFloat32(Shape{3, 4}, data)
@@ -60,7 +60,7 @@ func TestGetWithCoords(t *testing.T) {
 
 func TestGetWithTensor(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	t.Run("1D indices on 2D tensor", func(t *testing.T) {
 		data := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0}
@@ -159,7 +159,7 @@ func TestGetWithTensor(t *testing.T) {
 
 func TestGetErrors(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	t.Run("no arguments", func(t *testing.T) {
 		data := []float32{1.0, 2.0, 3.0}

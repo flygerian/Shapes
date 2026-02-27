@@ -99,20 +99,21 @@ import (
 	"unsafe"
 )
 
-type HasShapeOps interface {
-	Slice(ctx *Context, ranges ...Range) *Tensor
-	Reshape(ctx *Context, dims ...int) *Tensor
-	Transpose(ctx *Context, dims ...uint32) *Tensor
-	Squeeze(ctx *Context) *Tensor
-	SqueezeDim(ctx *Context, dim uint32) *Tensor
-	UnSqueeze(ctx *Context, dim uint32) *Tensor
-	SafeUnSqueeze(ctx *Context, dims ...uint32) *Tensor
+type hasShapeOps interface {
+	Slice(ctx Context, ranges ...Range) Tensor
+	Reshape(ctx Context, dims ...int) Tensor
+	Transpose(ctx Context, dims ...uint32) Tensor
+	Squeeze(ctx Context) Tensor
+	SqueezeDim(ctx Context, dim uint32) Tensor
+	UnSqueeze(ctx Context, dim uint32) Tensor
+	SafeUnSqueeze(ctx Context, dims ...uint32) Tensor
+	Shape() Shape
 }
 
 // TODO shape ops should be exact clones of the tensor
 // Slice creates a view into the tensor. Each range is a Range{start, end}
 // specifying a half-open interval for that dimension.
-func (t *Tensor) Slice(ctx *Context, ranges ...Range) *Tensor {
+func (t *tensor) Slice(ctx Context, ranges ...Range) Tensor {
 	ndims := len(ranges)
 	if ndims == 0 || ndims > 8 {
 		panic(fmt.Sprintf("shapes: slice supports 1-8 dimensions, got %d", ndims))
@@ -153,23 +154,23 @@ func (t *Tensor) Slice(ctx *Context, ranges ...Range) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
 		// Deep-copy ranges so metadata is stable after the caller's slice goes out of scope.
 		copiedRanges := make([]Range, len(ranges))
 		copy(copiedRanges, ranges)
-		ctx.newNode(out, OpSlice, sliceBackward, nil, t)
-		out.Computation.Metadata = copiedRanges
+		toComputationGraphNode(out, OpSlice, sliceBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = copiedRanges
 	}
 	return out
 }
 
 // Reshape returns a tensor with the same data but a different shape.
 // Use -1 for one dimension to infer it automatically based on total element count.
-func (t *Tensor) Reshape(ctx *Context, dims ...int) *Tensor {
+func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 	// Calculate total elements in the tensor
 	totalElements := uint32(1)
-	currentShape := shapeOf(t)
+	currentShape := t.Shape()
 	for _, s := range currentShape {
 		totalElements *= s
 	}
@@ -212,9 +213,10 @@ func (t *Tensor) Reshape(ctx *Context, dims ...int) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpReshape, reshapeBackward, nil, t)
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		leafNode(ctx, out)
+		toComputationGraphNode(out, OpReshape, reshapeBackward, []Tensor{t}, []Tensor{}, nil)
 	}
 	return out
 }
@@ -222,7 +224,7 @@ func (t *Tensor) Reshape(ctx *Context, dims ...int) *Tensor {
 // Transpose swaps two dimensions, returning a view.
 // With no extra args it swaps the last two dimensions (the common default).
 // With two args it swaps those specific dimensions.
-func (t *Tensor) Transpose(ctx *Context, dims ...uint32) *Tensor {
+func (t *tensor) Transpose(ctx Context, dims ...uint32) Tensor {
 	var d0, d1 uint32
 	switch len(dims) {
 	case 0:
@@ -250,61 +252,65 @@ func (t *Tensor) Transpose(ctx *Context, dims ...uint32) *Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpTranspose, transposeBackward, nil, t)
-		out.Computation.Metadata = [2]uint32{d0, d1}
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		leafNode(ctx, out)
+		toComputationGraphNode(out, OpTranspose, transposeBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = [2]uint32{d0, d1}
 	}
 	return out
 }
 
 // Squeeze removes all dimensions of size 1, returning a view.
-func (t *Tensor) Squeeze(ctx *Context) *Tensor {
+func (t *tensor) Squeeze(ctx Context) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Squeeze((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpSqueeze, squeezeBackward, nil, t)
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		leafNode(ctx, out)
+		toComputationGraphNode(out, OpSqueeze, squeezeBackward, []Tensor{t}, []Tensor{}, nil)
 	}
 	return out
 }
 
 // SqueezeDim removes a single dimension at the given position (must be size 1), returning a view.
-func (t *Tensor) SqueezeDim(ctx *Context, dim uint32) *Tensor {
+func (t *tensor) SqueezeDim(ctx Context, dim uint32) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_SqueezeDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpSqueezeDim, squeezeDimBackward, nil, t)
-		out.Computation.Metadata = dim
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		leafNode(ctx, out)
+		toComputationGraphNode(out, OpSqueezeDim, squeezeDimBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = dim
 	}
 	return out
 }
 
 // UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
-func (t *Tensor) UnSqueeze(ctx *Context, dim uint32) *Tensor {
+func (t *tensor) UnSqueeze(ctx Context, dim uint32) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_UnSqueeze((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpUnSqueeze, unSqueezeBackward, nil, t)
-		out.Computation.Metadata = dim
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		leafNode(ctx, out)
+		toComputationGraphNode(out, OpUnSqueeze, unSqueezeBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = dim
 	}
 	return out
 }
 
 // SafeUnsqeeze nserts a new dimention at dom 0 only if the tensor is 1D
-func (t *Tensor) SafeUnSqueeze(ctx *Context, dims ...uint32) *Tensor {
-	if len(shapeOf(t)) > 1 {
+func (t *tensor) SafeUnSqueeze(ctx Context, dims ...uint32) Tensor {
+	if len(t.Shape()) > 1 {
 		return t
 	}
 
@@ -317,43 +323,4 @@ func (t *Tensor) SafeUnSqueeze(ctx *Context, dims ...uint32) *Tensor {
 	}
 
 	return t.UnSqueeze(ctx, uint32(0))
-}
-
-// Slice creates a view into the tensor. Each range is a Range{start, end}
-// specifying a half-open interval for that dimension.
-func (wt *WrappedTensor) Slice(ranges ...Range) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Slice(wt.context, ranges...))
-}
-
-// Reshape returns a tensor with the same data but a different shape.
-// Use -1 for one dimension to infer it automatically based on total element count.
-func (wt *WrappedTensor) Reshape(dims ...int) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Reshape(wt.context, dims...))
-}
-
-// Transpose swaps two dimensions, returning a view.
-// With no extra args it swaps the last two dimensions (the common default).
-// With two args it swaps those specific dimensions.
-func (wt *WrappedTensor) Transpose(dims ...uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Transpose(wt.context, dims...))
-}
-
-// Squeeze removes all dimensions of size 1, returning a view.
-func (wt *WrappedTensor) Squeeze() *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Squeeze(wt.context))
-}
-
-// SqueezeDim removes a single dimension at the given position (must be size 1), returning a view.
-func (wt *WrappedTensor) SqueezeDim(dim uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.SqueezeDim(wt.context, dim))
-}
-
-// UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
-func (wt *WrappedTensor) UnSqueeze(dim uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.UnSqueeze(wt.context, dim))
-}
-
-// SafeUnSqueeze inserts a new dimension at dim 0 only if the tensor is 1D.
-func (wt *WrappedTensor) SafeUnSqueeze(dims ...uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.SafeUnSqueeze(wt.context, dims...))
 }

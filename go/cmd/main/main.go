@@ -11,7 +11,7 @@ const Mb = 1024 * 1024
 
 func main() {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(500*Mb))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	examples.MakeMore_2(ctx)
 	// examples.MakeMore_1(ctx)

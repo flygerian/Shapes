@@ -16,6 +16,13 @@ static inline Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
 	d->multipliers = NULL;
 	return d;
 }
+
+static inline void zeroTensorValues(Tensor *t) {
+	if (t != NULL && t->values != NULL) {
+		size_t bytes = t->size * getBytesForDtype(t->dtype);
+		memset(t->values, 0, bytes);
+	}
+}
 */
 import "C"
 import "unsafe"
@@ -23,15 +30,34 @@ import "unsafe"
 type Shape = []uint32
 type Range = []uint32
 
+type Tensor interface {
+	hasMutatingBinaryOps
+	hasNonMutatingBinaryOps
+	hadReductionOps
+	hasShapeOps
+	hasUnaryOps
+	hasMatrixOps
+	hasAccessOps
+	hasBackward
+
+	ComputationGraphNode
+
+	Grad() GradTensor
+	Accumulate(ctx Context, operandB Tensor)
+	Computation() Computation
+
+	I64(ctx Context) Tensor
+}
+
 // Tensor wraps a C Tensor pointer.
-type Tensor struct {
+type tensor struct {
 	cTensor     *C.Tensor
-	Computation *ComputationGraphNode
+	computation *Computation
 	Label       string
 }
 
 // dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
-func dim(ctx *Context, shape Shape) *C.Dim {
+func dim(ctx Context, shape Shape) *C.Dim {
 	return C.makeDim(
 		(*C.Memory)(ctx.UnsafeMemory()),
 		(*C.dim_t)(unsafe.Pointer(&shape[0])),
@@ -39,9 +65,13 @@ func dim(ctx *Context, shape Shape) *C.Dim {
 	)
 }
 
-// track registers a tensor's C pointer with the context for lifetime management.
-func track(ctx *Context, t *Tensor) *Tensor {
-	ctx.Track((*unsafe.Pointer)(unsafe.Pointer(&t.cTensor)))
+// track registers a tensor with the context for lifetime management.
+func track(ctx Context, t *tensor) *tensor {
+	if ctx.GradEnabled() && t.computation == nil {
+		leafNode(ctx, t)
+	}
+
+	ctx.Track(t)
 	return t
 }
 
@@ -56,18 +86,18 @@ func ptrOffset(base *C.dim_t, i int) unsafe.Pointer {
 }
 
 // UnsafeCPtr returns the C Tensor as an unsafe.Pointer for cross-package CGo casts.
-func (t *Tensor) UnsafeCPtr() unsafe.Pointer {
+func (t *tensor) UnsafeCPtr() unsafe.Pointer {
 	return unsafe.Pointer(t.cTensor)
 }
 
 // Track wraps a C tensor pointer into a Go Tensor and registers it with the context.
 // Used by external packages (e.g., activation) to create Tensor values from C pointers.
-func Track(ctx *Context, cPtr unsafe.Pointer) *Tensor {
-	return track(ctx, &Tensor{cTensor: (*C.Tensor)(cPtr)})
+func Track(ctx Context, cPtr unsafe.Pointer) *tensor {
+	return track(ctx, &tensor{cTensor: (*C.Tensor)(cPtr)})
 }
 
 // ShapeOf returns the shape of the tensor as a Go slice.
-func ShapeOf(t *Tensor) Shape {
+func ShapeOf(t *tensor) Shape {
 	return shapeOf(t)
 }
 
@@ -119,27 +149,30 @@ func (d Dtype) String() string {
 }
 
 // Dtype returns the tensor's data type.
-func (t *Tensor) Dtype() Dtype {
+func (t *tensor) Dtype() Dtype {
 	return Dtype(t.cTensor.dtype)
 }
 
 // Shape returns the shape of the tensor as a Go slice.
-func (t *Tensor) Shape() Shape {
+func (t *tensor) Shape() Shape {
 	return shapeOf(t)
+}
+
+func (t *tensor) Computation() Computation {
+	return *t.computation
+}
+
+func (t *tensor) SetValuesToZero() {
+	C.zeroTensorValues((*C.Tensor)(t.Grad().(*tensor).cTensor))
 }
 
 // UnsafeCTensor returns the underlying C tensor pointer for use in CGo calls from subpackages.
 // This is unsafe and should only be used when necessary.
-func (t *Tensor) UnsafeCTensor() unsafe.Pointer {
+func (t *tensor) UnsafeCTensor() unsafe.Pointer {
 	return unsafe.Pointer(t.cTensor)
 }
 
 // Shape returns the shape of the WrappedTensor.
 func (wt *WrappedTensor) Shape() Shape {
 	return wt.tensor.Shape()
-}
-
-// Dtype returns the data type of the WrappedTensor.
-func (wt *WrappedTensor) Dtype() Dtype {
-	return wt.tensor.Dtype()
 }

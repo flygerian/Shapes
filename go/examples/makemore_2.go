@@ -12,7 +12,6 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/visual"
 )
 
 func set(input string) []rune {
@@ -55,7 +54,7 @@ func newSection() {
 	fmt.Printf("\n\n................................................................................\n\n")
 }
 
-func MakeMore_2(shapesCtx *shapes.Context) {
+func MakeMore_2(shapesCtx shapes.Context) {
 	file, err := os.Open("names.txt")
 	if err != nil {
 		panic("Could not open file")
@@ -118,8 +117,8 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 		}
 	}
 
-	X := shapesCtx.FromInt8(x)
-	Y := shapesCtx.FromInt8(y)
+	X := shapes.FromInt8(shapesCtx, x)
+	Y := shapes.FromInt8(shapesCtx, y)
 
 	// newSection()
 
@@ -127,75 +126,62 @@ func MakeMore_2(shapesCtx *shapes.Context) {
 
 	// newSection()
 
-	C := shapesCtx.FloatRandom(shapes.Shape{27, 2})
+	C := shapes.FloatRandom(shapesCtx, shapes.Shape{27, 2})
 
 	newSection()
 
 	l1 := layer.Dense(shapesCtx, 6, 100)
 	l2 := layer.Dense(shapesCtx, 100, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.1)
+	sgd := optimizer.SGD(shapesCtx, 0.001)
 
-	forward := func(x_batch *shapes.WrappedTensor, y_batch *shapes.WrappedTensor) *shapes.WrappedTensor {
+	crossEnthropy := loss.CrossEntropy(shapesCtx)
 
-		h := l1(x_batch.Reshape(-1, 6))
+	forward := func(x_batch shapes.Tensor, y_batch shapes.Tensor) shapes.Tensor {
+
+		h := l1.Forward(shapesCtx, x_batch.Reshape(shapesCtx, -1, 6))
 		fmt.Printf("h.shape: %v\n", h.Shape())
 
-		h.Tensor().Label = "h"
-		logits := l2(h)
+		logits := l2.Forward(shapesCtx, h)
 
-		logits.Tensor().Label = "logits"
-
-		yOneHot := shapesCtx.OneHot(y_batch, 27)
-		yOneHot.Tensor().Label = "one_hot"
+		yOneHot := shapes.OneHot(shapesCtx, y_batch, 27)
+		lossValue := crossEnthropy(yOneHot, logits)
 
 		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
 		// fmt.Printf("logits.shape: %v\n", logits.Shape())
 
-		lossValue := loss.CrossEntropy(yOneHot, logits)
-
 		return lossValue
 	}
 
-	fmt.Printf("Tensors before training: %v\n", shapesCtx.NumTrackTensors())
-	fmt.Printf("Blocks before training: %v\n", shapesCtx.NumAllocatedBlocks())
+	for i := range 100 {
 
-	for i := range 1000 {
-
-		fmt.Printf("Tensors before forward pass: %v\n", shapesCtx.NumTrackTensors())
 		fmt.Printf("Blocks before forward pass: %v\n", shapesCtx.NumAllocatedBlocks())
-		ix := shapesCtx.FloatRandom(shapes.Shape{32}, 0, float32(X.Shape()[0])).I64()
+		ix := shapes.FloatRandom(shapesCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(shapesCtx)
 
 		// Forward pass
-		emb := C.Get(X.Get(ix))
-		y_batch := Y.Get(ix)
+		emb := C.Get(shapesCtx, X.Get(shapesCtx, ix))
+		y_batch := Y.Get(shapesCtx, ix)
 
 		// fmt.Printf("Emb shape: %v\n", emb.Shape())
 
-		emb.Tensor().Label = "emb"
-
 		lossValue := forward(emb, y_batch)
 
-		fmt.Printf("Epoch %d, Loss: %f\n", i, lossValue.Get(0).Item())
+		fmt.Printf("Epoch %d, Loss: %f, shape %v\n", i, lossValue.Get(shapesCtx, 0).Item(), lossValue.Shape())
 
-		fmt.Printf("Tensors before backward pass: %v\n", shapesCtx.NumTrackTensors())
-		fmt.Printf("Blocks before backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		// Backward pass
-		graph := lossValue.Backward()
-		fmt.Printf("Tensors after backward pass: %v\n", shapesCtx.NumTrackTensors())
-		fmt.Printf("Blocks after backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
+		graph := lossValue.Backward(shapesCtx)
 
 		// Update parameters
 		sgd(graph)
 		optimizer.ZeroGrad(shapesCtx, graph)
 
+		shapesCtx.Sweep()
+		fmt.Printf("Blocks after backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		newSection()
 	}
 
-	newSection()
-
-	fullLoss := forward(C.Get((X)), Y)
-	fmt.Printf("Full loss: ")
-	visual.Print(fullLoss)
+	// fullLoss := forward(C.Get((X)), Y)
+	// fmt.Printf("Full loss: ")
+	// visual.Print(fullLoss)
 
 }

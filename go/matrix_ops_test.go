@@ -7,7 +7,7 @@ import (
 
 func TestMul(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3 of 1.0 * 3x2 of 1.0 → 2x2 of 3.0
 	a := ctx.Float(Shape{2, 3}, 1.0)
@@ -27,7 +27,7 @@ func TestMul(t *testing.T) {
 
 func TestMulInnerDimMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2, 3}, 1.0)
 	b := ctx.Float(Shape{2, 2}, 1.0)
@@ -42,7 +42,7 @@ func TestMulInnerDimMismatch(t *testing.T) {
 
 func TestDot(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// [2.0, 2.0, 2.0] · [3.0, 3.0, 3.0] = 18.0
 	a := ctx.Float(Shape{3}, 2.0)
@@ -58,7 +58,7 @@ func TestDot(t *testing.T) {
 
 func TestDotDimMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{3}, 1.0)
 	b := ctx.Float(Shape{2, 3}, 1.0)

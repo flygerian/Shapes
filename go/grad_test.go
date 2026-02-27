@@ -12,7 +12,7 @@ func approxEq(a, b, tol float32) bool {
 
 func TestBackwardAdd(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// a + b => da = 1, db = 1
 	a := ctx.Float(Shape{2}, 3.0)
@@ -22,12 +22,12 @@ func TestBackwardAdd(t *testing.T) {
 	c.Backward()
 
 	for i := range uint32(2) {
-		ga := a.Grad().Get(i).Item().(float32)
+		ga := a.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(ga, 1.0, 1e-5) {
 			t.Errorf("grad_a[%d] = %f, want 1.0", i, ga)
 		}
 
-		gb := b.Grad().Get(i).Item().(float32)
+		gb := b.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(gb, 1.0, 1e-5) {
 			t.Errorf("grad_b[%d] = %f, want 1.0", i, gb)
 		}
@@ -36,7 +36,7 @@ func TestBackwardAdd(t *testing.T) {
 
 func TestBackwardMultiply(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// c = a * b => da = b, db = a
 	a := ctx.Float(Shape{2}, 3.0)
@@ -46,12 +46,12 @@ func TestBackwardMultiply(t *testing.T) {
 	c.Backward()
 
 	for i := range uint32(2) {
-		ga := a.Grad().Get(i).Item().(float32)
+		ga := a.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(ga, 5.0, 1e-5) {
 			t.Errorf("grad_a[%d] = %f, want 5.0 (value of b)", i, ga)
 		}
 
-		gb := b.Grad().Get(i).Item().(float32)
+		gb := b.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(gb, 3.0, 1e-5) {
 			t.Errorf("grad_b[%d] = %f, want 3.0 (value of a)", i, gb)
 		}
@@ -60,7 +60,7 @@ func TestBackwardMultiply(t *testing.T) {
 
 func TestBackwardSubtract(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// c = a - b => da = 1, db = -1
 	a := ctx.Float(Shape{2}, 7.0)
@@ -70,12 +70,12 @@ func TestBackwardSubtract(t *testing.T) {
 	c.Backward()
 
 	for i := range uint32(2) {
-		ga := a.Grad().Get(i).Item().(float32)
+		ga := a.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(ga, 1.0, 1e-5) {
 			t.Errorf("grad_a[%d] = %f, want 1.0", i, ga)
 		}
 
-		gb := b.Grad().Get(i).Item().(float32)
+		gb := b.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(gb, -1.0, 1e-5) {
 			t.Errorf("grad_b[%d] = %f, want -1.0", i, gb)
 		}
@@ -84,7 +84,7 @@ func TestBackwardSubtract(t *testing.T) {
 
 func TestBackwardChain(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Reproduce Karpathy's micrograd example:
 	// x1=2, x2=0, w1=-3, w2=1, b=6.8813735870195432
@@ -126,7 +126,7 @@ func TestBackwardChain(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := tc.t.Grad().Get(0).Item().(float32)
+		got := tc.t.Grad().(*Tensor).Get(ctx, 0).Item().(float32)
 		if !approxEq(got, tc.want, 1e-5) {
 			t.Errorf("%s = %f, want %f", tc.name, got, tc.want)
 		}
@@ -135,7 +135,7 @@ func TestBackwardChain(t *testing.T) {
 
 func TestBackwardNoGradNoPanic(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2}, 3.0)
 	b := ctx.Float(Shape{2}, 5.0)
@@ -149,7 +149,7 @@ func TestBackwardNoGradNoPanic(t *testing.T) {
 
 func TestBackwardPanicsNoGraph(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2}, 3.0)
 
@@ -164,7 +164,7 @@ func TestBackwardPanicsNoGraph(t *testing.T) {
 
 func TestLeafTensorHasGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2}, 3.0)
 
@@ -174,7 +174,7 @@ func TestLeafTensorHasGrad(t *testing.T) {
 
 	// Grad should be zeros by default.
 	for i := range uint32(2) {
-		got := a.Grad().Get(i).Item().(float32)
+		got := a.Grad().(*Tensor).Get(ctx, i).Item().(float32)
 		if !approxEq(got, 0.0, 1e-5) {
 			t.Errorf("leaf grad[%d] = %f, want 0.0", i, got)
 		}
@@ -183,13 +183,13 @@ func TestLeafTensorHasGrad(t *testing.T) {
 
 func TestLeafBackwardNoOp(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// Calling Backward on a leaf tensor should not panic.
 	a := ctx.Float(Shape{1}, 5.0)
 	a.Backward()
 
-	got := a.Grad().Get(0).Item().(float32)
+	got := a.Grad().(*Tensor).Get(ctx, 0).Item().(float32)
 	if !approxEq(got, 1.0, 1e-5) {
 		t.Errorf("leaf backward grad = %f, want 1.0", got)
 	}
@@ -197,7 +197,7 @@ func TestLeafBackwardNoOp(t *testing.T) {
 
 func TestGradPanicsNoNode(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(Shape{2}, 3.0)
 

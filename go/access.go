@@ -88,15 +88,21 @@ import "fmt"
 // Get can also accept a tensor as an argument to perform advanced indexing,
 // similar to PyTorch's x[indices] where indices is a tensor of integers.
 // When two tensors are provided, performs 2D advanced indexing.
-func (t *Tensor) Get(ctx *Context, indices ...interface{}) *Tensor {
+
+type hasAccessOps interface {
+	Get(ctx Context, indices ...interface{}) Tensor
+	Item() interface{}
+}
+
+func (t *tensor) Get(ctx Context, indices ...interface{}) Tensor {
 	if len(indices) == 0 {
 		panic("shapes: Get requires at least one argument")
 	}
 
 	// Check for two tensors (2D advanced indexing)
 	if len(indices) == 2 {
-		rowTensor, rowOk := indices[0].(*Tensor)
-		colTensor, colOk := indices[1].(*Tensor)
+		rowTensor, rowOk := indices[0].(*tensor)
+		colTensor, colOk := indices[1].(*tensor)
 		if rowOk && colOk {
 			return t.getWithTensor2d(ctx, rowTensor, colTensor)
 		}
@@ -104,7 +110,7 @@ func (t *Tensor) Get(ctx *Context, indices ...interface{}) *Tensor {
 
 	// Check if first argument is a tensor for 1D advanced indexing
 	if len(indices) == 1 {
-		if idxTensor, ok := indices[0].(*Tensor); ok {
+		if idxTensor, ok := indices[0].(*tensor); ok {
 			return t.getWithTensor(ctx, idxTensor)
 		}
 	}
@@ -143,7 +149,7 @@ func (t *Tensor) Get(ctx *Context, indices ...interface{}) *Tensor {
 }
 
 // getWithCoords returns a sub-tensor at the given coordinates.
-func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
+func (t *tensor) getWithCoords(ctx Context, coords []uint32) Tensor {
 	current := t
 	for _, idx := range coords {
 		if current.cTensor.shape.numOfDims == 0 {
@@ -157,10 +163,10 @@ func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
 		if res != C.OK {
 			panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 		}
-		current = track(ctx, &Tensor{cTensor: dest})
-		if ctx.BackwardEnabled {
-			ctx.newNode(current, OpGetTensorAt, getTensorAtBackward, nil, prevInput)
-			current.Computation.Metadata = idx
+		current = track(ctx, &tensor{cTensor: dest})
+		if ctx.BackwardEnabled() {
+			toComputationGraphNode(current, OpGetTensorAt, getTensorAtBackward, []Tensor{prevInput}, []Tensor{}, nil)
+			current.computation.meta = idx
 		}
 	}
 	return current
@@ -168,7 +174,7 @@ func (t *Tensor) getWithCoords(ctx *Context, coords []uint32) *Tensor {
 
 // getWithTensor performs advanced indexing using a tensor of indices.
 // The indices tensor must contain integer values.
-func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
+func (t *tensor) getWithTensor(ctx Context, indices *tensor) Tensor {
 	var dest *C.Tensor
 	cCtx := (*C.Context)(ctx.UnsafePtr())
 	res := C.wrap_IndexWithTensor(cCtx, t.cTensor, indices.cTensor, &dest)
@@ -176,17 +182,17 @@ func (t *Tensor) getWithTensor(ctx *Context, indices *Tensor) *Tensor {
 		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 	}
 
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpIndexWithTensor, indexWithTensorBackward, nil, t)
-		out.Computation.Metadata = indices
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpIndexWithTensor, indexWithTensorBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = indices
 	}
 	return out
 }
 
 // getWithTensor2d performs 2D advanced indexing using two tensors of indices.
 // The row and column index tensors must contain integer values and have the same shape.
-func (t *Tensor) getWithTensor2d(ctx *Context, rowIndices, colIndices *Tensor) *Tensor {
+func (t *tensor) getWithTensor2d(ctx Context, rowIndices, colIndices *tensor) Tensor {
 	var dest *C.Tensor
 	cCtx := (*C.Context)(ctx.UnsafePtr())
 	res := C.wrap_IndexWithTensor2d(cCtx, t.cTensor, rowIndices.cTensor, colIndices.cTensor, &dest)
@@ -194,45 +200,18 @@ func (t *Tensor) getWithTensor2d(ctx *Context, rowIndices, colIndices *Tensor) *
 		panic(fmt.Sprintf("shapes: %s", resultString(uint32(res))))
 	}
 
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpIndexWithTensor2d, indexWithTensor2dBackward, nil, t)
-		out.Computation.Metadata = [2]*Tensor{rowIndices, colIndices}
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpIndexWithTensor2d, indexWithTensor2dBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = [2]Tensor{rowIndices, colIndices}
 	}
 	return out
-}
-
-// Get returns a sub-tensor at the given coordinates as a WrappedTensor.
-// If the first index is a *WrappedTensor, advanced indexing is performed using its inner tensor,
-// and both WrappedTensors must belong to the same context.
-// If two *WrappedTensors are provided, 2D advanced indexing is performed.
-// Otherwise, all indices are treated as integer coordinates.
-func (wt *WrappedTensor) Get(indices ...interface{}) *WrappedTensor {
-	// Check for two WrappedTensors (2D advanced indexing)
-	if len(indices) == 2 {
-		rowWrapped, rowOk := indices[0].(*WrappedTensor)
-		colWrapped, colOk := indices[1].(*WrappedTensor)
-		if rowOk && colOk {
-			wt.validateSameContext(rowWrapped)
-			wt.validateSameContext(colWrapped)
-			return wt.context.Wrap(wt.tensor.Get(wt.context, rowWrapped.tensor, colWrapped.tensor))
-		}
-	}
-
-	// If using single tensor indexing, validate contexts match
-	if len(indices) == 1 {
-		if idxWrapped, ok := indices[0].(*WrappedTensor); ok {
-			wt.validateSameContext(idxWrapped)
-			return wt.context.Wrap(wt.tensor.Get(wt.context, idxWrapped.tensor))
-		}
-	}
-	return wt.context.Wrap(wt.tensor.Get(wt.context, indices...))
 }
 
 // Item extracts the scalar value from a 0-dimensional tensor.
 // Returns the value as the appropriate Go type.
 // Panics if the tensor is not 0-dimensional.
-func (t *Tensor) Item() interface{} {
+func (t *tensor) Item() interface{} {
 	if t.cTensor.shape.numOfDims != 0 {
 		panic("shapes: Item() can only be called on 0-dimensional tensors")
 	}
@@ -265,11 +244,4 @@ func (t *Tensor) Item() interface{} {
 	default:
 		panic("shapes: unknown dtype")
 	}
-}
-
-// Item extracts the scalar value from a 0-dimensional WrappedTensor.
-// Returns the value as the appropriate Go type.
-// Panics if the tensor is not 0-dimensional.
-func (wt *WrappedTensor) Item() interface{} {
-	return wt.tensor.Item()
 }

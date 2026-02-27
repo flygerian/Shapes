@@ -16,9 +16,9 @@ func approxEq(a, b, tol float32) bool {
 
 func TestSGDUpdatesParameters(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := layer.Dense(3, 2)
+	dense := layer.Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
@@ -72,9 +72,9 @@ func TestSGDLearningRateScalesUpdate(t *testing.T) {
 
 func TestSGDLossDecreases(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := layer.Dense(3, 2)
+	dense := layer.Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
@@ -94,7 +94,7 @@ func TestSGDLossDecreases(t *testing.T) {
 		for i, c := range coords {
 			args[i] = c
 		}
-		v := p.Grad().Get(ctx, args...).Item().(float32)
+		v := p.Grad().(*shapes.Tensor).Get(ctx, args...).Item().(float32)
 		if !approxEq(v, 0, 1e-10) {
 			hasNonZeroGrad = true
 			break
@@ -112,9 +112,9 @@ func TestSGDLossDecreases(t *testing.T) {
 func runSGDStep(t *testing.T, lr float32) []float32 {
 	t.Helper()
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := layer.Dense(3, 2)
+	dense := layer.Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)

@@ -111,12 +111,12 @@ func DrawLine(w io.Writer, from, to *Box) {
 }
 
 // Visualize renders the computation graph rooted at t to the terminal (os.Stdout).
-func Visualize(ctx *shapes.Context, t *shapes.Tensor) {
+func Visualize(ctx *shapes.MainContext, t *shapes.Tensor) {
 	VisualizeTo(ctx, os.Stdout, t)
 }
 
 // VisualizeTo renders the computation graph rooted at t to the given writer.
-func VisualizeTo(ctx *shapes.Context, w io.Writer, t *shapes.Tensor) {
+func VisualizeTo(ctx *shapes.MainContext, w io.Writer, t *shapes.Tensor) {
 	type entry struct {
 		tensor    *shapes.Tensor
 		level     int
@@ -132,7 +132,7 @@ func VisualizeTo(ctx *shapes.Context, w io.Writer, t *shapes.Tensor) {
 		if node == nil {
 			continue
 		}
-		for _, inp := range node.Inputs {
+		for _, inp := range node.Inputs() {
 			if len(queue) >= maxNodes {
 				break
 			}
@@ -214,7 +214,7 @@ func VisualizeTo(ctx *shapes.Context, w io.Writer, t *shapes.Tensor) {
 }
 
 // displayLabels builds the top and bottom text for a tensor node.
-func displayLabels(ctx *shapes.Context, t *shapes.Tensor) (top, bottom string) {
+func displayLabels(ctx *shapes.MainContext, t *shapes.Tensor) (top, bottom string) {
 	label := t.Label
 	if label == "" {
 		label = "?"
@@ -228,15 +228,15 @@ func displayLabels(ctx *shapes.Context, t *shapes.Tensor) (top, bottom string) {
 	}
 
 	// Build top line with grad if available
-	if node.Grad != nil {
-		gradVal := formatScalar(ctx, node.Grad)
+	if node.Grad() != nil {
+		gradVal := formatScalar(ctx, node.Grad().(*shapes.Tensor))
 		top = fmt.Sprintf("%s | %s | grad [%s]", label, val, gradVal)
 	} else {
 		top = fmt.Sprintf("%s | %s", label, val)
 	}
 
 	// Bottom line shows op name if this is not a leaf
-	if len(node.Inputs) > 0 && node.Op != shapes.OpNone {
+	if len(node.Inputs()) > 0 && node.Op != shapes.OpNone {
 		bottom = fmt.Sprintf("(%s)", node.Op)
 	}
 
@@ -244,7 +244,7 @@ func displayLabels(ctx *shapes.Context, t *shapes.Tensor) (top, bottom string) {
 }
 
 // formatScalar reads the scalar (index-0) value from a tensor and trims trailing zeros.
-func formatScalar(ctx *shapes.Context, t *shapes.Tensor) string {
+func formatScalar(ctx *shapes.MainContext, t *shapes.Tensor) string {
 	v := t.Get(ctx, 0).Item().(float32)
 	s := fmt.Sprintf("%f", v)
 	// Trim trailing zeros but keep at least one digit after decimal

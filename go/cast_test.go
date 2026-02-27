@@ -10,7 +10,7 @@ import (
 
 func TestCastI8ToI16(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromInt8(ctx, []int8{1, -2, 3})
 	result := src.I16(ctx)
@@ -33,7 +33,7 @@ func TestCastI8ToI16(t *testing.T) {
 
 func TestCastI8ToI32(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromInt8(ctx, []int8{-5, 10})
 	result := src.I32(ctx)
@@ -52,7 +52,7 @@ func TestCastI8ToI32(t *testing.T) {
 
 func TestCastI8ToI64(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromInt8(ctx, []int8{7, -7})
 	result := src.I64(ctx)
@@ -71,7 +71,7 @@ func TestCastI8ToI64(t *testing.T) {
 
 func TestCastI8ToF32(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromInt8(ctx, []int8{-3, 4})
 	result := src.F32(ctx)
@@ -90,7 +90,7 @@ func TestCastI8ToF32(t *testing.T) {
 
 func TestCastI8ToF64(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromInt8(ctx, []int8{-1, 2})
 	result := src.F64(ctx)
@@ -102,7 +102,7 @@ func TestCastI8ToF64(t *testing.T) {
 
 func TestCastF32ToF64(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromFloat32(ctx, Shape{3}, []float32{1.5, -2.5, 3.14})
 	result := src.F64(ctx)
@@ -118,7 +118,7 @@ func TestCastF32ToF64(t *testing.T) {
 
 func TestCastSameDtypeClones(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromFloat32(ctx, Shape{2, 2}, []float32{1.0, 2.0, 3.0, 4.0})
 	result := src.F32(ctx)
@@ -141,7 +141,7 @@ func TestCastSameDtypeClones(t *testing.T) {
 
 func TestCastPreservesShape(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromInt8(ctx, [][]int8{{1, 2, 3}, {4, 5, 6}})
 	result := src.I16(ctx)
@@ -156,7 +156,7 @@ func TestCastPreservesShape(t *testing.T) {
 
 func TestCastF32ToI32(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromFloat32(ctx, Shape{3}, []float32{1.5, -3.9, 42.0})
 	result := src.I32(ctx)
@@ -175,7 +175,7 @@ func TestCastF32ToI32(t *testing.T) {
 
 func TestCastF64ToF32Panics(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -191,7 +191,7 @@ func TestCastF64ToF32Panics(t *testing.T) {
 
 func TestCastI32ToI16Panics(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -206,7 +206,7 @@ func TestCastI32ToI16Panics(t *testing.T) {
 
 func TestCastI8ToU8Panics(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -220,7 +220,7 @@ func TestCastI8ToU8Panics(t *testing.T) {
 
 func TestCastU8ToI8Panics(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -240,7 +240,7 @@ func TestCastU8ToI8Panics(t *testing.T) {
 
 func TestCastF32ToU32Panics(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -256,7 +256,7 @@ func TestCastF32ToU32Panics(t *testing.T) {
 
 func TestWrappedCastI8ToI16(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := ctx.FromInt8([]int8{1, -2, 3})
 	result := src.I16()
@@ -275,7 +275,7 @@ func TestWrappedCastI8ToI16(t *testing.T) {
 
 func TestWrappedCastF32ToF64(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := ctx.FromFloat32(Shape{2}, []float32{1.5, -2.5})
 	result := src.F64()
@@ -287,7 +287,7 @@ func TestWrappedCastF32ToF64(t *testing.T) {
 
 func TestWrappedCastI8ToF32(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := ctx.FromInt8([]int8{-4, 5})
 	result := src.F32()
@@ -306,7 +306,7 @@ func TestWrappedCastI8ToF32(t *testing.T) {
 
 func TestWrappedCastSameDtype(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := ctx.Float(Shape{3}, 2.5)
 	result := src.F32()
@@ -324,7 +324,7 @@ func TestWrappedCastSameDtype(t *testing.T) {
 
 func TestWrappedCastPanicsOnSignMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -338,7 +338,7 @@ func TestWrappedCastPanicsOnSignMismatch(t *testing.T) {
 
 func TestWrappedCastPanicsOnTruncation(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -353,7 +353,7 @@ func TestWrappedCastPanicsOnTruncation(t *testing.T) {
 
 func TestWrappedCastF32ToI32(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := ctx.FromFloat32(Shape{2}, []float32{7.9, -2.1})
 	result := src.I32()
@@ -374,7 +374,7 @@ func TestWrappedCastF32ToI32(t *testing.T) {
 
 func TestCastDoesNotAttachGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := Float(ctx, Shape{3}, 2.0)
 	result := src.I32(ctx)
@@ -389,21 +389,21 @@ func TestCastDoesNotAttachGrad(t *testing.T) {
 func TestCastAllValidWidening(t *testing.T) {
 	tests := []struct {
 		name     string
-		castFn   func(*Context, *Tensor) *Tensor
+		castFn   func(*MainContext, *Tensor) *Tensor
 		wantType Dtype
 	}{
-		{"I8->I16", func(ctx *Context, src *Tensor) *Tensor { return src.I16(ctx) }, DtypeI16},
-		{"I8->I32", func(ctx *Context, src *Tensor) *Tensor { return src.I32(ctx) }, DtypeI32},
-		{"I8->I64", func(ctx *Context, src *Tensor) *Tensor { return src.I64(ctx) }, DtypeI64},
-		{"I8->F16", func(ctx *Context, src *Tensor) *Tensor { return src.F16(ctx) }, DtypeF16},
-		{"I8->F32", func(ctx *Context, src *Tensor) *Tensor { return src.F32(ctx) }, DtypeF32},
-		{"I8->F64", func(ctx *Context, src *Tensor) *Tensor { return src.F64(ctx) }, DtypeF64},
+		{"I8->I16", func(ctx *MainContext, src *Tensor) *Tensor { return src.I16(ctx) }, DtypeI16},
+		{"I8->I32", func(ctx *MainContext, src *Tensor) *Tensor { return src.I32(ctx) }, DtypeI32},
+		{"I8->I64", func(ctx *MainContext, src *Tensor) *Tensor { return src.I64(ctx) }, DtypeI64},
+		{"I8->F16", func(ctx *MainContext, src *Tensor) *Tensor { return src.F16(ctx) }, DtypeF16},
+		{"I8->F32", func(ctx *MainContext, src *Tensor) *Tensor { return src.F32(ctx) }, DtypeF32},
+		{"I8->F64", func(ctx *MainContext, src *Tensor) *Tensor { return src.F64(ctx) }, DtypeF64},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := New(context.Background())
-			defer ctx.Close()
+			defer ctx.Finish()
 
 			src := FromInt8(ctx, []int8{1, -2, 3})
 			result := tt.castFn(ctx, src)
@@ -416,7 +416,7 @@ func TestCastAllValidWidening(t *testing.T) {
 
 func TestCastF32Widening(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	src := FromFloat32(ctx, Shape{2}, []float32{1.5, -2.5})
 	result := src.F64(ctx)
@@ -429,7 +429,7 @@ func TestCastF32Widening(t *testing.T) {
 
 func TestCastI8ToF32ValuePreservation(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	data := []int8{-128, -1, 0, 1, 127}
 	src := FromInt8(ctx, data)

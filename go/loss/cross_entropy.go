@@ -9,31 +9,38 @@ import (
 // logits should be the raw (pre-softmax) model outputs.
 // Softmax is applied internally for numerical stability.
 // Returns: -mean_batch(sum_classes(yGround * log(softmax(logits)))).
-func CrossEntropy(yGround *shapes.WrappedTensor, logits *shapes.WrappedTensor) *shapes.WrappedTensor {
-	ctx := logits.Context()
-	fusedCtx := ctx.Fused()
+func CrossEntropy(shapesCtx shapes.Context) func(shapes.Tensor, shapes.Tensor) shapes.Tensor {
+	return func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor {
 
-	// Determine the class dimension (last dimension).
-	ndims := uint32(len(shapes.ShapeOf(logits.Tensor())))
-	classDim := ndims - 1
+		fusedCtx := shapesCtx.Fused(shapes.WithInputs(yGround, logits))
 
-	// Apply softmax along the class dimension for numerical stability:
-	//   probs = exp(logits - max(logits)) / sum(exp(logits - max(logits)))
-	maxLogits := logits.Tensor().Max(fusedCtx, classDim)
-	shifted := logits.Tensor().Minus(fusedCtx, maxLogits)
-	exp := shifted.Exp(fusedCtx)
-	probs := exp.Divide(fusedCtx, exp.Sum(fusedCtx, classDim))
+		// Determine the class dimension (last dimension).
+		ndims := uint32(len(logits.Shape()))
+		classDim := ndims - 1
 
-	// loss = -mean(sum_classes(yGround * log(probs)))
-	// Sum over classes first, then mean over batch (or over all if 1D).
-	logProbs := probs.Log(fusedCtx)
-	perSampleLoss := yGround.Tensor().Times(fusedCtx, logProbs).Sum(fusedCtx, classDim)
-	result := perSampleLoss.Mean(fusedCtx).Negate(fusedCtx)
+		// Apply softmax along the class dimension for numerical stability:
+		//   probs = exp(logits - max(logits)) / sum(exp(logits - max(logits)))
+		maxLogits := logits.Max(fusedCtx, classDim)
+		shifted := logits.Minus(fusedCtx, maxLogits)
+		exp := shifted.Exp(fusedCtx)
+		probs := exp.Divide(fusedCtx, exp.Sum(fusedCtx, classDim))
 
-	// Use Saved API to keep probs alive for backward, then register via fusedCtx for sweeping
-	fusedCtx.NewComputationGraphNodeSaved(result, shapes.OpCrossEntropy, crossEntropyBackward, []*shapes.Tensor{probs}, yGround.Tensor(), logits.Tensor())
+		// loss = -mean(sum_classes(yGround * log(probs)))
+		// Sum over classes first, then mean over batch (or over all if 1D).
+		logProbs := probs.Log(fusedCtx)
+		perSampleLoss := yGround.Times(fusedCtx, logProbs).Sum(fusedCtx, classDim)
+		result := perSampleLoss.Mean(fusedCtx).Negate(fusedCtx)
 
-	return ctx.Wrap(result)
+		// Use Saved API to keep probs alive for backward, then register via fusedCtx for sweeping
+
+		fusedCtx.Finish(
+			shapes.WithResult(result),
+			shapes.WithBackward(crossEntropyBackward),
+			shapes.WithMetadata(probs),
+		)
+
+		return result
+	}
 }
 
 // crossEntropyBackward computes gradients for the fused softmax cross-entropy.
@@ -44,23 +51,26 @@ func CrossEntropy(yGround *shapes.WrappedTensor, logits *shapes.WrappedTensor) *
 //
 // where probs = softmax(logits) and batch_size is the number of samples
 // (the dimension being averaged over by Mean).
-func crossEntropyBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
-	yGround := node.Inputs[0]
-	logits := node.Inputs[1]
-	probs := node.HiddenState[0]
+func crossEntropyBackward(c shapes.Context, node shapes.ComputationGraphNode) {
+	ctx := c.NoGraph()
+	defer ctx.Finish()
+
+	yGround := node.Inputs()[0]
+	logits := node.Inputs()[1]
+	probs := node.Metadata().(shapes.Tensor)
 
 	// batch_size is the leading dimension (or 1 for a single 1D sample).
-	logitsShape := shapes.ShapeOf(logits)
+	logitsShape := logits.Shape()
 	batchSize := float32(logitsShape[0])
 	if len(logitsShape) == 1 {
 		batchSize = 1.0
 	}
 
-	n := shapes.Float(ctx, shapes.ShapeOf(probs), batchSize)
+	n := shapes.Float(ctx, probs.Shape(), batchSize)
 
 	// local gradient: (probs - yGround) / batch_size
 	localGrad := probs.Minus(ctx, yGround).Divide(ctx, n)
-	gradLogits := node.Grad.Times(ctx, localGrad)
-	reducedLogits := shapes.ReduceBroadcast(ctx, logits, gradLogits)
-	logits.Computation.Grad = logits.Grad().Plus(ctx, reducedLogits)
+	gradLogits := node.Grad().Times(ctx, localGrad)
+	reducedLogits := shapes.ReduceBroadcast(ctx, logits, gradLogits.(shapes.GradTensor))
+	logits.Grad().Accumulate(ctx, reducedLogits)
 }

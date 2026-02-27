@@ -10,9 +10,9 @@ import (
 
 func TestParametersFromSingleDense(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense := layer.Dense(3, 2)
+	dense := layer.Dense(ctx, 3, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	o := dense(x)
@@ -37,10 +37,10 @@ func TestParametersFromSingleDense(t *testing.T) {
 
 func TestParametersFromMultipleDenseLayers(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
-	dense1 := layer.Dense(3, 4)
-	dense2 := layer.Dense(4, 2)
+	dense1 := layer.Dense(ctx, 3, 4)
+	dense2 := layer.Dense(ctx, 4, 2)
 	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
 
 	h := dense1(x)
@@ -56,7 +56,7 @@ func TestParametersFromMultipleDenseLayers(t *testing.T) {
 
 func TestParametersEmptyWithNoLayers(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Float(shapes.Shape{2}, 3.0)
 	b := ctx.Float(shapes.Shape{2}, 5.0)

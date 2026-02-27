@@ -16,7 +16,8 @@ func Tanh(ctx *shapes.Context, t *shapes.Tensor) *shapes.Tensor {
 	out := exp2x.Minus(fusedCtx, ones).Divide(fusedCtx, exp2x.Plus(fusedCtx, ones))
 
 	if ctx.BackwardEnabled {
-		fusedCtx.NewComputationGraphNode(out, shapes.OpTanh, tanhBackward, t)
+		// Save `out` as metadata so backward can reuse tanh(x) without recomputing it.
+		ctx.NewComputationGraphNode(out, shapes.OpTanh, tanhBackward, []*shapes.Tensor{t}, []*shapes.Tensor{}, []*shapes.Tensor{out})
 	}
 	return out
 }
@@ -24,14 +25,14 @@ func Tanh(ctx *shapes.Context, t *shapes.Tensor) *shapes.Tensor {
 // tanhBackward computes the gradient for tanh.
 // d(tanh(x))/dx = 1 - tanh(x)^2
 // grad_input += grad_output * (1 - output^2)
-func tanhBackward(ctx *shapes.Context, node *shapes.ComputationGraphNode) {
-	input := node.Inputs[0]
-	output := node.Output
+func tanhBackward(ctx *shapes.Context, node shapes.ComputationGraphNode) {
+	input := node.Inputs()[0]
+	output := node.Metadata()[0]
 
 	ones := shapes.Float(ctx, shapes.ShapeOf(output), 1.0)
 	outputSquared := output.Times(ctx, output)
 	localGrad := ones.Minus(ctx, outputSquared)
-	gradInput := node.Grad.Times(ctx, localGrad)
+	gradInput := node.Grad().(*shapes.Tensor).Times(ctx, localGrad)
 
-	input.Computation.Grad = input.Grad().Plus(ctx, gradInput)
+	input.Grad().Accumulate(ctx, gradInput)
 }

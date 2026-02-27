@@ -7,7 +7,7 @@ import (
 
 func TestSlice(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 3x4 tensor filled with 5s, slice to [0:2, 1:3] → 2x2
 	a := ctx.Int(Shape{3, 4}, 5)
@@ -26,7 +26,7 @@ func TestSlice(t *testing.T) {
 
 func TestSliceInvalidRange(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{3, 4}, 1)
 
@@ -40,7 +40,7 @@ func TestSliceInvalidRange(t *testing.T) {
 
 func TestReshape(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3 → 3x2
 	a := ctx.Int(Shape{2, 3}, 7)
@@ -59,7 +59,7 @@ func TestReshape(t *testing.T) {
 
 func TestReshapeSizeMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3}, 1)
 
@@ -73,7 +73,7 @@ func TestReshapeSizeMismatch(t *testing.T) {
 
 func TestReshapeWithMinusOne(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3x4 = 24 elements, reshape to (-1, 4) should infer 6
 	a := ctx.Int(Shape{2, 3, 4}, 7)
@@ -104,7 +104,7 @@ func TestReshapeWithMinusOne(t *testing.T) {
 
 func TestReshapeWithMinusOneMiddle(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3x4 = 24 elements, reshape to (2, -1, 2) should infer 6
 	a := ctx.Int(Shape{2, 3, 4}, 5)
@@ -125,7 +125,7 @@ func TestReshapeWithMinusOneMiddle(t *testing.T) {
 
 func TestReshapeMultipleMinusOnePanics(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3, 4}, 1)
 
@@ -139,7 +139,7 @@ func TestReshapeMultipleMinusOnePanics(t *testing.T) {
 
 func TestReshapeMinusOneSizeMismatch(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3 = 6 elements, reshape to (-1, 4) would need 4 to divide 6 evenly
 	a := ctx.Int(Shape{2, 3}, 1)
@@ -154,7 +154,7 @@ func TestReshapeMinusOneSizeMismatch(t *testing.T) {
 
 func TestTranspose(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 2x3 filled with 4, transpose dims 0,1 → 3x2
 	a := ctx.Int(Shape{2, 3}, 4)
@@ -173,7 +173,7 @@ func TestTranspose(t *testing.T) {
 
 func TestTransposeDimOutOfBounds(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{2, 3}, 1)
 
@@ -187,7 +187,7 @@ func TestTransposeDimOutOfBounds(t *testing.T) {
 
 func TestSqueeze(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// 1x3x1 → 3
 	a := ctx.Int(Shape{1, 3, 1}, 9)
@@ -204,7 +204,7 @@ func TestSqueeze(t *testing.T) {
 
 func TestUnSqueeze(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	// shape [3] → unsqueeze at dim 0 → [1, 3]
 	a := ctx.Int(Shape{3}, 6)
@@ -221,7 +221,7 @@ func TestUnSqueeze(t *testing.T) {
 
 func TestUnSqueezeDimOutOfBounds(t *testing.T) {
 	ctx := New(context.Background())
-	defer ctx.Close()
+	defer ctx.Finish()
 
 	a := ctx.Int(Shape{3}, 1)
 

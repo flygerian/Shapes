@@ -4,15 +4,15 @@ import (
 	shapes "github.com/flygerian/shapes"
 )
 
-func Parameters(c *shapes.ComputationGraph) []*shapes.Tensor {
-	var parameters []*shapes.Tensor
-	for i := range len(c.Nodes) {
-		p := c.Nodes[i].Parameters
-		if p == nil {
+func Parameters(c shapes.ComputationGraph) []shapes.Tensor {
+	var parameters []shapes.Tensor
+	for i := range len(c) {
+		h := c[i].HiddenState()
+		if h == nil {
 			continue
 		}
 
-		parameters = append(parameters, p...)
+		parameters = append(parameters, h...)
 	}
 
 	return parameters

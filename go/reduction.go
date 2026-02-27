@@ -16,22 +16,21 @@ static inline Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out) 
 */
 import "C"
 
+type hadReductionOps interface {
+	Sum(ctx Context, dim uint32) Tensor
+}
+
 // Sum reduces the tensor along the given dimension by summing, returning a new tensor.
-func (t *Tensor) Sum(ctx *Context, dim uint32) *Tensor {
+func (t *tensor) Sum(ctx Context, dim uint32) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Sum((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dim), &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	out := track(ctx, &Tensor{cTensor: dest})
-	if ctx.BackwardEnabled {
-		ctx.newNode(out, OpSum, sumBackward, nil, t)
-		out.Computation.Metadata = dim
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpSum, sumBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = dim
 	}
 	return out
-}
-
-// Sum reduces the tensor along the given dimension by summing, returning a new WrappedTensor.
-func (wt *WrappedTensor) Sum(dim uint32) *WrappedTensor {
-	return wt.context.Wrap(wt.tensor.Sum(wt.context, dim))
 }
