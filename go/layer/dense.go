@@ -10,7 +10,6 @@ type dense struct {
 	w, b, o    shapes.Tensor
 	inputSize  int
 	outputSize int
-	persistant bool
 }
 
 func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
@@ -38,18 +37,18 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	}
 
 	// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
-	output := input.Mul(fusedCtx, d.w.Transpose(fusedCtx)).Plus(fusedCtx, d.b)
+	d.o = input.Mul(fusedCtx, d.w.Transpose(fusedCtx)).Plus(fusedCtx, d.b)
 
 	// If 1D input, squeeze back to 1D output.
 	if is1D {
-		output = output.Squeeze(fusedCtx)
+		d.o = d.o.Squeeze(fusedCtx)
 	}
 
 	// Result area
 
 	// If o is not initialized output declared, create o in the outer ctx
 	if d.o == nil {
-		d.o = shapes.Zeros(fusedCtx, output.Shape())
+		d.o = shapes.Zeros(fusedCtx, d.o.Shape())
 	}
 
 	fusedCtx.Finish(

@@ -1,0 +1,25 @@
+package layer
+
+import shapes "github.com/flygerian/shapes"
+
+type embedding struct {
+	c         shapes.Tensor // embedding matrix [vocabSize, embDim]
+	vocabSize int
+	embDim    int
+}
+
+// Forward looks up embeddings for each index in x.
+// x must be an integer tensor of indices.
+// Returns a tensor of shape [..., embDim].
+func (e *embedding) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
+	out := e.c.Get(ctx, x)
+	out.AttachHiddenState(e.c)
+	return out
+}
+
+// Embedding creates an embedding layer with a randomly initialised matrix of
+// shape [vocabSize, embDim].
+func Embedding(ctx shapes.Context, vocabSize int, embDim int) Layer {
+	c := shapes.FloatRandom(ctx, shapes.Shape{uint32(vocabSize), uint32(embDim)})
+	return &embedding{c: c, vocabSize: vocabSize, embDim: embDim}
+}

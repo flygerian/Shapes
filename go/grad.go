@@ -106,6 +106,7 @@ type ComputationGraphNode interface {
 	Metadata() any
 	HiddenState() []Tensor
 	SetValuesToZero()
+	AttachHiddenState(tensors ...Tensor)
 }
 
 // BackwardFn is the signature for backward pass functions.
@@ -191,7 +192,20 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 		}
 	}
 
-	// Stage all backward intermediates into root.freeList for the caller to sweep.
+	// Mark all forward-pass graph nodes and their grads for sweeping.
+	// Only non-leaf nodes (those with a backward fn) are marked — leaf inputs were created
+	// outside the forward pass and may be reused by the caller.
+	// Hidden state tensors (parameters) are not in the graph so they are naturally excluded.
+	for _, node := range graph {
+		n := node.(*tensor)
+		if n.computation.backward == nil {
+			continue
+		}
+		ctx.Mark(n)
+		if node.Grad() != nil {
+			ctx.Mark(node.Grad().(Tensor))
+		}
+	}
 
 	return graph
 }
@@ -227,4 +241,11 @@ func (t *tensor) RequiresGrad() bool {
 
 func (t *tensor) HiddenState() []Tensor {
 	return t.computation.hiddenState
+}
+
+func (t *tensor) AttachHiddenState(tensors ...Tensor) {
+	if t.computation == nil {
+		panic("shapes: cannot attach hidden state to a tensor with no computation node")
+	}
+	t.computation.hiddenState = append(t.computation.hiddenState, tensors...)
 }

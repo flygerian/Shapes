@@ -126,14 +126,13 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 	// newSection()
 
-	C := shapes.FloatRandom(shapesCtx, shapes.Shape{27, 2})
-
 	newSection()
 
+	embLayer := layer.Embedding(shapesCtx, 27, 2)
 	l1 := layer.Dense(shapesCtx, 6, 100)
 	l2 := layer.Dense(shapesCtx, 100, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.001)
+	sgd := optimizer.SGD(shapesCtx, 0.01)
 
 	crossEnthropy := loss.CrossEntropy(shapesCtx)
 
@@ -153,13 +152,13 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		return lossValue
 	}
 
-	for i := range 100 {
+	for i := range 500 {
 
 		fmt.Printf("Blocks before forward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		ix := shapes.FloatRandom(shapesCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(shapesCtx)
 
 		// Forward pass
-		emb := C.Get(shapesCtx, X.Get(shapesCtx, ix))
+		emb := embLayer.Forward(shapesCtx, X.Get(shapesCtx, ix))
 		y_batch := Y.Get(shapesCtx, ix)
 
 		// fmt.Printf("Emb shape: %v\n", emb.Shape())

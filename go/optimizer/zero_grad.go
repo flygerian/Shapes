@@ -21,5 +21,13 @@ func ZeroGrad(ctx shapes.Context, cg shapes.ComputationGraph) {
 		if node.Grad() != nil {
 			node.SetValuesToZero()
 		}
+
+		// Zero hidden state (parameter) gradients — these are not graph nodes themselves
+		// so they are not visited by the loop above, but they accumulate gradients via backward.
+		for _, p := range node.HiddenState() {
+			if p.Grad() != nil {
+				p.SetValuesToZero()
+			}
+		}
 	}
 }
