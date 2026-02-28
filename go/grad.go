@@ -107,6 +107,8 @@ type ComputationGraphNode interface {
 	HiddenState() []Tensor
 	SetValuesToZero()
 	AttachHiddenState(tensors ...Tensor)
+	Label() string
+	Op() OpType
 }
 
 // BackwardFn is the signature for backward pass functions.
@@ -214,8 +216,8 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 func (t *tensor) Grad() GradTensor {
 	if t.Computation == nil {
 		err := "shapes: tensor has no computation graph node"
-		if t.Label != "" {
-			err = err + fmt.Sprintf(" %s", t.Label)
+		if t.label != "" {
+			err = err + fmt.Sprintf(" %s", t.label)
 		}
 		panic(err)
 	}

@@ -2,11 +2,14 @@ package activation
 
 import "github.com/flygerian/shapes"
 
-func Softmax(t *shapes.WrappedTensor) *shapes.WrappedTensor {
-	fusedCtx := t.Context().Fused()
+func Softmax(ctx shapes.Context, logits shapes.Tensor) shapes.Tensor {
+	ndims := uint32(len(logits.Shape()))
+	classDim := ndims - 1
 
-	exp := t.Tensor().Minus(fusedCtx, t.Tensor().Max(fusedCtx)).Exp(fusedCtx)
-	sm := exp.Divide(fusedCtx, exp.Sum(fusedCtx, 1))
+	maxLogits := logits.Max(ctx, classDim)
+	shifted := logits.Minus(ctx, maxLogits)
+	exp := shifted.Exp(ctx)
+	probs := exp.Divide(ctx, exp.Sum(ctx, classDim))
 
-	return fusedCtx.Wrap(sm)
+	return probs
 }

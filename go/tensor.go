@@ -47,13 +47,18 @@ type Tensor interface {
 	Computation() Computation
 
 	I64(ctx Context) Tensor
+
+	SetLabel(label string)
+	Label() string
+
+	Dtype() Dtype
 }
 
 // Tensor wraps a C Tensor pointer.
 type tensor struct {
 	cTensor     *C.Tensor
 	computation *Computation
-	Label       string
+	label       string
 }
 
 // dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
@@ -170,6 +175,18 @@ func (t *tensor) SetValuesToZero() {
 // This is unsafe and should only be used when necessary.
 func (t *tensor) UnsafeCTensor() unsafe.Pointer {
 	return unsafe.Pointer(t.cTensor)
+}
+
+func (t *tensor) SetLabel(label string) {
+	t.label = label
+}
+
+func (t *tensor) Label() string {
+	return t.label
+}
+
+func (t *tensor) Op() OpType {
+	return t.computation.op
 }
 
 // Shape returns the shape of the WrappedTensor.

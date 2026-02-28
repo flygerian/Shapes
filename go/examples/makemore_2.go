@@ -9,9 +9,11 @@ import (
 	"unicode"
 
 	"github.com/flygerian/shapes"
+	"github.com/flygerian/shapes/activation"
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss"
 	"github.com/flygerian/shapes/optimizer"
+	"github.com/flygerian/shapes/visual"
 )
 
 func set(input string) []rune {
@@ -137,19 +139,15 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 	crossEnthropy := loss.CrossEntropy(shapesCtx)
 
-	forward := func(ctx shapes.Context, xBatch shapes.Tensor, yBatch shapes.Tensor) shapes.Tensor {
+	forward := func(ctx shapes.Context, xBatch shapes.Tensor) shapes.Tensor {
 
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 6))
-
 		logits := l2.Forward(ctx, h)
-
-		yOneHot := shapes.OneHot(ctx, yBatch, 27)
-		lossValue := crossEnthropy(yOneHot, logits)
 
 		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
 		// fmt.Printf("logits.shape: %v\n", logits.Shape())
 
-		return lossValue
+		return logits
 	}
 
 	for i := range 500 {
@@ -162,7 +160,10 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 		// fmt.Printf("Emb shape: %v\n", emb.Shape())
 
-		lossValue := forward(epochCtx, emb, yBatch)
+		yOneHot := shapes.OneHot(epochCtx, yBatch, 27)
+		logits := forward(epochCtx, emb)
+
+		lossValue := crossEnthropy(yOneHot, logits)
 		fmt.Printf("Epoch %d, Loss: %f, \n", i, lossValue.Get(epochCtx, 0).Item())
 
 		// Backward pass
@@ -174,8 +175,21 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		epochCtx.Finish()
 	}
 
-	// fullLoss := forward(C.Get((X)), Y)
-	// fmt.Printf("Full loss: ")
-	// visual.Print(fullLoss)
+	newSection()
+
+	testCtx := shapesCtx.Forward()
+	x_inf := shapes.Float(testCtx, shapes.Shape{1, 3}, 0)
+
+	emb := embLayer.Forward(testCtx, x_inf.I64(shapesCtx))
+	logits := forward(testCtx, emb)
+
+	probs := activation.Softmax(testCtx, logits)
+
+	fmt.Printf("Probs: ")
+	visual.Print(testCtx, probs)
+	predicted := probs.Squeeze(testCtx).Max(testCtx)
+
+	fmt.Printf("Predicted: ")
+	visual.Print(testCtx, predicted)
 
 }
