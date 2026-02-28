@@ -31,6 +31,7 @@ type Context interface {
 	Mark(t Tensor)
 	Track(t Tensor)
 
+	Epoch(options ...subContextOption) SubContext
 	NoGrad(options ...subContextOption) SubContext
 	Fused(options ...subContextOption) SubContext
 	NoGraph(options ...subContextOption) SubContext
@@ -60,9 +61,10 @@ type SubContext interface {
 type shapesCtx struct {
 	stdctx.Context // Embedded Go context for cancellation/deadlines
 
-	gradEnabled     bool
-	backwardEnabled bool
-	persistant      bool
+	gradEnabled      bool
+	backwardEnabled  bool
+	persistant       bool
+	sweepAfterFinish bool
 }
 
 // New creates a new Context with the given parent Go context.
@@ -161,6 +163,13 @@ func (c *mainContext) NoGrad(options ...subContextOption) SubContext {
 	return noGrad(c, options...)
 }
 
+// Epoch returns a short-lived context for one training/inference step.
+// It preserves the parent context's grad/backward behavior while keeping
+// locals isolated so callers can Finish/Sweep at epoch boundaries.
+func (c *mainContext) Epoch(options ...subContextOption) SubContext {
+	return epoch(c, options...)
+}
+
 // Fused returns a new Context that shares the same C context and memory
 // but turns of backward passes for any ops used in that context.
 // Meant for doing compund operations where the caller might want to specify the backward pass manually
@@ -255,6 +264,13 @@ func (ctx *mainContext) Sweep() {
 			live = append(live, t)
 		}
 	}
+	fmt.Printf("[Sweep] handles after compact: %d\n", len(live))
+	for i, t := range live {
+		tt := t.(*tensor)
+		hasGrad := tt.computation != nil && tt.computation.grad != nil
+		hasBackward := tt.computation != nil && tt.computation.backward != nil
+		fmt.Printf("  [%d] shape=%v grad=%v backward=%v\n", i, shapeOf(tt), hasGrad, hasBackward)
+	}
 	ctx.handles = live
 }
 
@@ -290,10 +306,17 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	applySubContextOptions(sc, options...)
 
 	if sc.gradEnabled {
-		sc.prepareResultForBackwardPass()
+		if sc.result != nil {
+			sc.prepareResultForBackwardPass()
+		} else if sc.backward != nil || len(sc.inputs) > 0 || len(sc.hiddenState) > 0 || sc.op != OpNone {
+			panic("Preparing for backward pass requires a result tensor")
+		}
 	}
 
 	sc.cleanup()
+	if sc.sweepAfterFinish {
+		sc.parent.Sweep()
+	}
 }
 
 func (sc *subContext) cleanup() {
@@ -309,6 +332,10 @@ func (sc *subContext) cleanup() {
 		}
 
 		sc.Mark(t)
+		// Also mark the grad tensor if it was allocated by leafNode — it won't be swept otherwise.
+		if tt := t.(*tensor); tt.computation != nil && tt.computation.grad != nil {
+			sc.Mark(tt.computation.grad.(Tensor))
+		}
 	}
 
 	sc.locals = nil
@@ -318,6 +345,13 @@ func (sc *subContext) cleanup() {
 // but has gradient tracking disabled. In this context gradients are not created for new tensors
 func (c *subContext) NoGrad(options ...subContextOption) SubContext {
 	return noGrad(c, options...)
+}
+
+// Epoch returns a short-lived context for one training/inference step.
+// It preserves the parent context's grad/backward behavior while keeping
+// locals isolated so callers can Finish/Sweep at epoch boundaries.
+func (c *subContext) Epoch(options ...subContextOption) SubContext {
+	return epoch(c, options...)
 }
 
 // Fused returns a new Context that shares the same C context and memory
@@ -405,6 +439,23 @@ func noGrad(c Context, options ...subContextOption) SubContext {
 	}
 
 	return derive(c, false, c.BackwardEnabled(), options...)
+}
+
+// Epoch returns a short-lived context intended for one training step.
+// It preserves grad/backward settings from the parent while providing
+// independent local tracking for cleanup.
+func epoch(c Context, options ...subContextOption) SubContext {
+	if !c.GradEnabled() || !c.BackwardEnabled() {
+		panic("Cannot create epoch context when gradients or backward are disabled")
+	}
+
+	if sc, ok := c.(*subContext); ok && sc.sweepAfterFinish {
+		panic("Cannot create an epoch context from another epoch context")
+	}
+
+	sc := derive(c, c.GradEnabled(), c.BackwardEnabled(), options...)
+	sc.(*subContext).sweepAfterFinish = true
+	return sc
 }
 
 // Fused returns a new Context that shares the same C context and memory

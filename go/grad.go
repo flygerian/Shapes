@@ -134,7 +134,7 @@ type ComputationGraph []ComputationGraphNode
 // Called at creation time when grad is enabled so that .Grad() is always available.
 func leafNode(ctx Context, t *tensor) {
 	t.computation = &Computation{
-		grad: Zeros(ctx.NoGrad(WithPersistence()), t.Shape()),
+		grad: Zeros(ctx.NoGrad(), t.Shape()),
 	}
 }
 

@@ -215,7 +215,6 @@ func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		leafNode(ctx, out)
 		toComputationGraphNode(out, OpReshape, reshapeBackward, []Tensor{t}, []Tensor{}, nil)
 	}
 	return out
@@ -254,7 +253,6 @@ func (t *tensor) Transpose(ctx Context, dims ...uint32) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		leafNode(ctx, out)
 		toComputationGraphNode(out, OpTranspose, transposeBackward, []Tensor{t}, []Tensor{}, nil)
 		out.computation.meta = [2]uint32{d0, d1}
 	}
@@ -270,7 +268,6 @@ func (t *tensor) Squeeze(ctx Context) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		leafNode(ctx, out)
 		toComputationGraphNode(out, OpSqueeze, squeezeBackward, []Tensor{t}, []Tensor{}, nil)
 	}
 	return out
@@ -285,7 +282,6 @@ func (t *tensor) SqueezeDim(ctx Context, dim uint32) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		leafNode(ctx, out)
 		toComputationGraphNode(out, OpSqueezeDim, squeezeDimBackward, []Tensor{t}, []Tensor{}, nil)
 		out.computation.meta = dim
 	}
@@ -301,7 +297,6 @@ func (t *tensor) UnSqueeze(ctx Context, dim uint32) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		leafNode(ctx, out)
 		toComputationGraphNode(out, OpUnSqueeze, unSqueezeBackward, []Tensor{t}, []Tensor{}, nil)
 		out.computation.meta = dim
 	}

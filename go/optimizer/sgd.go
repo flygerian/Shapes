@@ -9,9 +9,9 @@ import (
 
 func SGD(ctx shapes.Context, lr float32) func(shapes.ComputationGraph) {
 	return func(cg shapes.ComputationGraph) {
-		lrTensor := shapes.Float(ctx, shapes.Shape{1}, lr)
 		fusedCtx := ctx.NoGraph()
 		defer fusedCtx.Finish()
+		lrTensor := shapes.Float(fusedCtx, shapes.Shape{1}, lr)
 
 		parameters := extract.Parameters(cg)
 		for _, p := range parameters {

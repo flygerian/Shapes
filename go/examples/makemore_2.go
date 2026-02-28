@@ -59,6 +59,7 @@ func MakeMore_2(shapesCtx shapes.Context) {
 	if err != nil {
 		panic("Could not open file")
 	}
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 
@@ -136,14 +137,14 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 	crossEnthropy := loss.CrossEntropy(shapesCtx)
 
-	forward := func(x_batch shapes.Tensor, y_batch shapes.Tensor) shapes.Tensor {
+	forward := func(ctx shapes.Context, xBatch shapes.Tensor, yBatch shapes.Tensor) shapes.Tensor {
 
-		h := l1.Forward(shapesCtx, x_batch.Reshape(shapesCtx, -1, 6))
+		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 6))
 		fmt.Printf("h.shape: %v\n", h.Shape())
 
-		logits := l2.Forward(shapesCtx, h)
+		logits := l2.Forward(ctx, h)
 
-		yOneHot := shapes.OneHot(shapesCtx, y_batch, 27)
+		yOneHot := shapes.OneHot(ctx, yBatch, 27)
 		lossValue := crossEnthropy(yOneHot, logits)
 
 		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
@@ -153,28 +154,29 @@ func MakeMore_2(shapesCtx shapes.Context) {
 	}
 
 	for i := range 500 {
+		epochCtx := shapesCtx.Epoch()
 
 		fmt.Printf("Blocks before forward pass: %v\n", shapesCtx.NumAllocatedBlocks())
-		ix := shapes.FloatRandom(shapesCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(shapesCtx)
+		ix := shapes.FloatRandom(epochCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(epochCtx)
 
 		// Forward pass
-		emb := embLayer.Forward(shapesCtx, X.Get(shapesCtx, ix))
-		y_batch := Y.Get(shapesCtx, ix)
+		emb := embLayer.Forward(epochCtx, X.Get(epochCtx, ix))
+		yBatch := Y.Get(epochCtx, ix)
 
 		// fmt.Printf("Emb shape: %v\n", emb.Shape())
 
-		lossValue := forward(emb, y_batch)
+		lossValue := forward(epochCtx, emb, yBatch)
 
-		fmt.Printf("Epoch %d, Loss: %f, shape %v\n", i, lossValue.Get(shapesCtx, 0).Item(), lossValue.Shape())
+		fmt.Printf("Epoch %d, Loss: %f, shape %v\n", i, lossValue.Get(epochCtx, 0).Item(), lossValue.Shape())
 
 		// Backward pass
-		graph := lossValue.Backward(shapesCtx)
+		graph := lossValue.Backward(epochCtx)
 
 		// Update parameters
 		sgd(graph)
 		optimizer.ZeroGrad(shapesCtx, graph)
+		epochCtx.Finish()
 
-		shapesCtx.Sweep()
 		fmt.Printf("Blocks after backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		newSection()
 	}
