@@ -15,7 +15,7 @@ type dense struct {
 func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 
 	// Initialize a fused context
-	fusedCtx := ctx.Fused(
+	fusedCtx := ctx.Forward(
 		shapes.WithInputs(x),
 		shapes.WithHiddenState(d.w, d.b),
 		shapes.WithOpType(shapes.OpDense),
@@ -68,7 +68,7 @@ func Dense(outerCtx shapes.Context, inputSize int, outputSize int) Layer {
 }
 
 func constructDenseBackwardPass(ctx shapes.Context, node shapes.ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]

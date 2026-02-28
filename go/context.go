@@ -32,6 +32,8 @@ type Context interface {
 	Track(t Tensor)
 
 	Epoch(options ...subContextOption) SubContext
+	Forward(options ...subContextOption) SubContext
+	Backward(options ...subContextOption) SubContext
 	NoGrad(options ...subContextOption) SubContext
 	Fused(options ...subContextOption) SubContext
 	NoGraph(options ...subContextOption) SubContext
@@ -168,6 +170,18 @@ func (c *mainContext) NoGrad(options ...subContextOption) SubContext {
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
 func (c *mainContext) Epoch(options ...subContextOption) SubContext {
 	return epoch(c, options...)
+}
+
+// Forward returns a context intended for forward-pass fused operations.
+// This is an alias for Fused.
+func (c *mainContext) Forward(options ...subContextOption) SubContext {
+	return fused(c, options...)
+}
+
+// Backward returns a context intended for backward-pass computation.
+// This is an alias for NoGraph.
+func (c *mainContext) Backward(options ...subContextOption) SubContext {
+	return noGraph(c, options...)
 }
 
 // Fused returns a new Context that shares the same C context and memory
@@ -352,6 +366,18 @@ func (c *subContext) NoGrad(options ...subContextOption) SubContext {
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
 func (c *subContext) Epoch(options ...subContextOption) SubContext {
 	return epoch(c, options...)
+}
+
+// Forward returns a context intended for forward-pass fused operations.
+// This is an alias for Fused.
+func (c *subContext) Forward(options ...subContextOption) SubContext {
+	return fused(c, options...)
+}
+
+// Backward returns a context intended for backward-pass computation.
+// This is an alias for NoGraph.
+func (c *subContext) Backward(options ...subContextOption) SubContext {
+	return noGraph(c, options...)
 }
 
 // Fused returns a new Context that shares the same C context and memory

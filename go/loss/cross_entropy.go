@@ -12,7 +12,7 @@ import (
 func CrossEntropy(shapesCtx shapes.Context) func(shapes.Tensor, shapes.Tensor) shapes.Tensor {
 	return func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor {
 
-		fusedCtx := shapesCtx.Fused(shapes.WithInputs(yGround, logits))
+		fusedCtx := shapesCtx.Forward(shapes.WithInputs(yGround, logits))
 
 		// Determine the class dimension (last dimension).
 		ndims := uint32(len(logits.Shape()))
@@ -52,7 +52,7 @@ func CrossEntropy(shapesCtx shapes.Context) func(shapes.Tensor, shapes.Tensor) s
 // where probs = softmax(logits) and batch_size is the number of samples
 // (the dimension being averaged over by Mean).
 func crossEntropyBackward(c shapes.Context, node shapes.ComputationGraphNode) {
-	ctx := c.NoGraph()
+	ctx := c.Backward()
 	defer ctx.Finish()
 
 	yGround := node.Inputs()[0]

@@ -25,7 +25,7 @@ import "fmt"
 // Backward: x.grad[idx] += out.grad  (via view + AddInPlace)
 func getTensorAtBackward(ctx Context, node ComputationGraphNode) {
 
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -40,7 +40,7 @@ func getTensorAtBackward(ctx Context, node ComputationGraphNode) {
 // Forward: out = x[ranges...]
 // Backward: x.grad[ranges...] += out.grad  (via view + AddInPlace)
 func sliceBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -54,7 +54,7 @@ func sliceBackward(ctx Context, node ComputationGraphNode) {
 // Forward: out = x[indices]  (gathers rows)
 // Backward: x.grad[indices[i], :] += out.grad[i, :]  (scatter-add)
 func indexWithTensorBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -73,7 +73,7 @@ func indexWithTensorBackward(ctx Context, node ComputationGraphNode) {
 // Forward: out = x[rowIndices, colIndices]
 // Backward: x.grad[row, col, :] += out.grad[i, :]  (scatter-add)
 func indexWithTensor2dBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]

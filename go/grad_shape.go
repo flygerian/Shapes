@@ -2,7 +2,7 @@ package shapes
 
 // reshapeBackward reshapes the gradient back to the input's original shape.
 func reshapeBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -17,7 +17,7 @@ func reshapeBackward(ctx Context, node ComputationGraphNode) {
 
 // transposeBackward transposes the gradient back using the same dims.
 func transposeBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -28,7 +28,7 @@ func transposeBackward(ctx Context, node ComputationGraphNode) {
 
 // squeezeBackward reshapes the gradient back to the input's original shape.
 func squeezeBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -43,7 +43,7 @@ func squeezeBackward(ctx Context, node ComputationGraphNode) {
 
 // squeezeDimBackward unsqueezes the gradient at the dim that was squeezed.
 func squeezeDimBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -58,7 +58,7 @@ func oneHotBackward(_ Context, _ ComputationGraphNode) {}
 
 // unSqueezeBackward squeezes the gradient at the dim that was unsqueezed.
 func unSqueezeBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]

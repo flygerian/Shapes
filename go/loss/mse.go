@@ -10,7 +10,7 @@ import (
 func Mse(c shapes.Context, yGround shapes.Tensor, yPred shapes.Tensor) func(shapes.Tensor) shapes.Tensor {
 	return func(t shapes.Tensor) shapes.Tensor {
 
-		fusedCtx := c.Fused(shapes.WithInputs(yGround, yPred))
+		fusedCtx := c.Forward(shapes.WithInputs(yGround, yPred))
 		defer fusedCtx.Finish()
 
 		// Compute: (yPred - yGround)^2
@@ -37,7 +37,7 @@ func Mse(c shapes.Context, yGround shapes.Tensor, yPred shapes.Tensor) func(shap
 // ∂L/∂yPred = 2*(yPred - yGround)
 // ∂L/∂yGround = -2*(yPred - yGround)
 func mseBackward(c shapes.Context, node shapes.ComputationGraphNode) {
-	ctx := c.NoGraph()
+	ctx := c.Backward()
 	defer ctx.Finish()
 
 	yGround := node.Inputs()[0]

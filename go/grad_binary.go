@@ -4,7 +4,7 @@ package shapes
 // d(a+b)/da = 1, d(a+b)/db = 1
 // grad_a += output_grad, grad_b += output_grad (with broadcast reduction).
 func addBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	a := node.Inputs()[0]
@@ -20,7 +20,7 @@ func addBackward(ctx Context, node ComputationGraphNode) {
 // subtractBackward computes gradients for element-wise subtraction.
 // d(a-b)/da = 1, d(a-b)/db = -1
 func subtractBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	a := node.Inputs()[0]
@@ -37,7 +37,7 @@ func subtractBackward(ctx Context, node ComputationGraphNode) {
 // multiplyBackward computes gradients for element-wise multiplication.
 // d(a*b)/da = b, d(a*b)/db = a
 func multiplyBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	a := node.Inputs()[0]
@@ -58,7 +58,7 @@ func multiplyBackward(ctx Context, node ComputationGraphNode) {
 // d(a/b)/da = 1/b, d(a/b)/db = -a/b^2
 func divideBackward(ctx Context, node ComputationGraphNode) {
 
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	a := node.Inputs()[0]
@@ -81,7 +81,7 @@ func divideBackward(ctx Context, node ComputationGraphNode) {
 // powBackward computes gradients for element-wise power.
 // d(x^n)/dx = n * x^(n-1)
 func powBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
@@ -97,7 +97,7 @@ func powBackward(ctx Context, node ComputationGraphNode) {
 // negateBackward computes gradients for element-wise negation.
 // d(-t)/dt = -1
 func negateBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	t := node.Inputs()[0]
@@ -108,7 +108,7 @@ func negateBackward(ctx Context, node ComputationGraphNode) {
 // sumBackward computes gradients for sum reduction along a dimension.
 // d(sum(x, dim))/dx = 1 for all elements; grad is broadcast from reduced shape.
 func sumBackward(ctx Context, node ComputationGraphNode) {
-	noGraphCtx := ctx.NoGraph()
+	noGraphCtx := ctx.Backward()
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
