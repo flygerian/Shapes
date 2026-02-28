@@ -1,6 +1,5 @@
 #include "tensor_internal.h"
 #include "../memory.h"
-#include <stdio.h>
 
 Result FreeViewTensor(Context *ctx, Tensor *t) {
   if (t == NULL)

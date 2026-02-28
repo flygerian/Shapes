@@ -240,7 +240,6 @@ func (c *mainContext) Mark(t Tensor) {
 
 func (ctx *mainContext) Sweep() {
 	cCtx := (*C.Context)(ctx.UnsafePtr())
-
 	if len(ctx.freeList) == 0 {
 		return
 	}
@@ -277,13 +276,6 @@ func (ctx *mainContext) Sweep() {
 		if t.(*tensor).cTensor != nil {
 			live = append(live, t)
 		}
-	}
-	fmt.Printf("[Sweep] handles after compact: %d\n", len(live))
-	for i, t := range live {
-		tt := t.(*tensor)
-		hasGrad := tt.computation != nil && tt.computation.grad != nil
-		hasBackward := tt.computation != nil && tt.computation.backward != nil
-		fmt.Printf("  [%d] shape=%v grad=%v backward=%v\n", i, shapeOf(tt), hasGrad, hasBackward)
 	}
 	ctx.handles = live
 }

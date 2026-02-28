@@ -140,7 +140,6 @@ func MakeMore_2(shapesCtx shapes.Context) {
 	forward := func(ctx shapes.Context, xBatch shapes.Tensor, yBatch shapes.Tensor) shapes.Tensor {
 
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 6))
-		fmt.Printf("h.shape: %v\n", h.Shape())
 
 		logits := l2.Forward(ctx, h)
 
@@ -155,8 +154,6 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 	for i := range 500 {
 		epochCtx := shapesCtx.Epoch()
-
-		fmt.Printf("Blocks before forward pass: %v\n", shapesCtx.NumAllocatedBlocks())
 		ix := shapes.FloatRandom(epochCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(epochCtx)
 
 		// Forward pass
@@ -166,8 +163,7 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		// fmt.Printf("Emb shape: %v\n", emb.Shape())
 
 		lossValue := forward(epochCtx, emb, yBatch)
-
-		fmt.Printf("Epoch %d, Loss: %f, shape %v\n", i, lossValue.Get(epochCtx, 0).Item(), lossValue.Shape())
+		fmt.Printf("Epoch %d, Loss: %f, \n", i, lossValue.Get(epochCtx, 0).Item())
 
 		// Backward pass
 		graph := lossValue.Backward(epochCtx)
@@ -176,9 +172,6 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		sgd(graph)
 		optimizer.ZeroGrad(shapesCtx, graph)
 		epochCtx.Finish()
-
-		fmt.Printf("Blocks after backward pass: %v\n", shapesCtx.NumAllocatedBlocks())
-		newSection()
 	}
 
 	// fullLoss := forward(C.Get((X)), Y)

@@ -159,10 +159,12 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
   // Implement division as: numerator / denominator = numerator * (denominator^-1)
   // This automatically gets correct gradients through the computation graph!
 
-  // Allocate tensor for denominator^-1 using creation function (avoids stack-use-after-return)
-  Tensor *denom_inv = t_Zeros(ctx, denominator->shape, denominator->dtype);
+  // Pow writes into dest by assigning a newly allocated tensor payload. Allocate only the
+  // container struct here so we don't leak a preallocated payload on overwrite.
+  Tensor *denom_inv = allocate(ctx->memory, sizeof(Tensor));
   Result res = Pow(ctx, denominator, -1.0f, denom_inv);
   if (res != OK) {
+    freeAlloc(ctx->memory, denom_inv);
     return res;
   }
 

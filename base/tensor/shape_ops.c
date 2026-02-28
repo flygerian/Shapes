@@ -14,20 +14,22 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
 
     if (ranges[x].end < ranges[x].start) {
       va_end(args);
+      freeAlloc(ctx->memory, ranges);
       return ERR_INVALID_RANGE;
     }
 
     if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 ||
         ranges[x].end > source->shape.dims[x]) {
       va_end(args);
+      freeAlloc(ctx->memory, ranges);
       return ERR_DIM_MISMATCH;
     }
   }
   va_end(args);
 
-  Dim newShape = {.dims = allocate(ctx->memory, sizeof(Dim) * source->shape.numOfDims),
+  Dim newShape = {.dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
                   .numOfDims = source->shape.numOfDims,
-                  .multipliers = source->shape.multipliers};
+                  .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
   Range *boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
 
   for (u8 x = 0; x < source->shape.numOfDims; x++) {
@@ -43,7 +45,8 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
     }
   }
 
-  tensor_size_t size = calculateNumValuesAndMultipliers(newShape, NULL);
+  tensor_size_t size = calculateNumValuesAndMultipliers(newShape, newShape.multipliers);
+  freeAlloc(ctx->memory, ranges);
   *dest = ((Tensor){
       .isView = true,
       .values = source->values,
@@ -74,19 +77,22 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
   }
 
   void *values;
-  bool isView = source->isView;
-  Range *boundary = source->boundary;
+  bool isView = true;
+  Range *boundary = NULL;
 
   if (!source->isContigous) {
     Tensor *contiguous = copyToContiguous(ctx, source);
     values = contiguous->values;
     isView = false;
-    boundary = NULL;
     freeAlloc(ctx->memory, contiguous->shape.dims);
     freeAlloc(ctx->memory, contiguous->shape.multipliers);
     freeAlloc(ctx->memory, contiguous);
   } else {
     values = source->values;
+    if (source->boundary != NULL) {
+      boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+      memcpy(boundary, source->boundary, sizeof(Range) * source->shape.numOfDims);
+    }
   }
 
   *dest = ((Tensor){.isView = isView,
@@ -249,14 +255,24 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   if (t->shape.numOfDims == 1) {
-    *dest = *t;
-    dest->isView = true;
-    // Deep-copy boundary to avoid shared-pointer double-free.
+    dim_t *newDims = allocate(ctx->memory, sizeof(dim_t));
+    newDims[0] = 1;
+    multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t));
+    newMultipliers[0] = 1;
+
+    Range *newBoundary = NULL;
     if (t->boundary != NULL) {
-      Range *newBoundary = allocate(ctx->memory, sizeof(Range));
+      newBoundary = allocate(ctx->memory, sizeof(Range));
       newBoundary[0] = t->boundary[0];
-      dest->boundary = newBoundary;
     }
+
+    *dest = (Tensor){.dtype = t->dtype,
+                     .values = t->values,
+                     .size = t->size,
+                     .isContigous = t->isContigous,
+                     .isView = true,
+                     .boundary = newBoundary,
+                     .shape = {.dims = newDims, .numOfDims = 1, .multipliers = newMultipliers}};
     return OK;
   }
 
