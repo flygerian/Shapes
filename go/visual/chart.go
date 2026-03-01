@@ -24,6 +24,29 @@ func Chart(xAxis, yAxis []int) Artefact {
 	return &chart{xAxis: xCopy, yAxis: yCopy}
 }
 
+func (c *chart) Measure(budget Bounds) Bounds {
+	width := 20
+	if len(c.xAxis) > 0 {
+		width = min(max(len(c.xAxis), 10), 80)
+	}
+	height := 10
+
+	if budget.Width > 0 {
+		width = budget.Width
+	}
+	if budget.Height > 0 {
+		height = budget.Height
+	}
+	if width < 1 {
+		width = 1
+	}
+	if height < 2 {
+		height = 2
+	}
+
+	return Bounds{Width: width, Height: height}
+}
+
 // Render draws the chart inside the provided bounds.
 func (c *chart) Render(target io.Writer, bounds Bounds) {
 	if c == nil || len(c.xAxis) == 0 || len(c.yAxis) == 0 || bounds.Width <= 0 || bounds.Height <= 0 {
@@ -106,6 +129,18 @@ type memoryBar struct {
 }
 
 var _ Artefact = (*memoryBar)(nil)
+
+func (b *memoryBar) Measure(budget Bounds) Bounds {
+	width := 1
+	height := 1
+	if budget.Width > 0 {
+		width = budget.Width
+	}
+	if budget.Height > 0 {
+		height = budget.Height
+	}
+	return Bounds{Width: width, Height: height}
+}
 
 func (b *memoryBar) Render(target io.Writer, bounds Bounds) {
 	if b == nil || bounds.Width <= 0 || bounds.Height <= 0 {

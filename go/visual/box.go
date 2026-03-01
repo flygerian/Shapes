@@ -4,23 +4,49 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"unicode/utf8"
 )
 
 // Box represents a drawable box in the terminal.
 type box struct {
-	topText    string
-	bottomText string
+	child Artefact
+}
+
+type BoxOptions struct {
+	Child Artefact
 }
 
 var _ Artefact = (*box)(nil)
 
 // Box creates a box artefact with top and bottom text content.
-func Box(topText, bottomText string) Artefact {
+func Box(options BoxOptions) Artefact {
 	return &box{
-		topText:    topText,
-		bottomText: bottomText,
+		child: options.Child,
 	}
+}
+
+func (box *box) Measure(budget Bounds) Bounds {
+	if box == nil {
+		return Bounds{Width: 2, Height: 2}
+	}
+
+	innerBudget := budget
+	if innerBudget.Width > 0 {
+		innerBudget.Width -= 2
+	}
+	if innerBudget.Width < 0 {
+		innerBudget.Width = 0
+	}
+	innerBudget.Height = 0
+
+	childSize := Bounds{Width: 1, Height: 1}
+	if box.child != nil {
+		childSize = measure(box.child, innerBudget)
+	}
+
+	width := childSize.Width + 2
+	height := childSize.Height + 2
+
+	return Bounds{Width: width, Height: height}
 }
 
 // Render draws the box into the provided bounds.
@@ -28,6 +54,9 @@ func (box *box) Render(target io.Writer, bounds Bounds) {
 	if box == nil {
 		return
 	}
+	size := measure(box, Bounds{Width: bounds.Width, Height: bounds.Height})
+	bounds.Width = size.Width
+	bounds.Height = size.Height
 	if bounds.Width < 2 || bounds.Height < 2 {
 		return
 	}
@@ -45,39 +74,25 @@ func (box *box) Render(target io.Writer, bounds Bounds) {
 	fmt.Fprint(target, strings.Repeat("─", bounds.Width-2))
 	fmt.Fprint(target, "┐")
 
-	topTextRow := 1
-	separatorRow := -1
-	bottomTextRow := innerHeight
-	if innerHeight >= 3 {
-		topTextRow = innerHeight/2 - 1
-		if topTextRow < 1 {
-			topTextRow = 1
-		}
-		separatorRow = topTextRow + 1
-		bottomTextRow = separatorRow + 1
-	}
-
 	for i := 1; i <= innerHeight; i++ {
 		fmt.Fprintf(target, "\033[%d;%dH", y+i, x)
+		fmt.Fprint(target, "│")
+		fmt.Fprint(target, strings.Repeat(" ", bounds.Width-2))
+		fmt.Fprint(target, "│")
+	}
 
-		switch i {
-		case topTextRow:
-			fmt.Fprint(target, "│")
-			writeCenter(target, box.topText, bounds.Width-2)
-			fmt.Fprint(target, "│")
-		case separatorRow:
-			fmt.Fprint(target, "├")
-			fmt.Fprint(target, strings.Repeat("─", bounds.Width-2))
-			fmt.Fprint(target, "┤")
-		case bottomTextRow:
-			fmt.Fprint(target, "│")
-			writeCenter(target, box.bottomText, bounds.Width-2)
-			fmt.Fprint(target, "│")
-		default:
-			fmt.Fprint(target, "│")
-			fmt.Fprint(target, strings.Repeat(" ", bounds.Width-2))
-			fmt.Fprint(target, "│")
+	if box.child != nil {
+		childSize := measure(box.child, Bounds{
+			Width:  bounds.Width - 2,
+			Height: 0,
+		})
+		contentBounds := Bounds{
+			X:      x + 1,
+			Y:      y + 1,
+			Width:  childSize.Width,
+			Height: childSize.Height,
 		}
+		box.child.Render(target, contentBounds)
 	}
 
 	// Bottom border
@@ -85,22 +100,4 @@ func (box *box) Render(target io.Writer, bounds Bounds) {
 	fmt.Fprint(target, "└")
 	fmt.Fprint(target, strings.Repeat("─", bounds.Width-2))
 	fmt.Fprint(target, "┘")
-}
-
-// writeCenter writes text centered in the given width, or truncated if too long.
-func writeCenter(w io.Writer, text string, width int) {
-	if text == "" {
-		fmt.Fprint(w, strings.Repeat(" ", width))
-		return
-	}
-	textLen := utf8.RuneCountInString(text)
-	if textLen > width {
-		r := []rune(text)
-		fmt.Fprint(w, string(r[:width]))
-		return
-	}
-	pad := (width - textLen) / 2
-	fmt.Fprint(w, strings.Repeat(" ", pad))
-	fmt.Fprint(w, text)
-	fmt.Fprint(w, strings.Repeat(" ", width-pad-textLen))
 }

@@ -13,13 +13,32 @@ type text struct {
 
 var _ Artefact = (*text)(nil)
 
-// Text creates a text artefact. Each argument is rendered on a new line.
-func Text(lines ...string) Artefact {
-	flat := make([]string, 0, len(lines))
-	for _, line := range lines {
-		flat = append(flat, splitLines(line)...)
+// Text creates a text artefact.
+func Text(content string) Artefact {
+	return &text{lines: splitLines(content)}
+}
+
+func (t *text) Measure(budget Bounds) Bounds {
+	if t == nil || len(t.lines) == 0 {
+		return Bounds{Width: 1, Height: 1}
 	}
-	return &text{lines: flat}
+	maxWidth := 1
+	for _, line := range t.lines {
+		w := utf8.RuneCountInString(line)
+		if w > maxWidth {
+			maxWidth = w
+		}
+	}
+	if budget.Width > 0 && maxWidth > budget.Width {
+		maxWidth = budget.Width
+	}
+
+	height := len(t.lines)
+	if budget.Height > 0 && height > budget.Height {
+		height = budget.Height
+	}
+
+	return Bounds{Width: maxWidth, Height: height}
 }
 
 // Render draws text lines within bounds, clipping horizontally and vertically.

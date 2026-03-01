@@ -15,6 +15,17 @@ func Line() Artefact {
 	return &line{}
 }
 
+func (line *line) Measure(budget Bounds) Bounds {
+	size := Bounds{Width: 1, Height: 1}
+	if budget.Width > 0 {
+		size.Width = budget.Width
+	}
+	if budget.Height > 0 {
+		size.Height = budget.Height
+	}
+	return size
+}
+
 // Render draws a horizontal or vertical line based on the bounds aspect ratio.
 func (line *line) Render(target io.Writer, bounds Bounds) {
 	if line == nil || bounds.Width <= 0 || bounds.Height <= 0 {
@@ -45,6 +56,36 @@ var _ Artefact = (*connector)(nil)
 
 func graphConnector(from, to Bounds) Artefact {
 	return &connector{from: from, to: to}
+}
+
+func (line *connector) Measure(budget Bounds) Bounds {
+	width := line.to.X - line.from.X
+	if width < 0 {
+		width = -width
+	}
+	width++
+
+	height := line.to.Y - line.from.Y
+	if height < 0 {
+		height = -height
+	}
+	height++
+
+	if budget.Width > 0 && width > budget.Width {
+		width = budget.Width
+	}
+	if budget.Height > 0 && height > budget.Height {
+		height = budget.Height
+	}
+
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+
+	return Bounds{Width: width, Height: height}
 }
 
 func (line *connector) Render(target io.Writer, bounds Bounds) {

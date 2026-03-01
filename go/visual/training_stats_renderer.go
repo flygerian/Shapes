@@ -40,15 +40,43 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 		lastVersion = stats.Version
 
 		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", stats.Epoch, stats.NumEpochs, stats.Loss)
-		dashboard := Flex(
-			DirectionColumn,
-			Box("Makemore Training", header),
-			Flex(
-				DirectionRow,
-				Chart(stats.MemorySampleHistoryX, stats.UsedBlocksHistory),
-				Chart(stats.LossHistoryX, stats.LossHistory),
-			),
-		)
+		dashboard := Flex(FlexOptions{
+			Direction: DirectionColumn,
+			Children: []Artefact{
+				Box(BoxOptions{
+					Child: Flex(FlexOptions{
+						Direction: DirectionColumn,
+						Children: []Artefact{
+							Text("Makemore Training"),
+							Text(header),
+						},
+					}),
+				}),
+				Flex(FlexOptions{
+					Children: []Artefact{
+						Flex(FlexOptions{
+							Direction: DirectionColumn,
+							Children: []Artefact{
+								Chart(stats.MemorySampleHistoryX, stats.UsedBlocksHistory),
+								Box(BoxOptions{
+									Child: Text("Memory"),
+								}),
+							},
+						}),
+						Flex(FlexOptions{
+							Direction: DirectionColumn,
+							Children: []Artefact{
+								Chart(stats.LossHistoryX, stats.LossHistory),
+								Box(BoxOptions{
+									Child: Text("Loss"),
+								}),
+							},
+						}),
+					},
+				}),
+			},
+		})
+
 		var frame bytes.Buffer
 
 		dashboard.Render(&frame, Bounds{X: 1, Y: 1, Width: 90, Height: 24})

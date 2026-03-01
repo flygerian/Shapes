@@ -11,7 +11,6 @@ import (
 
 const (
 	maxBoxWidth = 50
-	boxHeight   = 7
 	vSpacing    = 5
 	maxNodes    = 64
 	screenWidth = 220
@@ -82,6 +81,8 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 	rows := make([]Artefact, maxLevel+1)
 	rowBounds := make([]Bounds, maxLevel+1)
 	boxBounds := make([]Bounds, len(queue))
+	currentY := 2
+	bottomY := 2
 
 	for lv := range maxLevel + 1 {
 		indices := levelNodes[lv]
@@ -90,31 +91,67 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 			continue
 		}
 
-		totalWidth := nodesAtLevel*boxWidth + (nodesAtLevel-1)*flexGap
+		children := make([]Artefact, nodesAtLevel)
+		childSizes := make([]Bounds, nodesAtLevel)
+		rowHeight := 1
+		totalWidth := 0
+		for idx, nodeIdx := range indices {
+			top, bottom := displas(ctx, queue[nodeIdx].tensor.(shapes.Tensor))
+			var content Artefact = Text(top)
+			if bottom != "" {
+				content = Flex(FlexOptions{
+					Direction: DirectionColumn,
+					Children:  []Artefact{Text(top), Text(bottom)},
+				})
+			}
+			nodeBox := Box(BoxOptions{
+				Child: content,
+			})
+			children[idx] = nodeBox
+
+			size := measure(nodeBox, Bounds{Width: boxWidth})
+			childSizes[idx] = size
+			if size.Height > rowHeight {
+				rowHeight = size.Height
+			}
+			if idx > 0 {
+				totalWidth += flexGap
+			}
+			totalWidth += size.Width
+		}
+
 		startX := (screenWidth - totalWidth) / 2
 		if startX < 1 {
 			startX = 1
 		}
 
-		children := make([]Artefact, nodesAtLevel)
+		x := startX
 		for idx, nodeIdx := range indices {
-			top, bottom := displas(ctx, queue[nodeIdx].tensor.(shapes.Tensor))
-			children[idx] = Box(top, bottom)
 			boxBounds[nodeIdx] = Bounds{
-				X:      startX + idx*(boxWidth+flexGap),
-				Y:      2 + lv*(boxHeight+vSpacing),
-				Width:  boxWidth,
-				Height: boxHeight,
+				X:      x,
+				Y:      currentY,
+				Width:  childSizes[idx].Width,
+				Height: childSizes[idx].Height,
 			}
+			x += childSizes[idx].Width + flexGap
 		}
 
-		rows[lv] = Flex(DirectionRow, children...)
+		rows[lv] = Flex(FlexOptions{
+			Direction: DirectionRow,
+			Children:  children,
+		})
 		rowBounds[lv] = Bounds{
 			X:      startX,
-			Y:      2 + lv*(boxHeight+vSpacing),
+			Y:      currentY,
 			Width:  totalWidth,
-			Height: boxHeight,
+			Height: 0,
 		}
+
+		levelBottom := currentY + rowHeight
+		if levelBottom > bottomY {
+			bottomY = levelBottom
+		}
+		currentY += rowHeight + vSpacing
 	}
 
 	ClearScreen(w)
@@ -131,9 +168,8 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 		}
 	}
 
-	// Move cursor below the drawing
-	bottomY := 2 + (maxLevel+1)*(boxHeight+vSpacing) + 1
-	fmt.Fprintf(w, "\033[%d;%dH", bottomY, 0)
+	// Move cursor below the drawing.
+	fmt.Fprintf(w, "\033[%d;%dH", bottomY+1, 0)
 }
 
 // displas builds the top and bottom text for a tensor node.
