@@ -349,6 +349,88 @@ func TestMaxWrapped(t *testing.T) {
 	}
 }
 
+// [[1,2,3],[4,5,6]] → argmax along dim0 → [[1,1,1]] (shape [1,3])
+func TestArgMaxDim0(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.ArgMax(ctx, 0)
+
+	if got, want := shapeOf(result), (Shape{1, 3}); len(got) != len(want) {
+		t.Fatalf("ArgMax(dim=0) shape = %v, want %v", got, want)
+	} else {
+		for i, v := range want {
+			if got[i] != v {
+				t.Fatalf("ArgMax(dim=0) shape = %v, want %v", got, want)
+			}
+		}
+	}
+
+	expected := []int64{1, 1, 1}
+	for j, want := range expected {
+		got := result.Get(ctx, 0, uint32(j)).Item().(int64)
+		if got != want {
+			t.Errorf("ArgMax(dim=0)[0,%d] = %d, want %d", j, got, want)
+		}
+	}
+}
+
+// [[1,2,3],[4,5,6]] → argmax along dim1 → [[2],[2]] (shape [2,1])
+func TestArgMaxDim1(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.ArgMax(ctx, 1)
+
+	if got, want := shapeOf(result), (Shape{2, 1}); len(got) != len(want) {
+		t.Fatalf("ArgMax(dim=1) shape = %v, want %v", got, want)
+	} else {
+		for i, v := range want {
+			if got[i] != v {
+				t.Fatalf("ArgMax(dim=1) shape = %v, want %v", got, want)
+			}
+		}
+	}
+
+	expected := []int64{2, 2}
+	for i, want := range expected {
+		got := result.Get(ctx, uint32(i), 0).Item().(int64)
+		if got != want {
+			t.Errorf("ArgMax(dim=1)[%d,0] = %d, want %d", i, got, want)
+		}
+	}
+}
+
+// ArgMax with no dims reduces everything → scalar shape [1]
+func TestArgMaxGlobal(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
+	result := a.ArgMax(ctx)
+
+	got := result.Get(ctx, 0).Item().(int64)
+	if got != 0 {
+		t.Errorf("ArgMax(global) = %d, want 0", got)
+	}
+}
+
+// ArgMax should pick the first index when maxima are tied.
+func TestArgMaxTieReturnsFirstIndex(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromFloat32(ctx, Shape{1, 4}, []float32{2, 5, 5, 1})
+	result := a.ArgMax(ctx, 1)
+
+	got := result.Get(ctx, 0, 0).Item().(int64)
+	if got != 1 {
+		t.Errorf("ArgMax tie index = %d, want 1", got)
+	}
+}
+
 // [[1,2,3],[4,5,6]] → mean along dim0 → [[2.5,3.5,4.5]] (shape [1,3])
 func TestMeanDim0(t *testing.T) {
 	ctx := New(context.Background())

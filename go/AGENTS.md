@@ -15,10 +15,10 @@ Module: `github.com/flygerian/shapes`
 make test-go
 
 # Single test:
-cd go && LD_LIBRARY_PATH=$PWD/../base/OpenBLAS/install/lib go test -v -run TestName ./...
+cd go && LD_LIBRARY_PATH=$PWD/../base/build/openblas/lib go test -v -run TestName ./...
 
 # All Go tests (sub-packages included):
-cd go && LD_LIBRARY_PATH=$PWD/../base/OpenBLAS/install/lib go test -v ./...
+cd go && LD_LIBRARY_PATH=$PWD/../base/build/openblas/lib go test -v ./...
 ```
 
 `LD_LIBRARY_PATH` must include the OpenBLAS install dir for both tests and runtime.
@@ -114,7 +114,7 @@ Every file with CGo repeats the full flag set:
 ```go
 /*
 #cgo CFLAGS: -I../base
-#cgo LDFLAGS: -L../base/build -L../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 */
 ```
 

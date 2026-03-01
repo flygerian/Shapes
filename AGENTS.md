@@ -5,7 +5,7 @@
 - Build everything: `make build` (C library via CMake + Go bindings via CGo).
 - Run all tests: `make test` (C via `ctest --test-dir base/build`, Go via `go test -v ./...` in `go/`).
 - Run C tests only: `make test-direct` (runs `base/build/shapes_test`; no single-test isolation — comment out other `run_*` calls in `base/cmd/test/main.c` to narrow scope).
-- Run Go tests only: `make test-go`. Run a single Go test: `cd go && LD_LIBRARY_PATH=$PWD/../base/OpenBLAS/install/lib go test -v -run TestName ./...`.
+- Run Go tests only: `make test-go`. Run a single Go test: `cd go && LD_LIBRARY_PATH=$PWD/../base/build/openblas/lib go test -v -run TestName ./...`.
 - Format C code (required before commit): `make format`. Lint: `make lint`.
 
 ## Architecture

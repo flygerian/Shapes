@@ -48,6 +48,7 @@ Result Mean(Context *ctx, Tensor *t, Tensor *dest);
 Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Log(Context *ctx, Tensor *t, Tensor *dest);
 Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 
 // Matrix ops
 Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);

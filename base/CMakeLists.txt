@@ -32,11 +32,11 @@ endif()
 
 find_library(OPENBLAS_LIB
   NAMES openblas
-  PATHS ${CMAKE_SOURCE_DIR}/OpenBLAS/install/lib
+  PATHS ${CMAKE_SOURCE_DIR}/build/openblas/lib
   NO_DEFAULT_PATH
 )
 
-include_directories (${CMAKE_SOURCE_DIR}/OpenBLAS/install/include)
+include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 
 # Memory library
 add_library(shapes_memory

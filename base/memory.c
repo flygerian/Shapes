@@ -19,6 +19,7 @@ Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
   head->numBlocks = 0;
   head->numFreeBlocks = 0;
   head->minBlockSize = minBlockSize;
+  head->freeHeadOffset = INVALID_OFFSET;
 
   return head;
 }
@@ -39,11 +40,66 @@ void *adjustBlock(Memory *memory, blockheader *header, size_t size) {
   }
 
   header->blockSize = size;
+  header->nextFreeOffset = INVALID_OFFSET;
+  header->prevFreeOffset = INVALID_OFFSET;
 
   blockfooter *footer = BLOCK_FOOTER(header);
   footer->headerOffset = headerOffset;
 
   return header;
+}
+
+static void removeFreeBlock(Memory *memory, blockheader *header) {
+  size_t next = header->nextFreeOffset;
+  size_t prev = header->prevFreeOffset;
+
+  if (prev != INVALID_OFFSET) {
+    HEADER_AT(memory, prev)->nextFreeOffset = next;
+  } else {
+    memory->freeHeadOffset = next;
+  }
+
+  if (next != INVALID_OFFSET) {
+    HEADER_AT(memory, next)->prevFreeOffset = prev;
+  }
+
+  header->nextFreeOffset = INVALID_OFFSET;
+  header->prevFreeOffset = INVALID_OFFSET;
+}
+
+static void insertFreeBlock(Memory *memory, blockheader *header) {
+  size_t offset = HEADER_OFFSET(memory, header);
+  header->nextFreeOffset = INVALID_OFFSET;
+  header->prevFreeOffset = INVALID_OFFSET;
+
+  if (memory->freeHeadOffset == INVALID_OFFSET) {
+    memory->freeHeadOffset = offset;
+    return;
+  }
+
+  size_t current = memory->freeHeadOffset;
+  size_t prev = INVALID_OFFSET;
+
+  while (current != INVALID_OFFSET) {
+    if (current > offset) {
+      break;
+    }
+    prev = current;
+    current = HEADER_AT(memory, current)->nextFreeOffset;
+  }
+
+  header->prevFreeOffset = prev;
+  header->nextFreeOffset = current;
+
+  if (prev != INVALID_OFFSET) {
+    HEADER_AT(memory, prev)->nextFreeOffset = offset;
+  } else {
+    memory->freeHeadOffset = offset;
+  }
+
+  if (current != INVALID_OFFSET) {
+    HEADER_AT(memory, current)->prevFreeOffset = offset;
+  }
 }
 
 
@@ -61,40 +117,33 @@ blockheader *splitBlock(Memory *memory, blockheader *header, size_t aSize, size_
 }
 
 void *findAvailableSpace(Memory *memory, size_t size) {
-  if (memory->allocated == 0) {
+  if (memory->numFreeBlocks == 0 || memory->freeHeadOffset == INVALID_OFFSET) {
     return NULL;
   }
 
-  uint8_t *arena = ARENA(memory);
-  size_t arenaOffset = 0;
-  // Snapshot before the loop: splitBlock increments memory->allocated, so using
-  // the live value as the bound causes the scan to run into uninitialized memory.
-  size_t scanLimit = memory->allocated;
+  size_t currentOffset = memory->freeHeadOffset;
+  while (currentOffset != INVALID_OFFSET) {
+    blockheader *header = HEADER_AT(memory, currentOffset);
+    currentOffset = header->nextFreeOffset;
 
-  // Scan through all allocated blocks looking for a free one that fits
-  while (arenaOffset < scanLimit) {
-    blockheader *headerAtOffset = (blockheader *)(arena + arenaOffset);
-
-    if (headerAtOffset->free && headerAtOffset->blockSize >= size) {
-      // If the block is much larger than needed, split it. The remainder payload
-      // must account for the header+footer that the split consumes.
-      size_t currentBlockSize = headerAtOffset->blockSize;
-
-      if (currentBlockSize - size >= TOTAL_BLOCK_SIZE(memory->minBlockSize)) {
-        size_t leftover = currentBlockSize - size - sizeof(blockheader) - sizeof(blockfooter);
-        blockheader *remainder = splitBlock(memory, headerAtOffset, size, leftover);
-        remainder->free = true;
-        memory->numFreeBlocks += 1;
-      }
-
-      // Found a suitable free block
-      headerAtOffset->free = false;
-      memory->numFreeBlocks -= 1;
-
-      return (uint8_t *)(headerAtOffset + 1);
+    if (header->blockSize < size) {
+      continue;
     }
 
-    arenaOffset += TOTAL_BLOCK_SIZE(headerAtOffset->blockSize);
+    removeFreeBlock(memory, header);
+    header->free = false;
+    memory->numFreeBlocks -= 1;
+
+    size_t currentBlockSize = header->blockSize;
+    if (currentBlockSize - size >= TOTAL_BLOCK_SIZE(memory->minBlockSize)) {
+      size_t leftover = currentBlockSize - size - sizeof(blockheader) - sizeof(blockfooter);
+      blockheader *remainder = splitBlock(memory, header, size, leftover);
+      remainder->free = true;
+      insertFreeBlock(memory, remainder);
+      memory->numFreeBlocks += 1;
+    }
+
+    return (uint8_t *)(header + 1);
   }
 
   return NULL;
@@ -105,8 +154,12 @@ void *allocate(Memory *memory, size_t size) {
     return NULL;
   }
 
-  size_t totalBlockSize = TOTAL_BLOCK_SIZE(size);
+  void *reused = findAvailableSpace(memory, size);
+  if (reused != NULL) {
+    return reused;
+  }
 
+  size_t totalBlockSize = TOTAL_BLOCK_SIZE(size);
   // Grow at the end of the arena if there's room; this is the fast path.
   if (memory->allocated + totalBlockSize <= memory->capacity) {
     blockheader *header = (blockheader *)(ARENA(memory) + memory->allocated);
@@ -119,8 +172,8 @@ void *allocate(Memory *memory, size_t size) {
     return header + 1;
   }
 
-  // Arena is full; scan for a freed block to reuse.
-  return findAvailableSpace(memory, size);
+  // Arena is full and no free block matched.
+  return NULL;
 }
 
 
@@ -149,12 +202,14 @@ void *findSpaceAtEndOfBlock(Memory *memory, blockheader *currentBlockHeader,
   size_t leftover = mergedCapacity - totalSpaceNeeded;
 
   // The free next-block is being consumed; account for that.
+  removeFreeBlock(memory, nextBlock);
   memory->numFreeBlocks -= 1;
 
   if (leftover > memory->minBlockSize) {
     blockheader *newBlock =
         (blockheader *)splitBlock(memory, currentBlockHeader, totalSpaceNeeded, leftover);
     newBlock->free = true;
+    insertFreeBlock(memory, newBlock);
     memory->numFreeBlocks += 1;
   } else {
     adjustBlock(memory, currentBlockHeader, mergedCapacity);
@@ -187,6 +242,9 @@ void *reallocate(Memory *memory, void *ptr, size_t size) {
     }
 
     void *newSpace = allocate(memory, size);
+    if (newSpace == NULL) {
+      return NULL;
+    }
     memcpy(newSpace, ptr, memBlockHeader->blockSize);
     freeAlloc(memory, ptr);
     return newSpace;
@@ -195,7 +253,7 @@ void *reallocate(Memory *memory, void *ptr, size_t size) {
   }
 }
 
-void coalesceBackwards(Memory *memory, blockheader *memBlockHeader) {
+static blockheader *coalesceBackwards(Memory *memory, blockheader *memBlockHeader) {
   uint8_t *arena = ARENA(memory);
   size_t headerOffset = BLOCK_HEADER_OFFSET(arena, memBlockHeader);
 
@@ -204,17 +262,20 @@ void coalesceBackwards(Memory *memory, blockheader *memBlockHeader) {
     blockheader *prevHeader = (blockheader *)(arena + prevFooter->headerOffset);
 
     if (prevHeader->free) {
+      removeFreeBlock(memory, prevHeader);
       size_t mergedPayload = prevHeader->blockSize + sizeof(blockfooter) + sizeof(blockheader) +
                              memBlockHeader->blockSize;
       adjustBlock(memory, prevHeader, mergedPayload);
       memory->numBlocks -= 1;
       memory->numFreeBlocks -= 1;
-      return;
+      return prevHeader;
     }
   }
+
+  return memBlockHeader;
 }
 
-void coalesceForwards(Memory *memory, blockheader *memBlockHeader) {
+static blockheader *coalesceForwards(Memory *memory, blockheader *memBlockHeader) {
   uint8_t *arena = ARENA(memory);
   size_t headerOffset = BLOCK_HEADER_OFFSET(arena, memBlockHeader);
 
@@ -223,19 +284,22 @@ void coalesceForwards(Memory *memory, blockheader *memBlockHeader) {
 
   // Check if there's a next block within allocated space
   if (nextBlockPos >= memory->allocated) {
-    return;
+    return memBlockHeader;
   }
 
   blockheader *nextHeader = (blockheader *)(ARENA(memory) + nextBlockPos);
 
   // If next block is free, merge it into current block
   if (nextHeader->free) {
+    removeFreeBlock(memory, nextHeader);
     size_t mergedPayload = memBlockHeader->blockSize + sizeof(blockfooter) + sizeof(blockheader) +
                            nextHeader->blockSize;
     adjustBlock(memory, memBlockHeader, mergedPayload);
     memory->numBlocks -= 1;
     memory->numFreeBlocks -= 1;
   }
+
+  return memBlockHeader;
 }
 
 void freeAlloc(Memory *memory, void *ptr) {
@@ -243,15 +307,21 @@ void freeAlloc(Memory *memory, void *ptr) {
     return;
 
   blockheader *memBlockHeader = BLOCK_HEADER(ptr);
+  if (memBlockHeader->free) {
+    return;
+  }
 
   memBlockHeader->free = true;
+  memBlockHeader->nextFreeOffset = INVALID_OFFSET;
+  memBlockHeader->prevFreeOffset = INVALID_OFFSET;
   memory->numFreeBlocks += 1;
 
   // TODO: revisit this allocated calulcation
 
   // Coalesce with neighboring free blocks
-  coalesceBackwards(memory, memBlockHeader);
-  coalesceForwards(memory, memBlockHeader);
+  memBlockHeader = coalesceBackwards(memory, memBlockHeader);
+  memBlockHeader = coalesceForwards(memory, memBlockHeader);
+  insertFreeBlock(memory, memBlockHeader);
 }
 
 void freeMemory(Memory *memory) {

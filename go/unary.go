@@ -2,7 +2,7 @@ package shapes
 
 /*
 #cgo CFLAGS: -I../base
-#cgo LDFLAGS: -L../base/build -L../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
 #include "tensor/tensor.h"
 #include "common.h"
@@ -49,6 +49,13 @@ static inline Result wrap_Max(Context *ctx, Tensor *t, dim_t dim, Tensor **out) 
 	return r;
 }
 
+static inline Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = ArgMax(ctx, t, dest, dim);
+	*out = dest;
+	return r;
+}
+
 static inline Result wrap_MeanDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
 	Result r = MeanDim(ctx, t, dest, dim);
@@ -65,6 +72,7 @@ type hasUnaryOps interface {
 	Log(ctx Context) Tensor
 	Mean(ctx Context, dims ...uint32) Tensor
 	Max(ctx Context, dims ...uint32) Tensor
+	ArgMax(ctx Context, dims ...uint32) Tensor
 }
 
 // Pow raises every element to the given power, returning a new tensor.
@@ -155,4 +163,25 @@ func (t *tensor) Max(ctx Context, dims ...uint32) Tensor {
 		return track(ctx, &tensor{cTensor: dest})
 	}
 	panic("shapes: max expects 0 or 1 dim args")
+}
+
+// ArgMax reduces the tensor along a single dimension and returns index positions as I64.
+// If no dims are provided, it reduces all dims and returns a scalar index.
+func (t *tensor) ArgMax(ctx Context, dims ...uint32) Tensor {
+	if len(dims) == 0 {
+		out := t
+		for i := uint32(0); i < uint32(len(shapeOf(t))); i++ {
+			out = out.ArgMax(ctx, i).(*tensor)
+		}
+		return out.Squeeze(ctx)
+	}
+	if len(dims) == 1 {
+		var dest *C.Tensor
+		result := C.wrap_ArgMax((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
+		if result != C.OK {
+			panic("shapes: " + resultString(uint32(result)))
+		}
+		return track(ctx, &tensor{cTensor: dest})
+	}
+	panic("shapes: argmax expects 0 or 1 dim args")
 }

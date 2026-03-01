@@ -13,8 +13,8 @@ BUILD_DIR := $(BASE_DIR)/build
 GO_DIR := go
 
 # OpenBLAS
-OPENBLAS_LIB := $(OPENBLAS_DIR)/libopenblas.a
-OPENBLAS_INSTALL := $(OPENBLAS_DIR)/install
+OPENBLAS_INSTALL := $(BUILD_DIR)/openblas
+OPENBLAS_LIB := $(OPENBLAS_INSTALL)/lib/libopenblas.a
 
 # Go
 GO_BINARY := $(GO_DIR)/main
@@ -61,8 +61,11 @@ build-openblas: $(OPENBLAS_LIB)
 $(OPENBLAS_LIB):
 	@echo "==> Building OpenBLAS..."
 	cd $(OPENBLAS_DIR) && $(MAKE) -j$(NPROC)
-	@echo "==> Installing OpenBLAS to local prefix..."
-	cd $(OPENBLAS_DIR) && $(MAKE) PREFIX=$$(pwd)/install install
+	@echo "==> Installing OpenBLAS to local prefix: $(OPENBLAS_INSTALL)"
+	mkdir -p $(OPENBLAS_INSTALL)
+	cd $(OPENBLAS_DIR) && $(MAKE) PREFIX=$$(realpath ../build/openblas) install
+	@echo "==> Cleaning OpenBLAS build tree..."
+	cd $(OPENBLAS_DIR) && $(MAKE) clean
 	@echo "==> OpenBLAS build complete!"
 
 # Configure and build everything

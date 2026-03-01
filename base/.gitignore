@@ -4,4 +4,4 @@ build
 *.o
 *.so
 *.dylib
-OpenBLAS/install
+build/openblas

@@ -15,7 +15,11 @@ func Tanh(ctx shapes.Context, t shapes.Tensor) shapes.Tensor {
 	exp2x := t.Times(fusedCtx, two).Exp(fusedCtx)
 	out := exp2x.Minus(fusedCtx, ones).Divide(fusedCtx, exp2x.Plus(fusedCtx, ones))
 
-	fusedCtx.Finish(shapes.WithResult(out), shapes.WithOpType(shapes.OpTanh))
+	fusedCtx.Finish(
+		shapes.WithResult(out),
+		shapes.WithOpType(shapes.OpTanh),
+		shapes.WithBackward(tanhBackward),
+	)
 	return out
 }
 

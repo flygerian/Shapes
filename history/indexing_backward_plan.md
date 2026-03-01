@@ -217,7 +217,7 @@ C:
 Go:
 - `make test-go`
 - and/or:
-  - `cd go && LD_LIBRARY_PATH=$PWD/../base/OpenBLAS/install/lib go test -v ./...`
+  - `cd go && LD_LIBRARY_PATH=$PWD/../base/build/openblas/lib go test -v ./...`
 Sanity:
 - slice -> index -> sum -> backward should not panic; grads correct; no crash.
 -------------------------------------------------------------------------------

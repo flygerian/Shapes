@@ -122,7 +122,7 @@ visual/
 cmd/
   main/main.c           # Application entry point
   test/                 # Test suite (see Testing section)
-OpenBLAS/               # Vendored OpenBLAS (pre-built in OpenBLAS/install/)
+OpenBLAS/               # Vendored OpenBLAS (installed artifacts in build/openblas/)
 ```
 
 ## Code Style and Conventions

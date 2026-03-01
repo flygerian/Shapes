@@ -4126,6 +4126,120 @@ static void test_max_non_contiguous(void) {
   freeMemory(mem);
 }
 
+// ArgMax tests
+static void test_argmax_dim0(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 5, 3], [4, 2, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 5.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 2.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor dest;
+  Result r = ArgMax(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "ArgMax dim0 should succeed");
+  ASSERT_EQ(dest.dtype, I64, "ArgMax output dtype should be I64");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "ArgMax result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 1, "ArgMax result dim 0 should be 1");
+  ASSERT_EQ(dest.shape.dims[1], 3, "ArgMax result dim 1 should be 3");
+
+  i64 *vals = (i64 *)dest.values;
+  ASSERT_EQ(vals[0], 1, "ArgMax[0,0] should be 1");
+  ASSERT_EQ(vals[1], 0, "ArgMax[0,1] should be 0");
+  ASSERT_EQ(vals[2], 1, "ArgMax[0,2] should be 1");
+
+  freeMemory(mem);
+}
+
+static void test_argmax_dim1_with_ties(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 4};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+
+  // [[1, 5, 5, 2], [3, 3, 1, 3]]
+  ((i8 *)t->values)[0] = 1;
+  ((i8 *)t->values)[1] = 5;
+  ((i8 *)t->values)[2] = 5;
+  ((i8 *)t->values)[3] = 2;
+  ((i8 *)t->values)[4] = 3;
+  ((i8 *)t->values)[5] = 3;
+  ((i8 *)t->values)[6] = 1;
+  ((i8 *)t->values)[7] = 3;
+
+  Tensor dest;
+  Result r = ArgMax(&ctx, t, &dest, 1);
+  ASSERT_EQ(r, OK, "ArgMax dim1 should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "ArgMax result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 2, "ArgMax result dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "ArgMax result dim 1 should be 1");
+
+  i64 *vals = (i64 *)dest.values;
+  ASSERT_EQ(vals[0], 1, "ArgMax row 0 should pick first max index");
+  ASSERT_EQ(vals[1], 0, "ArgMax row 1 should pick first max index");
+
+  freeMemory(mem);
+}
+
+static void test_argmax_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor dest;
+  Result r = ArgMax(&ctx, NULL, &dest, 0);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "ArgMax with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_argmax_dim_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  Tensor dest;
+  Result r = ArgMax(&ctx, t, &dest, 5);
+  ASSERT_EQ(r, ERR_DIM_MISMATCH, "ArgMax with out of bounds dim should fail");
+
+  freeMemory(mem);
+}
+
+static void test_argmax_non_contiguous(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  u32 dims[] = {2, 3};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  // [[1, 5, 3], [4, 2, 6]]
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 5.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+  ((f32 *)t->values)[4] = 2.0f;
+  ((f32 *)t->values)[5] = 6.0f;
+
+  Tensor transposed;
+  Transpose(&ctx, t, &transposed, 0, 1);
+
+  Tensor dest;
+  Result r = ArgMax(&ctx, &transposed, &dest, 0);
+  ASSERT_EQ(r, OK, "ArgMax on non-contiguous tensor should succeed");
+  ASSERT_EQ(dest.dtype, I64, "ArgMax output dtype should be I64");
+
+  freeMemory(mem);
+}
+
 // MeanDim tests
 static void test_meandim_dim0(void) {
   Memory *mem = initializeMemory();
@@ -4394,6 +4508,12 @@ void run_tensor_tests(void) {
   test_max_null_tensor();
   test_max_dim_out_of_bounds();
   test_max_non_contiguous();
+  // ArgMax tests
+  test_argmax_dim0();
+  test_argmax_dim1_with_ties();
+  test_argmax_null_tensor();
+  test_argmax_dim_out_of_bounds();
+  test_argmax_non_contiguous();
   // MeanDim tests
   test_meandim_dim0();
   test_meandim_dim1();

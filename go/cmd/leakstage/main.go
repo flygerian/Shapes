@@ -1,5 +1,11 @@
 package main
 
+/*
+#cgo CFLAGS: -I../../../base
+#include "memory.h"
+*/
+import "C"
+
 import (
 	"context"
 	"flag"
@@ -26,11 +32,22 @@ func buildDataset(n int) ([][]int8, []int8) {
 	return x, y
 }
 
+func memoryStats(ctx shapes.Context) (allocated uint64, capacity uint64, blocks int, freeBlocks int) {
+	mem := (*C.Memory)(ctx.UnsafeMemory())
+	if mem == nil {
+		return 0, 0, 0, 0
+	}
+
+	return uint64(mem.allocated), uint64(mem.capacity), int(mem.numBlocks), int(mem.numFreeBlocks)
+}
+
 func main() {
 	stage := flag.Int("stage", 5, "0:empty,1:gather,2:forward,3:scalar,4:backward,5:opt")
 	forwardLevel := flag.Int("forward_level", 4, "0:reshape+l1,1:+l2,2:+onehot,3:+crossentropy,4:full")
 	ceStep := flag.Int("ce_step", -1, "cross-entropy inline step (0..9), -1 disables inline CE")
+	ceContext := flag.String("ce_context", "root", "context for fused cross-entropy: root|run")
 	epochs := flag.Int("epochs", 80, "number of epochs")
+	printEvery := flag.Int("print_every", 1, "print cadence in epochs")
 	flag.Parse()
 
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(512*Mb))
@@ -43,7 +60,7 @@ func main() {
 	embLayer := layer.Embedding(ctx, 27, 2)
 	l1 := layer.Dense(ctx, 6, 100)
 	l2 := layer.Dense(ctx, 100, 27)
-	crossEntropy := loss.CrossEntropy(ctx)
+	crossEntropy := loss.CrossEntropy()
 	sgd := optimizer.SGD(ctx, 0.01)
 
 	forward := func(runCtx shapes.Context, xBatch shapes.Tensor, yBatch shapes.Tensor) shapes.Tensor {
@@ -114,7 +131,13 @@ func main() {
 		}
 
 		if *forwardLevel == 3 || *forwardLevel == 4 {
-			return crossEntropy(yOneHot, logits)
+			if *ceContext == "run" {
+				return crossEntropy(runCtx, yOneHot, logits)
+			}
+			if *ceContext != "root" {
+				panic("invalid ce_context")
+			}
+			return crossEntropy(ctx, yOneHot, logits)
 		}
 		panic("invalid forward_level")
 	}
@@ -122,6 +145,7 @@ func main() {
 	for i := range *epochs {
 		epochCtx := ctx.Epoch()
 		before := ctx.NumAllocatedBlocks()
+		beforeAllocated, capacity, beforeBlocks, beforeFreeBlocks := memoryStats(ctx)
 
 		var ix shapes.Tensor
 		var emb shapes.Tensor
@@ -154,15 +178,28 @@ func main() {
 
 		epochCtx.Finish()
 		after := ctx.NumAllocatedBlocks()
-		fmt.Printf(
-			"[stage %d fwd %d ce %d epoch %03d] before=%d after=%d delta=%+d\n",
-			*stage,
-			*forwardLevel,
-			*ceStep,
-			i,
-			before,
-			after,
-			after-before,
-		)
+		afterAllocated, _, afterBlocks, afterFreeBlocks := memoryStats(ctx)
+
+		if *printEvery <= 1 || i%*printEvery == 0 || i == *epochs-1 {
+			fmt.Printf(
+				"[stage %d fwd %d ce %d cectx %s epoch %04d] usedBlocks=%d->%d (%+d) blocks=%d->%d free=%d->%d allocated=%d->%d (%+d) capacity=%d\n",
+				*stage,
+				*forwardLevel,
+				*ceStep,
+				*ceContext,
+				i,
+				before,
+				after,
+				after-before,
+				beforeBlocks,
+				afterBlocks,
+				beforeFreeBlocks,
+				afterFreeBlocks,
+				beforeAllocated,
+				afterAllocated,
+				int64(afterAllocated)-int64(beforeAllocated),
+				capacity,
+			)
+		}
 	}
 }

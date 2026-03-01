@@ -1,8 +1,15 @@
 package examples
 
+/*
+#cgo CFLAGS: -I../../base
+#include "memory.h"
+*/
+import "C"
+
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"slices"
 	"strings"
@@ -16,7 +23,19 @@ import (
 	"github.com/flygerian/shapes/visual"
 )
 
-func set(input string) []rune {
+func memoryStats(ctx shapes.Context) (allocated uint64, capacity uint64, blocks int, freeBlocks int, usedBlocks int) {
+	mem := (*C.Memory)(ctx.UnsafeMemory())
+	if mem == nil {
+		return 0, 0, 0, 0, 0
+	}
+
+	blocks = int(mem.numBlocks)
+	freeBlocks = int(mem.numFreeBlocks)
+	usedBlocks = blocks - freeBlocks
+	return uint64(mem.allocated), uint64(mem.capacity), blocks, freeBlocks, usedBlocks
+}
+
+func makeSet(input string) []rune {
 	lookup := make(map[rune]bool)
 	var result []rune
 
@@ -36,10 +55,6 @@ func set(input string) []rune {
 
 func toAlphaPos(ch rune) int8 {
 	return int8(ch - 'a' + 1)
-}
-
-func fromAlphaPos(chIdx uint8) rune {
-	return rune(chIdx) + 'a' - 1
 }
 
 func printFromAphabetPos(positions []int8, itos map[int8]rune) string {
@@ -75,7 +90,7 @@ func MakeMore_2(shapesCtx shapes.Context) {
 	fmt.Printf("Words: %v\n", words[:8])
 	fmt.Printf("Number of words: %d\n\n", len(words))
 
-	chars := set(strings.Join(words, ""))
+	chars := makeSet(strings.Join(words, ""))
 	slices.Sort(chars)
 
 	fmt.Printf("Num chars: %d\n", len(chars))
@@ -131,18 +146,22 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 	newSection()
 
-	embLayer := layer.Embedding(shapesCtx, 27, 2)
-	l1 := layer.Dense(shapesCtx, 6, 100)
-	l2 := layer.Dense(shapesCtx, 100, 27)
+	embLayer := layer.Embedding(shapesCtx, 27, 30)
+	l1 := layer.Dense(shapesCtx, 90, 100)
+	l2 := layer.Dense(shapesCtx, 100, 200)
+	l3 := layer.Dense(shapesCtx, 200, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.01)
+	sgd := optimizer.SGD(shapesCtx, 0.00001)
 
-	crossEnthropy := loss.CrossEntropy(shapesCtx)
+	crossEnthropy := loss.CrossEntropy()
 
 	forward := func(ctx shapes.Context, xBatch shapes.Tensor) shapes.Tensor {
 
-		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 6))
-		logits := l2.Forward(ctx, h)
+		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 90))
+		h = activation.Tanh(ctx, h)
+		h = l2.Forward(ctx, h)
+		h = activation.Tanh(ctx, h)
+		logits := l3.Forward(ctx, h)
 
 		// fmt.Printf("yoneHot.shape: %v\n", yOneHot.Shape())
 		// fmt.Printf("logits.shape: %v\n", logits.Shape())
@@ -150,8 +169,10 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		return logits
 	}
 
-	for i := range 500 {
+	numEpochs := 10000
+	for i := range numEpochs {
 		epochCtx := shapesCtx.Epoch()
+		beforeAllocated, capacity, beforeBlocks, beforeFree, beforeUsed := memoryStats(shapesCtx)
 		ix := shapes.FloatRandom(epochCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(epochCtx)
 
 		// Forward pass
@@ -163,8 +184,30 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		yOneHot := shapes.OneHot(epochCtx, yBatch, 27)
 		logits := forward(epochCtx, emb)
 
-		lossValue := crossEnthropy(yOneHot, logits)
-		fmt.Printf("Epoch %d, Loss: %f, \n", i, lossValue.Get(epochCtx, 0).Item())
+		lossValue := crossEnthropy(epochCtx, yOneHot, logits)
+
+		if i%100 == 0 {
+
+			visual.ClearScreen(os.Stdout)
+			fmt.Printf("Epoch %d, Loss: %f, \n", i, lossValue.Get(epochCtx, 0).Item())
+
+			afterAllocated, _, afterBlocks, afterFree, afterUsed := memoryStats(shapesCtx)
+			fmt.Printf(
+				"[epoch %04d] used=%d->%d (%+d) blocks=%d->%d free=%d->%d allocated=%d->%d (%+d) capacity=%d\n",
+				i,
+				beforeUsed,
+				afterUsed,
+				afterUsed-beforeUsed,
+				beforeBlocks,
+				afterBlocks,
+				beforeFree,
+				afterFree,
+				beforeAllocated,
+				afterAllocated,
+				int64(afterAllocated)-int64(beforeAllocated),
+				capacity,
+			)
+		}
 
 		// Backward pass
 		graph := lossValue.Backward(epochCtx)
@@ -173,23 +216,52 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		sgd(graph)
 		optimizer.ZeroGrad(shapesCtx, graph)
 		epochCtx.Finish()
+
 	}
 
 	newSection()
 
-	testCtx := shapesCtx.Forward()
-	x_inf := shapes.Float(testCtx, shapes.Shape{1, 3}, 0)
+	fmt.Printf("Generated names:\n")
+	const numSamples = 10
+	const maxNameLen = 20
+	const vocabSize = 27
 
-	emb := embLayer.Forward(testCtx, x_inf.I64(shapesCtx))
-	logits := forward(testCtx, emb)
+	for sample := range numSamples {
+		testCtx := shapesCtx.Forward()
 
-	probs := activation.Softmax(testCtx, logits)
+		context := make([]int8, blockSize)
+		generated := make([]rune, 0, maxNameLen)
 
-	fmt.Printf("Probs: ")
-	visual.Print(testCtx, probs)
-	predicted := probs.Squeeze(testCtx).Max(testCtx)
+		for range maxNameLen {
+			xInf := shapes.FromInt8(testCtx, [][]int8{context})
+			emb := embLayer.Forward(testCtx, xInf)
+			logits := forward(testCtx, emb)
+			probs := activation.Softmax(testCtx, logits)
 
-	fmt.Printf("Predicted: ")
-	visual.Print(testCtx, predicted)
+			// Sample from the probability distribution instead of greedy argmax
+			// to avoid collapsing to the same output every time.
+			r := rand.Float32()
+			cumulative := float32(0.0)
+			nextIdx := int8(0)
+			for classIdx := range vocabSize {
+				p := probs.Get(testCtx, 0, classIdx).Item().(float32)
+				cumulative += p
+				if r <= cumulative {
+					nextIdx = int8(classIdx)
+					break
+				}
+			}
+
+			if nextIdx == 0 {
+				break
+			}
+
+			generated = append(generated, itos[nextIdx])
+			context = append(context[1:], nextIdx)
+		}
+
+		fmt.Printf("%2d. %s\n", sample+1, string(generated))
+		testCtx.Finish()
+	}
 
 }

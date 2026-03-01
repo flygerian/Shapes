@@ -2,7 +2,7 @@ package optimizer
 
 /*
 #cgo CFLAGS: -I../../base
-#cgo LDFLAGS: -L../../base/build -L../../base/OpenBLAS/install/lib -lshapes_core -lshapes_memory -lopenblas -lm
+#cgo LDFLAGS: -L../../base/build -L../../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
 #include "tensor/tensor.h"
 #include "common.h"

@@ -9,8 +9,8 @@ import (
 // logits should be the raw (pre-softmax) model outputs.
 // Softmax is applied internally for numerical stability.
 // Returns: -mean_batch(sum_classes(yGround * log(softmax(logits)))).
-func CrossEntropy(shapesCtx shapes.Context) func(shapes.Tensor, shapes.Tensor) shapes.Tensor {
-	return func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor {
+func CrossEntropy() func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Tensor {
+	return func(shapesCtx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor {
 
 		fusedCtx := shapesCtx.Forward(shapes.WithInputs(yGround, logits))
 
