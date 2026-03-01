@@ -187,13 +187,9 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		lossValue := crossEnthropy(epochCtx, yOneHot, logits)
 
 		if i%100 == 0 {
-
-			visual.ClearScreen(os.Stdout)
-			fmt.Printf("Epoch %d, Loss: %f, \n", i, lossValue.Get(epochCtx, 0).Item())
-
 			afterAllocated, _, afterBlocks, afterFree, afterUsed := memoryStats(shapesCtx)
-			fmt.Printf(
-				"[epoch %04d] used=%d->%d (%+d) blocks=%d->%d free=%d->%d allocated=%d->%d (%+d) capacity=%d\n",
+			stats := fmt.Sprintf(
+				"used=%d->%d (%+d) blocks=%d->%d free=%d->%d allocated=%d->%d (%+d) capacity=%d",
 				i,
 				beforeUsed,
 				afterUsed,
@@ -207,6 +203,15 @@ func MakeMore_2(shapesCtx shapes.Context) {
 				int64(afterAllocated)-int64(beforeAllocated),
 				capacity,
 			)
+
+			visual.ClearScreen(os.Stdout)
+			header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", i, numEpochs, lossValue.Get(epochCtx, 0).Item())
+			dashboard := visual.Flex(
+				visual.DirectionColumn,
+				visual.Box("Makemore Training", header),
+				visual.Text(stats),
+			)
+			dashboard.Render(os.Stdout, visual.Bounds{X: 1, Y: 1, Width: 100, Height: 11})
 		}
 
 		// Backward pass

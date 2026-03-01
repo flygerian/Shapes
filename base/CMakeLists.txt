@@ -28,13 +28,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
   add_link_options(-fsanitize=address)
 endif()
 
-
-
+# OpenBLAS location changed from older installs; clear stale cache so configure
+# always resolves against the current in-repo install path.
+unset(OPENBLAS_LIB CACHE)
 find_library(OPENBLAS_LIB
   NAMES openblas
   PATHS ${CMAKE_SOURCE_DIR}/build/openblas/lib
   NO_DEFAULT_PATH
 )
+if(NOT OPENBLAS_LIB)
+  message(FATAL_ERROR "OpenBLAS not found in ${CMAKE_SOURCE_DIR}/build/openblas/lib. Run 'make init'.")
+endif()
 
 include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 

@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"unicode/utf8"
 
 	shapes "github.com/flygerian/shapes"
 )
@@ -15,100 +14,8 @@ const (
 	boxHeight   = 7
 	vSpacing    = 5
 	maxNodes    = 64
-	boxGap      = 4
 	screenWidth = 220
 )
-
-// Box represents a drawable box in the terminal.
-type Box struct {
-	x, y          int
-	width, height int
-	topText       string
-	bottomText    string
-}
-
-// ClearScreen clears the terminal and moves cursor to origin.
-func ClearScreen(w io.Writer) {
-	fmt.Fprint(w, "\033[2J\033[H")
-}
-
-// DrawBox renders a single box with centered top/bottom text and a separator.
-func DrawBox(w io.Writer, box *Box) {
-	// Top border
-	fmt.Fprintf(w, "\033[%d;%dH", box.y, box.x)
-	fmt.Fprint(w, "┌")
-	fmt.Fprint(w, strings.Repeat("─", box.width-2))
-	fmt.Fprint(w, "┐")
-
-	for i := 1; i < box.height-1; i++ {
-		fmt.Fprintf(w, "\033[%d;%dH", box.y+i, box.x)
-
-		switch i {
-		case 2:
-			// Top text line
-			fmt.Fprint(w, "│")
-			writeCenter(w, box.topText, box.width-2)
-			fmt.Fprint(w, "│")
-		case 3:
-			// Separator
-			fmt.Fprint(w, "├")
-			fmt.Fprint(w, strings.Repeat("─", box.width-2))
-			fmt.Fprint(w, "┤")
-		case 4:
-			// Bottom text line
-			fmt.Fprint(w, "│")
-			writeCenter(w, box.bottomText, box.width-2)
-			fmt.Fprint(w, "│")
-		default:
-			// Empty line
-			fmt.Fprint(w, "│")
-			fmt.Fprint(w, strings.Repeat(" ", box.width-2))
-			fmt.Fprint(w, "│")
-		}
-	}
-
-	// Bottom border
-	fmt.Fprintf(w, "\033[%d;%dH", box.y+box.height-1, box.x)
-	fmt.Fprint(w, "└")
-	fmt.Fprint(w, strings.Repeat("─", box.width-2))
-	fmt.Fprint(w, "┘")
-}
-
-// DrawLine connects the bottom-center of 'from' to the top-center of 'to'.
-func DrawLine(w io.Writer, from, to *Box) {
-	startX := from.x + from.width/2
-	startY := from.y + from.height
-
-	endX := to.x + to.width/2
-	endY := to.y - 1
-
-	midY := (startY + endY) / 2
-
-	// Vertical segment down from source
-	for y := startY; y <= midY; y++ {
-		fmt.Fprintf(w, "\033[%d;%dH│", y, startX)
-	}
-
-	// Horizontal segment
-	if startX < endX {
-		fmt.Fprintf(w, "\033[%d;%dH└", midY, startX)
-		for x := startX + 1; x < endX; x++ {
-			fmt.Fprintf(w, "\033[%d;%dH─", midY, x)
-		}
-		fmt.Fprintf(w, "\033[%d;%dH┐", midY, endX)
-	} else if startX > endX {
-		fmt.Fprintf(w, "\033[%d;%dH┘", midY, startX)
-		for x := endX + 1; x < startX; x++ {
-			fmt.Fprintf(w, "\033[%d;%dH─", midY, x)
-		}
-		fmt.Fprintf(w, "\033[%d;%dH┌", midY, endX)
-	}
-
-	// Vertical segment down to destination
-	for y := midY + 1; y <= endY; y++ {
-		fmt.Fprintf(w, "\033[%d;%dH│", y, endX)
-	}
-}
 
 // Visualize renders the computation graph rooted at t to the terminal (os.Stdout).
 func Visualize(ctx shapes.Context, t shapes.Tensor) {
@@ -140,11 +47,13 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 		}
 	}
 
-	// Count nodes per level and find max level
+	// Count nodes per level and find max level.
 	maxLevel := 0
 	levelCount := make(map[int]int)
-	for _, e := range queue {
+	levelNodes := make(map[int][]int)
+	for i, e := range queue {
 		levelCount[e.level]++
+		levelNodes[e.level] = append(levelNodes[e.level], i)
 		if e.level > maxLevel {
 			maxLevel = e.level
 		}
@@ -160,7 +69,7 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 
 	boxWidth := maxBoxWidth
 	if maxNodesAtLevel > 1 {
-		available := (screenWidth - (maxNodesAtLevel-1)*boxGap) / maxNodesAtLevel
+		available := (screenWidth - (maxNodesAtLevel-1)*flexGap) / maxNodesAtLevel
 		if available < boxWidth {
 			boxWidth = available
 		}
@@ -169,42 +78,56 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 		}
 	}
 
-	// Assign box positions
-	levelIdx := make(map[int]int)
-	boxes := make([]Box, len(queue))
+	// Build rows with flex and keep per-node bounds for edge rendering.
+	rows := make([]Artefact, maxLevel+1)
+	rowBounds := make([]Bounds, maxLevel+1)
+	boxBounds := make([]Bounds, len(queue))
 
-	for i, e := range queue {
-		lv := e.level
-		nodesAtLevel := levelCount[lv]
-		idx := levelIdx[lv]
-		levelIdx[lv]++
+	for lv := range maxLevel + 1 {
+		indices := levelNodes[lv]
+		nodesAtLevel := len(indices)
+		if nodesAtLevel == 0 {
+			continue
+		}
 
-		totalWidth := nodesAtLevel*boxWidth + (nodesAtLevel-1)*boxGap
+		totalWidth := nodesAtLevel*boxWidth + (nodesAtLevel-1)*flexGap
 		startX := (screenWidth - totalWidth) / 2
 		if startX < 1 {
 			startX = 1
 		}
 
-		top, bottom := displas(ctx, queue[i].tensor.(shapes.Tensor))
-		boxes[i] = Box{
-			x:          startX + idx*(boxWidth+boxGap),
-			y:          2 + lv*(boxHeight+vSpacing),
-			width:      boxWidth,
-			height:     boxHeight,
-			topText:    top,
-			bottomText: bottom,
+		children := make([]Artefact, nodesAtLevel)
+		for idx, nodeIdx := range indices {
+			top, bottom := displas(ctx, queue[nodeIdx].tensor.(shapes.Tensor))
+			children[idx] = Box(top, bottom)
+			boxBounds[nodeIdx] = Bounds{
+				X:      startX + idx*(boxWidth+flexGap),
+				Y:      2 + lv*(boxHeight+vSpacing),
+				Width:  boxWidth,
+				Height: boxHeight,
+			}
+		}
+
+		rows[lv] = Flex(DirectionRow, children...)
+		rowBounds[lv] = Bounds{
+			X:      startX,
+			Y:      2 + lv*(boxHeight+vSpacing),
+			Width:  totalWidth,
+			Height: boxHeight,
 		}
 	}
 
 	ClearScreen(w)
 
-	for i := range boxes {
-		DrawBox(w, &boxes[i])
+	for lv := range rows {
+		if rows[lv] != nil {
+			rows[lv].Render(w, rowBounds[lv])
+		}
 	}
 
 	for i, e := range queue {
 		if e.parentIdx >= 0 {
-			DrawLine(w, &boxes[e.parentIdx], &boxes[i])
+			graphConnector(boxBounds[e.parentIdx], boxBounds[i]).Render(w, Bounds{})
 		}
 	}
 
@@ -237,7 +160,7 @@ func displas(ctx shapes.Context, t shapes.Tensor) (top, bottom string) {
 
 	// Bottom line shows op name if this is not a leaf
 	if len(node.Inputs()) > 0 && node.Op() != shapes.OpNone {
-		bottom = fmt.Sprintf("(%s)", node.Op)
+		bottom = fmt.Sprintf("(%s)", node.Op())
 	}
 
 	return top, bottom
@@ -330,23 +253,4 @@ func formatValue(ctx shapes.Context, t shapes.Tensor, coords []uint32) string {
 		v := t.Get(ctx, args...).Item().(int8)
 		return fmt.Sprintf("%d", v)
 	}
-}
-
-// writeCenter writes text centered in the given width, or truncated if too long.
-func writeCenter(w io.Writer, text string, width int) {
-	if text == "" {
-		fmt.Fprint(w, strings.Repeat(" ", width))
-		return
-	}
-	textLen := utf8.RuneCountInString(text)
-	if textLen > width {
-		// Truncate to width runes
-		r := []rune(text)
-		fmt.Fprint(w, string(r[:width]))
-		return
-	}
-	pad := (width - textLen) / 2
-	fmt.Fprint(w, strings.Repeat(" ", pad))
-	fmt.Fprint(w, text)
-	fmt.Fprint(w, strings.Repeat(" ", width-pad-textLen))
 }
