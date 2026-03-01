@@ -3,6 +3,8 @@ package shapes
 import (
 	stdctx "context"
 	"fmt"
+	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -31,7 +33,7 @@ type Context interface {
 	Mark(t Tensor)
 	Track(t Tensor)
 
-	Epoch(options ...subContextOption) SubContext
+	Epoch(epoch int, options ...subContextOption) SubContext
 	Forward(options ...subContextOption) SubContext
 	Backward(options ...subContextOption) SubContext
 	NoGrad(options ...subContextOption) SubContext
@@ -53,6 +55,8 @@ type MainContext interface {
 	Context
 
 	Finish()
+	Training(numEpochs int, options ...mainContextOption) MainContext
+	TrainingStats() *TrainingStats
 }
 
 type SubContext interface {
@@ -67,6 +71,8 @@ type shapesCtx struct {
 	backwardEnabled  bool
 	persistant       bool
 	sweepAfterFinish bool
+
+	training *trainingState
 }
 
 // New creates a new Context with the given parent Go context.
@@ -97,6 +103,27 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 	}
 
 	return ctx
+}
+
+type TrainingStats struct {
+	Epoch                int
+	NumEpochs            int
+	Loss                 float64
+	MemorySampleHistoryX []int
+	UsedBlocksHistory    []int
+	LossHistoryX         []int
+	LossHistory          []int
+	Version              int
+	TrainingDone         chan bool
+}
+
+type trainingState struct {
+	mu    sync.Mutex
+	stats *TrainingStats
+}
+
+type TrainingStatsRenderer interface {
+	SetTrainingContext(trainingCtx MainContext)
 }
 
 // mainContext wraps both Go's context.mainContext and the C mainContext struct.
@@ -165,11 +192,56 @@ func (c *mainContext) NoGrad(options ...subContextOption) SubContext {
 	return noGrad(c, options...)
 }
 
+func (c *mainContext) initTrainingStats(numEpochs int) {
+	c.training = &trainingState{
+		stats: &TrainingStats{
+			NumEpochs:            numEpochs,
+			Epoch:                0,
+			Loss:                 0,
+			MemorySampleHistoryX: make([]int, 0),
+			UsedBlocksHistory:    make([]int, 0),
+			LossHistoryX:         make([]int, 0),
+			LossHistory:          make([]int, 0),
+			Version:              0,
+			TrainingDone:         make(chan bool),
+		},
+	}
+}
+
+func (c *mainContext) Training(numEpochs int, options ...mainContextOption) MainContext {
+	c.initTrainingStats(numEpochs)
+	applyMainContextOptions(c, options...)
+	go startMemoryTicker(c)
+
+	return c
+}
+
+func (c *mainContext) sampleMemory(sampleCount int) {
+	if c.training == nil || c.training.stats == nil {
+		return
+	}
+
+	usedBlocks := c.NumAllocatedBlocks()
+	c.training.mu.Lock()
+	c.training.stats.MemorySampleHistoryX = append(c.training.stats.MemorySampleHistoryX, sampleCount)
+	c.training.stats.UsedBlocksHistory = append(c.training.stats.UsedBlocksHistory, usedBlocks)
+	c.training.stats.Version++
+	c.training.mu.Unlock()
+}
+
+func (c *mainContext) TrainingStats() *TrainingStats {
+	if c.training == nil {
+		return nil
+	}
+
+	return c.training.stats
+}
+
 // Epoch returns a short-lived context for one training/inference step.
 // It preserves the parent context's grad/backward behavior while keeping
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
-func (c *mainContext) Epoch(options ...subContextOption) SubContext {
-	return epoch(c, options...)
+func (c *mainContext) Epoch(currentEpoch int, options ...subContextOption) SubContext {
+	return epoch(c, currentEpoch, options...)
 }
 
 // Forward returns a context intended for forward-pass fused operations.
@@ -323,6 +395,10 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	if sc.sweepAfterFinish {
 		sc.parent.Sweep()
 	}
+
+	if sc.training != nil && sc.training.stats != nil && sc.training.stats.Epoch == sc.training.stats.NumEpochs {
+		sc.training.stats.TrainingDone <- true
+	}
 }
 
 func (sc *subContext) cleanup() {
@@ -356,8 +432,8 @@ func (c *subContext) NoGrad(options ...subContextOption) SubContext {
 // Epoch returns a short-lived context for one training/inference step.
 // It preserves the parent context's grad/backward behavior while keeping
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
-func (c *subContext) Epoch(options ...subContextOption) SubContext {
-	return epoch(c, options...)
+func (c *subContext) Epoch(currentEpoch int, options ...subContextOption) SubContext {
+	return epoch(c, currentEpoch, options...)
 }
 
 // Forward returns a context intended for forward-pass fused operations.
@@ -435,15 +511,30 @@ func applySubContextOptions(sc *subContext, options ...subContextOption) {
 	}
 }
 
+func applyMainContextOptions(sc *mainContext, options ...mainContextOption) {
+	for _, opt := range options {
+		opt(sc)
+	}
+}
+
 // derive creates a new derived context sharing the same C context and root.
 // Fresh locals slice; handles and intermediates are root-owned.
 func derive(ctx Context, gradEnabled, backwardEnabled bool, options ...subContextOption) SubContext {
+	var training *trainingState
+	switch parent := ctx.(type) {
+	case *mainContext:
+		training = parent.training
+	case *subContext:
+		training = parent.training
+	}
+
 	sc := &subContext{
 		parent: ctx,
 		locals: make([]Tensor, 0),
 		shapesCtx: shapesCtx{
 			backwardEnabled: backwardEnabled,
 			gradEnabled:     gradEnabled,
+			training:        training,
 		},
 	}
 
@@ -462,13 +553,29 @@ func noGrad(c Context, options ...subContextOption) SubContext {
 // Epoch returns a short-lived context intended for one training step.
 // It preserves grad/backward settings from the parent while providing
 // independent local tracking for cleanup.
-func epoch(c Context, options ...subContextOption) SubContext {
+func epoch(c Context, epochNum int, options ...subContextOption) SubContext {
+	if epochNum < 1 {
+		panic("Epoch number cannot be less than 1")
+	}
+
 	if !c.GradEnabled() || !c.BackwardEnabled() {
 		panic("Cannot create epoch context when gradients or backward are disabled")
 	}
 
 	if sc, ok := c.(*subContext); ok && sc.sweepAfterFinish {
 		panic("Cannot create an epoch context from another epoch context")
+	}
+
+	if mc, ok := c.(*mainContext); ok {
+		if mc.training == nil || mc.training.stats == nil {
+			panic("Can only call epoch on a training context")
+		}
+
+		mc.training.mu.Lock()
+		mc.training.stats.Epoch = epochNum
+		mc.training.mu.Unlock()
+	} else {
+		panic("You can only call Epoch() in the main context")
 	}
 
 	sc := derive(c, c.GradEnabled(), c.BackwardEnabled(), options...)
@@ -491,6 +598,30 @@ func fused(c Context, options ...subContextOption) SubContext {
 // turns off all gradient tacking. For use in backward pass only
 func noGraph(c Context, options ...subContextOption) SubContext {
 	return derive(c, false, false, options...)
+}
+
+func startMemoryTicker(c *mainContext) {
+	if c.training == nil || c.training.stats == nil {
+		return
+	}
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	sampleCount := 1
+
+	c.sampleMemory(sampleCount)
+	for {
+		select {
+		case <-c.training.stats.TrainingDone:
+			c.sampleMemory(sampleCount)
+			sampleCount++
+			return
+		case <-ticker.C:
+			c.sampleMemory(sampleCount)
+			sampleCount++
+		}
+	}
 }
 
 func toComputationGraphNode(

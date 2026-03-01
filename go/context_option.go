@@ -17,6 +17,12 @@ func WithArenaSize(size int) mainContextOption {
 	}
 }
 
+func WithTrainingStatsRenderer(renderer TrainingStatsRenderer) mainContextOption {
+	return func(mc *mainContext) {
+		renderer.SetTrainingContext(mc)
+	}
+}
+
 type subContextOption func(*subContext)
 
 func panicIfNoGradients(tensors ...Tensor) {
@@ -69,5 +75,19 @@ func WithBackward(backwardFn BackwardFn) subContextOption {
 func WithPersistence() subContextOption {
 	return func(sc *subContext) {
 		sc.persistant = true
+	}
+}
+
+func WithLoss(loss float32) subContextOption {
+	return func(sc *subContext) {
+		if sc.training == nil || sc.training.stats == nil {
+			panic("Can only set loss in training mode")
+		}
+
+		sc.training.mu.Lock()
+		sc.training.stats.LossHistoryX = append(sc.training.stats.LossHistoryX, sc.training.stats.Epoch)
+		sc.training.stats.LossHistory = append(sc.training.stats.LossHistory, int(loss*1000))
+		sc.training.stats.Loss = float64(loss)
+		sc.training.mu.Unlock()
 	}
 }
