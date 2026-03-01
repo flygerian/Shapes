@@ -2,6 +2,7 @@ package examples
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"math/rand"
 	"os"
@@ -53,16 +54,6 @@ func printFromAphabetPos(positions []int8, itos map[int8]rune) string {
 
 func newSection() {
 	fmt.Printf("\n\n................................................................................\n\n")
-}
-
-func clearRect(x, y, width, height int) {
-	if width <= 0 || height <= 0 {
-		return
-	}
-	blank := strings.Repeat(" ", width)
-	for row := y; row < y+height; row++ {
-		fmt.Printf("\033[%d;%dH%s", row, x, blank)
-	}
 }
 
 func MakeMore_2(shapesCtx shapes.Context) {
@@ -145,7 +136,7 @@ func MakeMore_2(shapesCtx shapes.Context) {
 	l2 := layer.Dense(shapesCtx, 100, 200)
 	l3 := layer.Dense(shapesCtx, 200, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.00001)
+	sgd := optimizer.SGD(shapesCtx, 0.0001)
 
 	crossEnthropy := loss.CrossEntropy()
 
@@ -163,13 +154,15 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		return logits
 	}
 
-	numEpochs := 10000
+	numEpochs := 50000
 	type uiState struct {
 		epoch                int
 		numEpochs            int
 		loss                 float32
 		memorySampleHistoryX []int
 		usedBlocksHistory    []int
+		lossHistoryX         []int
+		lossHistory          []int
 		version              int
 	}
 	var (
@@ -178,6 +171,8 @@ func MakeMore_2(shapesCtx shapes.Context) {
 			numEpochs:            numEpochs,
 			memorySampleHistoryX: make([]int, 0, numEpochs),
 			usedBlocksHistory:    make([]int, 0, numEpochs),
+			lossHistoryX:         make([]int, 0, numEpochs/100+1),
+			lossHistory:          make([]int, 0, numEpochs/100+1),
 		}
 		done = make(chan struct{})
 		wg   sync.WaitGroup
@@ -188,7 +183,8 @@ func MakeMore_2(shapesCtx shapes.Context) {
 		defer wg.Done()
 		ticker := time.NewTicker(time.Second / 60)
 		defer ticker.Stop()
-		visual.ClearScreen(os.Stdout)
+		fmt.Fprint(os.Stdout, "\033[?25l\033[2J\033[H")
+		defer fmt.Fprint(os.Stdout, "\033[?25h")
 
 		lastVersion := -1
 
@@ -199,10 +195,12 @@ func MakeMore_2(shapesCtx shapes.Context) {
 			loss := state.loss
 			memorySampleHistoryX := append([]int(nil), state.memorySampleHistoryX...)
 			usedBlocksHistory := append([]int(nil), state.usedBlocksHistory...)
+			lossHistoryX := append([]int(nil), state.lossHistoryX...)
+			lossHistory := append([]int(nil), state.lossHistory...)
 			version := state.version
 			stateMu.RUnlock()
 
-			if len(memorySampleHistoryX) == 0 {
+			if len(memorySampleHistoryX) == 0 || len(lossHistoryX) == 0 {
 				return
 			}
 			if !force && version == lastVersion {
@@ -210,15 +208,29 @@ func MakeMore_2(shapesCtx shapes.Context) {
 			}
 			lastVersion = version
 
-			fmt.Fprint(os.Stdout, "\033[H")
-			clearRect(1, 1, 110, 24)
 			header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", epoch, totalEpochs, loss)
 			dashboard := visual.Flex(
 				visual.DirectionColumn,
 				visual.Box("Makemore Training", header),
-				visual.Chart(memorySampleHistoryX, usedBlocksHistory),
+				visual.Flex(
+					visual.DirectionRow,
+					visual.Flex(
+						visual.DirectionColumn,
+						visual.Text("memory"),
+						visual.Chart(memorySampleHistoryX, usedBlocksHistory),
+					),
+					visual.Flex(
+						visual.DirectionColumn,
+						visual.Text("loss"),
+						visual.Chart(lossHistoryX, lossHistory),
+					),
+				),
 			)
-			dashboard.Render(os.Stdout, visual.Bounds{X: 1, Y: 1, Width: 110, Height: 24})
+			var frame bytes.Buffer
+
+			dashboard.Render(&frame, visual.Bounds{X: 1, Y: 1, Width: 110, Height: 48})
+			_, _ = os.Stdout.Write([]byte("\033[H"))
+			_, _ = os.Stdout.Write(frame.Bytes())
 		}
 
 		for {
@@ -291,6 +303,8 @@ func MakeMore_2(shapesCtx shapes.Context) {
 			stateMu.Lock()
 			state.epoch = i
 			state.loss = lossScalar
+			state.lossHistoryX = append(state.lossHistoryX, i+1)
+			state.lossHistory = append(state.lossHistory, int(lossScalar*1000))
 			state.version++
 			stateMu.Unlock()
 		}

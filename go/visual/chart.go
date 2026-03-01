@@ -83,13 +83,6 @@ func (c *chart) Render(target io.Writer, bounds Bounds) {
 		Width:  bounds.Width,
 		Height: 1,
 	})
-	label := fmt.Sprintf("x:%d..%d y:blocks (%d..%d)", c.xAxis[sampledIndices[0]], c.xAxis[sampledIndices[len(sampledIndices)-1]], minY, maxY)
-	Text(label).Render(target, Bounds{
-		X:      bounds.X,
-		Y:      bounds.Y + bounds.Height - 1,
-		Width:  bounds.Width,
-		Height: 1,
-	})
 }
 
 type memoryBar struct {
