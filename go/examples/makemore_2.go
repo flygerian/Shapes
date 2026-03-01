@@ -1,11 +1,5 @@
 package examples
 
-/*
-#cgo CFLAGS: -I../../base
-#include "memory.h"
-*/
-import "C"
-
 import (
 	"bufio"
 	"fmt"
@@ -13,6 +7,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 	"unicode"
 
 	"github.com/flygerian/shapes"
@@ -22,18 +18,6 @@ import (
 	"github.com/flygerian/shapes/optimizer"
 	"github.com/flygerian/shapes/visual"
 )
-
-func memoryStats(ctx shapes.Context) (allocated uint64, capacity uint64, blocks int, freeBlocks int, usedBlocks int) {
-	mem := (*C.Memory)(ctx.UnsafeMemory())
-	if mem == nil {
-		return 0, 0, 0, 0, 0
-	}
-
-	blocks = int(mem.numBlocks)
-	freeBlocks = int(mem.numFreeBlocks)
-	usedBlocks = blocks - freeBlocks
-	return uint64(mem.allocated), uint64(mem.capacity), blocks, freeBlocks, usedBlocks
-}
 
 func makeSet(input string) []rune {
 	lookup := make(map[rune]bool)
@@ -69,6 +53,16 @@ func printFromAphabetPos(positions []int8, itos map[int8]rune) string {
 
 func newSection() {
 	fmt.Printf("\n\n................................................................................\n\n")
+}
+
+func clearRect(x, y, width, height int) {
+	if width <= 0 || height <= 0 {
+		return
+	}
+	blank := strings.Repeat(" ", width)
+	for row := y; row < y+height; row++ {
+		fmt.Printf("\033[%d;%dH%s", row, x, blank)
+	}
 }
 
 func MakeMore_2(shapesCtx shapes.Context) {
@@ -170,9 +164,106 @@ func MakeMore_2(shapesCtx shapes.Context) {
 	}
 
 	numEpochs := 10000
+	type uiState struct {
+		epoch                int
+		numEpochs            int
+		loss                 float32
+		memorySampleHistoryX []int
+		usedBlocksHistory    []int
+		version              int
+	}
+	var (
+		stateMu sync.RWMutex
+		state   = uiState{
+			numEpochs:            numEpochs,
+			memorySampleHistoryX: make([]int, 0, numEpochs),
+			usedBlocksHistory:    make([]int, 0, numEpochs),
+		}
+		done = make(chan struct{})
+		wg   sync.WaitGroup
+	)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(time.Second / 60)
+		defer ticker.Stop()
+		visual.ClearScreen(os.Stdout)
+
+		lastVersion := -1
+
+		render := func(force bool) {
+			stateMu.RLock()
+			epoch := state.epoch
+			totalEpochs := state.numEpochs
+			loss := state.loss
+			memorySampleHistoryX := append([]int(nil), state.memorySampleHistoryX...)
+			usedBlocksHistory := append([]int(nil), state.usedBlocksHistory...)
+			version := state.version
+			stateMu.RUnlock()
+
+			if len(memorySampleHistoryX) == 0 {
+				return
+			}
+			if !force && version == lastVersion {
+				return
+			}
+			lastVersion = version
+
+			fmt.Fprint(os.Stdout, "\033[H")
+			clearRect(1, 1, 110, 24)
+			header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", epoch, totalEpochs, loss)
+			dashboard := visual.Flex(
+				visual.DirectionColumn,
+				visual.Box("Makemore Training", header),
+				visual.Chart(memorySampleHistoryX, usedBlocksHistory),
+			)
+			dashboard.Render(os.Stdout, visual.Bounds{X: 1, Y: 1, Width: 110, Height: 24})
+		}
+
+		for {
+			select {
+			case <-done:
+				render(true)
+				return
+			case <-ticker.C:
+				render(false)
+			}
+		}
+	}()
+
+	// track memory
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
+
+		sampleCount := 1
+		sample := func() {
+			usedBlocks := shapesCtx.NumAllocatedBlocks()
+			stateMu.Lock()
+			state.memorySampleHistoryX = append(state.memorySampleHistoryX, sampleCount)
+			state.usedBlocksHistory = append(state.usedBlocksHistory, usedBlocks)
+			state.version++
+			stateMu.Unlock()
+			sampleCount++
+		}
+
+		sample()
+		for {
+			select {
+			case <-done:
+				sample()
+				return
+			case <-ticker.C:
+				sample()
+			}
+		}
+	}()
+
 	for i := range numEpochs {
 		epochCtx := shapesCtx.Epoch()
-		beforeAllocated, capacity, beforeBlocks, beforeFree, beforeUsed := memoryStats(shapesCtx)
 		ix := shapes.FloatRandom(epochCtx, shapes.Shape{32}, 0, float32(X.Shape()[0])).I64(epochCtx)
 
 		// Forward pass
@@ -186,43 +277,28 @@ func MakeMore_2(shapesCtx shapes.Context) {
 
 		lossValue := crossEnthropy(epochCtx, yOneHot, logits)
 
-		if i%100 == 0 {
-			afterAllocated, _, afterBlocks, afterFree, afterUsed := memoryStats(shapesCtx)
-			stats := fmt.Sprintf(
-				"used=%d->%d (%+d) blocks=%d->%d free=%d->%d allocated=%d->%d (%+d) capacity=%d",
-				i,
-				beforeUsed,
-				afterUsed,
-				afterUsed-beforeUsed,
-				beforeBlocks,
-				afterBlocks,
-				beforeFree,
-				afterFree,
-				beforeAllocated,
-				afterAllocated,
-				int64(afterAllocated)-int64(beforeAllocated),
-				capacity,
-			)
-
-			visual.ClearScreen(os.Stdout)
-			header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", i, numEpochs, lossValue.Get(epochCtx, 0).Item())
-			dashboard := visual.Flex(
-				visual.DirectionColumn,
-				visual.Box("Makemore Training", header),
-				visual.Text(stats),
-			)
-			dashboard.Render(os.Stdout, visual.Bounds{X: 1, Y: 1, Width: 100, Height: 11})
-		}
+		lossScalar := lossValue.Get(epochCtx, 0).Item().(float32)
 
 		// Backward pass
 		graph := lossValue.Backward(epochCtx)
 
 		// Update parameters
 		sgd(graph)
+
 		optimizer.ZeroGrad(shapesCtx, graph)
+
+		if i%100 == 0 {
+			stateMu.Lock()
+			state.epoch = i
+			state.loss = lossScalar
+			state.version++
+			stateMu.Unlock()
+		}
 		epochCtx.Finish()
 
 	}
+	close(done)
+	wg.Wait()
 
 	newSection()
 
