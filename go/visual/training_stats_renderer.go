@@ -41,6 +41,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 
 		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", stats.Epoch, stats.NumEpochs, stats.Loss)
 		dashboard := Flex(FlexOptions{
+			MinHeight: 50,
 			Direction: DirectionColumn,
 			Children: []Artefact{
 				Box(BoxOptions{
@@ -52,34 +53,49 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 						},
 					}),
 				}),
-				Flex(FlexOptions{
-					Children: []Artefact{
-						Flex(FlexOptions{
-							Direction: DirectionColumn,
-							Children: []Artefact{
-								Chart(stats.MemorySampleHistoryX, stats.UsedBlocksHistory),
-								Box(BoxOptions{
-									Child: Text("Memory"),
+				Weighted(WeightOptions{
+					Weight: 3,
+					Child: Flex(FlexOptions{
+						Direction: DirectionColumn,
+						Children: []Artefact{
+							Flex(FlexOptions{
+								Direction: DirectionColumn,
+								Children: []Artefact{
+									Chart(ChartOptions{
+										XAxis: stats.MemorySampleHistoryX,
+										YAxis: stats.UsedBlocksHistory,
+										Mode:  ChartWindowed,
+									}),
+									Box(BoxOptions{
+										Child: Text("Memory"),
+									}),
+								},
+							}),
+							Weighted(WeightOptions{
+								Weight: 2,
+								Child: Flex(FlexOptions{
+									Direction: DirectionColumn,
+									Children: []Artefact{
+										Chart(ChartOptions{
+											XAxis: stats.LossHistoryX,
+											YAxis: stats.LossHistory,
+											Mode:  ChartFitToViewport,
+										}),
+										Box(BoxOptions{
+											Child: Text("Loss"),
+										}),
+									},
 								}),
-							},
-						}),
-						Flex(FlexOptions{
-							Direction: DirectionColumn,
-							Children: []Artefact{
-								Chart(stats.LossHistoryX, stats.LossHistory),
-								Box(BoxOptions{
-									Child: Text("Loss"),
-								}),
-							},
-						}),
-					},
+							}),
+						},
+					}),
 				}),
 			},
 		})
 
 		var frame bytes.Buffer
 
-		dashboard.Render(&frame, Bounds{X: 1, Y: 1, Width: 90, Height: 24})
+		dashboard.Render(&frame, Bounds{X: 1, Y: 1, Width: 90, Height: 0})
 		_, _ = os.Stdout.Write([]byte("\033[H"))
 		_, _ = os.Stdout.Write(frame.Bytes())
 	}
@@ -90,6 +106,10 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 			render(true)
 			return
 		case <-ticker.C:
+			if stats.Epoch >= stats.NumEpochs {
+				render(true)
+				return
+			}
 			render(false)
 		}
 	}

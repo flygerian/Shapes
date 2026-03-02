@@ -15,6 +15,10 @@ func Line() Artefact {
 	return &line{}
 }
 
+func (line *line) Weight() int {
+	return 1
+}
+
 func (line *line) Measure(budget Bounds) Bounds {
 	size := Bounds{Width: 1, Height: 1}
 	if budget.Width > 0 {
@@ -56,6 +60,10 @@ var _ Artefact = (*connector)(nil)
 
 func graphConnector(from, to Bounds) Artefact {
 	return &connector{from: from, to: to}
+}
+
+func (line *connector) Weight() int {
+	return 1
 }
 
 func (line *connector) Measure(budget Bounds) Bounds {

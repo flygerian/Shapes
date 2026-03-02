@@ -24,6 +24,10 @@ func Box(options BoxOptions) Artefact {
 	}
 }
 
+func (box *box) Weight() int {
+	return 1
+}
+
 func (box *box) Measure(budget Bounds) Bounds {
 	if box == nil {
 		return Bounds{Width: 2, Height: 2}

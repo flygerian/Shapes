@@ -14,6 +14,10 @@ func Circle() Artefact {
 	return &circle{}
 }
 
+func (c *circle) Weight() int {
+	return 1
+}
+
 func (c *circle) Measure(budget Bounds) Bounds {
 	size := Bounds{Width: 1, Height: 1}
 	if budget.Width > 0 && size.Width > budget.Width {

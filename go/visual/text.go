@@ -18,6 +18,10 @@ func Text(content string) Artefact {
 	return &text{lines: splitLines(content)}
 }
 
+func (t *text) Weight() int {
+	return 1
+}
+
 func (t *text) Measure(budget Bounds) Bounds {
 	if t == nil || len(t.lines) == 0 {
 		return Bounds{Width: 1, Height: 1}

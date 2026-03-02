@@ -131,7 +131,7 @@ func MakeMore_2() {
 	l2 := layer.Dense(shapesCtx, 100, 200)
 	l3 := layer.Dense(shapesCtx, 200, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.0001)
+	sgd := optimizer.SGD(shapesCtx, 0.001)
 
 	crossEnthropy := loss.CrossEntropy()
 
@@ -176,7 +176,13 @@ func MakeMore_2() {
 
 		optimizer.ZeroGrad(shapesCtx, graph)
 
-		epochCtx.Finish(shapes.WithLoss(lossScalar))
+		if i%1000 == 0 {
+			epochCtx.Finish(shapes.WithLoss(lossScalar))
+		} else {
+
+			epochCtx.Finish()
+		}
+
 	}
 
 	trainingCtx.Finish()

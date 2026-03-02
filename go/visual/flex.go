@@ -15,11 +15,13 @@ const flexGap = 1
 type flex struct {
 	direction Direction
 	children  []Artefact
+	minHeight int
 }
 
 type FlexOptions struct {
 	Direction Direction
 	Children  []Artefact
+	MinHeight int
 }
 
 var _ Artefact = (*flex)(nil)
@@ -37,20 +39,34 @@ func Flex(options FlexOptions) Artefact {
 	return &flex{
 		direction: direction,
 		children:  childCopy,
+		minHeight: max(options.MinHeight, 0),
 	}
 }
 
+func (f *flex) Weight() int {
+	return 1
+}
+
 func (f *flex) Measure(budget Bounds) Bounds {
-	if f == nil || len(f.children) == 0 {
+	if f == nil {
 		return Bounds{}
 	}
+	if len(f.children) == 0 {
+		return Bounds{Height: f.minHeight}
+	}
 
+	var size Bounds
 	switch f.direction {
 	case DirectionColumn:
-		return f.measureColumn(budget)
+		size = f.measureColumn(budget)
 	default:
-		return f.measureRow(budget)
+		size = f.measureRow(budget)
 	}
+
+	if size.Height < f.minHeight {
+		size.Height = f.minHeight
+	}
+	return size
 }
 
 func (f *flex) measureRow(budget Bounds) Bounds {
@@ -60,7 +76,7 @@ func (f *flex) measureRow(budget Bounds) Bounds {
 	}
 
 	if budget.Width > 0 {
-		slotWidths := partitionBudget(budget.Width, count, flexGap)
+		slotWidths := partitionBudgetWeighted(budget.Width, flexGap, f.children)
 		maxHeight := 1
 		for i, child := range f.children {
 			size := measure(child, Bounds{
@@ -97,7 +113,7 @@ func (f *flex) measureColumn(budget Bounds) Bounds {
 	}
 
 	if budget.Height > 0 {
-		slotHeights := partitionBudget(budget.Height, count, flexGap)
+		slotHeights := partitionBudgetWeighted(budget.Height, flexGap, f.children)
 		maxWidth := 1
 		for i, child := range f.children {
 			size := measure(child, Bounds{
@@ -140,6 +156,9 @@ func (f *flex) Render(target io.Writer, bounds Bounds) {
 	if bounds.Height <= 0 {
 		bounds.Height = size.Height
 	}
+	if bounds.Height < f.minHeight {
+		bounds.Height = f.minHeight
+	}
 	if bounds.Width <= 0 || bounds.Height <= 0 {
 		return
 	}
@@ -154,7 +173,7 @@ func (f *flex) Render(target io.Writer, bounds Bounds) {
 
 func (f *flex) renderRow(target io.Writer, bounds Bounds) {
 	if bounds.Width > 0 {
-		slotWidths := partitionBudget(bounds.Width, len(f.children), flexGap)
+		slotWidths := partitionBudgetWeighted(bounds.Width, flexGap, f.children)
 		x := bounds.X
 		for i, child := range f.children {
 			slotWidth := slotWidths[i]
@@ -204,7 +223,7 @@ func (f *flex) renderRow(target io.Writer, bounds Bounds) {
 
 func (f *flex) renderColumn(target io.Writer, bounds Bounds) {
 	if bounds.Height > 0 {
-		slotHeights := partitionBudget(bounds.Height, len(f.children), flexGap)
+		slotHeights := partitionBudgetWeighted(bounds.Height, flexGap, f.children)
 		y := bounds.Y
 		for i, child := range f.children {
 			slotHeight := slotHeights[i]
@@ -252,7 +271,8 @@ func (f *flex) renderColumn(target io.Writer, bounds Bounds) {
 	}
 }
 
-func partitionBudget(total, count, gap int) []int {
+func partitionBudgetWeighted(total, gap int, children []Artefact) []int {
+	count := len(children)
 	slots := make([]int, count)
 	if count == 0 {
 		return slots
@@ -263,13 +283,42 @@ func partitionBudget(total, count, gap int) []int {
 		return slots
 	}
 
-	base := available / count
-	rem := available % count
-	for i := range count {
-		slots[i] = base
-		if i < rem {
-			slots[i]++
+	weights := make([]int, count)
+	totalWeight := 0
+	for i, child := range children {
+		w := child.Weight()
+		if w < 0 {
+			w = 0
 		}
+		weights[i] = w
+		totalWeight += w
+	}
+
+	if totalWeight == 0 {
+		for i := range count {
+			weights[i] = 1
+		}
+		totalWeight = count
+	}
+
+	remainders := make([]int, count)
+	allocated := 0
+	for i := range count {
+		product := available * weights[i]
+		slots[i] = product / totalWeight
+		remainders[i] = product % totalWeight
+		allocated += slots[i]
+	}
+
+	for remaining := available - allocated; remaining > 0; remaining-- {
+		best := 0
+		for i := 1; i < count; i++ {
+			if remainders[i] > remainders[best] {
+				best = i
+			}
+		}
+		slots[best]++
+		remainders[best] = -1
 	}
 
 	return slots
