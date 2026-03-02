@@ -27,6 +27,7 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
 Result IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad);
 Result IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
                          Tensor *srcGrad);
+Result SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad);
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
 Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);

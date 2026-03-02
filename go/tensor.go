@@ -36,6 +36,7 @@ type Tensor interface {
 	hadReductionOps
 	hasShapeOps
 	hasUnaryOps
+	hasCastOps
 	hasMatrixOps
 	hasAccessOps
 	hasBackward
@@ -45,6 +46,7 @@ type Tensor interface {
 	Grad() GradTensor
 	Accumulate(ctx Context, operandB Tensor)
 	Computation() Computation
+	RequiresGrad() bool
 
 	I64(ctx Context) Tensor
 

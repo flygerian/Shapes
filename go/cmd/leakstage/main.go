@@ -143,7 +143,7 @@ func main() {
 	}
 
 	for i := range *epochs {
-		epochCtx := ctx.Epoch()
+		epochCtx := ctx.Epoch(i)
 		before := ctx.NumAllocatedBlocks()
 		beforeAllocated, capacity, beforeBlocks, beforeFreeBlocks := memoryStats(ctx)
 

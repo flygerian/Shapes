@@ -9,9 +9,9 @@ import (
 // Returns: sum((yPred - yGround)^2) reduced to a scalar.
 func Mse(c shapes.Context, yGround shapes.Tensor, yPred shapes.Tensor) func(shapes.Tensor) shapes.Tensor {
 	return func(t shapes.Tensor) shapes.Tensor {
+		_ = t
 
 		fusedCtx := c.Forward(shapes.WithInputs(yGround, yPred))
-		defer fusedCtx.Finish()
 
 		// Compute: (yPred - yGround)^2
 		diff := yPred.Minus(fusedCtx, yGround)
@@ -26,7 +26,11 @@ func Mse(c shapes.Context, yGround shapes.Tensor, yPred shapes.Tensor) func(shap
 			}
 		}
 
-		fusedCtx.Finish(shapes.WithResult(result))
+		fusedCtx.Finish(
+			shapes.WithResult(result),
+			shapes.WithOpType(shapes.OpMse),
+			shapes.WithBackward(mseBackward),
+		)
 
 		return result
 	}

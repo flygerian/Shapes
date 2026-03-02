@@ -258,15 +258,15 @@ func TestWrappedCastI8ToI16(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	src := ctx.FromInt8([]int8{1, -2, 3})
-	result := src.I16()
+	src := FromInt8(ctx, []int8{1, -2, 3})
+	result := src.I16(ctx)
 
 	if result.Dtype() != DtypeI16 {
 		t.Fatalf("expected dtype I16, got %s", result.Dtype())
 	}
 	expected := []int16{1, -2, 3}
 	for i, want := range expected {
-		got := result.Get(uint32(i)).Item().(int16)
+		got := result.Get(ctx, uint32(i)).Item().(int16)
 		if got != want {
 			t.Errorf("WrappedTensor I16[%d] = %d, want %d", i, got, want)
 		}
@@ -277,8 +277,8 @@ func TestWrappedCastF32ToF64(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	src := ctx.FromFloat32(Shape{2}, []float32{1.5, -2.5})
-	result := src.F64()
+	src := FromFloat32(ctx, Shape{2}, []float32{1.5, -2.5})
+	result := src.F64(ctx)
 
 	if result.Dtype() != DtypeF64 {
 		t.Fatalf("expected dtype F64, got %s", result.Dtype())
@@ -289,15 +289,15 @@ func TestWrappedCastI8ToF32(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	src := ctx.FromInt8([]int8{-4, 5})
-	result := src.F32()
+	src := FromInt8(ctx, []int8{-4, 5})
+	result := src.F32(ctx)
 
 	if result.Dtype() != DtypeF32 {
 		t.Fatalf("expected dtype F32, got %s", result.Dtype())
 	}
 	expected := []float32{-4.0, 5.0}
 	for i, want := range expected {
-		got := result.Get(uint32(i)).Item().(float32)
+		got := result.Get(ctx, uint32(i)).Item().(float32)
 		if !approxEq(got, want, 1e-5) {
 			t.Errorf("WrappedTensor F32[%d] = %f, want %f", i, got, want)
 		}
@@ -308,14 +308,14 @@ func TestWrappedCastSameDtype(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	src := ctx.Float(Shape{3}, 2.5)
-	result := src.F32()
+	src := Float(ctx, Shape{3}, 2.5)
+	result := src.F32(ctx)
 
 	if result.Dtype() != DtypeF32 {
 		t.Fatalf("expected dtype F32, got %s", result.Dtype())
 	}
 	for i := range uint32(3) {
-		got := result.Get(i).Item().(float32)
+		got := result.Get(ctx, i).Item().(float32)
 		if !approxEq(got, 2.5, 1e-5) {
 			t.Errorf("WrappedTensor same dtype[%d] = %f, want 2.5", i, got)
 		}
@@ -332,8 +332,8 @@ func TestWrappedCastPanicsOnSignMismatch(t *testing.T) {
 		}
 	}()
 
-	src := ctx.FromInt8([]int8{1, 2})
-	src.U8() // Should panic
+	src := FromInt8(ctx, []int8{1, 2})
+	src.U8(ctx) // Should panic
 }
 
 func TestWrappedCastPanicsOnTruncation(t *testing.T) {
@@ -346,24 +346,24 @@ func TestWrappedCastPanicsOnTruncation(t *testing.T) {
 		}
 	}()
 
-	src := ctx.Float(Shape{2}, 1.0)
-	f64 := src.F64()
-	f64.F32() // Should panic: truncating cast
+	src := Float(ctx, Shape{2}, 1.0)
+	f64 := src.F64(ctx)
+	f64.F32(ctx) // Should panic: truncating cast
 }
 
 func TestWrappedCastF32ToI32(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	src := ctx.FromFloat32(Shape{2}, []float32{7.9, -2.1})
-	result := src.I32()
+	src := FromFloat32(ctx, Shape{2}, []float32{7.9, -2.1})
+	result := src.I32(ctx)
 
 	if result.Dtype() != DtypeI32 {
 		t.Fatalf("expected dtype I32, got %s", result.Dtype())
 	}
 	expected := []int32{7, -2}
 	for i, want := range expected {
-		got := result.Get(uint32(i)).Item().(int32)
+		got := result.Get(ctx, uint32(i)).Item().(int32)
 		if got != want {
 			t.Errorf("WrappedTensor I32[%d] = %d, want %d", i, got, want)
 		}
@@ -372,15 +372,18 @@ func TestWrappedCastF32ToI32(t *testing.T) {
 
 // --- No autograd test ---
 
-func TestCastDoesNotAttachGrad(t *testing.T) {
+func TestCastProducesLeafWhenGradEnabled(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Finish()
 
 	src := Float(ctx, Shape{3}, 2.0)
 	result := src.I32(ctx)
 
-	if result.Computation != nil {
-		t.Error("cast result should not have a computation graph node")
+	if !result.RequiresGrad() {
+		t.Error("cast result should be tracked when grad is enabled")
+	}
+	if result.Op() != OpNone {
+		t.Errorf("cast result should be a leaf (OpNone), got %v", result.Op())
 	}
 }
 
@@ -389,15 +392,15 @@ func TestCastDoesNotAttachGrad(t *testing.T) {
 func TestCastAllValidWidening(t *testing.T) {
 	tests := []struct {
 		name     string
-		castFn   func(*MainContext, *Tensor) *Tensor
+		castFn   func(MainContext, Tensor) Tensor
 		wantType Dtype
 	}{
-		{"I8->I16", func(ctx *MainContext, src *Tensor) *Tensor { return src.I16(ctx) }, DtypeI16},
-		{"I8->I32", func(ctx *MainContext, src *Tensor) *Tensor { return src.I32(ctx) }, DtypeI32},
-		{"I8->I64", func(ctx *MainContext, src *Tensor) *Tensor { return src.I64(ctx) }, DtypeI64},
-		{"I8->F16", func(ctx *MainContext, src *Tensor) *Tensor { return src.F16(ctx) }, DtypeF16},
-		{"I8->F32", func(ctx *MainContext, src *Tensor) *Tensor { return src.F32(ctx) }, DtypeF32},
-		{"I8->F64", func(ctx *MainContext, src *Tensor) *Tensor { return src.F64(ctx) }, DtypeF64},
+		{"I8->I16", func(ctx MainContext, src Tensor) Tensor { return src.I16(ctx) }, DtypeI16},
+		{"I8->I32", func(ctx MainContext, src Tensor) Tensor { return src.I32(ctx) }, DtypeI32},
+		{"I8->I64", func(ctx MainContext, src Tensor) Tensor { return src.I64(ctx) }, DtypeI64},
+		{"I8->F16", func(ctx MainContext, src Tensor) Tensor { return src.F16(ctx) }, DtypeF16},
+		{"I8->F32", func(ctx MainContext, src Tensor) Tensor { return src.F32(ctx) }, DtypeF32},
+		{"I8->F64", func(ctx MainContext, src Tensor) Tensor { return src.F64(ctx) }, DtypeF64},
 	}
 
 	for _, tt := range tests {

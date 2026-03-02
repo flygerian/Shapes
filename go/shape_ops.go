@@ -156,9 +156,13 @@ func (t *tensor) Slice(ctx Context, ranges ...Range) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		// Deep-copy ranges so metadata is stable after the caller's slice goes out of scope.
+		// Deep-copy ranges (including each inner [start,end] slice) so metadata
+		// stays stable after the caller's variadic arguments go out of scope.
 		copiedRanges := make([]Range, len(ranges))
-		copy(copiedRanges, ranges)
+		for i, r := range ranges {
+			copiedRanges[i] = make(Range, len(r))
+			copy(copiedRanges[i], r)
+		}
 		toComputationGraphNode(out, OpSlice, sliceBackward, []Tensor{t}, []Tensor{}, nil)
 		out.computation.meta = copiedRanges
 	}

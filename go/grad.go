@@ -174,7 +174,7 @@ func topo(graph *[]ComputationGraphNode, visited map[ComputationGraphNode]bool, 
 
 // Backward runs backpropagation from tensor t through the computation graph.
 func (t *tensor) Backward(ctx Context) ComputationGraph {
-	if t.Computation == nil {
+	if t.computation == nil {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
 
@@ -214,7 +214,7 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 
 // Grad returns the gradient tensor. Panics if this tensor has no computation node.
 func (t *tensor) Grad() GradTensor {
-	if t.Computation == nil {
+	if t.computation == nil {
 		err := "shapes: tensor has no computation graph node"
 		if t.label != "" {
 			err = err + fmt.Sprintf(" %s", t.label)
@@ -238,7 +238,7 @@ func (t *tensor) Inputs() []Tensor {
 
 // RequiresGrad returns true if this tensor is part of a computation graph.
 func (t *tensor) RequiresGrad() bool {
-	return t.Computation != nil
+	return t.computation != nil
 }
 
 func (t *tensor) HiddenState() []Tensor {

@@ -19,10 +19,10 @@ func TestSGDUpdatesParameters(t *testing.T) {
 	defer ctx.Finish()
 
 	dense := layer.Dense(ctx, 3, 2)
-	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
 
-	o := dense(x)
-	graph := o.Backward()
+	o := dense.Forward(ctx, x)
+	graph := o.Backward(ctx)
 
 	params := extract.Parameters(graph)
 	if len(params) != 2 {
@@ -75,10 +75,10 @@ func TestSGDLossDecreases(t *testing.T) {
 	defer ctx.Finish()
 
 	dense := layer.Dense(ctx, 3, 2)
-	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
 
-	o := dense(x)
-	graph := o.Backward()
+	o := dense.Forward(ctx, x)
+	graph := o.Backward(ctx)
 
 	params := extract.Parameters(graph)
 	if len(params) == 0 {
@@ -88,13 +88,13 @@ func TestSGDLossDecreases(t *testing.T) {
 	// Verify gradients are non-zero.
 	hasNonZeroGrad := false
 	for _, p := range params {
-		shape := shapes.ShapeOf(p)
+		shape := p.Shape()
 		coords := make([]uint32, len(shape))
 		args := make([]interface{}, len(coords))
 		for i, c := range coords {
 			args[i] = c
 		}
-		v := p.Grad().(*shapes.Tensor).Get(ctx, args...).Item().(float32)
+		v := p.Grad().Get(ctx, args...).Item().(float32)
 		if !approxEq(v, 0, 1e-10) {
 			hasNonZeroGrad = true
 			break
@@ -115,10 +115,10 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 	defer ctx.Finish()
 
 	dense := layer.Dense(ctx, 3, 2)
-	x := ctx.Float(shapes.Shape{1, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{1, 3}, 1.0)
 
-	o := dense(x)
-	graph := o.Backward()
+	o := dense.Forward(ctx, x)
+	graph := o.Backward(ctx)
 
 	params := extract.Parameters(graph)
 	before := snapshotParams(t, ctx, params)
@@ -137,11 +137,11 @@ func runSGDStep(t *testing.T, lr float32) []float32 {
 }
 
 // snapshotParams reads all float32 values from params using proper multi-dim coords.
-func snapshotParams(t *testing.T, ctx *shapes.Context, params []*shapes.Tensor) []float32 {
+func snapshotParams(t *testing.T, ctx shapes.Context, params []shapes.Tensor) []float32 {
 	t.Helper()
 	var vals []float32
 	for _, p := range params {
-		shape := shapes.ShapeOf(p)
+		shape := p.Shape()
 		total := 1
 		for _, d := range shape {
 			total *= int(d)

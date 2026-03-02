@@ -558,3 +558,177 @@ Result IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor 
 
   return OK;
 }
+
+static void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep,
+                                     void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
+  switch (dtype) {
+    case U8: {
+      u8 *d = (u8 *)destValues;
+      u8 *s = (u8 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case U16: {
+      u16 *d = (u16 *)destValues;
+      u16 *s = (u16 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case U32: {
+      u32 *d = (u32 *)destValues;
+      u32 *s = (u32 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case U64: {
+      u64 *d = (u64 *)destValues;
+      u64 *s = (u64 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I8: {
+      i8 *d = (i8 *)destValues;
+      i8 *s = (i8 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I16: {
+      i16 *d = (i16 *)destValues;
+      i16 *s = (i16 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I32: {
+      i32 *d = (i32 *)destValues;
+      i32 *s = (i32 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I64: {
+      i64 *d = (i64 *)destValues;
+      i64 *s = (i64 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case F16: {
+      f16 *d = (f16 *)destValues;
+      f16 *s = (f16 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case F32: {
+      f32 *d = (f32 *)destValues;
+      f32 *s = (f32 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case F64: {
+      f64 *d = (f64 *)destValues;
+      f64 *s = (f64 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+  }
+}
+
+// SliceAccumulate accumulates srcGrad into dest over a sliced region.
+// Equivalent to: dest[ranges...] += srcGrad
+Result SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+  (void)ctx;
+
+  if (isInvalidTensor(dest) || isInvalidTensor(srcGrad) || ranges == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (dest->dtype != srcGrad->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (dest->shape.numOfDims != srcGrad->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  u8 ndims = dest->shape.numOfDims;
+  if (ndims == 0) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  for (u8 i = 0; i < ndims; i++) {
+    if (ranges[i].start > ranges[i].end || ranges[i].end > dest->shape.dims[i]) {
+      return ERR_OUT_OF_BOUNDS;
+    }
+
+    u64 span = ranges[i].end - ranges[i].start;
+    if ((u64)srcGrad->shape.dims[i] != span) {
+      return ERR_DIM_MISMATCH;
+    }
+  }
+
+  // Iterate by outer coordinates and accumulate a full strided run on the last
+  // dimension to avoid per-element coordinate unraveling.
+  u8 lastDim = ndims - 1;
+  u64 innerCount = srcGrad->shape.dims[lastDim];
+  u64 srcStep = srcGrad->shape.multipliers[lastDim];
+  u64 dstStep = dest->shape.multipliers[lastDim];
+
+  dim_t srcCoords[ndims];
+  dim_t dstCoords[ndims];
+  for (u8 i = 0; i < ndims; i++) {
+    srcCoords[i] = 0;
+    dstCoords[i] = (dim_t)ranges[i].start;
+  }
+
+  u64 outerCount = 1;
+  for (u8 i = 0; i < lastDim; i++) {
+    outerCount *= srcGrad->shape.dims[i];
+  }
+
+  if (innerCount == 0 || outerCount == 0) {
+    return OK;
+  }
+
+  for (u64 outer = 0; outer < outerCount; outer++) {
+    srcCoords[lastDim] = 0;
+    dstCoords[lastDim] = (dim_t)ranges[lastDim].start;
+
+    u64 srcBase = getContigousIdxFromCoord(srcGrad, srcCoords);
+    u64 dstBase = getContigousIdxFromCoord(dest, dstCoords);
+    accumulateStridedByDtype(dest->dtype, dest->values, dstBase, dstStep, srcGrad->values, srcBase,
+                             srcStep, innerCount);
+
+    // Odometer increment for outer coordinates [0..lastDim).
+    for (i32 d = (i32)lastDim - 1; d >= 0; d--) {
+      srcCoords[d]++;
+      dstCoords[d]++;
+      if (srcCoords[d] < srcGrad->shape.dims[d]) {
+        break;
+      }
+      srcCoords[d] = 0;
+      dstCoords[d] = (dim_t)ranges[d].start;
+    }
+  }
+
+  return OK;
+}

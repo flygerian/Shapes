@@ -16,9 +16,15 @@ static inline Result wrap_IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *
                                              Tensor *colIndices, Tensor *srcGrad) {
 	return IndexAccumulate2d(ctx, dest, rowIndices, colIndices, srcGrad);
 }
+static inline Result wrap_SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+	return SliceAccumulate(ctx, dest, ranges, srcGrad);
+}
 */
 import "C"
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // getTensorAtBackward propagates gradient through a GetTensorAt (row selection) op.
 // Forward: out = x[idx]
@@ -33,7 +39,7 @@ func getTensorAtBackward(ctx Context, node ComputationGraphNode) {
 
 	// Get a view into x.Grad at position idx.
 	dxView := x.Grad().Get(noGraphCtx, idx)
-	dxView.AddInPlace(ctx, node.Grad().(*tensor))
+	dxView.AddInPlace(noGraphCtx, node.Grad().(Tensor))
 }
 
 // sliceBackward propagates gradient through a Slice op.
@@ -45,9 +51,19 @@ func sliceBackward(ctx Context, node ComputationGraphNode) {
 
 	x := node.Inputs()[0]
 	ranges := node.Metadata().([]Range)
-
-	dxView := x.Grad().Slice(ctx, ranges...)
-	dxView.AddInPlace(ctx, node.Grad().(Tensor))
+	cRanges := make([]C.Range, len(ranges))
+	for i, r := range ranges {
+		cRanges[i] = C.Range{start: C.u64(r[0]), end: C.u64(r[1])}
+	}
+	res := C.wrap_SliceAccumulate(
+		(*C.Context)(noGraphCtx.UnsafePtr()),
+		x.Grad().(*tensor).cTensor,
+		(*C.Range)(unsafe.Pointer(&cRanges[0])),
+		node.Grad().(*tensor).cTensor,
+	)
+	if res != C.OK {
+		panic(fmt.Sprintf("shapes: SliceAccumulate failed: %s", resultString(uint32(res))))
+	}
 }
 
 // indexWithTensorBackward propagates gradient through IndexWithTensor (1D advanced gather).
@@ -60,7 +76,7 @@ func indexWithTensorBackward(ctx Context, node ComputationGraphNode) {
 	x := node.Inputs()[0]
 	indices := node.Metadata().(*tensor)
 
-	cCtx := (*C.Context)(ctx.UnsafePtr())
+	cCtx := (*C.Context)(noGraphCtx.UnsafePtr())
 	res := C.wrap_IndexAccumulate1d(cCtx, x.Grad().(*tensor).cTensor, indices.cTensor, node.Grad().(*tensor).cTensor)
 	if res != C.OK {
 		panic(fmt.Sprintf("shapes: IndexAccumulate1d failed: %s", resultString(uint32(res))))
@@ -77,11 +93,11 @@ func indexWithTensor2dBackward(ctx Context, node ComputationGraphNode) {
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
-	idxPair := node.Metadata().([2]*tensor)
-	rowIndices := idxPair[0]
-	colIndices := idxPair[1]
+	idxPair := node.Metadata().([2]Tensor)
+	rowIndices := idxPair[0].(*tensor)
+	colIndices := idxPair[1].(*tensor)
 
-	cCtx := (*C.Context)(ctx.UnsafePtr())
+	cCtx := (*C.Context)(noGraphCtx.UnsafePtr())
 	res := C.wrap_IndexAccumulate2d(cCtx, x.Grad().(*tensor).cTensor, rowIndices.cTensor, colIndices.cTensor,
 		node.Grad().(*tensor).cTensor)
 	if res != C.OK {

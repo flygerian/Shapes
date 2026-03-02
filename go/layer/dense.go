@@ -12,6 +12,15 @@ type dense struct {
 	outputSize int
 }
 
+func Dense(outerCtx shapes.Context, inputSize int, outputSize int) Layer {
+
+	// Initialize the hidden state
+	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize), uint32(inputSize)})
+	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize)})
+
+	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
+}
+
 func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 
 	// Initialize a fused context
@@ -56,15 +65,6 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 		shapes.WithBackward(constructDenseBackwardPass),
 	)
 	return d.o
-}
-
-func Dense(outerCtx shapes.Context, inputSize int, outputSize int) Layer {
-
-	// Initialize the hidden state
-	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize), uint32(inputSize)})
-	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize)})
-
-	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
 }
 
 func constructDenseBackwardPass(ctx shapes.Context, node shapes.ComputationGraphNode) {

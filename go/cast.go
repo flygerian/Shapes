@@ -16,6 +16,20 @@ static inline Result wrap_Cast(Context *ctx, Tensor *src, Dtype target, Tensor *
 */
 import "C"
 
+type hasCastOps interface {
+	F16(ctx Context) Tensor
+	F32(ctx Context) Tensor
+	F64(ctx Context) Tensor
+	U8(ctx Context) Tensor
+	U16(ctx Context) Tensor
+	U32(ctx Context) Tensor
+	U64(ctx Context) Tensor
+	I8(ctx Context) Tensor
+	I16(ctx Context) Tensor
+	I32(ctx Context) Tensor
+	I64(ctx Context) Tensor
+}
+
 // castTensor is the internal helper that calls the C Cast function.
 func castTensor(ctx Context, t *tensor, target Dtype) Tensor {
 	var dest *C.Tensor

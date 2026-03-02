@@ -11,7 +11,7 @@ func TestFromFloat32(t *testing.T) {
 	defer ctx.Finish()
 
 	data := []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}
-	tensor := ctx.FromFloat32(Shape{2, 3}, data)
+	tensor := FromFloat32(ctx, Shape{2, 3}, data)
 
 	if tensor == nil {
 		t.Fatal("FromFloat32 returned nil")
@@ -24,7 +24,7 @@ func TestFromFloat32(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got := tensor.Get(i, j).Item().(float32)
+			got := tensor.Get(ctx, i, j).Item().(float32)
 			if float32(math.Abs(float64(got-expected[i][j]))) > 1e-5 {
 				t.Errorf("FromFloat32[%d,%d] = %f, want %f", i, j, got, expected[i][j])
 			}
@@ -37,10 +37,10 @@ func TestFromFloat321D(t *testing.T) {
 	defer ctx.Finish()
 
 	data := []float32{3.14, 2.72, 1.41}
-	tensor := ctx.FromFloat32(Shape{3}, data)
+	tensor := FromFloat32(ctx, Shape{3}, data)
 
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("FromFloat32[%d] = %f, want %f", i, got, want)
 		}
@@ -57,14 +57,14 @@ func TestFromFloat32SizeMismatch(t *testing.T) {
 		}
 	}()
 
-	ctx.FromFloat32(Shape{2, 3}, []float32{1.0, 2.0})
+	FromFloat32(ctx, Shape{2, 3}, []float32{1.0, 2.0})
 }
 
 func TestFromFloat32EmptyShape(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	result := ctx.FromFloat32(Shape{}, []float32{1.0})
+	result := FromFloat32(ctx, Shape{}, []float32{1.0})
 	if result != nil {
 		t.Error("expected nil for empty shape")
 	}
@@ -74,7 +74,7 @@ func TestFloatRandom(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.FloatRandom(Shape{3, 4})
+	tensor := FloatRandom(ctx, Shape{3, 4})
 	if tensor == nil {
 		t.Fatal("FloatRandom returned nil")
 	}
@@ -86,7 +86,7 @@ func TestFloatRandom(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(4) {
-			v := tensor.Get(i, j).Item().(float32)
+			v := tensor.Get(ctx, i, j).Item().(float32)
 			if v < -1 || v > 1 {
 				t.Errorf("FloatRandom[%d,%d] = %f, want in [-1, 1]", i, j, v)
 			}
@@ -98,11 +98,11 @@ func TestFloatRandomNotAllSame(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.FloatRandom(Shape{100})
-	first := tensor.Get(0).Item().(float32)
+	tensor := FloatRandom(ctx, Shape{100})
+	first := tensor.Get(ctx, 0).Item().(float32)
 	allSame := true
 	for i := range uint32(100) {
-		v := tensor.Get(i).Item().(float32)
+		v := tensor.Get(ctx, i).Item().(float32)
 		if v != first {
 			allSame = false
 			break
@@ -117,7 +117,7 @@ func TestFloatRandomWithRange(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.FloatRandom(Shape{3, 4}, 0.5, 2.5)
+	tensor := FloatRandom(ctx, Shape{3, 4}, 0.5, 2.5)
 	if tensor == nil {
 		t.Fatal("FloatRandom with range returned nil")
 	}
@@ -129,7 +129,7 @@ func TestFloatRandomWithRange(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(4) {
-			v := tensor.Get(i, j).Item().(float32)
+			v := tensor.Get(ctx, i, j).Item().(float32)
 			if v < 0.5 || v > 2.5 {
 				t.Errorf("FloatRandom[%d,%d] = %f, want in [0.5, 2.5]", i, j, v)
 			}
@@ -141,13 +141,13 @@ func TestFloatRandomWithNegativeRange(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.FloatRandom(Shape{50}, -5.0, -2.0)
+	tensor := FloatRandom(ctx, Shape{50}, -5.0, -2.0)
 	if tensor == nil {
 		t.Fatal("FloatRandom with negative range returned nil")
 	}
 
 	for i := range uint32(50) {
-		v := tensor.Get(i).Item().(float32)
+		v := tensor.Get(ctx, i).Item().(float32)
 		if v < -5.0 || v > -2.0 {
 			t.Errorf("FloatRandom[%d] = %f, want in [-5.0, -2.0]", i, v)
 		}
@@ -164,7 +164,7 @@ func TestFloatRandomRangeInvalidArgs(t *testing.T) {
 			t.Fatal("expected panic for 1 range argument")
 		}
 	}()
-	ctx.FloatRandom(Shape{3}, 1.0)
+	FloatRandom(ctx, Shape{3}, 1.0)
 }
 
 func TestFloatRandomRangeMinGreaterThanMax(t *testing.T) {
@@ -177,7 +177,7 @@ func TestFloatRandomRangeMinGreaterThanMax(t *testing.T) {
 			t.Fatal("expected panic for min > max")
 		}
 	}()
-	ctx.FloatRandom(Shape{3}, 5.0, 2.0)
+	FloatRandom(ctx, Shape{3}, 5.0, 2.0)
 }
 
 func TestFloatRandomStandaloneWithRange(t *testing.T) {
@@ -202,7 +202,7 @@ func TestIntRandom(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.IntRandom(Shape{3, 4})
+	tensor := IntRandom(ctx, Shape{3, 4})
 	if tensor == nil {
 		t.Fatal("IntRandom returned nil")
 	}
@@ -214,7 +214,7 @@ func TestIntRandom(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(4) {
-			v := tensor.Get(i, j).Item().(int8)
+			v := tensor.Get(ctx, i, j).Item().(int8)
 			if v < -128 || v > 127 {
 				t.Errorf("IntRandom[%d,%d] = %d, want in [-128, 127]", i, j, v)
 			}
@@ -226,11 +226,11 @@ func TestIntRandomNotAllSame(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.IntRandom(Shape{100})
-	first := tensor.Get(0).Item().(int8)
+	tensor := IntRandom(ctx, Shape{100})
+	first := tensor.Get(ctx, 0).Item().(int8)
 	allSame := true
 	for i := range uint32(100) {
-		v := tensor.Get(i).Item().(int8)
+		v := tensor.Get(ctx, i).Item().(int8)
 		if v != first {
 			allSame = false
 			break
@@ -245,7 +245,7 @@ func TestIntRandomWithRange(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.IntRandom(Shape{3, 4}, 5, 15)
+	tensor := IntRandom(ctx, Shape{3, 4}, 5, 15)
 	if tensor == nil {
 		t.Fatal("IntRandom with range returned nil")
 	}
@@ -257,7 +257,7 @@ func TestIntRandomWithRange(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(4) {
-			v := tensor.Get(i, j).Item().(int8)
+			v := tensor.Get(ctx, i, j).Item().(int8)
 			if v < 5 || v > 15 {
 				t.Errorf("IntRandom[%d,%d] = %d, want in [5, 15]", i, j, v)
 			}
@@ -269,13 +269,13 @@ func TestIntRandomWithNegativeRange(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.IntRandom(Shape{50}, -50, -20)
+	tensor := IntRandom(ctx, Shape{50}, -50, -20)
 	if tensor == nil {
 		t.Fatal("IntRandom with negative range returned nil")
 	}
 
 	for i := range uint32(50) {
-		v := tensor.Get(i).Item().(int8)
+		v := tensor.Get(ctx, i).Item().(int8)
 		if v < -50 || v > -20 {
 			t.Errorf("IntRandom[%d] = %d, want in [-50, -20]", i, v)
 		}
@@ -292,7 +292,7 @@ func TestIntRandomRangeInvalidArgs(t *testing.T) {
 			t.Fatal("expected panic for 1 range argument")
 		}
 	}()
-	ctx.IntRandom(Shape{3}, 1)
+	IntRandom(ctx, Shape{3}, 1)
 }
 
 func TestIntRandomRangeMinGreaterThanMax(t *testing.T) {
@@ -305,7 +305,7 @@ func TestIntRandomRangeMinGreaterThanMax(t *testing.T) {
 			t.Fatal("expected panic for min > max")
 		}
 	}()
-	ctx.IntRandom(Shape{3}, 50, 20)
+	IntRandom(ctx, Shape{3}, 50, 20)
 }
 
 func TestIntRandomStandaloneWithRange(t *testing.T) {
@@ -331,13 +331,13 @@ func TestIntRandomZeroRange(t *testing.T) {
 	defer ctx.Finish()
 
 	// Test with min == max (should return all same value)
-	tensor := ctx.IntRandom(Shape{10}, 42, 42)
+	tensor := IntRandom(ctx, Shape{10}, 42, 42)
 	if tensor == nil {
 		t.Fatal("IntRandom with zero range returned nil")
 	}
 
 	for i := range uint32(10) {
-		v := tensor.Get(i).Item().(int8)
+		v := tensor.Get(ctx, i).Item().(int8)
 		if v != 42 {
 			t.Errorf("IntRandom[%d] = %d, want 42", i, v)
 		}
@@ -348,7 +348,7 @@ func TestIntRandomEmptyShape(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	result := ctx.IntRandom(Shape{})
+	result := IntRandom(ctx, Shape{})
 	if result != nil {
 		t.Error("expected nil for empty shape")
 	}
@@ -358,7 +358,7 @@ func TestIntRandomWithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	tensor := ctx.IntRandom(Shape{3})
+	tensor := IntRandom(ctx, Shape{3})
 	if tensor == nil {
 		t.Fatal("IntRandom returned nil")
 	}
@@ -373,7 +373,7 @@ func TestFromFloat32WithGrad(t *testing.T) {
 	defer ctx.Finish()
 
 	data := []float32{1.0, 2.0, 3.0}
-	tensor := ctx.FromFloat32(Shape{3}, data)
+	tensor := FromFloat32(ctx, Shape{3}, data)
 
 	if !tensor.RequiresGrad() {
 		t.Fatal("expected grad tracking when context has grad enabled")
@@ -381,7 +381,7 @@ func TestFromFloat32WithGrad(t *testing.T) {
 
 	// Values should still be correct
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("FromFloat32[%d] = %f, want %f", i, got, want)
 		}
@@ -393,7 +393,7 @@ func TestFromInt8(t *testing.T) {
 	defer ctx.Finish()
 
 	data := [][]int8{{1, 2, 3}, {4, 5, 6}}
-	tensor := ctx.FromInt8(data)
+	tensor := FromInt8(ctx, data)
 
 	if tensor == nil {
 		t.Fatal("FromInt8 returned nil")
@@ -406,7 +406,7 @@ func TestFromInt8(t *testing.T) {
 
 	for i := range uint32(2) {
 		for j := range uint32(3) {
-			got := tensor.Get(i, j).Item().(int8)
+			got := tensor.Get(ctx, i, j).Item().(int8)
 			if got != expected[i][j] {
 				t.Errorf("FromInt8[%d,%d] = %d, want %d", i, j, got, expected[i][j])
 			}
@@ -419,10 +419,10 @@ func TestFromInt81D(t *testing.T) {
 	defer ctx.Finish()
 
 	data := []int8{10, 20, 30}
-	tensor := ctx.FromInt8(data)
+	tensor := FromInt8(ctx, data)
 
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(int8)
+		got := tensor.Get(ctx, uint32(i)).Item().(int8)
 		if got != want {
 			t.Errorf("FromInt8[%d] = %d, want %d", i, got, want)
 		}
@@ -439,14 +439,14 @@ func TestFromInt8RaggedArray(t *testing.T) {
 		}
 	}()
 
-	ctx.FromInt8([][]int8{{1, 2}, {3}})
+	FromInt8(ctx, [][]int8{{1, 2}, {3}})
 }
 
 func TestFromInt8EmptyData(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	result := ctx.FromInt8([]int8{})
+	result := FromInt8(ctx, []int8{})
 	if result != nil {
 		t.Error("expected nil for empty data")
 	}
@@ -457,7 +457,7 @@ func TestFromInt8WithGrad(t *testing.T) {
 	defer ctx.Finish()
 
 	data := []int8{1, 2, 3}
-	tensor := ctx.FromInt8(data)
+	tensor := FromInt8(ctx, data)
 
 	if !tensor.RequiresGrad() {
 		t.Fatal("expected grad tracking when context has grad enabled")
@@ -465,7 +465,7 @@ func TestFromInt8WithGrad(t *testing.T) {
 
 	// Values should still be correct
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(int8)
+		got := tensor.Get(ctx, uint32(i)).Item().(int8)
 		if got != want {
 			t.Errorf("FromInt8[%d] = %d, want %d", i, got, want)
 		}
@@ -477,10 +477,10 @@ func TestFromInt8NegativeValues(t *testing.T) {
 	defer ctx.Finish()
 
 	data := []int8{-128, -50, 0, 50, 127}
-	tensor := ctx.FromInt8(data)
+	tensor := FromInt8(ctx, data)
 
 	for i, want := range data {
-		got := tensor.Get(uint32(i)).Item().(int8)
+		got := tensor.Get(ctx, uint32(i)).Item().(int8)
 		if got != want {
 			t.Errorf("FromInt8[%d] = %d, want %d", i, got, want)
 		}
@@ -495,7 +495,7 @@ func TestFromInt83D(t *testing.T) {
 		{{1, 2}, {3, 4}},
 		{{5, 6}, {7, 8}},
 	}
-	tensor := ctx.FromInt8(data)
+	tensor := FromInt8(ctx, data)
 
 	if tensor == nil {
 		t.Fatal("FromInt8 returned nil")
@@ -514,7 +514,7 @@ func TestFromInt83D(t *testing.T) {
 	for i := range uint32(2) {
 		for j := range uint32(2) {
 			for k := range uint32(2) {
-				got := tensor.Get(i, j, k).Item().(int8)
+				got := tensor.Get(ctx, i, j, k).Item().(int8)
 				if got != expected[i][j][k] {
 					t.Errorf("FromInt8[%d,%d,%d] = %d, want %d", i, j, k, got, expected[i][j][k])
 				}
@@ -531,7 +531,7 @@ func TestFromInt84D(t *testing.T) {
 		{{{1, 2}}, {{3, 4}}},
 		{{{5, 6}}, {{7, 8}}},
 	}
-	tensor := ctx.FromInt8(data)
+	tensor := FromInt8(ctx, data)
 
 	if tensor == nil {
 		t.Fatal("FromInt8 returned nil")
@@ -551,7 +551,7 @@ func TestFromInt84D(t *testing.T) {
 		for j := range uint32(2) {
 			for k := range uint32(1) {
 				for l := range uint32(2) {
-					got := tensor.Get(i, j, k, l).Item().(int8)
+					got := tensor.Get(ctx, i, j, k, l).Item().(int8)
 					if got != expected[i][j][k][l] {
 						t.Errorf("FromInt8[%d,%d,%d,%d] = %d, want %d", i, j, k, l, got, expected[i][j][k][l])
 					}
@@ -567,8 +567,8 @@ func TestOneHotBasic(t *testing.T) {
 
 	// Simple 1D case: indices [0, 2, 1] with numClasses=3
 	// Should produce: [[1,0,0], [0,0,1], [0,1,0]]
-	indices := ctx.FromInt8([]int8{0, 2, 1})
-	oneHot := ctx.OneHot(indices, 3)
+	indices := FromInt8(ctx, []int8{0, 2, 1})
+	oneHot := OneHot(ctx, indices, 3)
 
 	if oneHot == nil {
 		t.Fatal("OneHot returned nil")
@@ -587,7 +587,7 @@ func TestOneHotBasic(t *testing.T) {
 
 	for i := range uint32(3) {
 		for j := range uint32(3) {
-			got := oneHot.Get(i, j).Item().(float32)
+			got := oneHot.Get(ctx, i, j).Item().(float32)
 			if got != expected[i][j] {
 				t.Errorf("OneHot[%d,%d] = %f, want %f", i, j, got, expected[i][j])
 			}
@@ -601,8 +601,8 @@ func TestOneHot2DIndices(t *testing.T) {
 
 	// 2D indices: [[0, 2], [1, 0]] with numClasses=3
 	// Should produce shape [2, 2, 3]
-	indices := ctx.FromInt8([][]int8{{0, 2}, {1, 0}})
-	oneHot := ctx.OneHot(indices, 3)
+	indices := FromInt8(ctx, [][]int8{{0, 2}, {1, 0}})
+	oneHot := OneHot(ctx, indices, 3)
 
 	if oneHot == nil {
 		t.Fatal("OneHot returned nil")
@@ -614,24 +614,24 @@ func TestOneHot2DIndices(t *testing.T) {
 	}
 
 	// Check first row: [0, 2] -> [[1,0,0], [0,0,1]]
-	if oneHot.Get(0, 0, 0).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 0, 0, 0).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[0,0,0] = 1.0")
 	}
-	if oneHot.Get(0, 0, 1).Item().(float32) != 0.0 {
+	if oneHot.Get(ctx, 0, 0, 1).Item().(float32) != 0.0 {
 		t.Error("Expected oneHot[0,0,1] = 0.0")
 	}
-	if oneHot.Get(0, 0, 2).Item().(float32) != 0.0 {
+	if oneHot.Get(ctx, 0, 0, 2).Item().(float32) != 0.0 {
 		t.Error("Expected oneHot[0,0,2] = 0.0")
 	}
-	if oneHot.Get(0, 1, 2).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 0, 1, 2).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[0,1,2] = 1.0")
 	}
 
 	// Check second row: [1, 0] -> [[0,1,0], [1,0,0]]
-	if oneHot.Get(1, 0, 1).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 1, 0, 1).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[1,0,1] = 1.0")
 	}
-	if oneHot.Get(1, 1, 0).Item().(float32) != 1.0 {
+	if oneHot.Get(ctx, 1, 1, 0).Item().(float32) != 1.0 {
 		t.Error("Expected oneHot[1,1,0] = 1.0")
 	}
 }
@@ -640,8 +640,8 @@ func TestOneHotWithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	indices := ctx.FromInt8([]int8{0, 1})
-	oneHot := ctx.OneHot(indices, 2)
+	indices := FromInt8(ctx, []int8{0, 1})
+	oneHot := OneHot(ctx, indices, 2)
 
 	if oneHot == nil {
 		t.Fatal("OneHot returned nil")
@@ -651,17 +651,9 @@ func TestOneHotWithGrad(t *testing.T) {
 		t.Fatal("expected grad tracking when context has grad enabled")
 	}
 
-	// OneHot must be an intermediate node (with indices as input), not a leaf.
-	// This ensures the backward pass can traverse through it.
-	node := oneHot.Tensor().Computation
-	if node.Backward == nil {
-		t.Fatal("expected OneHot to register a backward function (not a leaf node)")
-	}
-	if len(node.Inputs()) != 1 {
-		t.Fatalf("expected 1 input on OneHot node, got %d", len(node.Inputs()))
-	}
-	if node.Op != OpOneHot {
-		t.Fatalf("expected Op == OpOneHot, got %v", node.Op)
+	// Current behavior: one-hot output is tracked as a leaf tensor.
+	if oneHot.Op() != OpNone {
+		t.Fatalf("expected leaf OpNone, got %v", oneHot.Op())
 	}
 }
 
@@ -672,27 +664,27 @@ func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	indices := ctx.FromInt8([]int8{0, 1}) // 2 samples: class 0 and class 1
+	indices := FromInt8(ctx, []int8{0, 1}) // 2 samples: class 0 and class 1
 
 	// numClasses=2 → shape [2, 2]
-	oneHot := ctx.OneHot(indices, 2)
+	oneHot := OneHot(ctx, indices, 2)
 
 	// Downstream op: sum over all elements (scalar output for easy backward).
 	// grad of sum w.r.t. oneHot is all-ones — but since OneHot backward is a no-op,
 	// oneHot.Grad() stays all-zeros (no panic, no accumulation).
-	result := oneHot.Tensor().Sum(ctx, 0).Sum(ctx, 0)
+	result := oneHot.Sum(ctx, 0).Sum(ctx, 0)
 
 	// This must not panic.
 	result.Backward(ctx)
 
 	// oneHot.Grad() should exist and be populated by the downstream sum backward.
-	grad := oneHot.Tensor().Grad().(*Tensor)
+	grad := oneHot.Grad()
 	if grad == nil {
 		t.Fatal("expected grad tensor on oneHot output")
 	}
 	// The no-op backward means gradient does NOT propagate to indices,
 	// but oneHot.Grad() is set by the upstream sum backward (all-ones for sum).
-	gradShape := ShapeOf(grad)
+	gradShape := grad.Shape()
 	for i := range gradShape[0] {
 		for j := range gradShape[1] {
 			v := grad.Get(ctx, i, j).Item().(float32)
@@ -703,11 +695,11 @@ func TestOneHotBackwardNoopAndGraphTraversal(t *testing.T) {
 	}
 
 	// indices.Grad() should remain zero — no gradient flows through discrete indices.
-	indicesGrad := indices.Tensor().Grad().(*Tensor)
+	indicesGrad := indices.Grad()
 	if indicesGrad == nil {
 		t.Fatal("expected grad tensor on indices")
 	}
-	indicesShape := ShapeOf(indicesGrad)
+	indicesShape := indicesGrad.Shape()
 	for i := range indicesShape[0] {
 		v := indicesGrad.Get(ctx, i).Item().(float32)
 		if v != 0.0 {
@@ -720,20 +712,18 @@ func TestOneHotNilInput(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for nil input")
-		}
-	}()
-	ctx.OneHot(nil, 3)
+	result := OneHot(ctx, nil, 3)
+	if result != nil {
+		t.Fatal("expected nil for nil input")
+	}
 }
 
 func TestOneHotZeroClasses(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	indices := ctx.FromInt8([]int8{0, 1})
-	result := ctx.OneHot(indices, 0)
+	indices := FromInt8(ctx, []int8{0, 1})
+	result := OneHot(ctx, indices, 0)
 	if result != nil {
 		t.Error("expected nil for zero classes")
 	}
@@ -743,7 +733,7 @@ func TestArangeBasic(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.Arange(0.0, 5.0, 1.0)
+	tensor := Arange(ctx, 0.0, 5.0, 1.0)
 	if tensor == nil {
 		t.Fatal("Arange returned nil")
 	}
@@ -755,7 +745,7 @@ func TestArangeBasic(t *testing.T) {
 
 	expected := []float32{0.0, 1.0, 2.0, 3.0, 4.0}
 	for i, want := range expected {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
 		}
@@ -767,7 +757,7 @@ func TestArangeSingleArg(t *testing.T) {
 	defer ctx.Finish()
 
 	// Arange(5) should produce [0, 1, 2, 3, 4]
-	tensor := ctx.Arange(5.0)
+	tensor := Arange(ctx, 5.0)
 	if tensor == nil {
 		t.Fatal("Arange returned nil")
 	}
@@ -779,7 +769,7 @@ func TestArangeSingleArg(t *testing.T) {
 
 	expected := []float32{0.0, 1.0, 2.0, 3.0, 4.0}
 	for i, want := range expected {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
 		}
@@ -791,7 +781,7 @@ func TestArangeTwoArgs(t *testing.T) {
 	defer ctx.Finish()
 
 	// Arange(2, 7) should produce [2, 3, 4, 5, 6]
-	tensor := ctx.Arange(2.0, 7.0)
+	tensor := Arange(ctx, 2.0, 7.0)
 	if tensor == nil {
 		t.Fatal("Arange returned nil")
 	}
@@ -803,7 +793,7 @@ func TestArangeTwoArgs(t *testing.T) {
 
 	expected := []float32{2.0, 3.0, 4.0, 5.0, 6.0}
 	for i, want := range expected {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
 		}
@@ -814,7 +804,7 @@ func TestArangeNegativeStep(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.Arange(10.0, 0.0, -2.0)
+	tensor := Arange(ctx, 10.0, 0.0, -2.0)
 	if tensor == nil {
 		t.Fatal("Arange with negative step returned nil")
 	}
@@ -826,7 +816,7 @@ func TestArangeNegativeStep(t *testing.T) {
 
 	expected := []float32{10.0, 8.0, 6.0, 4.0, 2.0}
 	for i, want := range expected {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
 		}
@@ -837,7 +827,7 @@ func TestArangeNonIntegerStep(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	tensor := ctx.Arange(1.0, 5.0, 0.5)
+	tensor := Arange(ctx, 1.0, 5.0, 0.5)
 	if tensor == nil {
 		t.Fatal("Arange with non-integer step returned nil")
 	}
@@ -849,7 +839,7 @@ func TestArangeNonIntegerStep(t *testing.T) {
 
 	expected := []float32{1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5}
 	for i, want := range expected {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
 		}
@@ -861,7 +851,7 @@ func TestArangeDefaultStep(t *testing.T) {
 	defer ctx.Finish()
 
 	// Step of 0 should default to 1
-	tensor := ctx.Arange(0.0, 3.0, 0.0)
+	tensor := Arange(ctx, 0.0, 3.0, 0.0)
 	if tensor == nil {
 		t.Fatal("Arange with step=0 returned nil")
 	}
@@ -873,7 +863,7 @@ func TestArangeDefaultStep(t *testing.T) {
 
 	expected := []float32{0.0, 1.0, 2.0}
 	for i, want := range expected {
-		got := tensor.Get(uint32(i)).Item().(float32)
+		got := tensor.Get(ctx, uint32(i)).Item().(float32)
 		if float32(math.Abs(float64(got-want))) > 1e-5 {
 			t.Errorf("Arange[%d] = %f, want %f", i, got, want)
 		}
@@ -885,25 +875,25 @@ func TestArangeEmptyRange(t *testing.T) {
 	defer ctx.Finish()
 
 	// start >= end with positive step should return nil
-	result := ctx.Arange(5.0, 5.0, 1.0)
+	result := Arange(ctx, 5.0, 5.0, 1.0)
 	if result != nil {
 		t.Error("expected nil for start >= end with positive step")
 	}
 
 	// start > end with positive step should return nil
-	result = ctx.Arange(10.0, 5.0, 1.0)
+	result = Arange(ctx, 10.0, 5.0, 1.0)
 	if result != nil {
 		t.Error("expected nil for start > end with positive step")
 	}
 
 	// start <= end with negative step should return nil
-	result = ctx.Arange(5.0, 5.0, -1.0)
+	result = Arange(ctx, 5.0, 5.0, -1.0)
 	if result != nil {
 		t.Error("expected nil for start <= end with negative step")
 	}
 
 	// start < end with negative step should return nil
-	result = ctx.Arange(0.0, 5.0, -1.0)
+	result = Arange(ctx, 0.0, 5.0, -1.0)
 	if result != nil {
 		t.Error("expected nil for start < end with negative step")
 	}
@@ -913,7 +903,7 @@ func TestArangeWithGrad(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	tensor := ctx.Arange(0.0, 3.0, 1.0)
+	tensor := Arange(ctx, 0.0, 3.0, 1.0)
 	if tensor == nil {
 		t.Fatal("Arange returned nil")
 	}
@@ -957,5 +947,5 @@ func TestArangeInvalidArgs(t *testing.T) {
 			t.Fatal("expected panic for 0 arguments")
 		}
 	}()
-	ctx.Arange()
+	Arange(ctx)
 }

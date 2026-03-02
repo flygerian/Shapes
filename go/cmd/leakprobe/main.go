@@ -19,7 +19,7 @@ func main() {
 	defer ctx.Finish()
 
 	for i := 0; i < *epochs; i++ {
-		e := ctx.Epoch()
+		e := ctx.Epoch(i)
 		before := ctx.NumAllocatedBlocks()
 
 		switch *mode {
