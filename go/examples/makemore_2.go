@@ -136,7 +136,6 @@ func MakeMore_2() {
 	crossEnthropy := loss.CrossEntropy()
 
 	forward := func(ctx shapes.Context, xBatch shapes.Tensor) shapes.Tensor {
-
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 90))
 		h = activation.Tanh(ctx, h)
 		h = l2.Forward(ctx, h)
@@ -179,7 +178,6 @@ func MakeMore_2() {
 		if i%1000 == 0 {
 			epochCtx.Finish(shapes.WithLoss(lossScalar))
 		} else {
-
 			epochCtx.Finish()
 		}
 

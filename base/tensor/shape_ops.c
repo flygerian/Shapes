@@ -45,7 +45,13 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
     }
   }
 
-  tensor_size_t size = calculateNumValuesAndMultipliers(newShape, newShape.multipliers);
+  // Preserve source strides for views so boundary-adjusted indexing maps into
+  // the same underlying storage layout (including sliced/transposed sources).
+  memcpy(newShape.multipliers, source->shape.multipliers,
+         sizeof(multiplier_t) * source->shape.numOfDims);
+  tensor_size_t size =
+      calculateNumValuesAndMultipliers((Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims},
+                                       NULL);
   freeAlloc(ctx->memory, ranges);
   *dest = ((Tensor){
       .isView = true,

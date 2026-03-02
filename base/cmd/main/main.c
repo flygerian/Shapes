@@ -1,13 +1,10 @@
 #include "../../tensor/tensor.h"
-#include "activation/activation.h"
 #include "common.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <termios.h>
-#include "grad/grad.h"
 #include "memory.h"
 #include "tensor/value.h"
-#include "visual/visual.h"
 
 void showcase(Context *ctx) {
 
@@ -224,7 +221,6 @@ void showcase(Context *ctx) {
 }
 
 void tensorExp(Context ctx) {
-  EnableRawMode(&ctx);
 
   dim_t shape[1] = {1};
   Dim tDim = {.dims = shape, .numOfDims = 1};
@@ -260,8 +256,6 @@ void tensorExp(Context ctx) {
   Value dL_df;
   GetAt(&d, DIM_ZERO, &dL_df);
   SetValues(f->computation->grad, dL_df);
-
-  VisualizeOps(&ctx, &L);
 }
 
 int main(int argc, char *argv[]) {
@@ -302,18 +296,8 @@ int main(int argc, char *argv[]) {
   n.label = "n";
 
   Tensor o;
-  Tanh(&ctx, &n, &o);
   o.label = "o";
 
-  ComputationGraph *graph = InitComputationGraph(&ctx, &o);
-
-  Backward(&ctx, graph);
-
-  EnableRawMode(&ctx);
-
-  VisualizeOps(&ctx, &o);
-
-  DisableRawMode(&ctx);
   freeMemory(ctx.memory);
   return 0;
 }

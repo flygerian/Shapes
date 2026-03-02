@@ -3423,123 +3423,6 @@ static void test_dot_integer_dtype_rejected(void) {
   freeMemory(mem);
 }
 
-// Gradient initialization tests
-static void test_grad_t_zeros_without_grad(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = false};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-
-  ASSERT_NULL(t->computation, "computation should be NULL when grad is false");
-
-  freeMemory(mem);
-}
-
-static void test_grad_t_zeros_with_grad(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-
-  ASSERT_NOT_NULL(t->computation, "computation should not be NULL when grad is true");
-  ASSERT_NOT_NULL(t->computation->grad, "gradient tensor should be allocated");
-  ASSERT_EQ(t->computation->output, t, "output should point to the tensor");
-  ASSERT_NULL(t->computation->inputs, "inputs should be NULL for leaf tensor");
-  ASSERT_EQ(t->computation->numInputs, 0, "numInputs should be 0 for leaf tensor");
-  ASSERT_NOT_NULL(t->computation->backward,
-                  "backward should be emptyBackward (not NULL) for leaf tensor");
-
-  freeMemory(mem);
-}
-
-static void test_grad_t_int_with_grad(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  dim_t dims[] = {3, 4};
-  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 5);
-
-  ASSERT_NOT_NULL(t->computation, "computation should not be NULL when grad is true");
-  ASSERT_NOT_NULL(t->computation->grad, "gradient tensor should be allocated");
-  ASSERT_EQ(t->computation->grad->dtype, I8, "gradient dtype should match tensor dtype");
-
-  freeMemory(mem);
-}
-
-static void test_grad_t_float_with_grad(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  dim_t dims[] = {2, 2};
-  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 3.14f);
-
-  ASSERT_NOT_NULL(t->computation, "computation should not be NULL when grad is true");
-  ASSERT_NOT_NULL(t->computation->grad, "gradient tensor should be allocated");
-  ASSERT_EQ(t->computation->grad->dtype, F32, "gradient dtype should match tensor dtype");
-
-  freeMemory(mem);
-}
-
-static void test_grad_clone_with_grad(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-
-  Tensor cloned;
-  Result r = Clone(&ctx, t, &cloned);
-
-  ASSERT_EQ(r, OK, "Clone should succeed");
-  ASSERT_NOT_NULL(cloned.computation, "cloned tensor should have computation node");
-  ASSERT_NOT_NULL(cloned.computation->grad, "cloned tensor should have gradient");
-  ASSERT_EQ(cloned.computation->output, &cloned, "output should point to cloned tensor");
-
-  freeMemory(mem);
-}
-
-static void test_grad_tensor_shape_matches(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  dim_t dims[] = {3, 4, 5};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
-
-  Tensor *grad = t->computation->grad;
-  ASSERT_EQ(grad->shape.numOfDims, 3, "gradient should have same number of dims");
-  ASSERT_EQ(grad->shape.dims[0], 3, "gradient dim 0 should match");
-  ASSERT_EQ(grad->shape.dims[1], 4, "gradient dim 1 should match");
-  ASSERT_EQ(grad->shape.dims[2], 5, "gradient dim 2 should match");
-  ASSERT_EQ(grad->size, t->size, "gradient size should match tensor size");
-  ASSERT_EQ(grad->dtype, t->dtype, "gradient dtype should match tensor dtype");
-
-  freeMemory(mem);
-}
-
-static void test_grad_values_initialized_to_zero(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-
-  Tensor *grad = t->computation->grad;
-  f32 *gradValues = (f32 *)grad->values;
-
-  int all_zero = 1;
-  for (u32 i = 0; i < 6; i++) {
-    if (gradValues[i] != 0.0f) {
-      all_zero = 0;
-      break;
-    }
-  }
-  ASSERT(all_zero, "all gradient values should be initialized to zero");
-
-  freeMemory(mem);
-}
-
 static void test_negate_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -3678,19 +3561,6 @@ static void test_arange_empty_range_negative_step(void) {
 
   t = T_Arange(&ctx, 0.0f, 5.0f, -1.0f);
   ASSERT_NULL(t, "Arange with start < end and negative step should return NULL");
-
-  freeMemory(mem);
-}
-
-static void test_arange_with_grad(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem, .grad = true};
-
-  Tensor *t = T_Arange(&ctx, 0.0f, 3.0f, 1.0f);
-  ASSERT_NOT_NULL(t, "Arange with grad should create tensor");
-  ASSERT_NOT_NULL(t->computation, "Arange should have computation node with grad enabled");
-  ASSERT_NOT_NULL(t->computation->grad, "Arange should have gradient tensor with grad enabled");
-  ASSERT_EQ(t->computation->grad->size, 3, "Gradient should have same size as tensor");
 
   freeMemory(mem);
 }
@@ -4465,14 +4335,6 @@ void run_tensor_tests(void) {
   test_dot_dtype_mismatch();
   test_dot_2d_rejected();
   test_dot_integer_dtype_rejected();
-  // Gradient initialization tests
-  test_grad_t_zeros_without_grad();
-  test_grad_t_zeros_with_grad();
-  test_grad_t_int_with_grad();
-  test_grad_t_float_with_grad();
-  test_grad_clone_with_grad();
-  test_grad_tensor_shape_matches();
-  test_grad_values_initialized_to_zero();
   // Negate tests
   test_negate_f32();
   test_negate_already_negative();
@@ -4484,7 +4346,6 @@ void run_tensor_tests(void) {
   test_arange_default_step();
   test_arange_empty_range_positive_step();
   test_arange_empty_range_negative_step();
-  test_arange_with_grad();
   // IndexWithTensor2d tests
   test_index_with_tensor_2d_basic();
   test_index_with_tensor_2d_3d_source();

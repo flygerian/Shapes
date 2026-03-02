@@ -73,36 +73,6 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/grad/binary_op_backwards.c.o -c /home/olabode/repos/Shapes/base/grad/binary_op_backwards.c",
-  "file": "/home/olabode/repos/Shapes/base/grad/binary_op_backwards.c",
-  "output": "CMakeFiles/shapes_core.dir/grad/binary_op_backwards.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/grad/activation_backward.c.o -c /home/olabode/repos/Shapes/base/grad/activation_backward.c",
-  "file": "/home/olabode/repos/Shapes/base/grad/activation_backward.c",
-  "output": "CMakeFiles/shapes_core.dir/grad/activation_backward.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/grad/backward.c.o -c /home/olabode/repos/Shapes/base/grad/backward.c",
-  "file": "/home/olabode/repos/Shapes/base/grad/backward.c",
-  "output": "CMakeFiles/shapes_core.dir/grad/backward.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/visual/visual.c.o -c /home/olabode/repos/Shapes/base/visual/visual.c",
-  "file": "/home/olabode/repos/Shapes/base/visual/visual.c",
-  "output": "CMakeFiles/shapes_core.dir/visual/visual.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/activation/activation.c.o -c /home/olabode/repos/Shapes/base/activation/activation.c",
-  "file": "/home/olabode/repos/Shapes/base/activation/activation.c",
-  "output": "CMakeFiles/shapes_core.dir/activation/activation.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes.dir/cmd/main/main.c.o -c /home/olabode/repos/Shapes/base/cmd/main/main.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/main/main.c",
   "output": "CMakeFiles/shapes.dir/cmd/main/main.c.o"
@@ -130,12 +100,6 @@
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/unary_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/unary_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/grad_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/grad_test.c",
-  "file": "/home/olabode/repos/Shapes/base/cmd/test/grad_test.c",
-  "output": "CMakeFiles/shapes_test.dir/cmd/test/grad_test.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
