@@ -72,7 +72,7 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                .size = (resultSize),
                .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
                .boundary = NULL,
-               .computation = NULL};
+               };
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {

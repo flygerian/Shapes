@@ -2,8 +2,9 @@
 #include "../memory.h"
 
 Result FreeViewTensor(Context *ctx, Tensor *t) {
-  if (t == NULL)
+  if (t == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
+  }
 
   if (t->shape.dims != NULL) {
     freeAlloc(ctx->memory, t->shape.dims);
@@ -20,8 +21,9 @@ Result FreeViewTensor(Context *ctx, Tensor *t) {
 }
 
 Result FreeTensor(Context *ctx, Tensor *t) {
-  if (t == NULL)
+  if (t == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
+  }
 
   if (t->isView) {
     return ERR_CANNOT_FREE_VIEW_TENSOR;

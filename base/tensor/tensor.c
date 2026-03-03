@@ -85,8 +85,8 @@ void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {
 Tensor *copyToContiguous(Context *ctx, Tensor *source) {
   Tensor *copy = t_Zeros(ctx, source->shape, source->dtype);
 
-  u32 *indices = allocate(ctx->memory, sizeof(u32) * source->shape.numOfDims);
-  memset(indices, 0, sizeof(u32) * source->shape.numOfDims);
+  size_t *indices = allocate(ctx->memory, sizeof(size_t) * source->shape.numOfDims);
+  memset(indices, 0, sizeof(size_t) * source->shape.numOfDims);
 
   for (tensor_size_t i = 0; i < source->size; i++) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};

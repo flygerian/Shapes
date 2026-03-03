@@ -24,22 +24,19 @@ typedef float_t f16;
 typedef float_t f32;
 typedef double_t f64;
 
-typedef u64 tensor_size_t;
-typedef u32 dim_t;
+typedef size_t tensor_size_t;
+typedef size_t dim_t;
 typedef u8 multiplier_t;
-
-struct GraphNode;
 
 typedef struct {
   dim_t *dims;
   u8 numOfDims;
-
   u8 *multipliers;
 } Dim;
 
 typedef struct {
-  u64 start;
-  u64 end;
+  size_t start;
+  size_t end;
 } Range;
 
 typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64 } Dtype;
@@ -71,46 +68,14 @@ typedef struct {
   bool isView;
   bool isContigous;
   Range *boundary;
-  struct GraphNode *computation; // TODO: remove
-  char *label;                   // TODO remove
 } Tensor;
-
-// remove
-typedef struct ScreenConfig {
-  int cx, cy;
-  int rx;
-  int screenrows;
-  int screencols;
-  int numrows;
-  int rowoff;
-  int coloff;
-  struct termios *orig_termios;
-} ScreenConfig;
 
 typedef struct Context {
   Memory *memory;
-  bool grad;                  // remove
-  ScreenConfig *screenConfig; // remove
 } Context;
 
-typedef Result (*BackwardFn)(struct Context *, struct GraphNode *);
-
-typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_TANH, OP_POW } OpType;
-
-// TODO remove
-typedef struct GraphNode {
-  Tensor *output;
-  Tensor *grad;
-  Tensor **inputs;
-  u8 numInputs;
-  BackwardFn backward;
-  OpType optype;
-  void *metadata; // Operation-specific data (e.g., power value for Pow)
-} GraphNode;
+typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY } OpType;
 
 size_t getBytesForDtype(Dtype type);
-
-// TODO remove
-Context NoGradContext(Context *ctx);
 
 #endif

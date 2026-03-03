@@ -10,7 +10,7 @@ static void test_pow_scalar_power_of_2(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {1};
+  dim_t dims[] = {1};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 3.0f;
@@ -29,7 +29,7 @@ static void test_pow_scalar_power_of_3(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {1};
+  dim_t dims[] = {1};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.0f;
@@ -48,7 +48,7 @@ static void test_pow_power_of_0(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3};
+  dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 5.0f;
@@ -73,7 +73,7 @@ static void test_pow_power_of_1(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3};
+  dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.5f;
@@ -98,7 +98,7 @@ static void test_pow_negative_power(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2};
+  dim_t dims[] = {2};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.0f;
@@ -121,7 +121,7 @@ static void test_pow_fractional_power(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3};
+  dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 4.0f;
@@ -146,7 +146,7 @@ static void test_pow_2d_tensor(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 1.0f;
@@ -177,7 +177,7 @@ static void test_pow_f64_dtype(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2};
+  dim_t dims[] = {2};
   Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F64);
   f64 *values = (f64 *)t->values;
   values[0] = 2.0;
@@ -211,7 +211,7 @@ static void test_pow_invalid_dtype(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2};
+  dim_t dims[] = {2};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 5);
 
   Tensor result;

@@ -253,7 +253,7 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                .size = resultSize,
                .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
                .boundary = NULL,
-               .computation = NULL};
+      };
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -422,7 +422,7 @@ Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                .size = resultSize,
                .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
                .boundary = NULL,
-               .computation = NULL};
+      };
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -499,7 +499,7 @@ Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                    .size = resultSize,
                    .values = allocate(ctx->memory, sizeof(i64) * resultSize),
                    .boundary = NULL,
-                   .computation = NULL};
+                   };
 
   i64 *destValues = (i64 *)dest->values;
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {

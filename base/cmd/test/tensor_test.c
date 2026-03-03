@@ -7,7 +7,7 @@ typedef struct {
   Memory *mem;
 } TestTensor;
 
-static TestTensor createZerosTensor(u32 *dims, u8 numOfDims) {
+static TestTensor createZerosTensor(dim_t *dims, u8 numOfDims) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = numOfDims});
@@ -15,7 +15,7 @@ static TestTensor createZerosTensor(u32 *dims, u8 numOfDims) {
 }
 
 static void test_zeros_creates_tensor_with_correct_shape(void) {
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   TestTensor tt = createZerosTensor(dims, 2);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 2, "tensor should have 2 dimensions");
@@ -26,7 +26,7 @@ static void test_zeros_creates_tensor_with_correct_shape(void) {
 }
 
 static void test_zeros_values_are_zero(void) {
-  u32 dims[] = {4};
+  dim_t dims[] = {4};
   TestTensor tt = createZerosTensor(dims, 1);
 
   f32 *values = (f32 *)tt.tensor.values;
@@ -46,7 +46,7 @@ static void test_int_creates_tensor_with_value(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 5);
 
   ASSERT_EQ(t->shape.numOfDims, 2, "tensor should have 2 dimensions");
@@ -66,7 +66,7 @@ static void test_int_creates_tensor_with_value(void) {
 }
 
 static void test_zeros_1d_tensor(void) {
-  u32 dims[] = {5};
+  dim_t dims[] = {5};
   TestTensor tt = createZerosTensor(dims, 1);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 1, "should be 1D tensor");
@@ -76,7 +76,7 @@ static void test_zeros_1d_tensor(void) {
 }
 
 static void test_zeros_3d_tensor(void) {
-  u32 dims[] = {2, 3, 4};
+  dim_t dims[] = {2, 3, 4};
   TestTensor tt = createZerosTensor(dims, 3);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 3, "should be 3D tensor");
@@ -97,7 +97,7 @@ static void test_zeros_3d_tensor(void) {
 
 // For shape [rows, cols], multipliers should be [cols, 1]
 static void test_multipliers_2d_tensor(void) {
-  u32 dims[] = {3, 4}; // 3 rows, 4 cols
+  dim_t dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -109,7 +109,7 @@ static void test_multipliers_2d_tensor(void) {
 
 // For shape [d0, d1, d2], multipliers should be [d1*d2, d2, 1]
 static void test_multipliers_3d_tensor(void) {
-  u32 dims[] = {2, 3, 4}; // shape: 2x3x4
+  dim_t dims[] = {2, 3, 4}; // shape: 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -122,7 +122,7 @@ static void test_multipliers_3d_tensor(void) {
 
 // For shape [d0, d1, d2, d3], multipliers should be [d1*d2*d3, d2*d3, d3, 1]
 static void test_multipliers_4d_tensor(void) {
-  u32 dims[] = {2, 3, 4, 5}; // shape: 2x3x4x5
+  dim_t dims[] = {2, 3, 4, 5}; // shape: 2x3x4x5
   TestTensor tt = createZerosTensor(dims, 4);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -136,12 +136,12 @@ static void test_multipliers_4d_tensor(void) {
 
 // AssignValue tests
 static void test_assign_value_success(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {1, 2};
+  dim_t idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 42.0f};
 
@@ -155,12 +155,12 @@ static void test_assign_value_success(void) {
 }
 
 static void test_assign_value_dtype_mismatch(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {0, 0};
+  dim_t idx_dims[] = {0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U32, .as.u32 = 100};
 
@@ -171,12 +171,12 @@ static void test_assign_value_dtype_mismatch(void) {
 }
 
 static void test_assign_value_dim_mismatch(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {0, 0, 0};
+  dim_t idx_dims[] = {0, 0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 3};
   Value val = {.dtype = F32, .as.f32 = 10.0f};
 
@@ -187,12 +187,12 @@ static void test_assign_value_dim_mismatch(void) {
 }
 
 static void test_assign_value_out_of_bounds(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
+  dim_t idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 10.0f};
 
@@ -206,7 +206,7 @@ static void test_assign_value_null_tensor(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {0, 0};
+  dim_t idx_dims[] = {0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 10.0f};
 
@@ -217,12 +217,12 @@ static void test_assign_value_null_tensor(void) {
 }
 
 static void test_assign_value_only_modifies_target_index(void) {
-  u32 dims[] = {3, 4}; // 12 elements
+  dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {1, 2};
+  dim_t idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 77.0f};
   AssignValueAt(&ctx, &tt.tensor, idx, val);
@@ -250,14 +250,14 @@ static void test_assign_value_only_modifies_target_index(void) {
 }
 
 static void test_assign_value_multiple_indices(void) {
-  u32 dims[] = {2, 3}; // 6 elements
+  dim_t dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx0[] = {0, 0};
-  u32 idx1[] = {0, 2};
-  u32 idx2[] = {1, 1};
+  dim_t idx0[] = {0, 0};
+  dim_t idx1[] = {0, 2};
+  dim_t idx2[] = {1, 1};
 
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2},
                 (Value){.dtype = F32, .as.f32 = 10.0f});
@@ -279,12 +279,12 @@ static void test_assign_value_multiple_indices(void) {
 
 // GetAt tests
 static void test_get_at_success(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 idx_dims[] = {1, 2};
+  dim_t idx_dims[] = {1, 2};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, idx, val);
@@ -299,10 +299,10 @@ static void test_get_at_success(void) {
 }
 
 static void test_get_at_dim_mismatch(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  u32 idx_dims[] = {0};
+  dim_t idx_dims[] = {0};
   Dim idx = {.dims = idx_dims, .numOfDims = 1};
   Value result;
 
@@ -313,10 +313,10 @@ static void test_get_at_dim_mismatch(void) {
 }
 
 static void test_get_at_out_of_bounds(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  u32 idx_dims[] = {0, 5}; // 5 >= 4, out of bounds
+  dim_t idx_dims[] = {0, 5}; // 5 >= 4, out of bounds
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value result;
 
@@ -327,7 +327,7 @@ static void test_get_at_out_of_bounds(void) {
 }
 
 static void test_get_at_null_tensor(void) {
-  u32 idx_dims[] = {0, 0};
+  dim_t idx_dims[] = {0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value result;
 
@@ -336,10 +336,10 @@ static void test_get_at_null_tensor(void) {
 }
 
 static void test_get_at_null_result(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  u32 idx_dims[] = {0, 0};
+  dim_t idx_dims[] = {0, 0};
   Dim idx = {.dims = idx_dims, .numOfDims = 2};
 
   Result r = GetAt(&tt.tensor, idx, NULL);
@@ -350,7 +350,7 @@ static void test_get_at_null_result(void) {
 
 // Slice tests
 static void test_slice_basic_2d(void) {
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -358,7 +358,7 @@ static void test_slice_basic_2d(void) {
   // Populate tensor with values for testing
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
-      u32 idx_dims[] = {i, j};
+      dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -377,13 +377,13 @@ static void test_slice_basic_2d(void) {
 }
 
 static void test_slice_shares_data_with_source(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Set a value in source
-  u32 idx_dims[] = {1, 2};
+  dim_t idx_dims[] = {1, 2};
   Value val = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
@@ -397,7 +397,7 @@ static void test_slice_shares_data_with_source(void) {
 }
 
 static void test_slice_get_at_correct_values(void) {
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -405,7 +405,7 @@ static void test_slice_get_at_correct_values(void) {
   // Populate: value at [i,j] = i*5 + j
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
-      u32 idx_dims[] = {i, j};
+      dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -417,14 +417,14 @@ static void test_slice_get_at_correct_values(void) {
   Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
-  u32 slice_idx[] = {0, 0};
+  dim_t slice_idx[] = {0, 0};
   Value result;
   Result r = GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 7.0f, "slice[0,0] should be 7 (source[1,2])");
 
   // Access slice[1,2] should be source[2,4] = 2*5+4 = 14
-  u32 slice_idx2[] = {1, 2};
+  dim_t slice_idx2[] = {1, 2};
   r = GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 14.0f, "slice[1,2] should be 14 (source[2,4])");
@@ -433,7 +433,7 @@ static void test_slice_get_at_correct_values(void) {
 }
 
 static void test_slice_invalid_range_end_before_start(void) {
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -447,7 +447,7 @@ static void test_slice_invalid_range_end_before_start(void) {
 }
 
 static void test_slice_range_out_of_bounds(void) {
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -462,13 +462,13 @@ static void test_slice_range_out_of_bounds(void) {
 }
 
 static void test_slice_single_element_range(void) {
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Set value at [2,3]
-  u32 idx_dims[] = {2, 3};
+  dim_t idx_dims[] = {2, 3};
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
@@ -480,7 +480,7 @@ static void test_slice_single_element_range(void) {
   ASSERT_EQ(slice.shape.dims[0], 1, "slice dim[0] should be 1");
   ASSERT_EQ(slice.shape.dims[1], 1, "slice dim[1] should be 1");
 
-  u32 slice_idx[] = {0, 0};
+  dim_t slice_idx[] = {0, 0};
   Value result;
   GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 99.0f, "single element slice value should be 99");
@@ -489,7 +489,7 @@ static void test_slice_single_element_range(void) {
 }
 
 static void test_slice_full_range(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -506,14 +506,14 @@ static void test_slice_full_range(void) {
 }
 
 static void test_slice_1d_tensor(void) {
-  u32 dims[] = {10};
+  dim_t dims[] = {10};
   TestTensor tt = createZerosTensor(dims, 1);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate with values 0-9
   for (u32 i = 0; i < 10; i++) {
-    u32 idx_dims[] = {i};
+    dim_t idx_dims[] = {i};
     Value val = {.dtype = F32, .as.f32 = (f32)i};
     AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 1}, val);
   }
@@ -524,13 +524,13 @@ static void test_slice_1d_tensor(void) {
   ASSERT_EQ(slice.shape.dims[0], 5, "1D slice should have 5 elements");
 
   // slice[0] should be source[3] = 3
-  u32 slice_idx[] = {0};
+  dim_t slice_idx[] = {0};
   Value result;
   GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 3.0f, "slice[0] should be 3");
 
   // slice[4] should be source[7] = 7
-  u32 slice_idx2[] = {4};
+  dim_t slice_idx2[] = {4};
   GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "slice[4] should be 7");
 
@@ -538,7 +538,7 @@ static void test_slice_1d_tensor(void) {
 }
 
 static void test_slice_modify_reflects_in_source(void) {
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -547,12 +547,12 @@ static void test_slice_modify_reflects_in_source(void) {
   Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
 
   // Modify slice[0,1] which maps to source[1,2]
-  u32 slice_idx[] = {0, 1};
+  dim_t slice_idx[] = {0, 1};
   Value val = {.dtype = F32, .as.f32 = 77.0f};
   AssignValueAt(&ctx, &slice, (Dim){.dims = slice_idx, .numOfDims = 2}, val);
 
   // Check source[1,2]
-  u32 src_idx[] = {1, 2};
+  dim_t src_idx[] = {1, 2};
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = src_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 77.0f, "modifying slice should reflect in source");
@@ -561,7 +561,7 @@ static void test_slice_modify_reflects_in_source(void) {
 }
 
 static void test_slice_of_slice(void) {
-  u32 dims[] = {6, 6};
+  dim_t dims[] = {6, 6};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -569,7 +569,7 @@ static void test_slice_of_slice(void) {
   // Populate: value at [i,j] = i*6 + j
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
-      u32 idx_dims[] = {i, j};
+      dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 6 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -589,7 +589,7 @@ static void test_slice_of_slice(void) {
   ASSERT_EQ(slice2.shape.dims[1], 2, "nested slice dim[1] should be 2");
 
   // slice2[0,0] should be source[2,2] = 2*6+2 = 14
-  u32 slice_idx[] = {0, 0};
+  dim_t slice_idx[] = {0, 0};
   Value result;
   GetAt(&slice2, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "nested slice[0,0] should be 14 (source[2,2])");
@@ -598,7 +598,7 @@ static void test_slice_of_slice(void) {
 }
 
 static void test_slice_large_4d_tensor(void) {
-  u32 dims[] = {8, 10, 12, 6}; // 8x10x12x6 = 5760 elements
+  dim_t dims[] = {8, 10, 12, 6}; // 8x10x12x6 = 5760 elements
   TestTensor tt = createZerosTensor(dims, 4);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -608,7 +608,7 @@ static void test_slice_large_4d_tensor(void) {
     for (u32 j = 0; j < 10; j++) {
       for (u32 k = 0; k < 12; k++) {
         for (u32 l = 0; l < 6; l++) {
-          u32 idx_dims[] = {i, j, k, l};
+          dim_t idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 10 * 12 * 6 + j * 12 * 6 + k * 6 + l) % 256);
           Value val = {.dtype = F32, .as.f32 = (f32)val_num};
           AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
@@ -630,20 +630,20 @@ static void test_slice_large_4d_tensor(void) {
   ASSERT_EQ(slice.shape.dims[3], 4, "4D slice dim[3] should be 4");
 
   // Test slice[0,0,0,0] = source[2,3,4,1]
-  u32 slice_idx[] = {0, 0, 0, 0};
+  dim_t slice_idx[] = {0, 0, 0, 0};
   Value result;
   GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 4}, &result);
   f32 expected = (f32)((2 * 10 * 12 * 6 + 3 * 12 * 6 + 4 * 6 + 1) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice[0,0,0,0] should match source[2,3,4,1]");
 
   // Test slice[3,4,5,3] = source[5,7,9,4]
-  u32 slice_idx2[] = {3, 4, 5, 3};
+  dim_t slice_idx2[] = {3, 4, 5, 3};
   GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 4}, &result);
   expected = (f32)((5 * 10 * 12 * 6 + 7 * 12 * 6 + 9 * 6 + 4) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice[3,4,5,3] should match source[5,7,9,4]");
 
   // Test middle element: slice[2,2,3,2] = source[4,5,7,3]
-  u32 slice_idx3[] = {2, 2, 3, 2};
+  dim_t slice_idx3[] = {2, 2, 3, 2};
   GetAt(&slice, (Dim){.dims = slice_idx3, .numOfDims = 4}, &result);
   expected = (f32)((4 * 10 * 12 * 6 + 5 * 12 * 6 + 7 * 6 + 3) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice middle element should be correct");
@@ -654,7 +654,7 @@ static void test_slice_large_4d_tensor(void) {
     for (u32 j = 0; j < 5 && all_correct; j++) {
       for (u32 k = 0; k < 6 && all_correct; k++) {
         for (u32 l = 0; l < 4 && all_correct; l++) {
-          u32 s_idx[] = {i, j, k, l};
+          dim_t s_idx[] = {i, j, k, l};
           GetAt(&slice, (Dim){.dims = s_idx, .numOfDims = 4}, &result);
 
           u32 src_i = i + 2, src_j = j + 3, src_k = k + 4, src_l = l + 1;
@@ -673,12 +673,12 @@ static void test_slice_large_4d_tensor(void) {
 
 // Reshape tests
 static void test_reshape_basic_2d_to_1d(void) {
-  u32 dims[] = {3, 4}; // 12 elements
+  dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 new_dims[] = {12};
+  dim_t new_dims[] = {12};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -691,12 +691,12 @@ static void test_reshape_basic_2d_to_1d(void) {
 }
 
 static void test_reshape_1d_to_2d(void) {
-  u32 dims[] = {24};
+  dim_t dims[] = {24};
   TestTensor tt = createZerosTensor(dims, 1);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 new_dims[] = {4, 6};
+  dim_t new_dims[] = {4, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor reshaped;
@@ -710,7 +710,7 @@ static void test_reshape_1d_to_2d(void) {
 }
 
 static void test_reshape_preserves_data(void) {
-  u32 dims[] = {2, 3}; // 6 elements
+  dim_t dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -718,13 +718,13 @@ static void test_reshape_preserves_data(void) {
   // Populate with sequential values
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx_dims[] = {i, j};
+      dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 3 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
-  u32 new_dims[] = {6};
+  dim_t new_dims[] = {6};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -732,7 +732,7 @@ static void test_reshape_preserves_data(void) {
 
   // Verify all values preserved in row-major order
   for (u32 i = 0; i < 6; i++) {
-    u32 idx[] = {i};
+    dim_t idx[] = {i};
     Value result;
     GetAt(&reshaped, (Dim){.dims = idx, .numOfDims = 1}, &result);
     ASSERT_EQ(result.as.f32, i, "reshaped data should be preserved");
@@ -742,12 +742,12 @@ static void test_reshape_preserves_data(void) {
 }
 
 static void test_reshape_shares_data_with_source(void) {
-  u32 dims[] = {4, 3};
+  dim_t dims[] = {4, 3};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 new_dims[] = {2, 6};
+  dim_t new_dims[] = {2, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor reshaped;
@@ -756,11 +756,11 @@ static void test_reshape_shares_data_with_source(void) {
   ASSERT_EQ(reshaped.values, tt.tensor.values, "reshaped should share values pointer");
 
   // Modify via reshaped, check source
-  u32 r_idx[] = {0, 0};
+  dim_t r_idx[] = {0, 0};
   Value val = {.dtype = F32, .as.f32 = 55.0f};
   AssignValueAt(&ctx, &reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, val);
 
-  u32 s_idx[] = {0, 0};
+  dim_t s_idx[] = {0, 0};
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = s_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 55.0f, "modification via reshaped should reflect in source");
@@ -769,12 +769,12 @@ static void test_reshape_shares_data_with_source(void) {
 }
 
 static void test_reshape_invalid_size_mismatch(void) {
-  u32 dims[] = {3, 4}; // 12 elements
+  dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u32 new_dims[] = {10}; // 10 != 12
+  dim_t new_dims[] = {10}; // 10 != 12
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -789,7 +789,7 @@ static void test_reshape_null_tensor(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 new_dims[] = {6};
+  dim_t new_dims[] = {6};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -800,7 +800,7 @@ static void test_reshape_null_tensor(void) {
 }
 
 static void test_reshape_null_shape(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -816,7 +816,7 @@ static void test_reshape_null_shape(void) {
 }
 
 static void test_reshape_3d_to_2d(void) {
-  u32 dims[] = {2, 3, 4}; // 24 elements
+  dim_t dims[] = {2, 3, 4}; // 24 elements
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -825,14 +825,14 @@ static void test_reshape_3d_to_2d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
-        u32 idx_dims[] = {i, j, k};
+        dim_t idx_dims[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)(i * 12 + j * 4 + k)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
   }
 
-  u32 new_dims[] = {6, 4};
+  dim_t new_dims[] = {6, 4};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor reshaped;
@@ -842,12 +842,12 @@ static void test_reshape_3d_to_2d(void) {
   ASSERT_EQ(reshaped.shape.dims[1], 4, "reshaped dim[1] should be 4");
 
   // Check reshaped[0,0] = 0, reshaped[5,3] = 23
-  u32 idx1[] = {0, 0};
+  dim_t idx1[] = {0, 0};
   Value result;
   GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0,0] should be 0");
 
-  u32 idx2[] = {5, 3};
+  dim_t idx2[] = {5, 3};
   GetAt(&reshaped, (Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "reshaped[5,3] should be 23");
 
@@ -855,7 +855,7 @@ static void test_reshape_3d_to_2d(void) {
 }
 
 static void test_reshape_view(void) {
-  u32 dims[] = {6, 6}; // 36 elements
+  dim_t dims[] = {6, 6}; // 36 elements
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -863,7 +863,7 @@ static void test_reshape_view(void) {
   // Populate
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
-      u32 idx_dims[] = {i, j};
+      dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 6 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -875,7 +875,7 @@ static void test_reshape_view(void) {
   Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
 
   // Reshape the slice to 1D (18 elements)
-  u32 new_dims[] = {18};
+  dim_t new_dims[] = {18};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -888,7 +888,7 @@ static void test_reshape_view(void) {
 }
 
 static void test_reshape_3d_view(void) {
-  u32 dims[] = {4, 5, 6}; // 120 elements
+  dim_t dims[] = {4, 5, 6}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -897,7 +897,7 @@ static void test_reshape_3d_view(void) {
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
       for (u32 k = 0; k < 6; k++) {
-        u32 idx_dims[] = {i, j, k};
+        dim_t idx_dims[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)((i * 30 + j * 6 + k) % 256)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
@@ -914,7 +914,7 @@ static void test_reshape_3d_view(void) {
   ASSERT_EQ(slice.shape.dims[2], 6, "3D slice dim[2] should be 6");
 
   // Reshape slice to 2D: 10x6 = 60 elements
-  u32 new_dims[] = {10, 6};
+  dim_t new_dims[] = {10, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor reshaped;
@@ -925,7 +925,7 @@ static void test_reshape_3d_view(void) {
   ASSERT_EQ(reshaped.shape.dims[1], 6, "reshaped dim[1] should be 6");
 
   // Verify reshaped[0,0] = slice[0,0,0] = source[1,0,0] = 1*30 = 30
-  u32 r_idx[] = {0, 0};
+  dim_t r_idx[] = {0, 0};
   Value result;
   GetAt(&reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 30.0f, "reshaped[0,0] should be 30");
@@ -934,7 +934,7 @@ static void test_reshape_3d_view(void) {
 }
 
 static void test_reshape_4d_view(void) {
-  u32 dims[] = {3, 4, 5, 6}; // 360 elements
+  dim_t dims[] = {3, 4, 5, 6}; // 360 elements
   TestTensor tt = createZerosTensor(dims, 4);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -944,7 +944,7 @@ static void test_reshape_4d_view(void) {
     for (u32 j = 0; j < 4; j++) {
       for (u32 k = 0; k < 5; k++) {
         for (u32 l = 0; l < 6; l++) {
-          u32 idx_dims[] = {i, j, k, l};
+          dim_t idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 120 + j * 30 + k * 6 + l) % 256);
           Value val = {.dtype = F32, .as.f32 = (f32)val_num};
           AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
@@ -964,7 +964,7 @@ static void test_reshape_4d_view(void) {
   ASSERT_EQ(slice.shape.dims[3], 6, "4D slice dim[3] should be 6");
 
   // Reshape to 3D: 6x5x6 = 180 elements
-  u32 new_dims[] = {6, 5, 6};
+  dim_t new_dims[] = {6, 5, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 3};
 
   Tensor reshaped;
@@ -980,7 +980,7 @@ static void test_reshape_4d_view(void) {
 }
 
 static void test_reshape_4d_view_to_1d(void) {
-  u32 dims[] = {2, 3, 4, 5}; // 120 elements
+  dim_t dims[] = {2, 3, 4, 5}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 4);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -991,7 +991,7 @@ static void test_reshape_4d_view_to_1d(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
         for (u32 l = 0; l < 5; l++) {
-          u32 idx_dims[] = {i, j, k, l};
+          dim_t idx_dims[] = {i, j, k, l};
           Value val = {.dtype = F32, .as.f32 = (f32)(counter++)};
           AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
@@ -1005,7 +1005,7 @@ static void test_reshape_4d_view_to_1d(void) {
         (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
 
   // Reshape to 1D: 60 elements
-  u32 new_dims[] = {60};
+  dim_t new_dims[] = {60};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -1015,7 +1015,7 @@ static void test_reshape_4d_view_to_1d(void) {
   ASSERT_EQ(reshaped.shape.dims[0], 60, "reshaped should have 60 elements");
 
   // Check first element: reshaped[0] = slice[0,0,0,0] = source[0,0,0,0] = 0
-  u32 idx1[] = {0};
+  dim_t idx1[] = {0};
   Value result;
   GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
@@ -1024,7 +1024,7 @@ static void test_reshape_4d_view_to_1d(void) {
 }
 
 static void test_reshape_then_access_elements(void) {
-  u32 dims[] = {2, 2, 3}; // 12 elements
+  dim_t dims[] = {2, 2, 3}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1034,7 +1034,7 @@ static void test_reshape_then_access_elements(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 3; k++) {
-        u32 idx_dims[] = {i, j, k};
+        dim_t idx_dims[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)(counter++)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
@@ -1042,7 +1042,7 @@ static void test_reshape_then_access_elements(void) {
   }
 
   // Reshape to 4x3
-  u32 new_dims[] = {4, 3};
+  dim_t new_dims[] = {4, 3};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor reshaped;
@@ -1055,7 +1055,7 @@ static void test_reshape_then_access_elements(void) {
   int all_correct = 1;
   for (u32 i = 0; i < 4 && all_correct; i++) {
     for (u32 j = 0; j < 3 && all_correct; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value result;
       GetAt(&reshaped, (Dim){.dims = idx, .numOfDims = 2}, &result);
       f32 expected = (f32)(i * 3 + j);
@@ -1071,7 +1071,7 @@ static void test_reshape_then_access_elements(void) {
 
 // Transpose tests
 static void test_transpose_basic_2d(void) {
-  u32 dims[] = {3, 4}; // 3 rows, 4 cols
+  dim_t dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1088,7 +1088,7 @@ static void test_transpose_basic_2d(void) {
 }
 
 static void test_transpose_swaps_dims_and_multipliers(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1106,7 +1106,7 @@ static void test_transpose_swaps_dims_and_multipliers(void) {
 }
 
 static void test_transpose_shares_data(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1120,7 +1120,7 @@ static void test_transpose_shares_data(void) {
 }
 
 static void test_transpose_access_elements(void) {
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1130,7 +1130,7 @@ static void test_transpose_access_elements(void) {
   // source[1,0]=3, source[1,1]=4, source[1,2]=5
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 3 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 2}, val);
     }
@@ -1146,19 +1146,19 @@ static void test_transpose_access_elements(void) {
   // transposed[2,1] = source[1,2] = 5
   Value result;
 
-  u32 idx1[] = {0, 0};
+  dim_t idx1[] = {0, 0};
   GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0] should be 0");
 
-  u32 idx2[] = {0, 1};
+  dim_t idx2[] = {0, 1};
   GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 3.0f, "transposed[0,1] should be 3");
 
-  u32 idx3[] = {1, 0};
+  dim_t idx3[] = {1, 0};
   GetAt(&transposed, (Dim){.dims = idx3, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "transposed[1,0] should be 1");
 
-  u32 idx4[] = {2, 1};
+  dim_t idx4[] = {2, 1};
   GetAt(&transposed, (Dim){.dims = idx4, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "transposed[2,1] should be 5");
 
@@ -1177,7 +1177,7 @@ static void test_transpose_null_tensor(void) {
 }
 
 static void test_transpose_dim_out_of_bounds(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1190,7 +1190,7 @@ static void test_transpose_dim_out_of_bounds(void) {
 }
 
 static void test_transpose_size_less_than_2(void) {
-  u32 dims[] = {1};
+  dim_t dims[] = {1};
   TestTensor tt = createZerosTensor(dims, 1);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1203,7 +1203,7 @@ static void test_transpose_size_less_than_2(void) {
 }
 
 static void test_transpose_3d(void) {
-  u32 dims[] = {2, 3, 4}; // 2x3x4
+  dim_t dims[] = {2, 3, 4}; // 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1212,7 +1212,7 @@ static void test_transpose_3d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
-        u32 idx[] = {i, j, k};
+        dim_t idx[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)(i * 12 + j * 4 + k)};
         AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 3}, val);
       }
@@ -1232,11 +1232,11 @@ static void test_transpose_3d(void) {
   // transposed[3,2,1] = source[1,2,3] = 1*12 + 2*4 + 3 = 23
   Value result;
 
-  u32 idx1[] = {0, 0, 0};
+  dim_t idx1[] = {0, 0, 0};
   GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0,0] should be 0");
 
-  u32 idx2[] = {3, 2, 1};
+  dim_t idx2[] = {3, 2, 1};
   GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "transposed[3,2,1] should be 23");
 
@@ -1244,7 +1244,7 @@ static void test_transpose_3d(void) {
 }
 
 static void test_reshape_after_transpose_copies(void) {
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -1252,7 +1252,7 @@ static void test_reshape_after_transpose_copies(void) {
   // Populate
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 4 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx, .numOfDims = 2}, val);
     }
@@ -1263,7 +1263,7 @@ static void test_reshape_after_transpose_copies(void) {
   Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
 
   // Reshape transposed to 1D: 12 elements
-  u32 new_dims[] = {12};
+  dim_t new_dims[] = {12};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor reshaped;
@@ -1281,15 +1281,15 @@ static void test_reshape_after_transpose_copies(void) {
   //   ...
   // So reshaped = [0,4,8, 1,5,9, 2,6,10, 3,7,11]
   Value result;
-  u32 idx0[] = {0};
+  dim_t idx0[] = {0};
   GetAt(&reshaped, (Dim){.dims = idx0, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 
-  u32 idx1[] = {1};
+  dim_t idx1[] = {1};
   GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "reshaped[1] should be 4 (transposed[0,1])");
 
-  u32 idx3[] = {3};
+  dim_t idx3[] = {3};
   GetAt(&reshaped, (Dim){.dims = idx3, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "reshaped[3] should be 1 (transposed[1,0])");
 
@@ -1301,7 +1301,7 @@ static void test_add_basic_same_shape(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
@@ -1310,7 +1310,7 @@ static void test_add_basic_same_shape(void) {
   // b = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       Value vb = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1334,7 +1334,7 @@ static void test_add_dtype_mismatch(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   b->dtype = U32; // Force dtype mismatch
@@ -1351,8 +1351,8 @@ static void test_add_broadcast_row_vector(void) {
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [1, 3] -> broadcast b across rows
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {1, 3};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {1, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1360,7 +1360,7 @@ static void test_add_broadcast_row_vector(void) {
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1368,7 +1368,7 @@ static void test_add_broadcast_row_vector(void) {
 
   // b = [[10, 20, 30]]
   for (u32 j = 0; j < 3; j++) {
-    u32 idx[] = {0, j};
+    dim_t idx[] = {0, j};
     Value v = {.dtype = F32, .as.f32 = (f32)((j + 1) * 10)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1393,8 +1393,8 @@ static void test_add_broadcast_col_vector(void) {
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [2, 1] -> broadcast b across cols
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {2, 1};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {2, 1};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1402,7 +1402,7 @@ static void test_add_broadcast_col_vector(void) {
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1410,7 +1410,7 @@ static void test_add_broadcast_col_vector(void) {
 
   // b = [[10], [20]]
   for (u32 i = 0; i < 2; i++) {
-    u32 idx[] = {i, 0};
+    dim_t idx[] = {i, 0};
     Value v = {.dtype = F32, .as.f32 = (f32)((i + 1) * 10)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1435,8 +1435,8 @@ static void test_add_broadcast_scalar(void) {
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [1, 1] -> broadcast scalar b to all elements
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {1, 1};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {1, 1};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1444,14 +1444,14 @@ static void test_add_broadcast_scalar(void) {
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[100]]
-  u32 idx_b[] = {0, 0};
+  dim_t idx_b[] = {0, 0};
   Value vb = {.dtype = F32, .as.f32 = 100.0f};
   AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
@@ -1470,14 +1470,14 @@ static void test_add_1d_tensors(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {4};
+  dim_t dims[] = {4};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
   Tensor dest;
 
   // a = [1, 2, 3, 4], b = [10, 20, 30, 40]
   for (u32 i = 0; i < 4; i++) {
-    u32 idx[] = {i};
+    dim_t idx[] = {i};
     Value va = {.dtype = F32, .as.f32 = (f32)(i + 1)};
     Value vb = {.dtype = F32, .as.f32 = (f32)((i + 1) * 10)};
     AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 1}, va);
@@ -1501,7 +1501,7 @@ static void test_subtract_basic_same_shape(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
@@ -1510,7 +1510,7 @@ static void test_subtract_basic_same_shape(void) {
   // b = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       Value vb = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1534,8 +1534,8 @@ static void test_subtract_broadcast(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {1, 3};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {1, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1543,7 +1543,7 @@ static void test_subtract_broadcast(void) {
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1551,7 +1551,7 @@ static void test_subtract_broadcast(void) {
 
   // b = [[1, 2, 3]]
   for (u32 j = 0; j < 3; j++) {
-    u32 idx[] = {0, j};
+    dim_t idx[] = {0, j};
     Value v = {.dtype = F32, .as.f32 = (f32)(j + 1)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1572,7 +1572,7 @@ static void test_multiply_basic_same_shape(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
@@ -1581,7 +1581,7 @@ static void test_multiply_basic_same_shape(void) {
   // b = [[2,2,2], [3,3,3]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       Value vb = {.dtype = F32, .as.f32 = (f32)(i + 2)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1606,8 +1606,8 @@ static void test_multiply_broadcast_scalar(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {1, 1};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {1, 1};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1615,14 +1615,14 @@ static void test_multiply_broadcast_scalar(void) {
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[5]]
-  u32 idx_b[] = {0, 0};
+  dim_t idx_b[] = {0, 0};
   Value vb = {.dtype = F32, .as.f32 = 5.0f};
   AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
@@ -1643,7 +1643,7 @@ static void test_divide_basic_same_shape(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
@@ -1652,7 +1652,7 @@ static void test_divide_basic_same_shape(void) {
   // b = [[2,4,5], [8,10,12]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       Value vb = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 2)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1675,8 +1675,8 @@ static void test_divide_broadcast(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {1, 3};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {1, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1684,7 +1684,7 @@ static void test_divide_broadcast(void) {
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1693,7 +1693,7 @@ static void test_divide_broadcast(void) {
   // b = [[2, 5, 10]]
   u8 divisors[] = {2, 5, 10};
   for (u32 j = 0; j < 3; j++) {
-    u32 idx[] = {0, j};
+    dim_t idx[] = {0, j};
     Value v = {.dtype = F32, .as.f32 = (f32)divisors[j]};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1718,8 +1718,8 @@ static void test_add_non_contiguous_transposed(void) {
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [3, 2] transposed to [2, 3]
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {3, 2};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {3, 2};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
   Tensor dest;
@@ -1727,7 +1727,7 @@ static void test_add_non_contiguous_transposed(void) {
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1736,7 +1736,7 @@ static void test_add_non_contiguous_transposed(void) {
   // b = [[10,20], [30,40], [50,60]] (3x2)
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 2; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)((i * 2 + j + 1) * 10)};
       AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1769,8 +1769,8 @@ static void test_add_2d_plus_1d_broadcast(void) {
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [3] -> broadcast 1D across rows
-  u32 dims_a[] = {2, 3};
-  u32 dims_b[] = {3};
+  dim_t dims_a[] = {2, 3};
+  dim_t dims_b[] = {3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 1});
   Tensor dest;
@@ -1778,7 +1778,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, a, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1786,7 +1786,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
 
   // b = [10, 20, 30]
   for (u32 j = 0; j < 3; j++) {
-    u32 idx[] = {j};
+    dim_t idx[] = {j};
     Value v = {.dtype = F32, .as.f32 = (f32)((j + 1) * 10)};
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
@@ -1812,12 +1812,12 @@ static void test_sum_dim0_2d(void) {
   Context ctx = {.memory = mem};
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1845,12 +1845,12 @@ static void test_sum_dim1_2d(void) {
   Context ctx = {.memory = mem};
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1877,14 +1877,14 @@ static void test_sum_3d_middle_dim(void) {
   Context ctx = {.memory = mem};
 
   // 2x3x2 tensor
-  u32 dims[] = {2, 3, 2};
+  dim_t dims[] = {2, 3, 2};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
   // Fill with sequential values 1-12
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 2; k++) {
-        u32 idx[] = {i, j, k};
+        dim_t idx[] = {i, j, k};
         Value v = {.dtype = F32, .as.f32 = (f32)(i * 6 + j * 2 + k + 1)};
         AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
       }
@@ -1916,7 +1916,7 @@ static void test_sum_dim_out_of_bounds(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
 
@@ -1942,13 +1942,13 @@ static void test_sum_non_contiguous(void) {
   Context ctx = {.memory = mem};
 
   // Create 3x2, transpose to 2x3, then sum
-  u32 dims[] = {3, 2};
+  dim_t dims[] = {3, 2};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   // t = [[1,2], [3,4], [5,6]]
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 2; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 2 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1975,12 +1975,12 @@ static void test_sum_1d_tensor(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {5};
+  dim_t dims[] = {5};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
   // t = [1, 2, 3, 4, 5]
   for (u32 i = 0; i < 5; i++) {
-    u32 idx[] = {i};
+    dim_t idx[] = {i};
     Value v = {.dtype = F32, .as.f32 = (f32)(i + 1)};
     AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
@@ -2004,7 +2004,7 @@ static void test_sum_4d_dim0(void) {
   Context ctx = {.memory = mem};
 
   // 2x2x2x3 tensor
-  u32 dims[] = {2, 2, 2, 3};
+  dim_t dims[] = {2, 2, 2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-24
@@ -2013,7 +2013,7 @@ static void test_sum_4d_dim0(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 3; l++) {
-          u32 idx[] = {i, j, k, l};
+          dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -2048,7 +2048,7 @@ static void test_sum_4d_dim1(void) {
   Context ctx = {.memory = mem};
 
   // 2x3x2x2 tensor
-  u32 dims[] = {2, 3, 2, 2};
+  dim_t dims[] = {2, 3, 2, 2};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-24
@@ -2057,7 +2057,7 @@ static void test_sum_4d_dim1(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 2; l++) {
-          u32 idx[] = {i, j, k, l};
+          dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -2092,7 +2092,7 @@ static void test_sum_4d_dim3(void) {
   Context ctx = {.memory = mem};
 
   // 2x2x2x4 tensor
-  u32 dims[] = {2, 2, 2, 4};
+  dim_t dims[] = {2, 2, 2, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-32
@@ -2101,7 +2101,7 @@ static void test_sum_4d_dim3(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 4; l++) {
-          u32 idx[] = {i, j, k, l};
+          dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -2136,7 +2136,7 @@ static void test_sum_multiple_reduces_3d(void) {
   Context ctx = {.memory = mem};
 
   // 2x3x4 tensor
-  u32 dims[] = {2, 3, 4};
+  dim_t dims[] = {2, 3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
   // Fill with sequential values 1-24
@@ -2144,7 +2144,7 @@ static void test_sum_multiple_reduces_3d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
-        u32 idx[] = {i, j, k};
+        dim_t idx[] = {i, j, k};
         Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
         AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
       }
@@ -2187,7 +2187,7 @@ static void test_sum_multiple_reduces_4d(void) {
   Context ctx = {.memory = mem};
 
   // 2x2x3x2 tensor (24 elements)
-  u32 dims[] = {2, 2, 3, 2};
+  dim_t dims[] = {2, 2, 3, 2};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with values 1-24
@@ -2196,7 +2196,7 @@ static void test_sum_multiple_reduces_4d(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 3; k++) {
         for (u32 l = 0; l < 2; l++) {
-          u32 idx[] = {i, j, k, l};
+          dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -2230,13 +2230,13 @@ static void test_sum_reduce_to_scalar_2d(void) {
   Context ctx = {.memory = mem};
 
   // 3x4 tensor
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   // Fill with 1-12
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 4 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2266,7 +2266,7 @@ static void test_squeeze_removes_single_dims(void) {
   Context ctx = {.memory = mem};
 
   // [1, 3, 1, 4] -> [3, 4]
-  u32 dims[] = {1, 3, 1, 4};
+  dim_t dims[] = {1, 3, 1, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
   Tensor squeezed;
@@ -2286,7 +2286,7 @@ static void test_squeeze_middle_dim(void) {
   Context ctx = {.memory = mem};
 
   // [2, 1, 3] -> [2, 3]
-  u32 dims[] = {2, 1, 3};
+  dim_t dims[] = {2, 1, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
   Tensor squeezed;
@@ -2305,7 +2305,7 @@ static void test_squeeze_no_single_dims(void) {
   Context ctx = {.memory = mem};
 
   // [2, 3, 4] -> [2, 3, 4] (unchanged)
-  u32 dims[] = {2, 3, 4};
+  dim_t dims[] = {2, 3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
   Tensor squeezed;
@@ -2325,7 +2325,7 @@ static void test_squeeze_all_ones(void) {
   Context ctx = {.memory = mem};
 
   // [1, 1, 1] -> [1]
-  u32 dims[] = {1, 1, 1};
+  dim_t dims[] = {1, 1, 1};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
   Tensor squeezed;
@@ -2343,11 +2343,11 @@ static void test_squeeze_shares_data(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {1, 3};
+  dim_t dims[] = {1, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   // Set a value
-  u32 idx[] = {0, 1};
+  dim_t idx[] = {0, 1};
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
 
@@ -2355,7 +2355,7 @@ static void test_squeeze_shares_data(void) {
   Squeeze(&ctx, t, &squeezed);
 
   // Check value is accessible in squeezed tensor
-  u32 sq_idx[] = {1};
+  dim_t sq_idx[] = {1};
   Value result;
   GetAt(&squeezed, (Dim){.dims = sq_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "squeezed should share data with source");
@@ -2368,7 +2368,7 @@ static void test_squeeze_dim_specific(void) {
   Context ctx = {.memory = mem};
 
   // [1, 3, 1, 4] squeeze dim 0 -> [3, 1, 4]
-  u32 dims[] = {1, 3, 1, 4};
+  dim_t dims[] = {1, 3, 1, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
   Tensor squeezed;
@@ -2406,12 +2406,12 @@ static void test_squeeze_after_sum(void) {
   Context ctx = {.memory = mem};
 
   // 2x3 tensor
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2441,7 +2441,7 @@ static void test_unsqueeze_dim0(void) {
   Context ctx = {.memory = mem};
 
   // [3, 4] -> [1, 3, 4]
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   Tensor unsqueezed;
@@ -2462,7 +2462,7 @@ static void test_unsqueeze_middle(void) {
   Context ctx = {.memory = mem};
 
   // [3, 4] -> [3, 1, 4]
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   Tensor unsqueezed;
@@ -2482,7 +2482,7 @@ static void test_unsqueeze_end(void) {
   Context ctx = {.memory = mem};
 
   // [3, 4] -> [3, 4, 1]
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   Tensor unsqueezed;
@@ -2502,7 +2502,7 @@ static void test_unsqueeze_1d(void) {
   Context ctx = {.memory = mem};
 
   // [5] -> [1, 5]
-  u32 dims[] = {5};
+  dim_t dims[] = {5};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
   Tensor unsqueezed;
@@ -2520,10 +2520,10 @@ static void test_unsqueeze_shares_data(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3};
+  dim_t dims[] = {3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
-  u32 idx[] = {1};
+  dim_t idx[] = {1};
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
 
@@ -2531,7 +2531,7 @@ static void test_unsqueeze_shares_data(void) {
   UnSqueeze(&ctx, t, &unsqueezed, 0);
 
   // Access via [0, 1]
-  u32 new_idx[] = {0, 1};
+  dim_t new_idx[] = {0, 1};
   Value result;
   GetAt(&unsqueezed, (Dim){.dims = new_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "unsqueezed should share data");
@@ -2543,7 +2543,7 @@ static void test_unsqueeze_dim_out_of_bounds(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor dest;
 
@@ -2558,13 +2558,13 @@ static void test_unsqueeze_non_contiguous(void) {
   Context ctx = {.memory = mem};
 
   // Create 2x3, transpose to 3x2, then unsqueeze
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   // [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2587,19 +2587,19 @@ static void test_unsqueeze_non_contiguous(void) {
 
   // Verify data access: [0, 0, 0] should be 1, [0, 0, 1] should be 4
   Value result;
-  u32 idx1[] = {0, 0, 0};
+  dim_t idx1[] = {0, 0, 0};
   GetAt(&unsqueezed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "unsqueezed[0,0,0] should be 1");
 
-  u32 idx2[] = {0, 0, 1};
+  dim_t idx2[] = {0, 0, 1};
   GetAt(&unsqueezed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "unsqueezed[0,0,1] should be 4");
 
-  u32 idx3[] = {0, 1, 0};
+  dim_t idx3[] = {0, 1, 0};
   GetAt(&unsqueezed, (Dim){.dims = idx3, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 2.0f, "unsqueezed[0,1,0] should be 2");
 
-  u32 idx4[] = {0, 2, 1};
+  dim_t idx4[] = {0, 2, 1};
   GetAt(&unsqueezed, (Dim){.dims = idx4, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "unsqueezed[0,2,1] should be 6");
 
@@ -2611,12 +2611,12 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   Context ctx = {.memory = mem};
 
   // [2, 3] -> squeeze (no change) -> unsqueeze dim 1 -> [2, 1, 3] -> squeeze -> [2, 3]
-  u32 dims[] = {2, 1, 3};
+  dim_t dims[] = {2, 1, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 k = 0; k < 3; k++) {
-      u32 idx[] = {i, 0, k};
+      dim_t idx[] = {i, 0, k};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + k + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 3}, v);
     }
@@ -2634,7 +2634,7 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   ASSERT_EQ(unsqueezed.shape.dims[2], 3, "dim 2 should be 3");
 
   // Verify data
-  u32 idx[] = {1, 0, 2};
+  dim_t idx[] = {1, 0, 2};
   Value result;
   GetAt(&unsqueezed, (Dim){.dims = idx, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "data should be preserved");
@@ -2647,12 +2647,12 @@ static void test_clone_basic(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2679,10 +2679,10 @@ static void test_clone_independent_data(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3};
+  dim_t dims[] = {3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
-  u32 idx[] = {1};
+  dim_t idx[] = {1};
   Value v = {.dtype = F32, .as.f32 = 10.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
 
@@ -2705,12 +2705,12 @@ static void test_clone_slice(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {4, 4};
+  dim_t dims[] = {4, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 4; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 4 + j)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2747,13 +2747,13 @@ static void test_clone_transposed(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
   // [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      u32 idx[] = {i, j};
+      dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2799,7 +2799,7 @@ static void test_view_slice_boundary_propagation(void) {
   Context ctx = {.memory = mem};
 
   // 4x5 tensor, values[i][j] = i*5 + j
-  u32 dims[] = {4, 5};
+  dim_t dims[] = {4, 5};
   Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
@@ -2815,23 +2815,23 @@ static void test_view_slice_boundary_propagation(void) {
   ASSERT_EQ(s.shape.dims[1], 3, "slice dim[1] should be 3");
 
   // s[0,0] should be x[1,2] = 1*5+2 = 7
-  u32 idx00[] = {0, 0};
+  dim_t idx00[] = {0, 0};
   Value result;
   GetAt(&s, (Dim){.dims = idx00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "s[0,0] should be x[1,2]=7");
 
   // s[0,2] should be x[1,4] = 1*5+4 = 9
-  u32 idx02[] = {0, 2};
+  dim_t idx02[] = {0, 2};
   GetAt(&s, (Dim){.dims = idx02, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 9.0f, "s[0,2] should be x[1,4]=9");
 
   // s[1,0] should be x[2,2] = 2*5+2 = 12
-  u32 idx10[] = {1, 0};
+  dim_t idx10[] = {1, 0};
   GetAt(&s, (Dim){.dims = idx10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 12.0f, "s[1,0] should be x[2,2]=12");
 
   // s[1,2] should be x[2,4] = 2*5+4 = 14
-  u32 idx12[] = {1, 2};
+  dim_t idx12[] = {1, 2};
   GetAt(&s, (Dim){.dims = idx12, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s[1,2] should be x[2,4]=14");
 
@@ -2844,7 +2844,7 @@ static void test_view_nested_slice_correctness(void) {
   Context ctx = {.memory = mem};
 
   // 6x6 tensor, values[i][j] = i*6 + j
-  u32 dims[] = {6, 6};
+  dim_t dims[] = {6, 6};
   Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
@@ -2864,23 +2864,23 @@ static void test_view_nested_slice_correctness(void) {
   ASSERT_EQ(s2.shape.dims[1], 2, "nested slice dim[1] should be 2");
 
   // s2[0,0] = x[2,2] = 2*6+2 = 14
-  u32 idx00[] = {0, 0};
+  dim_t idx00[] = {0, 0};
   Value result;
   GetAt(&s2, (Dim){.dims = idx00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s2[0,0] should be x[2,2]=14");
 
   // s2[0,1] = x[2,3] = 2*6+3 = 15
-  u32 idx01[] = {0, 1};
+  dim_t idx01[] = {0, 1};
   GetAt(&s2, (Dim){.dims = idx01, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "s2[0,1] should be x[2,3]=15");
 
   // s2[1,0] = x[3,2] = 3*6+2 = 20
-  u32 idx10[] = {1, 0};
+  dim_t idx10[] = {1, 0};
   GetAt(&s2, (Dim){.dims = idx10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 20.0f, "s2[1,0] should be x[3,2]=20");
 
   // s2[1,1] = x[3,3] = 3*6+3 = 21
-  u32 idx11[] = {1, 1};
+  dim_t idx11[] = {1, 1};
   GetAt(&s2, (Dim){.dims = idx11, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "s2[1,1] should be x[3,3]=21");
 
@@ -2893,7 +2893,7 @@ static void test_view_get_tensor_at_on_slice(void) {
   Context ctx = {.memory = mem};
 
   // 5x4 tensor, values[i][j] = i*4 + j
-  u32 dims[] = {5, 4};
+  dim_t dims[] = {5, 4};
   Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 5; i++) {
     for (u32 j = 0; j < 4; j++) {
@@ -2912,12 +2912,12 @@ static void test_view_get_tensor_at_on_slice(void) {
   ASSERT_EQ(row.shape.numOfDims, 1, "row should be 1D");
   ASSERT_EQ(row.shape.dims[0], 4, "row should have 4 elements");
 
-  u32 idx[] = {0};
+  dim_t idx[] = {0};
   Value result;
   GetAt(&row, (Dim){.dims = idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 12.0f, "row[0] should be x[3,0]=12");
 
-  u32 idx2[] = {3};
+  dim_t idx2[] = {3};
   GetAt(&row, (Dim){.dims = idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "row[3] should be x[3,3]=15");
 
@@ -2930,7 +2930,7 @@ static void test_view_advanced_indexing_on_slice(void) {
   Context ctx = {.memory = mem};
 
   // 6x4 tensor, values[i][j] = i*4 + j
-  u32 dims[] = {6, 4};
+  dim_t dims[] = {6, 4};
   Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 4; j++) {
@@ -2943,7 +2943,7 @@ static void test_view_advanced_indexing_on_slice(void) {
   Slice(&ctx, x, &s, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
 
   // IndexWithTensor(s, [0, 2]) should gather s[0,:] and s[2,:] = x[2,:] and x[4,:]
-  u32 idxDims[] = {2};
+  dim_t idxDims[] = {2};
   Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)indices->values)[0] = 0;
   ((i8 *)indices->values)[1] = 2;
@@ -2976,7 +2976,7 @@ static void test_add_in_place_on_slice_view(void) {
   Context ctx = {.memory = mem};
 
   // 4x4 base tensor with values [0..15]
-  u32 dims[] = {4, 4};
+  dim_t dims[] = {4, 4};
   Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 16; i++) {
     ((f32 *)x->values)[i] = (f32)i;
@@ -2987,7 +2987,7 @@ static void test_add_in_place_on_slice_view(void) {
   Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
 
   // ones = 2x2 tensor of all 1.0
-  Tensor *ones = T_Float(&ctx, (Dim){.dims = (u32[]){2, 2}, .numOfDims = 2}, 1.0f);
+  Tensor *ones = T_Float(&ctx, (Dim){.dims = (dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
 
   Result r = AddInPlace(&ctx, &s, ones);
   ASSERT_EQ(r, OK, "AddInPlace on slice view should succeed");
@@ -3013,7 +3013,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
   Context ctx = {.memory = mem};
 
   // 3x4 base tensor, values[i][j] = i*4 + j (0..11)
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *x = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 12; i++) {
     ((f32 *)x->values)[i] = (f32)i;
@@ -3034,18 +3034,18 @@ static void test_view_boundary_deep_copy_transpose(void) {
 
   // Verify correct values through both views
   // s[0,0] = x[1,0] = 4
-  u32 s00[] = {0, 0};
+  dim_t s00[] = {0, 0};
   Value result;
   GetAt(&s, (Dim){.dims = s00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "s[0,0] should be x[1,0]=4");
 
   // t[0,0] = s[0,0] = x[1,0] = 4
-  u32 t00[] = {0, 0};
+  dim_t t00[] = {0, 0};
   GetAt(&t, (Dim){.dims = t00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should be x[1,0]=4");
 
   // t[1,0] = s[0,1] = x[1,1] = 5
-  u32 t10[] = {1, 0};
+  dim_t t10[] = {1, 0};
   GetAt(&t, (Dim){.dims = t10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "t[1,0] should be x[1,1]=5");
 
@@ -3060,7 +3060,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
 }
 
 static void test_slice_boundary_access(void) {
-  u32 dims[] = {5, 5};
+  dim_t dims[] = {5, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
@@ -3068,7 +3068,7 @@ static void test_slice_boundary_access(void) {
   // Populate
   for (u32 i = 0; i < 5; i++) {
     for (u32 j = 0; j < 5; j++) {
-      u32 idx_dims[] = {i, j};
+      dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -3082,22 +3082,22 @@ static void test_slice_boundary_access(void) {
   Value result;
 
   // Top-left: slice[0,0] = source[2,1] = 11
-  u32 tl[] = {0, 0};
+  dim_t tl[] = {0, 0};
   GetAt(&slice, (Dim){.dims = tl, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 11.0f, "top-left corner should be 11");
 
   // Top-right: slice[0,2] = source[2,3] = 13
-  u32 tr[] = {0, 2};
+  dim_t tr[] = {0, 2};
   GetAt(&slice, (Dim){.dims = tr, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 13.0f, "top-right corner should be 13");
 
   // Bottom-left: slice[2,0] = source[4,1] = 21
-  u32 bl[] = {2, 0};
+  dim_t bl[] = {2, 0};
   GetAt(&slice, (Dim){.dims = bl, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "bottom-left corner should be 21");
 
   // Bottom-right: slice[2,2] = source[4,3] = 23
-  u32 br[] = {2, 2};
+  dim_t br[] = {2, 2};
   GetAt(&slice, (Dim){.dims = br, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
 
@@ -3295,7 +3295,7 @@ static void test_matmul_integer_dtype_rejected(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
   Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
@@ -3426,7 +3426,7 @@ static void test_dot_integer_dtype_rejected(void) {
 static void test_negate_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  u32 dims[] = {3};
+  dim_t dims[] = {3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 5.0);
   Tensor dest;
   Result r = Negate(&ctx, t, &dest);
@@ -3441,7 +3441,7 @@ static void test_negate_f32(void) {
 static void test_negate_already_negative(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  u32 dims[] = {2};
+  dim_t dims[] = {2};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, -3.0);
   Tensor dest;
   Result r = Negate(&ctx, t, &dest);
@@ -3456,7 +3456,7 @@ static void test_negate_already_negative(void) {
 static void test_negate_unsigned_rejected(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  u32 dims[] = {2};
+  dim_t dims[] = {2};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 1);
   t->dtype = U32;
   Result r = Negate(&ctx, t, &(Tensor){});
@@ -3570,14 +3570,14 @@ static void test_index_with_tensor_2d_basic(void) {
   Context ctx = {.memory = mem};
 
   // Create 3x4 source tensor: [[0,1,2,3], [4,5,6,7], [8,9,10,11]]
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u8 i = 0; i < 12; i++) {
     ((f32 *)source->values)[i] = (f32)i;
   }
 
   // Create row and column indices: extract [0,1], [1,2], [2,3] -> [1, 6, 11]
-  u32 idxDims[] = {3};
+  dim_t idxDims[] = {3};
   Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 1;
@@ -3607,14 +3607,14 @@ static void test_index_with_tensor_2d_3d_source(void) {
   Context ctx = {.memory = mem};
 
   // Create 2x3x4 source tensor
-  u32 dims[] = {2, 3, 4};
+  dim_t dims[] = {2, 3, 4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 3}, 0.0f);
   for (u8 i = 0; i < 24; i++) {
     ((f32 *)source->values)[i] = (f32)i;
   }
 
   // Extract [0,0,:], [1,2,:] -> first 4 elements and last 4 elements
-  u32 idxDims[] = {2};
+  dim_t idxDims[] = {2};
   Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 1;
@@ -3649,9 +3649,9 @@ static void test_index_with_tensor_2d_null_tensor(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  u32 idxDims[] = {2};
+  dim_t idxDims[] = {2};
   Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
 
   Tensor result;
@@ -3672,9 +3672,9 @@ static void test_index_with_tensor_2d_insufficient_dims(void) {
   Context ctx = {.memory = mem};
 
   // 1D source should fail
-  u32 dims[] = {4};
+  dim_t dims[] = {4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
-  u32 idxDims[] = {2};
+  dim_t idxDims[] = {2};
   Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
 
   Tensor result;
@@ -3688,10 +3688,10 @@ static void test_index_with_tensor_2d_mismatched_indices(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  u32 rowDims[] = {2};
-  u32 colDims[] = {3};
+  dim_t rowDims[] = {2};
+  dim_t colDims[] = {3};
   Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = rowDims, .numOfDims = 1}, 0);
   Tensor *colIndices = T_Int(&ctx, (Dim){.dims = colDims, .numOfDims = 1}, 0);
 
@@ -3706,9 +3706,9 @@ static void test_index_with_tensor_2d_out_of_bounds(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  u32 idxDims[] = {2};
+  dim_t idxDims[] = {2};
   Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 5; // Out of bounds
@@ -3735,9 +3735,9 @@ static void test_index_with_tensor_2d_non_int_indices(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {3, 4};
+  dim_t dims[] = {3, 4};
   Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  u32 idxDims[] = {2};
+  dim_t idxDims[] = {2};
   Tensor *floatIndices = T_Float(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0.0f);
   Tensor *intIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
 
@@ -3756,7 +3756,7 @@ static void test_mean_basic(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // Set values: [[1, 2, 3], [4, 5, 6]]
@@ -3795,7 +3795,7 @@ static void test_mean_non_float_rejected(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
@@ -3810,7 +3810,7 @@ static void test_log_basic(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // Set values: [[1.0, 2.718], [10.0, 100.0]]
@@ -3852,7 +3852,7 @@ static void test_log_non_float_rejected(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
@@ -3867,7 +3867,7 @@ static void test_max_dim0(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -3897,7 +3897,7 @@ static void test_max_dim1(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -3926,7 +3926,7 @@ static void test_max_int_type(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   // [[1, 5], [3, 2]]
@@ -3961,7 +3961,7 @@ static void test_max_dim_out_of_bounds(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   Tensor dest;
@@ -3975,7 +3975,7 @@ static void test_max_non_contiguous(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -4001,7 +4001,7 @@ static void test_argmax_dim0(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -4032,7 +4032,7 @@ static void test_argmax_dim1_with_ties(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 4};
+  dim_t dims[] = {2, 4};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   // [[1, 5, 5, 2], [3, 3, 1, 3]]
@@ -4074,7 +4074,7 @@ static void test_argmax_dim_out_of_bounds(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   Tensor dest;
@@ -4088,7 +4088,7 @@ static void test_argmax_non_contiguous(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -4115,7 +4115,7 @@ static void test_meandim_dim0(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 2, 3], [4, 5, 6]]
@@ -4145,7 +4145,7 @@ static void test_meandim_dim1(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 2, 3], [4, 5, 6]]
@@ -4174,7 +4174,7 @@ static void test_meandim_non_float_rejected(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 2};
+  dim_t dims[] = {2, 2};
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
@@ -4188,7 +4188,7 @@ static void test_meandim_dim_out_of_bounds(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  u32 dims[] = {2, 3};
+  dim_t dims[] = {2, 3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   Tensor dest;

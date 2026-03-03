@@ -18,7 +18,3 @@ size_t getBytesForDtype(Dtype type) {
   }
 }
 
-Context NoGradContext(Context *ctx) {
-  Context new = {.memory = ctx->memory, .grad = false, .screenConfig = ctx->screenConfig};
-  return new;
-}
