@@ -2,6 +2,7 @@ package layer
 
 import (
 	"fmt"
+	"math"
 
 	shapes "github.com/flygerian/shapes"
 )
@@ -15,7 +16,8 @@ type dense struct {
 func Dense(outerCtx shapes.Context, inputSize int, outputSize int) Layer {
 
 	// Initialize the hidden state
-	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize), uint32(inputSize)})
+	initialization := (5 / 3) / (math.Pow(float64(inputSize), 0.5)) // Kaiming initalization ish
+	w := shapes.Float(outerCtx, shapes.Shape{uint32(outputSize), uint32(inputSize)}, float32(initialization))
 	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize)})
 
 	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}

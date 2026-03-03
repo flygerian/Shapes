@@ -41,7 +41,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 
 		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", stats.Epoch, stats.NumEpochs, stats.Loss)
 		dashboard := Flex(FlexOptions{
-			MinHeight: 50,
+			MinHeight: 60,
 			Direction: DirectionColumn,
 			Children: []Artefact{
 				Box(BoxOptions{
@@ -54,7 +54,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 					}),
 				}),
 				Weighted(WeightOptions{
-					Weight: 3,
+					Weight: 6,
 					Child: Flex(FlexOptions{
 						Direction: DirectionColumn,
 						Children: []Artefact{
@@ -72,7 +72,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 								},
 							}),
 							Weighted(WeightOptions{
-								Weight: 2,
+								Weight: 3,
 								Child: Flex(FlexOptions{
 									Direction: DirectionColumn,
 									Children: []Artefact{
