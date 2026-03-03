@@ -232,20 +232,20 @@ func PrintTo(ctx shapes.Context, w io.Writer, t shapes.Tensor) {
 		fmt.Fprintf(w, "%s: ", t)
 	}
 
-	coords := make([]uint32, len(shape))
+	coords := make([]uint, len(shape))
 	printRecursive(ctx, w, t, shape, coords, 0)
 	fmt.Fprintln(w)
 }
 
 // printRecursive walks dimension by dimension, printing brackets and values.
-func printRecursive(ctx shapes.Context, w io.Writer, t shapes.Tensor, shape, coords []uint32, dim int) {
+func printRecursive(ctx shapes.Context, w io.Writer, t shapes.Tensor, shape, coords []uint, dim int) {
 	if dim == len(shape)-1 {
 		fmt.Fprint(w, "[")
 		for i := range shape[dim] {
 			if i > 0 {
 				fmt.Fprint(w, ", ")
 			}
-			coords[dim] = uint32(i)
+			coords[dim] = uint(i)
 			fmt.Fprint(w, formatValue(ctx, t, coords))
 		}
 		fmt.Fprint(w, "]")
@@ -261,15 +261,15 @@ func printRecursive(ctx shapes.Context, w io.Writer, t shapes.Tensor, shape, coo
 				fmt.Fprint(w, strings.Repeat(" ", len(t.Label())+2))
 			}
 		}
-		coords[dim] = uint32(i)
+		coords[dim] = uint(i)
 		printRecursive(ctx, w, t, shape, coords, dim+1)
 	}
 	fmt.Fprint(w, "]")
 }
 
 // formatValue reads a single element from the tensor and returns its string representation.
-func formatValue(ctx shapes.Context, t shapes.Tensor, coords []uint32) string {
-	// Convert []uint32 to []interface{} for Get function
+func formatValue(ctx shapes.Context, t shapes.Tensor, coords []uint) string {
+	// Convert []uint to []interface{} for Get function
 	args := make([]interface{}, len(coords))
 	for i, c := range coords {
 		args[i] = c

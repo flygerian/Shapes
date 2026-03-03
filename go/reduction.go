@@ -17,11 +17,11 @@ static inline Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out) 
 import "C"
 
 type hadReductionOps interface {
-	Sum(ctx Context, dim uint32) Tensor
+	Sum(ctx Context, dim uint) Tensor
 }
 
 // Sum reduces the tensor along the given dimension by summing, returning a new tensor.
-func (t *tensor) Sum(ctx Context, dim uint32) Tensor {
+func (t *tensor) Sum(ctx Context, dim uint) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Sum((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dim), &dest)
 	if result != C.OK {

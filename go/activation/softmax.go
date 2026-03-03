@@ -3,7 +3,7 @@ package activation
 import "github.com/flygerian/shapes"
 
 func Softmax(ctx shapes.Context, logits shapes.Tensor) shapes.Tensor {
-	ndims := uint32(len(logits.Shape()))
+	ndims := uint(len(logits.Shape()))
 	classDim := ndims - 1
 
 	maxLogits := logits.Max(ctx, classDim)

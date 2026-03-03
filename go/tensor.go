@@ -27,8 +27,8 @@ static inline void zeroTensorValues(Tensor *t) {
 import "C"
 import "unsafe"
 
-type Shape = []uint32
-type Range = []uint32
+type Shape = []uint
+type Range = []uint
 
 type Tensor interface {
 	hasMutatingBinaryOps
@@ -65,9 +65,14 @@ type tensor struct {
 
 // dim builds a C Dim on the arena from a Go shape slice in a single CGo call.
 func dim(ctx Context, shape Shape) *C.Dim {
+	cDims := make([]C.dim_t, len(shape))
+	for i, d := range shape {
+		cDims[i] = C.dim_t(d)
+	}
+
 	return C.makeDim(
 		(*C.Memory)(ctx.UnsafeMemory()),
-		(*C.dim_t)(unsafe.Pointer(&shape[0])),
+		(*C.dim_t)(unsafe.Pointer(&cDims[0])),
 		C.u8(len(shape)),
 	)
 }

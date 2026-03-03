@@ -20,6 +20,6 @@ func (e *embedding) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 // Embedding creates an embedding layer with a randomly initialised matrix of
 // shape [vocabSize, embDim].
 func Embedding(ctx shapes.Context, vocabSize int, embDim int) Layer {
-	c := shapes.FloatRandom(ctx, shapes.Shape{uint32(vocabSize), uint32(embDim)})
+	c := shapes.FloatRandom(ctx, shapes.Shape{uint(vocabSize), uint(embDim)})
 	return &embedding{c: c, vocabSize: vocabSize, embDim: embDim}
 }

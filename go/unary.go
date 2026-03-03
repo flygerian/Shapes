@@ -70,9 +70,9 @@ type hasUnaryOps interface {
 	Exp(ctx Context) Tensor
 	Negate(ctx Context) Tensor
 	Log(ctx Context) Tensor
-	Mean(ctx Context, dims ...uint32) Tensor
-	Max(ctx Context, dims ...uint32) Tensor
-	ArgMax(ctx Context, dims ...uint32) Tensor
+	Mean(ctx Context, dims ...uint) Tensor
+	Max(ctx Context, dims ...uint) Tensor
+	ArgMax(ctx Context, dims ...uint) Tensor
 }
 
 // Pow raises every element to the given power, returning a new tensor.
@@ -115,7 +115,7 @@ func (t *tensor) Negate(ctx Context) Tensor {
 }
 
 // Mean computes the mean of all elements (no dims) or along a single dimension.
-func (t *tensor) Mean(ctx Context, dims ...uint32) Tensor {
+func (t *tensor) Mean(ctx Context, dims ...uint) Tensor {
 	if len(dims) == 0 {
 		var dest *C.Tensor
 		result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
@@ -146,10 +146,10 @@ func (t *tensor) Log(ctx Context) Tensor {
 }
 
 // Max reduces the tensor along a single dimension. If no dims provided, reduces all dims.
-func (t *tensor) Max(ctx Context, dims ...uint32) Tensor {
+func (t *tensor) Max(ctx Context, dims ...uint) Tensor {
 	if len(dims) == 0 {
 		out := t
-		for i := uint32(0); i < uint32(len(shapeOf(t))); i++ {
+		for i := uint(0); i < uint(len(shapeOf(t))); i++ {
 			out = out.Max(ctx, i).(*tensor)
 		}
 		return out.Squeeze(ctx)
@@ -167,10 +167,10 @@ func (t *tensor) Max(ctx Context, dims ...uint32) Tensor {
 
 // ArgMax reduces the tensor along a single dimension and returns index positions as I64.
 // If no dims are provided, it reduces all dims and returns a scalar index.
-func (t *tensor) ArgMax(ctx Context, dims ...uint32) Tensor {
+func (t *tensor) ArgMax(ctx Context, dims ...uint) Tensor {
 	if len(dims) == 0 {
 		out := t
-		for i := uint32(0); i < uint32(len(shapeOf(t))); i++ {
+		for i := uint(0); i < uint(len(shapeOf(t))); i++ {
 			out = out.ArgMax(ctx, i).(*tensor)
 		}
 		return out.Squeeze(ctx)

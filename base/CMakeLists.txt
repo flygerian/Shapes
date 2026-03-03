@@ -61,6 +61,7 @@ add_library(shapes_core
     tensor/destruction.c
     tensor/unary.c
     tensor/cast.c
+    tensor/accumulate.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} m)

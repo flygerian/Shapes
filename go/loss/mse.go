@@ -22,7 +22,7 @@ func Mse(c shapes.Context, yGround shapes.Tensor, yPred shapes.Tensor) func(shap
 		shape := result.Shape()
 		for i := len(shape) - 1; i >= 0; i-- {
 			if shape[i] > 1 {
-				result = result.Sum(fusedCtx, uint32(i))
+				result = result.Sum(fusedCtx, uint(i))
 			}
 		}
 

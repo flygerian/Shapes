@@ -21,11 +21,8 @@ static inline Context *newContext(bool grad, size_t arenaSize) {
 	Memory *mem = initializeArena(arenaSize, 1);
 	Context *ctx = allocate(mem, sizeof(Context));
 	ctx->memory = mem;
-	ctx->grad = grad;
-	ctx->screenConfig = NULL;
 	return ctx;
 }
-
 */
 import "C"
 

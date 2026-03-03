@@ -21,7 +21,7 @@ func transposeBackward(ctx Context, node ComputationGraphNode) {
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
-	dims := node.Metadata().([2]uint32)
+	dims := node.Metadata().([2]uint)
 	gradX := node.Grad().Transpose(noGraphCtx, dims[0], dims[1])
 	x.Grad().Accumulate(noGraphCtx, gradX)
 }
@@ -47,7 +47,7 @@ func squeezeDimBackward(ctx Context, node ComputationGraphNode) {
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
-	dim := node.Metadata().(uint32)
+	dim := node.Metadata().(uint)
 	gradX := node.Grad().UnSqueeze(ctx, dim)
 	x.Grad().Accumulate(ctx, gradX)
 }
@@ -62,7 +62,7 @@ func unSqueezeBackward(ctx Context, node ComputationGraphNode) {
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
-	dim := node.Metadata().(uint32)
+	dim := node.Metadata().(uint)
 	gradX := node.Grad().SqueezeDim(ctx, dim)
 	x.Grad().Accumulate(ctx, gradX)
 }

@@ -35,7 +35,7 @@ func getTensorAtBackward(ctx Context, node ComputationGraphNode) {
 	defer noGraphCtx.Finish()
 
 	x := node.Inputs()[0]
-	idx := node.Metadata().(uint32)
+	idx := node.Metadata().(uint)
 
 	// Get a view into x.Grad at position idx.
 	dxView := x.Grad().Get(noGraphCtx, idx)

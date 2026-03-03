@@ -103,7 +103,7 @@ func fromInt8_1D(data []int8) (Shape, []int8, bool) {
 	if len(data) == 0 {
 		return nil, nil, true
 	}
-	return Shape{uint32(len(data))}, data, false
+	return Shape{uint(len(data))}, data, false
 }
 
 // fromInt8_2D converts a 2D int8 slice to shape and flat data.
@@ -114,7 +114,7 @@ func fromInt8_2D(data [][]int8) (Shape, []int8, bool) {
 	if isEmpty {
 		return nil, nil, true
 	}
-	shape := Shape{uint32(d0), uint32(d1)}
+	shape := Shape{uint(d0), uint(d1)}
 	flatData := flatten2D(data)
 	return shape, flatData, false
 }
@@ -127,7 +127,7 @@ func fromInt8_3D(data [][][]int8) (Shape, []int8, bool) {
 	if isEmpty {
 		return nil, nil, true
 	}
-	shape := Shape{uint32(d0), uint32(d1), uint32(d2)}
+	shape := Shape{uint(d0), uint(d1), uint(d2)}
 	flatData := flatten3D(data)
 	return shape, flatData, false
 }
@@ -140,7 +140,7 @@ func fromInt8_4D(data [][][][]int8) (Shape, []int8, bool) {
 	if isEmpty {
 		return nil, nil, true
 	}
-	shape := Shape{uint32(d0), uint32(d1), uint32(d2), uint32(d3)}
+	shape := Shape{uint(d0), uint(d1), uint(d2), uint(d3)}
 	flatData := flatten4D(data)
 	return shape, flatData, false
 }
@@ -259,7 +259,7 @@ func IntRandom(ctx Context, shape Shape, rng ...int8) Tensor {
 // dimension of size numClasses where each index is represented as a one-hot vector.
 // For example, indices [[0, 2], [1, 0]] with numClasses=3 becomes:
 // [[[1,0,0], [0,0,1]], [[0,1,0], [1,0,0]]]
-func OneHot(ctx Context, indices Tensor, numClasses uint32) Tensor {
+func OneHot(ctx Context, indices Tensor, numClasses uint) Tensor {
 	if indices == nil || numClasses == 0 {
 		return nil
 	}

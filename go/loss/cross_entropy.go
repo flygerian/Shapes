@@ -15,7 +15,7 @@ func CrossEntropy() func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Te
 		fusedCtx := shapesCtx.Forward(shapes.WithInputs(yGround, logits))
 
 		// Determine the class dimension (last dimension).
-		ndims := uint32(len(logits.Shape()))
+		ndims := uint(len(logits.Shape()))
 		classDim := ndims - 1
 
 		// Apply softmax along the class dimension for numerical stability:

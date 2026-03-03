@@ -102,11 +102,11 @@ import (
 type hasShapeOps interface {
 	Slice(ctx Context, ranges ...Range) Tensor
 	Reshape(ctx Context, dims ...int) Tensor
-	Transpose(ctx Context, dims ...uint32) Tensor
+	Transpose(ctx Context, dims ...uint) Tensor
 	Squeeze(ctx Context) Tensor
-	SqueezeDim(ctx Context, dim uint32) Tensor
-	UnSqueeze(ctx Context, dim uint32) Tensor
-	SafeUnSqueeze(ctx Context, dims ...uint32) Tensor
+	SqueezeDim(ctx Context, dim uint) Tensor
+	UnSqueeze(ctx Context, dim uint) Tensor
+	SafeUnSqueeze(ctx Context, dims ...uint) Tensor
 	Shape() Shape
 }
 
@@ -173,7 +173,7 @@ func (t *tensor) Slice(ctx Context, ranges ...Range) Tensor {
 // Use -1 for one dimension to infer it automatically based on total element count.
 func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 	// Calculate total elements in the tensor
-	totalElements := uint32(1)
+	totalElements := uint(1)
 	currentShape := t.Shape()
 	for _, s := range currentShape {
 		totalElements *= s
@@ -181,7 +181,7 @@ func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 
 	// Find -1 position and calculate product of known dimensions
 	inferredIndex := -1
-	knownProduct := uint32(1)
+	knownProduct := uint(1)
 	for i, d := range dims {
 		if d == -1 {
 			if inferredIndex != -1 {
@@ -191,11 +191,11 @@ func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 		} else if d < 0 {
 			panic("shapes: reshape dimensions must be positive or -1")
 		} else {
-			knownProduct *= uint32(d)
+			knownProduct *= uint(d)
 		}
 	}
 
-	// Convert to uint32 shape, inferring -1 if present
+	// Convert to shape (uint), inferring -1 if present
 	shape := make(Shape, len(dims))
 	for i, d := range dims {
 		if d == -1 {
@@ -207,7 +207,7 @@ func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 			}
 			shape[i] = totalElements / knownProduct
 		} else {
-			shape[i] = uint32(d)
+			shape[i] = uint(d)
 		}
 	}
 
@@ -227,11 +227,11 @@ func (t *tensor) Reshape(ctx Context, dims ...int) Tensor {
 // Transpose swaps two dimensions, returning a view.
 // With no extra args it swaps the last two dimensions (the common default).
 // With two args it swaps those specific dimensions.
-func (t *tensor) Transpose(ctx Context, dims ...uint32) Tensor {
-	var d0, d1 uint32
+func (t *tensor) Transpose(ctx Context, dims ...uint) Tensor {
+	var d0, d1 uint
 	switch len(dims) {
 	case 0:
-		ndims := uint32(t.cTensor.shape.numOfDims)
+		ndims := uint(t.cTensor.shape.numOfDims)
 		if ndims < 2 {
 			return t
 		}
@@ -258,7 +258,7 @@ func (t *tensor) Transpose(ctx Context, dims ...uint32) Tensor {
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
 		toComputationGraphNode(out, OpTranspose, transposeBackward, []Tensor{t}, []Tensor{}, nil)
-		out.computation.meta = [2]uint32{d0, d1}
+		out.computation.meta = [2]uint{d0, d1}
 	}
 	return out
 }
@@ -278,7 +278,7 @@ func (t *tensor) Squeeze(ctx Context) Tensor {
 }
 
 // SqueezeDim removes a single dimension at the given position (must be size 1), returning a view.
-func (t *tensor) SqueezeDim(ctx Context, dim uint32) Tensor {
+func (t *tensor) SqueezeDim(ctx Context, dim uint) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_SqueezeDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
 	if result != C.OK {
@@ -293,7 +293,7 @@ func (t *tensor) SqueezeDim(ctx Context, dim uint32) Tensor {
 }
 
 // UnSqueeze inserts a dimension of size 1 at the given position, returning a view.
-func (t *tensor) UnSqueeze(ctx Context, dim uint32) Tensor {
+func (t *tensor) UnSqueeze(ctx Context, dim uint) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_UnSqueeze((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, C.dim_t(dim))
 	if result != C.OK {
@@ -308,7 +308,7 @@ func (t *tensor) UnSqueeze(ctx Context, dim uint32) Tensor {
 }
 
 // SafeUnsqeeze nserts a new dimention at dom 0 only if the tensor is 1D
-func (t *tensor) SafeUnSqueeze(ctx Context, dims ...uint32) Tensor {
+func (t *tensor) SafeUnSqueeze(ctx Context, dims ...uint) Tensor {
 	if len(t.Shape()) > 1 {
 		return t
 	}
@@ -321,5 +321,5 @@ func (t *tensor) SafeUnSqueeze(ctx Context, dims ...uint32) Tensor {
 		return t.UnSqueeze(ctx, dims[0])
 	}
 
-	return t.UnSqueeze(ctx, uint32(0))
+	return t.UnSqueeze(ctx, uint(0))
 }

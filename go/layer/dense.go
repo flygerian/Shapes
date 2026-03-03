@@ -17,8 +17,8 @@ func Dense(outerCtx shapes.Context, inputSize int, outputSize int) Layer {
 
 	// Initialize the hidden state
 	initialization := (5 / 3) / (math.Pow(float64(inputSize), 0.5)) // Kaiming initalization ish
-	w := shapes.Float(outerCtx, shapes.Shape{uint32(outputSize), uint32(inputSize)}, float32(initialization))
-	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint32(outputSize)})
+	w := shapes.Float(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}, float32(initialization))
+	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize)})
 
 	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
 }
@@ -42,7 +42,7 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	}
 
 	tensorLastDimSize := inputShape[len(inputShape)-1]
-	if tensorLastDimSize != uint32(d.inputSize) {
+	if tensorLastDimSize != uint(d.inputSize) {
 		err := fmt.Errorf("shapes: Dense layer expecting dim size %d on dim[1] of input got dim size %d", d.inputSize, tensorLastDimSize)
 		panic(err)
 	}

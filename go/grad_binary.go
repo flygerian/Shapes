@@ -145,7 +145,7 @@ func reduceBroadcast(ctx Context, input *tensor, grad GradTensor) Tensor {
 	currentShape := current.Shape()
 	for d := range inputShape {
 		if inputShape[d] == 1 && currentShape[d] > 1 {
-			current = current.Sum(ctx, uint32(d))
+			current = current.Sum(ctx, uint(d))
 			currentShape = current.Shape()
 		}
 	}

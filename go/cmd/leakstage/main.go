@@ -77,7 +77,7 @@ func main() {
 			return yOneHot.Mean(runCtx)
 		}
 		if *ceStep >= 0 {
-			classDim := uint32(len(logits.Shape()) - 1)
+			classDim := uint(len(logits.Shape()) - 1)
 			maxLogits := logits.Max(runCtx, classDim)
 			if *ceStep == 0 {
 				return maxLogits.Mean(runCtx)

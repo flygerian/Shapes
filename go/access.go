@@ -116,32 +116,32 @@ func (t *tensor) Get(ctx Context, indices ...interface{}) Tensor {
 	}
 
 	// Otherwise, treat all arguments as coordinates
-	coords := make([]uint32, len(indices))
+	coords := make([]uint, len(indices))
 	for i, v := range indices {
 		switch val := v.(type) {
 		case uint32:
-			coords[i] = val
+			coords[i] = uint(val)
 		case int:
 			if val < 0 {
 				panic("shapes: negative indices not supported")
 			}
-			coords[i] = uint32(val)
+			coords[i] = uint(val)
 		case uint:
-			coords[i] = uint32(val)
+			coords[i] = val
 		case uint64:
-			coords[i] = uint32(val)
+			coords[i] = uint(val)
 		case int32:
 			if val < 0 {
 				panic("shapes: negative indices not supported")
 			}
-			coords[i] = uint32(val)
+			coords[i] = uint(val)
 		case int64:
 			if val < 0 {
 				panic("shapes: negative indices not supported")
 			}
-			coords[i] = uint32(val)
+			coords[i] = uint(val)
 		default:
-			panic(fmt.Sprintf("shapes: Get expects uint32 coordinates or a *Tensor, got %T", v))
+			panic(fmt.Sprintf("shapes: Get expects uint coordinates or a *Tensor, got %T", v))
 		}
 	}
 
@@ -149,7 +149,7 @@ func (t *tensor) Get(ctx Context, indices ...interface{}) Tensor {
 }
 
 // getWithCoords returns a sub-tensor at the given coordinates.
-func (t *tensor) getWithCoords(ctx Context, coords []uint32) Tensor {
+func (t *tensor) getWithCoords(ctx Context, coords []uint) Tensor {
 	current := t
 	for _, idx := range coords {
 		if current.cTensor.shape.numOfDims == 0 {

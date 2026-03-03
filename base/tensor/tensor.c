@@ -207,3 +207,97 @@ Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result)
   *result = numElements;
   return OK;
 }
+
+void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep,
+                              void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
+  switch (dtype) {
+    case U8: {
+      u8 *d = (u8 *)destValues;
+      u8 *s = (u8 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case U16: {
+      u16 *d = (u16 *)destValues;
+      u16 *s = (u16 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case U32: {
+      u32 *d = (u32 *)destValues;
+      u32 *s = (u32 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case U64: {
+      u64 *d = (u64 *)destValues;
+      u64 *s = (u64 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I8: {
+      i8 *d = (i8 *)destValues;
+      i8 *s = (i8 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I16: {
+      i16 *d = (i16 *)destValues;
+      i16 *s = (i16 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I32: {
+      i32 *d = (i32 *)destValues;
+      i32 *s = (i32 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case I64: {
+      i64 *d = (i64 *)destValues;
+      i64 *s = (i64 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case F16: {
+      f16 *d = (f16 *)destValues;
+      f16 *s = (f16 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case F32: {
+      f32 *d = (f32 *)destValues;
+      f32 *s = (f32 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+    case F64: {
+      f64 *d = (f64 *)destValues;
+      f64 *s = (f64 *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] += s[srcBase + i * srcStep];
+      }
+      break;
+    }
+  }
+}

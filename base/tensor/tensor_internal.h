@@ -22,6 +22,9 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);
 
+void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep,
+                              void *srcValues, u64 srcBase, u64 srcStep, u64 count);
+
 bool isIntType(Tensor *t);
 
 #endif
