@@ -118,8 +118,9 @@ type TrainingStats struct {
 }
 
 type trainingState struct {
-	mu    sync.Mutex
-	stats *TrainingStats
+	mu       sync.Mutex
+	doneOnce sync.Once
+	stats    *TrainingStats
 }
 
 type TrainingStatsRenderer interface {
@@ -396,8 +397,13 @@ func (sc *subContext) Finish(options ...subContextOption) {
 		sc.parent.Sweep()
 	}
 
-	if sc.training != nil && sc.training.stats != nil && sc.training.stats.Epoch == sc.training.stats.NumEpochs {
-		sc.training.stats.TrainingDone <- true
+	// Signal training completion exactly once at the end of the final epoch context.
+	// Closing the channel broadcasts completion to all listeners without risking a blocked send.
+	if sc.sweepAfterFinish && sc.training != nil && sc.training.stats != nil &&
+		sc.training.stats.Epoch == sc.training.stats.NumEpochs {
+		sc.training.doneOnce.Do(func() {
+			close(sc.training.stats.TrainingDone)
+		})
 	}
 }
 
@@ -416,7 +422,7 @@ func (sc *subContext) cleanup() {
 		sc.Mark(t)
 		// Also mark the grad tensor if it was allocated by leafNode — it won't be swept otherwise.
 		if tt := t.(*tensor); tt.computation != nil && tt.computation.grad != nil {
-			sc.Mark(tt.computation.grad.(Tensor))
+			sc.Mark(tt.computation.grad)
 		}
 	}
 
