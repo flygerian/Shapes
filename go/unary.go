@@ -4,50 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_Pow(Context *ctx, Tensor *t, f32 power, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Pow(ctx, t, power, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Exp(ctx, t, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Negate(ctx, t, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Mean(ctx, t, dest, dim);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Log(Context *ctx, Tensor *t, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Log(ctx, t, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Abs(Context *ctx, Tensor *t, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Abs(ctx, t, dest);
-	*out = dest;
-	return r;
-}
+#include "cwrappers.h"
 */
 import "C"
 

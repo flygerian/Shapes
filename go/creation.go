@@ -4,43 +4,8 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
+#include "cwrappers.h"
 #include <string.h>
-
-static inline Tensor *wrap_T_Zeros(Context *ctx, Dim *shape) {
-	Tensor *t = T_Zeros(ctx, *shape);
-	freeAlloc(ctx->memory, shape->dims);
-	freeAlloc(ctx->memory, shape);
-	return t;
-}
-static inline Tensor *wrap_T_Int(Context *ctx, Dim *shape, i8 value) {
-	Tensor *t = T_Int(ctx, *shape, value);
-	freeAlloc(ctx->memory, shape->dims);
-	freeAlloc(ctx->memory, shape);
-	return t;
-}
-static inline Tensor *wrap_T_Float(Context *ctx, Dim *shape, f32 value) {
-	Tensor *t = T_Float(ctx, *shape, value);
-	freeAlloc(ctx->memory, shape->dims);
-	freeAlloc(ctx->memory, shape);
-	return t;
-}
-static inline Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Clone(ctx, src, dest);
-	*out = dest;
-	return r;
-}
-static inline Result wrap_Copy(Context *ctx, Tensor *src, Tensor *dest) {
-	return Clone(ctx, src, dest);
-}
-static inline Tensor *wrap_T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
-	return T_OneHot(ctx, indices, numClasses);
-}
-static inline Tensor *wrap_T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
-	return T_Arange(ctx, start, end, step);
-}
 */
 import "C"
 import (

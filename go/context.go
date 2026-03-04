@@ -12,17 +12,7 @@ import (
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "common.h"
-#include "memory.h"
-#include "tensor/tensor.h"
-#include <stdlib.h>
-
-static inline Context *newContext(bool grad, size_t arenaSize) {
-	Memory *mem = initializeArena(arenaSize, 1);
-	Context *ctx = allocate(mem, sizeof(Context));
-	ctx->memory = mem;
-	return ctx;
-}
+#include "cwrappers.h"
 */
 import "C"
 

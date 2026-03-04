@@ -4,21 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices,
-                                             Tensor *srcGrad) {
-	return IndexAccumulate1d(ctx, dest, indices, srcGrad);
-}
-
-static inline Result wrap_IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices,
-                                             Tensor *colIndices, Tensor *srcGrad) {
-	return IndexAccumulate2d(ctx, dest, rowIndices, colIndices, srcGrad);
-}
-static inline Result wrap_SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
-	return SliceAccumulate(ctx, dest, ranges, srcGrad);
-}
+#include "cwrappers.h"
 */
 import "C"
 import (

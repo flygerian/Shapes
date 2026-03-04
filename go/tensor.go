@@ -4,25 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-#include <string.h>
-
-static inline Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
-	Dim *d = allocate(mem, sizeof(Dim));
-	d->dims = allocate(mem, sizeof(dim_t) * numDims);
-	memcpy(d->dims, dims, sizeof(dim_t) * numDims);
-	d->numOfDims = numDims;
-	d->multipliers = NULL;
-	return d;
-}
-
-static inline void zeroTensorValues(Tensor *t) {
-	if (t != NULL && t->values != NULL) {
-		size_t bytes = t->size * getBytesForDtype(t->dtype);
-		memset(t->values, 0, bytes);
-	}
-}
+#include "cwrappers.h"
 */
 import "C"
 import "unsafe"

@@ -4,36 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Sum(ctx, t, dest, dim);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Mean(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Mean(ctx, t, dest, dim);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Max(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Max(ctx, t, dest, dim);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = ArgMax(ctx, t, dest, dim);
-	*out = dest;
-	return r;
-}
+#include "cwrappers.h"
 */
 import "C"
 

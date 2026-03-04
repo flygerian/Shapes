@@ -4,68 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_Add(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Add(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Subtract(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Multiply(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Divide(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Divide(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = GreaterThan(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = GreaterThanOrEqual(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = LessThan(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = LessThanOrEqual(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
-	return AddInPlace(ctx, a, b);
-}
+#include "cwrappers.h"
 */
 import "C"
 

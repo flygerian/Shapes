@@ -4,15 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_Cast(Context *ctx, Tensor *src, Dtype target, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Cast(ctx, src, dest, target);
-	*out = dest;
-	return r;
-}
+#include "cwrappers.h"
 */
 import "C"
 

@@ -4,78 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = GetTensorAt(ctx, source, index, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = IndexWithTensor(ctx, source, indices, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = IndexWithTensor2d(ctx, source, rowIndices, colIndices, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_GetScalar(Tensor *t, Value *result) {
-	return GetScalar(t, result);
-}
-
-static inline double value_as_double(Value v) {
-	switch (v.dtype) {
-		case F16: return (double)v.as.f16;
-		case F32: return (double)v.as.f32;
-		case F64: return (double)v.as.f64;
-		case U8:  return (double)v.as.u8;
-		case U16: return (double)v.as.u16;
-		case U32: return (double)v.as.u32;
-		case U64: return (double)v.as.u64;
-		case I8:  return (double)v.as.i8;
-		case I16: return (double)v.as.i16;
-		case I32: return (double)v.as.i32;
-		case I64: return (double)v.as.i64;
-		default:  return 0.0;
-	}
-}
-
-static inline u64 value_as_u64(Value v) {
-	switch (v.dtype) {
-		case U8:  return (u64)v.as.u8;
-		case U16: return (u64)v.as.u16;
-		case U32: return (u64)v.as.u32;
-		case U64: return (u64)v.as.u64;
-		case I8:  return (u64)v.as.i8;
-		case I16: return (u64)v.as.i16;
-		case I32: return (u64)v.as.i32;
-		case I64: return (u64)v.as.i64;
-		default:  return 0;
-	}
-}
-
-static inline i64 value_as_i64(Value v) {
-	switch (v.dtype) {
-		case I8:  return (i64)v.as.i8;
-		case I16: return (i64)v.as.i16;
-		case I32: return (i64)v.as.i32;
-		case I64: return (i64)v.as.i64;
-		case U8:  return (i64)v.as.u8;
-		case U16: return (i64)v.as.u16;
-		case U32: return (i64)v.as.u32;
-		case U64: return (i64)v.as.u64;
-		default:  return 0;
-	}
-}
+#include "cwrappers.h"
 */
 import "C"
 import "fmt"

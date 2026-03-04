@@ -4,22 +4,7 @@ package shapes
 #cgo CFLAGS: -I../base
 #cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
 
-#include "tensor/tensor.h"
-#include "common.h"
-
-static inline Result wrap_MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = MatMul(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Dot(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Dot(ctx, a, b, dest);
-	*out = dest;
-	return r;
-}
+#include "cwrappers.h"
 */
 import "C"
 
