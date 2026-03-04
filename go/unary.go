@@ -30,7 +30,14 @@ static inline Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
 
 static inline Result wrap_Mean(Context *ctx, Tensor *t, Tensor **out) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Mean(ctx, t, dest);
+	Result r = Mean(ctx, t, dest, 0);
+	*out = dest;
+	return r;
+}
+
+static inline Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = Mean(ctx, t, dest, dim);
 	*out = dest;
 	return r;
 }
@@ -56,9 +63,9 @@ static inline Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **ou
 	return r;
 }
 
-static inline Result wrap_MeanDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
+static inline Result wrap_Abs(Context *ctx, Tensor *t, Tensor **out) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = MeanDim(ctx, t, dest, dim);
+	Result r = Abs(ctx, t, dest);
 	*out = dest;
 	return r;
 }
@@ -69,6 +76,7 @@ type hasUnaryOps interface {
 	Pow(ctx Context, power float32) Tensor
 	Exp(ctx Context) Tensor
 	Negate(ctx Context) Tensor
+	Abs(ctx Context) Tensor
 	Log(ctx Context) Tensor
 	Mean(ctx Context, dims ...uint) Tensor
 	Max(ctx Context, dims ...uint) Tensor
@@ -114,7 +122,8 @@ func (t *tensor) Negate(ctx Context) Tensor {
 	return out
 }
 
-// Mean computes the mean of all elements (no dims) or along a single dimension.
+// Mean computes the mean along a single dimension.
+// If no dim is provided, it defaults to dimension 0.
 func (t *tensor) Mean(ctx Context, dims ...uint) Tensor {
 	if len(dims) == 0 {
 		var dest *C.Tensor
@@ -126,13 +135,23 @@ func (t *tensor) Mean(ctx Context, dims ...uint) Tensor {
 	}
 	if len(dims) == 1 {
 		var dest *C.Tensor
-		result := C.wrap_MeanDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
+		result := C.wrap_MeanWithDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
 		if result != C.OK {
 			panic("shapes: " + resultString(uint32(result)))
 		}
 		return track(ctx, &tensor{cTensor: dest})
 	}
-	panic("shapes: mean expects 0 or 1 dim args")
+	panic("shapes: mean expects at most 1 dim arg")
+}
+
+// Abs computes absolute value element-wise.
+func (t *tensor) Abs(ctx Context) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Abs((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
 }
 
 // Log computes the natural logarithm of every element, returning a new tensor.

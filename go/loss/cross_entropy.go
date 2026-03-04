@@ -29,7 +29,7 @@ func CrossEntropy() func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Te
 		// Sum over classes first, then mean over batch (or over all if 1D).
 		logProbs := probs.Log(fusedCtx)
 		perSampleLoss := yGround.Times(fusedCtx, logProbs).Sum(fusedCtx, classDim)
-		result := perSampleLoss.Mean(fusedCtx).Negate(fusedCtx)
+		result := perSampleLoss.Mean(fusedCtx).Squeeze(fusedCtx).Negate(fusedCtx)
 
 		// Use Saved API to keep probs alive for backward, then register via fusedCtx for sweeping
 

@@ -75,6 +75,7 @@
     }                                                                                              \
   } while (0)
 
+
 #define VALUE(type, data)                                                                          \
   ((type) == U8    ? (Value){.dtype = (type), .as.u8 = (u8)(data)}                                 \
    : (type) == U16 ? (Value){.dtype = (type), .as.u16 = (u16)(data)}                               \

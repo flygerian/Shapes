@@ -1,11 +1,14 @@
 #include "common.h"
 #include "../memory.h"
 #include "result/result.h"
+#include "tensor/tensor.h"
 #include "tensor_internal.h"
 #include "unary.h"
 #include "value.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 static Result powValue(Value *v, f32 power) {
@@ -15,6 +18,20 @@ static Result powValue(Value *v, f32 power) {
     COMPUTE_POW(v, power, F64, f64, pow);
 
     default: return ERR_POW_VALUE_NOT_FLOAT;
+  }
+}
+
+static Result absValue(Value *v) {
+  switch (v->dtype) {
+    COMPUTE_ABS(v, I8, i8, abs);
+    COMPUTE_ABS(v, I16, i16, abs);
+    COMPUTE_ABS(v, I32, i32, abs);
+    COMPUTE_ABS(v, I64, i64, llabs);
+    COMPUTE_ABS(v, F16, f16, fabsf);
+    COMPUTE_ABS(v, F32, f32, fabsf);
+    COMPUTE_ABS(v, F64, f64, fabs);
+
+    default: return ERR_ABS_VALUE_NOT_SIGNED;
   }
 }
 
@@ -168,48 +185,7 @@ Result Log(Context *ctx, Tensor *t, Tensor *dest) {
   return OK;
 }
 
-Result Mean(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
-    return ERR_MEAN_VALUE_NOT_FLOAT;
-  }
-
-  f64 sum = 0.0;
-
-  for (size_t i = 0; i < t->size; i++) {
-    Value val;
-    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
-
-    switch (t->dtype) {
-      case F16: sum += (f64)val.as.f16; break;
-      case F32: sum += (f64)val.as.f32; break;
-      case F64: sum += val.as.f64; break;
-      default: return ERR_MEAN_VALUE_NOT_FLOAT;
-    }
-  }
-
-  f64 mean = sum / (f64)t->size;
-
-  dim_t dims[] = {1};
-  Tensor *output = t_Zeros(ctx, (Dim){.dims = dims, .numOfDims = 1}, t->dtype);
-
-  switch (t->dtype) {
-    case F16: ((f16 *)output->values)[0] = (f16)mean; break;
-    case F32: ((f32 *)output->values)[0] = (f32)mean; break;
-    case F64: ((f64 *)output->values)[0] = mean; break;
-    default: return ERR_MEAN_VALUE_NOT_FLOAT;
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
-
-  return OK;
-}
-
-Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+Result Mean(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -230,8 +206,10 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numBeforeDim = 0;
   Result numBeforeResult = calculateNumElementsBeforeDim(workingTensor, dim, &numBeforeDim);
   if (numBeforeResult != OK) {
-    if (!t->isContigous)
+    if (!t->isContigous) {
       FreeTensor(ctx, workingTensor);
+    }
+
     return numBeforeResult;
   }
 
@@ -240,8 +218,9 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numAfterDim = 0;
   Result numAfterResult = calculateNumElementsAfterDim(workingTensor, dim, &numAfterDim);
   if (numAfterResult != OK) {
-    if (!t->isContigous)
+    if (!t->isContigous) {
       FreeTensor(ctx, workingTensor);
+    }
     return numAfterResult;
   }
 
@@ -532,6 +511,56 @@ Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
          sizeof(dim_t) * workingTensor->shape.numOfDims);
   dest->shape.dims[dim] = 1;
   calculateNumValuesAndMultipliers(dest->shape, dest->shape.multipliers);
+
+  if (!t->isContigous) {
+    FreeTensor(ctx, workingTensor);
+  }
+
+  return OK;
+}
+
+Result Abs(Context *ctx, Tensor *t, Tensor *dest) {
+
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->size == 0) {
+    return ERR_NO_OP;
+  }
+
+  Tensor *workingTensor = t;
+  if (!t->isContigous) {
+    workingTensor = copyToContiguous(ctx, t);
+  }
+
+  *dest = (Tensor) {
+    .dtype = t->dtype, 
+      .size = t->size, 
+      .isView = false,
+      .isContigous = true,
+      .shape = {
+        .dims = allocate(ctx->memory, t->shape.numOfDims * sizeof(dim_t)),
+        .numOfDims = t->shape.numOfDims,
+        .multipliers = t->shape.multipliers
+      },
+      .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * workingTensor->size)
+  };
+
+  memcpy(dest->shape.dims, t->shape.dims, t->shape.numOfDims * sizeof(dim_t));
+  memcpy(dest->shape.multipliers, t->shape.multipliers, t->shape.numOfDims * sizeof(multiplier_t));
+
+  for (size_t i = 0; i < workingTensor->size; i++) {
+    Value v;
+    VALUE_GET_FROM_ARR(workingTensor->values, i, &v, workingTensor->dtype);
+
+    Result result = absValue(&v);
+    if (result != OK) {
+      return result;
+    }
+
+    VALUE_SET(dest->values, i, v);
+  }
 
   if (!t->isContigous) {
     FreeTensor(ctx, workingTensor);

@@ -1,6 +1,7 @@
 #include "common.h"
 #include "../memory.h"
 #include "result/result.h"
+#include "tensor/tensor.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include "unary.h"
@@ -63,6 +64,10 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
       case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
+      case OP_GREATER: VALUE_BINOP(result, aVal, bVal, >); break;
+      case OP_GREATER_OR_EQUAL: VALUE_BINOP(result, aVal, bVal, >=); break;
+      case OP_LESS: VALUE_BINOP(result, aVal, bVal, <); break;
+      case OP_LESS_OR_EQUAL: VALUE_BINOP(result, aVal, bVal, <=); break;
 
       default: return ERR_NOT_A_BINOP;
     }
@@ -139,10 +144,13 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
     VALUE_SET(a->values, aStorageIdx, result);
   }
 
-  if (contiguousB != NULL)
+  if (contiguousB != NULL) {
     FreeTensor(ctx, contiguousB);
-  if (paddedB != NULL)
+  }
+
+  if (paddedB != NULL) {
     FreeViewTensor(ctx, paddedB);
+  }
 
   return OK;
 }
@@ -172,4 +180,20 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
   res = Multiply(ctx, numerator, denom_inv, destination);
   FreeTensor(ctx, denom_inv);
   return res;
+}
+
+Result GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
+  return binaryOp(ctx, a, b, destination, OP_GREATER);
+}
+
+Result GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
+  return binaryOp(ctx, a, b, destination, OP_GREATER_OR_EQUAL);
+}
+
+Result LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
+  return binaryOp(ctx, a, b, destination, OP_LESS);
+}
+
+Result LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
+  return binaryOp(ctx, a, b, destination, OP_LESS_OR_EQUAL);
 }

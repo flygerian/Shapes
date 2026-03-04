@@ -134,3 +134,37 @@ func TestBinaryOpDtypeMismatch(t *testing.T) {
 	}()
 	a.Plus(ctx, b)
 }
+
+func TestComparisonOps(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromInt8(ctx, []int8{1, 4, 3})
+	b := FromInt8(ctx, []int8{2, 4, 1})
+
+	gt := a.GreaterThan(ctx, b)
+	if got := gt.Get(ctx, 0).Item().(int8); got != 0 {
+		t.Errorf("GreaterThan[0] = %d, want 0", got)
+	}
+	if got := gt.Get(ctx, 1).Item().(int8); got != 0 {
+		t.Errorf("GreaterThan[1] = %d, want 0", got)
+	}
+	if got := gt.Get(ctx, 2).Item().(int8); got != 1 {
+		t.Errorf("GreaterThan[2] = %d, want 1", got)
+	}
+
+	ge := a.GreaterThanOrEqual(ctx, b)
+	if got := ge.Get(ctx, 1).Item().(int8); got != 1 {
+		t.Errorf("GreaterThanOrEqual[1] = %d, want 1", got)
+	}
+
+	lt := a.LessThan(ctx, b)
+	if got := lt.Get(ctx, 0).Item().(int8); got != 1 {
+		t.Errorf("LessThan[0] = %d, want 1", got)
+	}
+
+	le := a.LessThanOrEqual(ctx, b)
+	if got := le.Get(ctx, 1).Item().(int8); got != 1 {
+		t.Errorf("LessThanOrEqual[1] = %d, want 1", got)
+	}
+}

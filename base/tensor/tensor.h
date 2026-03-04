@@ -14,6 +14,11 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination);
 Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+Result GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+Result GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+Result LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+Result LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+
 Result AddInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
@@ -24,10 +29,6 @@ Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value);
 Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest);
 Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices,
                          Tensor *dest);
-Result IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad);
-Result IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
-                         Tensor *srcGrad);
-Result SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad);
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
 Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
 Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);
@@ -45,11 +46,17 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
 Result Negate(Context *ctx, Tensor *t, Tensor *dest);
-Result Mean(Context *ctx, Tensor *t, Tensor *dest);
-Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Result Mean(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Log(Context *ctx, Tensor *t, Tensor *dest);
 Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Result Abs(Context *ctx, Tensor *t, Tensor *dest);
 Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+
+// Accumulate
+Result IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad);
+Result IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
+                         Tensor *srcGrad);
+Result SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad);
 
 // Matrix ops
 Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);

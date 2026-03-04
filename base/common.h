@@ -30,8 +30,8 @@ typedef u8 multiplier_t;
 
 typedef struct {
   dim_t *dims;
-  u8 numOfDims;
   u8 *multipliers;
+  u8 numOfDims;
 } Dim;
 
 typedef struct {
@@ -61,20 +61,29 @@ typedef struct {
 } Value;
 
 typedef struct {
-  Dtype dtype;
   void *values;
+  Range *boundary;
   tensor_size_t size;
   Dim shape;
+
+  Dtype dtype;
   bool isView;
   bool isContigous;
-  Range *boundary;
 } Tensor;
 
 typedef struct Context {
   Memory *memory;
 } Context;
 
-typedef enum { OP_ADD, OP_SUBTRACT, OP_MULTIPLY } OpType;
+typedef enum { 
+  OP_ADD, 
+  OP_SUBTRACT, 
+  OP_MULTIPLY, 
+  OP_GREATER, 
+  OP_GREATER_OR_EQUAL, 
+  OP_LESS, 
+  OP_LESS_OR_EQUAL 
+} OpType;
 
 size_t getBytesForDtype(Dtype type);
 

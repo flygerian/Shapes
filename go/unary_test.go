@@ -208,11 +208,13 @@ func TestMean(t *testing.T) {
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1.0, 2.0, 3.0, 4.0, 5.0, 6.0})
 	result := a.Mean(ctx)
 
-	// Mean of [1,2,3,4,5,6] = 21/6 = 3.5
-	got := result.Get(ctx, 0).Item().(float32)
-	want := float32(3.5)
-	if !approxEq(got, want, 1e-5) {
-		t.Errorf("Mean = %f, want %f", got, want)
+	// Default Mean reduces dim=0.
+	expected := []float32{2.5, 3.5, 4.5}
+	for j, want := range expected {
+		got := result.Get(ctx, 0, uint(j)).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Mean(default dim=0)[0,%d] = %f, want %f", j, got, want)
+		}
 	}
 }
 
@@ -465,7 +467,7 @@ func TestMeanDim1(t *testing.T) {
 	}
 }
 
-// WrappedTensor.Mean with dim delegates to MeanDim
+// WrappedTensor.Mean with dim delegates to Mean
 func TestMeanDimWrapped(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
@@ -478,6 +480,22 @@ func TestMeanDimWrapped(t *testing.T) {
 		got := result.Get(ctx, uint32(i), 0).Item().(float32)
 		if !approxEq(got, want, 1e-5) {
 			t.Errorf("WrappedTensor Mean(dim=1)[%d,0] = %f, want %f", i, got, want)
+		}
+	}
+}
+
+func TestAbs(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromFloat32(ctx, Shape{3}, []float32{-1.5, 2.0, -3.25})
+	result := a.Abs(ctx)
+
+	expected := []float32{1.5, 2.0, 3.25}
+	for i, want := range expected {
+		got := result.Get(ctx, uint(i)).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Abs[%d] = %f, want %f", i, got, want)
 		}
 	}
 }

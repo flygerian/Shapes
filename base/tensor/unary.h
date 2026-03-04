@@ -1,5 +1,5 @@
-#ifndef shapes_unary_h
-#define shapes_unary_h
+#ifndef shape_unary_h
+#define hapes_unary_h
 
 #include "common.h"
 #include "result/result.h"
@@ -18,9 +18,12 @@
     return OK;                                                                                     \
   }
 
-Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
-Result Exp(Context *ctx, Tensor *t, Tensor *dest);
-Result Negate(Context *ctx, Tensor *t, Tensor *dest);
+#define COMPUTE_ABS(val, dtype_enum, c_type, abs_fn)                                               \
+  case dtype_enum: {                                                                               \
+    c_type num = (val)->as.c_type;                                                                 \
+    (val)->as.c_type = (c_type)abs_fn(num);                                                \
+    return OK;                                                                                     \
+  }
 
 #define COMPUTE_NEGATE(val, dtype_enum, c_type)                                                    \
   case dtype_enum: {                                                                               \
@@ -34,11 +37,5 @@ Result Negate(Context *ctx, Tensor *t, Tensor *dest);
     (val)->as.c_type = (c_type)log_fn((double)num);                                                \
     return OK;                                                                                     \
   }
-
-Result Mean(Context *ctx, Tensor *t, Tensor *dest);
-Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result Log(Context *ctx, Tensor *t, Tensor *dest);
-Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 
 #endif

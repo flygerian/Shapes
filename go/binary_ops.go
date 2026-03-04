@@ -35,6 +35,34 @@ static inline Result wrap_Divide(Context *ctx, Tensor *a, Tensor *b, Tensor **ou
 	return r;
 }
 
+static inline Result wrap_GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = GreaterThan(ctx, a, b, dest);
+	*out = dest;
+	return r;
+}
+
+static inline Result wrap_GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = GreaterThanOrEqual(ctx, a, b, dest);
+	*out = dest;
+	return r;
+}
+
+static inline Result wrap_LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = LessThan(ctx, a, b, dest);
+	*out = dest;
+	return r;
+}
+
+static inline Result wrap_LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
+	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+	Result r = LessThanOrEqual(ctx, a, b, dest);
+	*out = dest;
+	return r;
+}
+
 static inline Result wrap_AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
 	return AddInPlace(ctx, a, b);
 }
@@ -46,6 +74,10 @@ type hasNonMutatingBinaryOps interface {
 	Minus(ctx Context, other Tensor) Tensor
 	Times(ctx Context, other Tensor) Tensor
 	Divide(ctx Context, other Tensor) Tensor
+	GreaterThan(ctx Context, other Tensor) Tensor
+	GreaterThanOrEqual(ctx Context, other Tensor) Tensor
+	LessThan(ctx Context, other Tensor) Tensor
+	LessThanOrEqual(ctx Context, other Tensor) Tensor
 }
 
 type hasMutatingBinaryOps interface {
@@ -106,6 +138,46 @@ func (t *tensor) Divide(ctx Context, other Tensor) Tensor {
 		toComputationGraphNode(out, OpDivide, divideBackward, []Tensor{t, other}, []Tensor{}, nil)
 	}
 	return out
+}
+
+// GreaterThan performs element-wise greater-than comparison.
+func (t *tensor) GreaterThan(ctx Context, other Tensor) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_GreaterThan((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.(*tensor).cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
+}
+
+// GreaterThanOrEqual performs element-wise greater-than-or-equal comparison.
+func (t *tensor) GreaterThanOrEqual(ctx Context, other Tensor) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_GreaterThanOrEqual((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.(*tensor).cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
+}
+
+// LessThan performs element-wise less-than comparison.
+func (t *tensor) LessThan(ctx Context, other Tensor) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_LessThan((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.(*tensor).cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
+}
+
+// LessThanOrEqual performs element-wise less-than-or-equal comparison.
+func (t *tensor) LessThanOrEqual(ctx Context, other Tensor) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_LessThanOrEqual((*C.Context)(ctx.UnsafePtr()), t.cTensor, other.(*tensor).cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
 }
 
 // AddInPlace performs element-wise addition of other into t, modifying t in place.

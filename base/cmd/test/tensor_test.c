@@ -1806,6 +1806,121 @@ static void test_add_2d_plus_1d_broadcast(void) {
   freeMemory(mem);
 }
 
+// Comparison binary op tests
+static void test_greater_than_basic_same_shape(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2, 3};
+  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+  Tensor dest;
+
+  i8 aVals[] = {1, 4, 3, 2, 8, 0};
+  i8 bVals[] = {2, 4, 1, 3, 7, 0};
+  memcpy(a->values, aVals, sizeof(aVals));
+  memcpy(b->values, bVals, sizeof(bVals));
+
+  Result r = GreaterThan(&ctx, a, b, &dest);
+  ASSERT_EQ(r, OK, "GreaterThan should return OK");
+  ASSERT_EQ(dest.dtype, I8, "GreaterThan should preserve dtype");
+
+  i8 *vals = (i8 *)dest.values;
+  ASSERT_EQ(vals[0], 0, "1 > 2 should be false");
+  ASSERT_EQ(vals[1], 0, "4 > 4 should be false");
+  ASSERT_EQ(vals[2], 1, "3 > 1 should be true");
+  ASSERT_EQ(vals[3], 0, "2 > 3 should be false");
+  ASSERT_EQ(vals[4], 1, "8 > 7 should be true");
+  ASSERT_EQ(vals[5], 0, "0 > 0 should be false");
+
+  freeMemory(mem);
+}
+
+static void test_greater_or_equal_and_less_or_equal(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {3};
+  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  Tensor ge, le;
+
+  i8 aVals[] = {1, 4, 5};
+  i8 bVals[] = {2, 4, 3};
+  memcpy(a->values, aVals, sizeof(aVals));
+  memcpy(b->values, bVals, sizeof(bVals));
+
+  Result r = GreaterThanOrEqual(&ctx, a, b, &ge);
+  ASSERT_EQ(r, OK, "GreaterThanOrEqual should return OK");
+  r = LessThanOrEqual(&ctx, a, b, &le);
+  ASSERT_EQ(r, OK, "LessThanOrEqual should return OK");
+
+  i8 *geVals = (i8 *)ge.values;
+  ASSERT_EQ(geVals[0], 0, "1 >= 2 should be false");
+  ASSERT_EQ(geVals[1], 1, "4 >= 4 should be true");
+  ASSERT_EQ(geVals[2], 1, "5 >= 3 should be true");
+
+  i8 *leVals = (i8 *)le.values;
+  ASSERT_EQ(leVals[0], 1, "1 <= 2 should be true");
+  ASSERT_EQ(leVals[1], 1, "4 <= 4 should be true");
+  ASSERT_EQ(leVals[2], 0, "5 <= 3 should be false");
+
+  freeMemory(mem);
+}
+
+static void test_less_than_broadcast_row_vector(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dimsA[] = {2, 3};
+  dim_t dimsB[] = {1, 3};
+  Tensor *a = T_Int(&ctx, (Dim){.dims = dimsA, .numOfDims = 2}, 0);
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dimsB, .numOfDims = 2}, 0);
+  Tensor dest;
+
+  // a = [[1,4,3], [5,2,7]], b = [[2,2,7]]
+  i8 aVals[] = {1, 4, 3, 5, 2, 7};
+  i8 bVals[] = {2, 2, 7};
+  memcpy(a->values, aVals, sizeof(aVals));
+  memcpy(b->values, bVals, sizeof(bVals));
+
+  Result r = LessThan(&ctx, a, b, &dest);
+  ASSERT_EQ(r, OK, "LessThan with broadcast should return OK");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "LessThan result should keep rank");
+  ASSERT_EQ(dest.shape.dims[0], 2, "LessThan result dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 3, "LessThan result dim 1 should be 3");
+
+  i8 *vals = (i8 *)dest.values;
+  // [[1<2,4<2,3<7],[5<2,2<2,7<7]] => [[1,0,1],[0,0,0]]
+  ASSERT_EQ(vals[0], 1, "result[0,0] should be true");
+  ASSERT_EQ(vals[1], 0, "result[0,1] should be false");
+  ASSERT_EQ(vals[2], 1, "result[0,2] should be true");
+  ASSERT_EQ(vals[3], 0, "result[1,0] should be false");
+  ASSERT_EQ(vals[4], 0, "result[1,1] should be false");
+  ASSERT_EQ(vals[5], 0, "result[1,2] should be false");
+
+  freeMemory(mem);
+}
+
+static void test_comparison_dtype_mismatch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2};
+  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  b->dtype = U8; // force mismatch
+  Tensor dest;
+
+  Result r = GreaterThan(&ctx, a, b, &dest);
+  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "GreaterThan should fail on dtype mismatch");
+
+  r = LessThanOrEqual(&ctx, a, b, &dest);
+  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "LessThanOrEqual should fail on dtype mismatch");
+
+  freeMemory(mem);
+}
+
 // Sum tests
 static void test_sum_dim0_2d(void) {
   Memory *mem = initializeMemory();
@@ -3768,14 +3883,16 @@ static void test_mean_basic(void) {
   ((f32 *)t->values)[5] = 6.0f;
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Mean should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 1, "Mean result should have 1 dimension");
-  ASSERT_EQ(dest.shape.dims[0], 1, "Mean result should have size 1");
+  Result r = Mean(&ctx, t, &dest, 0);
+  ASSERT_EQ(r, OK, "Mean dim0 should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "Mean result should keep rank");
+  ASSERT_EQ(dest.shape.dims[0], 1, "Mean result dim 0 should be 1");
+  ASSERT_EQ(dest.shape.dims[1], 3, "Mean result dim 1 should be 3");
 
   f32 *vals = (f32 *)dest.values;
-  f32 expected = (1.0f + 2.0f + 3.0f + 4.0f + 5.0f + 6.0f) / 6.0f;
-  ASSERT_EQ(vals[0], expected, "Mean should be correct");
+  ASSERT_EQ(vals[0], 2.5f, "Mean[0,0] should be 2.5");
+  ASSERT_EQ(vals[1], 3.5f, "Mean[0,1] should be 3.5");
+  ASSERT_EQ(vals[2], 4.5f, "Mean[0,2] should be 4.5");
 
   freeMemory(mem);
 }
@@ -3785,7 +3902,7 @@ static void test_mean_null_tensor(void) {
   Context ctx = {.memory = mem};
 
   Tensor dest;
-  Result r = Mean(&ctx, NULL, &dest);
+  Result r = Mean(&ctx, NULL, &dest, 0);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Mean with null tensor should fail");
 
   freeMemory(mem);
@@ -3799,7 +3916,7 @@ static void test_mean_non_float_rejected(void) {
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest);
+  Result r = Mean(&ctx, t, &dest, 0);
   ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "Mean with integer dtype should fail");
 
   freeMemory(mem);
@@ -3858,6 +3975,90 @@ static void test_log_non_float_rejected(void) {
   Tensor dest;
   Result r = Log(&ctx, t, &dest);
   ASSERT_EQ(r, ERR_LOG_VALUE_NOT_FLOAT, "Log with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
+// Abs tests
+static void test_abs_signed_int(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {4};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+
+  ((i8 *)t->values)[0] = -1;
+  ((i8 *)t->values)[1] = 2;
+  ((i8 *)t->values)[2] = -3;
+  ((i8 *)t->values)[3] = 0;
+
+  Tensor dest;
+  Result r = Abs(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Abs on signed int tensor should succeed");
+  ASSERT_EQ(dest.dtype, I8, "Abs should preserve dtype");
+  ASSERT_EQ(dest.shape.numOfDims, 1, "Abs should preserve rank");
+  ASSERT_EQ(dest.shape.dims[0], 4, "Abs should preserve shape");
+
+  i8 *vals = (i8 *)dest.values;
+  ASSERT_EQ(vals[0], 1, "abs(-1) should be 1");
+  ASSERT_EQ(vals[1], 2, "abs(2) should be 2");
+  ASSERT_EQ(vals[2], 3, "abs(-3) should be 3");
+  ASSERT_EQ(vals[3], 0, "abs(0) should be 0");
+
+  freeMemory(mem);
+}
+
+static void test_abs_float(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2, 2};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+
+  ((f32 *)t->values)[0] = -1.5f;
+  ((f32 *)t->values)[1] = 2.25f;
+  ((f32 *)t->values)[2] = -3.0f;
+  ((f32 *)t->values)[3] = 0.0f;
+
+  Tensor dest;
+  Result r = Abs(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Abs on float tensor should succeed");
+  ASSERT_EQ(dest.dtype, F32, "Abs should preserve float dtype");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "Abs should preserve rank");
+  ASSERT_EQ(dest.shape.dims[0], 2, "Abs shape dim 0 should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 2, "Abs shape dim 1 should be 2");
+
+  f32 *vals = (f32 *)dest.values;
+  ASSERT_EQ(vals[0], 1.5f, "abs(-1.5) should be 1.5");
+  ASSERT_EQ(vals[1], 2.25f, "abs(2.25) should be 2.25");
+  ASSERT_EQ(vals[2], 3.0f, "abs(-3.0) should be 3.0");
+  ASSERT_EQ(vals[3], 0.0f, "abs(0.0) should be 0.0");
+
+  freeMemory(mem);
+}
+
+static void test_abs_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor dest;
+  Result r = Abs(&ctx, NULL, &dest);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Abs with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_abs_unsigned_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
+  t->dtype = U8;
+
+  Tensor dest;
+  Result r = Abs(&ctx, t, &dest);
+  ASSERT_EQ(r, ERR_ABS_VALUE_NOT_SIGNED, "Abs with unsigned dtype should fail");
 
   freeMemory(mem);
 }
@@ -4127,7 +4328,7 @@ static void test_meandim_dim0(void) {
   ((f32 *)t->values)[5] = 6.0f;
 
   Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 0);
+  Result r = Mean(&ctx, t, &dest, 0);
   ASSERT_EQ(r, OK, "MeanDim dim0 should succeed");
   ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
   ASSERT_EQ(dest.shape.dims[0], 1, "MeanDim result dim 0 should be 1");
@@ -4157,7 +4358,7 @@ static void test_meandim_dim1(void) {
   ((f32 *)t->values)[5] = 6.0f;
 
   Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 1);
+  Result r = Mean(&ctx, t, &dest, 1);
   ASSERT_EQ(r, OK, "MeanDim dim1 should succeed");
   ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
   ASSERT_EQ(dest.shape.dims[0], 2, "MeanDim result dim 0 should be 2");
@@ -4178,7 +4379,7 @@ static void test_meandim_non_float_rejected(void) {
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 0);
+  Result r = Mean(&ctx, t, &dest, 0);
   ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "MeanDim with integer dtype should fail");
 
   freeMemory(mem);
@@ -4192,7 +4393,7 @@ static void test_meandim_dim_out_of_bounds(void) {
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 5);
+  Result r = Mean(&ctx, t, &dest, 5);
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "MeanDim with out of bounds dim should fail");
 
   freeMemory(mem);
@@ -4273,6 +4474,10 @@ void run_tensor_tests(void) {
   test_add_1d_tensors();
   test_add_2d_plus_1d_broadcast();
   test_add_non_contiguous_transposed();
+  test_greater_than_basic_same_shape();
+  test_greater_or_equal_and_less_or_equal();
+  test_less_than_broadcast_row_vector();
+  test_comparison_dtype_mismatch();
   // Subtract tests
   test_subtract_basic_same_shape();
   test_subtract_broadcast();
@@ -4362,6 +4567,11 @@ void run_tensor_tests(void) {
   test_log_basic();
   test_log_null_tensor();
   test_log_non_float_rejected();
+  // Abs tests
+  test_abs_signed_int();
+  test_abs_float();
+  test_abs_null_tensor();
+  test_abs_unsigned_rejected();
   // Max tests
   test_max_dim0();
   test_max_dim1();
