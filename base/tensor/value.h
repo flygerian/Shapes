@@ -89,6 +89,19 @@
    : (type) == F32 ? (Value){.dtype = (type), .as.f32 = (float)(data)}                             \
                    : (Value){.dtype = (type), .as.f64 = (double)(data)})
 
+#define VALUE_CMP(a, b, op, dtype)                                                                 \
+  ((dtype) == U8    ? (a).as.u8 op(b).as.u8                                                        \
+   : (dtype) == U16 ? (a).as.u16 op(b).as.u16                                                      \
+   : (dtype) == U32 ? (a).as.u32 op(b).as.u32                                                      \
+   : (dtype) == U64 ? (a).as.u64 op(b).as.u64                                                      \
+   : (dtype) == I8  ? (a).as.i8 op(b).as.i8                                                        \
+   : (dtype) == I16 ? (a).as.i16 op(b).as.i16                                                      \
+   : (dtype) == I32 ? (a).as.i32 op(b).as.i32                                                      \
+   : (dtype) == I64 ? (a).as.i64 op(b).as.i64                                                      \
+   : (dtype) == F16 ? (a).as.f16 op(b).as.f16                                                      \
+   : (dtype) == F32 ? (a).as.f32 op(b).as.f32                                                      \
+                    : (a).as.f64 op(b).as.f64)
+
 #define PRINT_VALUE(v)                                                                             \
   do {                                                                                             \
     switch ((v).dtype) {                                                                           \

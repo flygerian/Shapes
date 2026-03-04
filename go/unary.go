@@ -28,13 +28,6 @@ static inline Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
 	return r;
 }
 
-static inline Result wrap_Mean(Context *ctx, Tensor *t, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Mean(ctx, t, dest, 0);
-	*out = dest;
-	return r;
-}
-
 static inline Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
 	Result r = Mean(ctx, t, dest, dim);
@@ -45,20 +38,6 @@ static inline Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor
 static inline Result wrap_Log(Context *ctx, Tensor *t, Tensor **out) {
 	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
 	Result r = Log(ctx, t, dest);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_Max(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = Max(ctx, t, dest, dim);
-	*out = dest;
-	return r;
-}
-
-static inline Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
-	Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-	Result r = ArgMax(ctx, t, dest, dim);
 	*out = dest;
 	return r;
 }
@@ -122,38 +101,6 @@ func (t *tensor) Negate(ctx Context) Tensor {
 	return out
 }
 
-// Mean computes the mean along a single dimension.
-// If no dim is provided, it defaults to dimension 0.
-func (t *tensor) Mean(ctx Context, dims ...uint) Tensor {
-	if len(dims) == 0 {
-		var dest *C.Tensor
-		result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
-		if result != C.OK {
-			panic("shapes: " + resultString(uint32(result)))
-		}
-		return track(ctx, &tensor{cTensor: dest})
-	}
-	if len(dims) == 1 {
-		var dest *C.Tensor
-		result := C.wrap_MeanWithDim((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
-		if result != C.OK {
-			panic("shapes: " + resultString(uint32(result)))
-		}
-		return track(ctx, &tensor{cTensor: dest})
-	}
-	panic("shapes: mean expects at most 1 dim arg")
-}
-
-// Abs computes absolute value element-wise.
-func (t *tensor) Abs(ctx Context) Tensor {
-	var dest *C.Tensor
-	result := C.wrap_Abs((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
-	if result != C.OK {
-		panic("shapes: " + resultString(uint32(result)))
-	}
-	return track(ctx, &tensor{cTensor: dest})
-}
-
 // Log computes the natural logarithm of every element, returning a new tensor.
 func (t *tensor) Log(ctx Context) Tensor {
 	var dest *C.Tensor
@@ -164,43 +111,12 @@ func (t *tensor) Log(ctx Context) Tensor {
 	return track(ctx, &tensor{cTensor: dest})
 }
 
-// Max reduces the tensor along a single dimension. If no dims provided, reduces all dims.
-func (t *tensor) Max(ctx Context, dims ...uint) Tensor {
-	if len(dims) == 0 {
-		out := t
-		for i := uint(0); i < uint(len(shapeOf(t))); i++ {
-			out = out.Max(ctx, i).(*tensor)
-		}
-		return out.Squeeze(ctx)
+// Abs computes absolute value element-wise.
+func (t *tensor) Abs(ctx Context) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Abs((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
 	}
-	if len(dims) == 1 {
-		var dest *C.Tensor
-		result := C.wrap_Max((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
-		if result != C.OK {
-			panic("shapes: " + resultString(uint32(result)))
-		}
-		return track(ctx, &tensor{cTensor: dest})
-	}
-	panic("shapes: max expects 0 or 1 dim args")
-}
-
-// ArgMax reduces the tensor along a single dimension and returns index positions as I64.
-// If no dims are provided, it reduces all dims and returns a scalar index.
-func (t *tensor) ArgMax(ctx Context, dims ...uint) Tensor {
-	if len(dims) == 0 {
-		out := t
-		for i := uint(0); i < uint(len(shapeOf(t))); i++ {
-			out = out.ArgMax(ctx, i).(*tensor)
-		}
-		return out.Squeeze(ctx)
-	}
-	if len(dims) == 1 {
-		var dest *C.Tensor
-		result := C.wrap_ArgMax((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(dims[0]), &dest)
-		if result != C.OK {
-			panic("shapes: " + resultString(uint32(result)))
-		}
-		return track(ctx, &tensor{cTensor: dest})
-	}
-	panic("shapes: argmax expects 0 or 1 dim args")
+	return track(ctx, &tensor{cTensor: dest})
 }

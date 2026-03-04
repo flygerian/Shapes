@@ -320,7 +320,7 @@ func TestMaxDim1(t *testing.T) {
 	}
 }
 
-// Max with no dims reduces everything → scalar shape [1]
+// Max with no dims defaults to dim=0.
 func TestMaxGlobal(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
@@ -328,9 +328,22 @@ func TestMaxGlobal(t *testing.T) {
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.Max(ctx)
 
-	got := result.Get(ctx, 0).Item().(float32)
-	if !approxEq(got, 6.0, 1e-5) {
-		t.Errorf("Max(global) = %f, want 6.0", got)
+	if got, want := result.Shape(), (Shape{1, 3}); len(got) != len(want) {
+		t.Fatalf("Max(default dim=0) shape = %v, want %v", got, want)
+	} else {
+		for i, v := range want {
+			if got[i] != v {
+				t.Fatalf("Max(default dim=0) shape = %v, want %v", got, want)
+			}
+		}
+	}
+
+	expected := []float32{4, 5, 6}
+	for j, want := range expected {
+		got := result.Get(ctx, 0, uint32(j)).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("Max(default dim=0)[0,%d] = %f, want %f", j, got, want)
+		}
 	}
 }
 
@@ -405,7 +418,7 @@ func TestArgMaxDim1(t *testing.T) {
 	}
 }
 
-// ArgMax with no dims reduces everything → scalar shape [1]
+// ArgMax with no dims defaults to dim=0.
 func TestArgMaxGlobal(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
@@ -413,9 +426,22 @@ func TestArgMaxGlobal(t *testing.T) {
 	a := FromFloat32(ctx, Shape{2, 3}, []float32{1, 2, 3, 4, 5, 6})
 	result := a.ArgMax(ctx)
 
-	got := result.Get(ctx, 0).Item().(int64)
-	if got != 0 {
-		t.Errorf("ArgMax(global) = %d, want 0", got)
+	if got, want := result.Shape(), (Shape{1, 3}); len(got) != len(want) {
+		t.Fatalf("ArgMax(default dim=0) shape = %v, want %v", got, want)
+	} else {
+		for i, v := range want {
+			if got[i] != v {
+				t.Fatalf("ArgMax(default dim=0) shape = %v, want %v", got, want)
+			}
+		}
+	}
+
+	expected := []int64{1, 1, 1}
+	for j, want := range expected {
+		got := result.Get(ctx, 0, uint32(j)).Item().(int64)
+		if got != want {
+			t.Errorf("ArgMax(default dim=0)[0,%d] = %d, want %d", j, got, want)
+		}
 	}
 }
 
