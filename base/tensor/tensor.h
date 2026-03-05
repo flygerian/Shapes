@@ -42,14 +42,18 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest);
 Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);
 
 // Unary
-Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
 Result Negate(Context *ctx, Tensor *t, Tensor *dest);
-Result Mean(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Log(Context *ctx, Tensor *t, Tensor *dest);
-Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Abs(Context *ctx, Tensor *t, Tensor *dest);
+
+// Reduction
+Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Result Mean(Context *ctx, Tensor *t, Tensor *dest);
+Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Result Std(Context *ctx, Tensor *t, Tensor *dest);
+Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 
 // Accumulate

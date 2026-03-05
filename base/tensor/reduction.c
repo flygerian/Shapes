@@ -1,39 +1,49 @@
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include "common.h"
+#include "result/result.h"
+#include "tensor/tensor.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include "../memory.h"
 
-static Result straightSum(Context *ctx, Tensor *t, Tensor *dest) {
-  Value sums[MAX_PARALLEL_SUMS];
-
+static Value *contigousSum(Memory *m, void *postion, tensor_size_t limit, Dtype dtype) {
   tensor_size_t x = 0;
-  while (x < t->size) {
+  Value sums[MAX_PARALLEL_SUMS] = {};
+
+  for (u8 i = 0; i < MAX_PARALLEL_SUMS; i++) {
+    sums[i] = VALUE(dtype, 0);
+  }
+
+  while (x < limit) {
     u8 numComputations = 0;
     for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
-      if (x + y >= t->size) {
+      if (x + y >= limit) {
         break;
       }
 
       Value val;
-      VALUE_GET_FROM_ARR(t->values, x + y, &val, t->dtype);
+      VALUE_GET_FROM_ARR(postion, x + y, &val, dtype);
       VALUE_BINOP(sums[y], sums[y], val, +);
       numComputations++;
-      x += numComputations;
     }
+    x += numComputations;
   }
 
-  Value sum = VALUE(t->dtype, 0);
+  Value *sum = allocate(m, sizeof(Value));
+  *sum = VALUE(dtype, 0);
   for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
-    VALUE_BINOP(sum, sum, sums[y], +);
+    VALUE_BINOP(*sum, *sum, sums[y], +);
   }
 
-  dim_t dims[] = {1};
-  Tensor *result = t_Zeros(ctx, (Dim){.dims = dims, .numOfDims = 1}, t->dtype);
-  VALUE_UNBOX(sum, result->values);
-  *dest = *result;
-  freeAlloc(ctx->memory, result);
+  return sum;
+}
 
-  return OK;
+static Value *sumTensor(Context *ctx, Tensor *t) {
+  return contigousSum(ctx->memory, t->values, t->size, t->dtype);
 }
 
 Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
@@ -111,7 +121,40 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   return OK;
 }
 
-Result Mean(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+Result Mean(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
+    return ERR_MEAN_VALUE_NOT_FLOAT;
+  }
+
+  Tensor *workingTensor = t;
+  if (!t->isContigous) {
+    workingTensor = copyToContiguous(ctx, t);
+  }
+
+  Value *tensorSum = sumTensor(ctx, workingTensor);
+  Value size = VALUE(workingTensor->dtype, workingTensor->size);
+
+  Value avg = VALUE(t->dtype, 0);
+  VALUE_BINOP(avg, *tensorSum, size, /);
+
+  *dest = singleValueTensor(ctx, avg);
+
+  if (!t->isContigous) {
+    Result result = FreeTensor(ctx, workingTensor);
+    if (result != OK) {
+      return result;
+    }
+  }
+
+  freeAlloc(ctx->memory, tensorSum);
+  return OK;
+}
+
+Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -197,6 +240,82 @@ Result Mean(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   if (!t->isContigous) {
     FreeTensor(ctx, workingTensor);
   }
+
+  return OK;
+}
+
+static inline void cleanupStd(Context *ctx, bool isCopiedToContigous, Tensor *workingTensor, Tensor *mean) {
+  if (isCopiedToContigous) {
+    FreeTensor(ctx, workingTensor);
+  }
+
+  freeTensorBuffers(ctx, mean);
+}
+
+Result Std(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->size < 2) {
+    return ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES;
+  }
+
+  if (isFloatType(t)) {
+    return ERR_STD_NOT_FLOAT_TYPE;
+  }
+
+  Tensor *workingTensor = t;
+  if (!t->isContigous) {
+    workingTensor = copyToContiguous(ctx, t);
+  }
+
+  Tensor mean;
+  Result meanRes = Mean(ctx, workingTensor, &mean);
+  if (meanRes != OK) {
+    if (!t->isContigous) {
+      FreeTensor(ctx, workingTensor);
+    }
+    return meanRes;
+  }
+
+  // Store the value of  Σ(xᵢ - x̄)²
+  Value deviationSquaredSum = VALUE(workingTensor->dtype, 0);
+
+  for (tensor_size_t i = 0; i < workingTensor->size; i++) {
+    Value curVal = VALUE(workingTensor->dtype, 0);
+    VALUE_GET_FROM_ARR(workingTensor->values, i, &curVal, workingTensor->dtype);
+
+    Value meanVal = VALUE(F64, 0);
+    VALUE_GET_FROM_ARR(mean.values, 0, &meanVal, mean.dtype);
+
+    // (xᵢ - x̄)
+    Value diviation = VALUE(F64, 0);
+    VALUE_BINOP(diviation, curVal, meanVal, -);
+
+    // (xᵢ - x̄)²
+    Result res = powValue(&diviation, 2);
+    if (res != OK) {
+      cleanupStd(ctx, !t->isContigous, workingTensor, &mean);
+      return res;
+    }
+
+    VALUE_BINOP(deviationSquaredSum, deviationSquaredSum, diviation, +);
+  }
+
+  Value v;
+  Value deg = VALUE(workingTensor->dtype, workingTensor->size - 1);
+  VALUE_BINOP(v, deviationSquaredSum, deg, /);
+
+  Result res = sqrtValue(&v);
+  if (res != OK) {
+    cleanupStd(ctx, !t->isContigous, workingTensor, &mean);
+    return res;
+  }
+
+  *dest = singleValueTensor(ctx, v);
+
+  cleanupStd(ctx, !t->isContigous, workingTensor, &mean);
 
   return OK;
 }

@@ -2,12 +2,28 @@
 #define shapes_tensor_internal_h
 
 #include "tensor.h"
+#include "value.h"
 #include <stddef.h>
 
 typedef struct {
   Tensor *a;
   Tensor *b;
 } TensorPair;
+
+static inline Tensor singleValueTensor(Context *ctx, Value value) {
+  void *values = allocate(ctx->memory, getBytesForDtype(value.dtype));
+  VALUE_SET(values, 0, value);
+
+  return (Tensor){
+      .dtype = value.dtype,
+      .values = values,
+      .size = 1,
+      .isContigous = true,
+      .isView = false,
+      .boundary = NULL,
+      .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
+}
+
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords);
@@ -26,5 +42,11 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
                               void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
 bool isIntType(Tensor *t);
+bool isFloatType(Tensor *t);
+
+Result powValue(Value *v, f32 power);
+Result sqrtValue(Value *v);
+
+Result freeTensorBuffers(Context *ctx, Tensor *t);
 
 #endif

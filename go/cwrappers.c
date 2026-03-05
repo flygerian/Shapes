@@ -195,7 +195,7 @@ Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
 
 Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  Result r = Mean(ctx, t, dest, dim);
+  Result r = MeanDim(ctx, t, dest, dim);
   *out = dest;
   return r;
 }
@@ -223,7 +223,14 @@ Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
 
 Result wrap_Mean(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  Result r = Mean(ctx, t, dest, dim);
+  Result r = MeanDim(ctx, t, dest, dim);
+  *out = dest;
+  return r;
+}
+
+Result wrap_Std(Context *ctx, Tensor *t, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = Std(ctx, t, dest);
   *out = dest;
   return r;
 }

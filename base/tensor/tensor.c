@@ -75,6 +75,10 @@ bool isIntType(Tensor *t) {
          t->dtype != U8 && t->dtype != U16 && t->dtype != U32 && t->dtype != U64;
 }
 
+bool isFloatType(Tensor *t) {
+  return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
+}
+
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {
   for (int d = shape->numOfDims - 1; d >= 0; d--) {
     destCoords[d] = flatIdx % shape->dims[d];

@@ -71,6 +71,10 @@ func ResultString(r uint32) string {
 		return "sign mismatch in cast"
 	case C.ERR_OUT_OF_MEMORY:
 		return "out of memory - arena exhausted"
+	case C.ERR_STD_NOT_FLOAT_TYPE:
+		return "std requires float values"
+	case C.ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES:
+		return "std requires at least two values"
 	default:
 		return fmt.Sprintf("unknown error (%d)", int(r))
 	}

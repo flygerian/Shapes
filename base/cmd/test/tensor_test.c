@@ -3883,16 +3883,13 @@ static void test_mean_basic(void) {
   ((f32 *)t->values)[5] = 6.0f;
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "Mean dim0 should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "Mean result should keep rank");
-  ASSERT_EQ(dest.shape.dims[0], 1, "Mean result dim 0 should be 1");
-  ASSERT_EQ(dest.shape.dims[1], 3, "Mean result dim 1 should be 3");
+  Result r = Mean(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Mean should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 0, "Mean result should be scalar");
+  ASSERT_EQ(dest.size, 1, "Mean scalar result should have size 1");
 
   f32 *vals = (f32 *)dest.values;
-  ASSERT_EQ(vals[0], 2.5f, "Mean[0,0] should be 2.5");
-  ASSERT_EQ(vals[1], 3.5f, "Mean[0,1] should be 3.5");
-  ASSERT_EQ(vals[2], 4.5f, "Mean[0,2] should be 4.5");
+  ASSERT_EQ(vals[0], 3.5f, "Mean should be 3.5");
 
   freeMemory(mem);
 }
@@ -3902,7 +3899,7 @@ static void test_mean_null_tensor(void) {
   Context ctx = {.memory = mem};
 
   Tensor dest;
-  Result r = Mean(&ctx, NULL, &dest, 0);
+  Result r = Mean(&ctx, NULL, &dest);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Mean with null tensor should fail");
 
   freeMemory(mem);
@@ -3916,8 +3913,73 @@ static void test_mean_non_float_rejected(void) {
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest, 0);
+  Result r = Mean(&ctx, t, &dest);
   ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "Mean with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
+// Std tests
+static void test_std_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {4};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  ((f32 *)t->values)[0] = 1.0f;
+  ((f32 *)t->values)[1] = 2.0f;
+  ((f32 *)t->values)[2] = 3.0f;
+  ((f32 *)t->values)[3] = 4.0f;
+
+  Tensor dest;
+  Result r = Std(&ctx, t, &dest);
+  ASSERT_EQ(r, OK, "Std should succeed");
+  ASSERT_EQ(dest.shape.numOfDims, 0, "Std result should be scalar");
+  ASSERT_EQ(dest.size, 1, "Std scalar result should have size 1");
+
+  // Sample std([1,2,3,4]) = sqrt(5/3) ~= 1.2909944
+  f32 got = ((f32 *)dest.values)[0];
+  ASSERT(fabsf(got - 1.2909944f) < 1e-5f, "Std should match sample standard deviation");
+
+  freeMemory(mem);
+}
+
+static void test_std_null_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor dest;
+  Result r = Std(&ctx, NULL, &dest);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Std with null tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_std_non_float_rejected(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2, 2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
+
+  Tensor dest;
+  Result r = Std(&ctx, t, &dest);
+  ASSERT_EQ(r, ERR_STD_NOT_FLOAT_TYPE, "Std with integer dtype should fail");
+
+  freeMemory(mem);
+}
+
+static void test_std_requires_two_or_more_values(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {1};
+  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 2.0f);
+
+  Tensor dest;
+  Result r = Std(&ctx, t, &dest);
+  ASSERT_EQ(r, ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES,
+            "Std should fail when tensor has fewer than 2 values");
 
   freeMemory(mem);
 }
@@ -4328,7 +4390,7 @@ static void test_meandim_dim0(void) {
   ((f32 *)t->values)[5] = 6.0f;
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest, 0);
+  Result r = MeanDim(&ctx, t, &dest, 0);
   ASSERT_EQ(r, OK, "MeanDim dim0 should succeed");
   ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
   ASSERT_EQ(dest.shape.dims[0], 1, "MeanDim result dim 0 should be 1");
@@ -4358,7 +4420,7 @@ static void test_meandim_dim1(void) {
   ((f32 *)t->values)[5] = 6.0f;
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest, 1);
+  Result r = MeanDim(&ctx, t, &dest, 1);
   ASSERT_EQ(r, OK, "MeanDim dim1 should succeed");
   ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
   ASSERT_EQ(dest.shape.dims[0], 2, "MeanDim result dim 0 should be 2");
@@ -4379,7 +4441,7 @@ static void test_meandim_non_float_rejected(void) {
   Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest, 0);
+  Result r = MeanDim(&ctx, t, &dest, 0);
   ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "MeanDim with integer dtype should fail");
 
   freeMemory(mem);
@@ -4393,7 +4455,7 @@ static void test_meandim_dim_out_of_bounds(void) {
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   Tensor dest;
-  Result r = Mean(&ctx, t, &dest, 5);
+  Result r = MeanDim(&ctx, t, &dest, 5);
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "MeanDim with out of bounds dim should fail");
 
   freeMemory(mem);
@@ -4563,6 +4625,11 @@ void run_tensor_tests(void) {
   test_mean_basic();
   test_mean_null_tensor();
   test_mean_non_float_rejected();
+  // Std tests
+  test_std_basic();
+  test_std_null_tensor();
+  test_std_non_float_rejected();
+  test_std_requires_two_or_more_values();
   // Log tests
   test_log_basic();
   test_log_null_tensor();

@@ -11,11 +11,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Result powValue(Value *v, f32 power) {
+Result powValue(Value *v, f32 power) {
   switch (v->dtype) {
     COMPUTE_POW(v, power, F16, f16, pow);
     COMPUTE_POW(v, power, F32, f32, pow);
     COMPUTE_POW(v, power, F64, f64, pow);
+
+    default: return ERR_POW_VALUE_NOT_FLOAT;
+  }
+}
+
+Result sqrtValue(Value *v) {
+  switch (v->dtype) {
+    COMPUTE_SQRT(v, F16, f16, sqrt);
+    COMPUTE_SQRT(v, F32, f32, sqrt);
+    COMPUTE_SQRT(v, F64, f64, sqrt);
 
     default: return ERR_POW_VALUE_NOT_FLOAT;
   }

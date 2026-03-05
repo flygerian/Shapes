@@ -10,6 +10,7 @@ import "C"
 
 type hadReductionOps interface {
 	Sum(ctx Context, dim uint) Tensor
+	Std(ctx Context) Tensor
 }
 
 // Sum reduces the tensor along the given dimension by summing, returning a new tensor.
@@ -40,6 +41,16 @@ func (t *tensor) Mean(ctx Context, dims ...uint) Tensor {
 
 	var dest *C.Tensor
 	result := C.wrap_Mean((*C.Context)(ctx.UnsafePtr()), t.cTensor, C.dim_t(workingDim), &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
+}
+
+// Std computes the sample standard deviation of all values and returns a scalar tensor.
+func (t *tensor) Std(ctx Context) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Std((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}

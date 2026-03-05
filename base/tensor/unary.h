@@ -11,6 +11,13 @@
     return OK;                                                                                     \
   }
 
+#define COMPUTE_SQRT(val, dtype_enum, c_type, sqrt_fn)                                             \
+  case dtype_enum: {                                                                               \
+    c_type num = (val)->as.c_type;                                                                 \
+    (val)->as.c_type = (c_type)sqrt_fn((double)num);                                               \
+    return OK;                                                                                     \
+  }
+
 #define COMPUTE_EXP(val, dtype_enum, c_type, exp_fn)                                               \
   case dtype_enum: {                                                                               \
     c_type num = (val)->as.c_type;                                                                 \

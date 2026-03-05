@@ -46,6 +46,7 @@ Result wrap_Abs(Context *ctx, Tensor *t, Tensor **out);
 
 Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 Result wrap_Mean(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
+Result wrap_Std(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Max(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 

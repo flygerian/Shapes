@@ -319,13 +319,9 @@ Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
 
   // Handle case where we're reducing to 0-dim (scalar tensor)
   if (newNumDims == 0) {
-    *dest = (Tensor){.dtype = source->dtype,
-                     .values = newValues,
-                     .size = 1,
-                     .isContigous = true,
-                     .isView = true,
-                     .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL},
-                     .boundary = NULL};
+    Value scalar;
+    VALUE_GET_FROM_ARR(newValues, 0, &scalar, source->dtype);
+    *dest = singleValueTensor(ctx, scalar);
     return OK;
   }
 
@@ -407,4 +403,3 @@ Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
 
   return OK;
 }
-
