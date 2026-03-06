@@ -25,6 +25,7 @@ const (
 	OpExp                      // exp
 	OpTanh                     // tanh
 	OpDense                    // wx + b
+	OpBatchNorm                // batch normalization
 	OpReshape                  // reshape
 	OpTranspose                // transpose
 	OpSqueeze                  // squeeze
@@ -59,6 +60,8 @@ func (op OpType) String() string {
 		return "tanh"
 	case OpDense:
 		return "@w + b"
+	case OpBatchNorm:
+		return "batch_norm"
 	case OpReshape:
 		return "reshape"
 	case OpTranspose:

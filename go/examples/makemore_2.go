@@ -128,19 +128,18 @@ func MakeMore_2() {
 
 	embLayer := layer.Embedding(shapesCtx, 27, 30)
 	l1 := layer.Dense(shapesCtx, 90, 100)
-	l2 := layer.Dense(shapesCtx, 100, 200)
-	l3 := layer.Dense(shapesCtx, 200, 27)
+	l2 := layer.Dense(shapesCtx, 100, 27)
 
-	sgd := optimizer.SGD(shapesCtx, 0.01)
+	bn1 := layer.BatchNorm(shapesCtx, 100)
+	sgd := optimizer.SGD(shapesCtx, 0.001)
 
 	crossEnthropy := loss.CrossEntropy()
 
 	forward := func(ctx shapes.Context, xBatch shapes.Tensor) shapes.Tensor {
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 90))
+		h = bn1.Forward(ctx, h)
 		h = activation.Tanh(ctx, h)
-		h = l2.Forward(ctx, h)
-		h = activation.Tanh(ctx, h)
-		logits := l3.Forward(ctx, h)
+		logits := l2.Forward(ctx, h)
 
 		return logits
 	}
