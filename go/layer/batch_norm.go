@@ -7,11 +7,15 @@ import (
 )
 
 const defaultBatchNormEpsilon = 1e-5
+const defaultBatchNormMomentum = 0.1
 
 type batchNorm struct {
-	gamma, beta, o shapes.Tensor
-	numFeatures    int
-	epsilon        float32
+	gamma, beta, o          shapes.Tensor
+	runningMean, runningVar []float32
+	runningStatsInitialized bool
+	numFeatures             int
+	epsilon                 float32
+	momentum                float32
 }
 
 func BatchNorm(outerCtx shapes.Context, numFeatures int) Layer {
@@ -23,6 +27,7 @@ func BatchNorm(outerCtx shapes.Context, numFeatures int) Layer {
 		beta:        beta,
 		numFeatures: numFeatures,
 		epsilon:     defaultBatchNormEpsilon,
+		momentum:    defaultBatchNormMomentum,
 	}
 }
 
@@ -35,10 +40,8 @@ func (bn *batchNorm) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor 
 
 	x2d, originalShape := reshapeToBatchFeature2D(fusedCtx, x, bn.numFeatures)
 
-	mean := x2d.Mean(fusedCtx, 0)
+	mean, variance := bn.resolveStatsForForward(ctx, fusedCtx, x2d)
 	centered := x2d.Minus(fusedCtx, mean)
-
-	variance := centered.Pow(fusedCtx, 2).Mean(fusedCtx, 0)
 	eps := shapes.Float(fusedCtx, variance.Shape(), bn.epsilon)
 	invStd := variance.Plus(fusedCtx, eps).Pow(fusedCtx, -0.5)
 	xHat := centered.Times(fusedCtx, invStd)
@@ -58,6 +61,57 @@ func (bn *batchNorm) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor 
 	)
 
 	return bn.o
+}
+
+func (bn *batchNorm) resolveStatsForForward(
+	ctx shapes.Context,
+	fusedCtx shapes.Context,
+	x2d shapes.Tensor,
+) (shapes.Tensor, shapes.Tensor) {
+	if !ctx.IsTraining() && bn.runningStatsInitialized {
+		statsShape := shapes.Shape{uint(bn.numFeatures)}
+		mean := shapes.FromFloat32(fusedCtx, statsShape, bn.runningMean)
+		variance := shapes.FromFloat32(fusedCtx, statsShape, bn.runningVar)
+		return mean, variance
+	}
+
+	mean := x2d.Mean(fusedCtx, 0)
+	centered := x2d.Minus(fusedCtx, mean)
+	variance := centered.Pow(fusedCtx, 2).Mean(fusedCtx, 0)
+
+	if ctx.IsTraining() {
+		bn.updateRunningStats(mean, variance)
+	}
+
+	return mean, variance
+}
+
+func (bn *batchNorm) updateRunningStats(mean, variance shapes.Tensor) {
+	meanVals, ok := mean.Values().([]float32)
+	if !ok {
+		panic("shapes: BatchNorm running stats require float32 mean")
+	}
+	varVals, ok := variance.Values().([]float32)
+	if !ok {
+		panic("shapes: BatchNorm running stats require float32 variance")
+	}
+
+	if !bn.runningStatsInitialized {
+		bn.runningMean = append([]float32(nil), meanVals...)
+		bn.runningVar = append([]float32(nil), varVals...)
+		bn.runningStatsInitialized = true
+		return
+	}
+
+	if len(meanVals) != len(bn.runningMean) || len(varVals) != len(bn.runningVar) {
+		panic("shapes: BatchNorm running stats size mismatch")
+	}
+
+	keep := float32(1.0) - bn.momentum
+	for i := range meanVals {
+		bn.runningMean[i] = bn.runningMean[i]*keep + meanVals[i]*bn.momentum
+		bn.runningVar[i] = bn.runningVar[i]*keep + varVals[i]*bn.momentum
+	}
 }
 
 func constructBatchNormBackwardPass(ctx shapes.Context, node shapes.ComputationGraphNode) {

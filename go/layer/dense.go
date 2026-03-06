@@ -11,13 +11,15 @@ type dense struct {
 	w, b, o    shapes.Tensor
 	inputSize  int
 	outputSize int
+
+	isBiasApplied bool
 }
 
-func Dense(outerCtx shapes.Context, inputSize int, outputSize int) Layer {
+func Dense(outerCtx shapes.Context, inputSize int, outputSize int, options ...denseLayerOption) Layer {
 
 	// Initialize the hidden state
 	initialization := (5 / 3) / (math.Pow(float64(inputSize), 0.5)) // Kaiming initalization ish
-	w := shapes.Float(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}, float32(initialization))
+	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}).Times(outerCtx, initialization)
 	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize)})
 
 	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
@@ -48,7 +50,11 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	}
 
 	// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
-	d.o = input.Mul(fusedCtx, d.w.Transpose(fusedCtx)).Plus(fusedCtx, d.b)
+	d.o = input.Mul(fusedCtx, d.w.Transpose(fusedCtx))
+
+	if d.isBiasApplied {
+		d.o = d.o.Plus(fusedCtx, d.b)
+	}
 
 	// If 1D input, squeeze back to 1D output.
 	if is1D {
@@ -95,4 +101,12 @@ func constructDenseBackwardPass(ctx shapes.Context, node shapes.ComputationGraph
 	// ∂L/∂b = grad (reduced to match b's shape)
 	gradB := shapes.ReduceBroadcast(noGraphCtx, b, grad.(shapes.GradTensor))
 	b.Grad().Accumulate(noGraphCtx, gradB)
+}
+
+type denseLayerOption func(layer dense)
+
+func WithBias(isBiasApplied bool) denseLayerOption {
+	return func(layer dense) {
+		layer.isBiasApplied = isBiasApplied
+	}
 }

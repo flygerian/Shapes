@@ -12,6 +12,7 @@
 // Float family:  F16=0, F32=1, F64=2
 // Signed family: I8=0, I16=1, I32=2, I64=3
 // Unsigned family: U8=0, U16=1, U32=2, U64=3
+// Bool family: BOOL=0
 static int dtypeRank(Dtype d) {
   switch (d) {
     case F16: return 0;
@@ -25,6 +26,7 @@ static int dtypeRank(Dtype d) {
     case U16: return 1;
     case U32: return 2;
     case U64: return 3;
+    case BOOL: return 0;
     default: return -1;
   }
 }
@@ -33,6 +35,7 @@ static int dtypeRank(Dtype d) {
 //   0 = float (F16, F32, F64)
 //   1 = signed int (I8, I16, I32, I64)
 //   2 = unsigned int (U8, U16, U32, U64)
+//   3 = bool (BOOL)
 //  -1 = unknown
 static int dtypeFamily(Dtype d) {
   switch (d) {
@@ -47,6 +50,7 @@ static int dtypeFamily(Dtype d) {
     case U16:
     case U32:
     case U64: return 2;
+    case BOOL: return 3;
     default: return -1;
   }
 }
@@ -69,6 +73,7 @@ static Value castValue(Value src, Dtype target) {
     case U16: asDouble = (double)src.as.u16; break;
     case U32: asDouble = (double)src.as.u32; break;
     case U64: asDouble = (double)src.as.u64; break;
+    case BOOL: asDouble = src.as.boolean ? 1.0 : 0.0; break;
     default: asDouble = 0.0; break;
   }
 
@@ -86,6 +91,7 @@ static Value castValue(Value src, Dtype target) {
     case U16: dest.as.u16 = (u16)asDouble; break;
     case U32: dest.as.u32 = (u32)asDouble; break;
     case U64: dest.as.u64 = (u64)asDouble; break;
+    case BOOL: dest.as.boolean = asDouble != 0.0; break;
     default: break;
   }
   return dest;
@@ -102,6 +108,12 @@ static Value castValue(Value src, Dtype target) {
 static bool isCastSafe(Dtype source, Dtype target) {
   if (source == target) {
     return true;
+  }
+  if (target == BOOL) {
+    return true;
+  }
+  if (source == BOOL) {
+    return false;
   }
 
   int srcFamily = dtypeFamily(source);
@@ -136,6 +148,10 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
   // Check cast safety (sign compatibility + truncation)
   int srcFamily = dtypeFamily(srcDtype);
   int tgtFamily = dtypeFamily(target);
+
+  if (target == BOOL) {
+    srcFamily = tgtFamily;
+  }
 
   // Unsigned <-> anything else is a sign mismatch
   bool involvesUnsigned = (srcFamily == 2 || tgtFamily == 2);

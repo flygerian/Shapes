@@ -125,3 +125,66 @@ func TestBatchNormPanicsOnMismatchedFeatureSize(t *testing.T) {
 
 	bn.Forward(ctx, x)
 }
+
+func TestBatchNormTracksRunningStatsDuringTraining(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	ctx.Training(2)
+	bnLayer := BatchNorm(ctx, 1)
+	bn := bnLayer.(*batchNorm)
+
+	x1 := shapes.FromFloat32(ctx, shapes.Shape{2, 1}, []float32{0.0, 2.0}) // mean=1, var=1
+	e1 := ctx.Epoch(1)
+	_ = bn.Forward(e1, x1)
+	e1.Finish()
+
+	if !bn.runningStatsInitialized {
+		t.Fatal("expected running stats to initialize in training mode")
+	}
+	if got := bn.runningMean[0]; math.Abs(float64(got-1.0)) > 1e-5 {
+		t.Fatalf("running mean after first batch = %f, want 1.0", got)
+	}
+	if got := bn.runningVar[0]; math.Abs(float64(got-1.0)) > 1e-5 {
+		t.Fatalf("running var after first batch = %f, want 1.0", got)
+	}
+
+	x2 := shapes.FromFloat32(ctx, shapes.Shape{2, 1}, []float32{10.0, 14.0}) // mean=12, var=4
+	e2 := ctx.Epoch(2)
+	_ = bn.Forward(e2, x2)
+	e2.Finish()
+
+	wantMean := float32(1.0*(1.0-defaultBatchNormMomentum) + 12.0*defaultBatchNormMomentum)
+	wantVar := float32(1.0*(1.0-defaultBatchNormMomentum) + 4.0*defaultBatchNormMomentum)
+	if got := bn.runningMean[0]; math.Abs(float64(got-wantMean)) > 1e-5 {
+		t.Fatalf("running mean after second batch = %f, want %f", got, wantMean)
+	}
+	if got := bn.runningVar[0]; math.Abs(float64(got-wantVar)) > 1e-5 {
+		t.Fatalf("running var after second batch = %f, want %f", got, wantVar)
+	}
+}
+
+func TestBatchNormInferenceUsesRunningStats(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	ctx.Training(1)
+	bnLayer := BatchNorm(ctx, 1)
+
+	trainX := shapes.FromFloat32(ctx, shapes.Shape{2, 1}, []float32{0.0, 2.0}) // mean=1, var=1
+	trainEpoch := ctx.Epoch(1)
+	_ = bnLayer.Forward(trainEpoch, trainX)
+	trainEpoch.Finish()
+
+	ctx.Inference()
+	inferX := shapes.FromFloat32(ctx, shapes.Shape{2, 1}, []float32{100.0, 100.0})
+	out := bnLayer.Forward(ctx, inferX)
+
+	want := float32((100.0 - 1.0) / math.Sqrt(1.0+defaultBatchNormEpsilon))
+	for i := range uint32(2) {
+		got := out.Get(ctx, i, 0).Item().(float32)
+		if math.Abs(float64(got-want)) > 1e-3 {
+			t.Fatalf("inference output[%d,0] = %f, want %f", i, got, want)
+		}
+	}
+}

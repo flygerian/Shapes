@@ -152,6 +152,8 @@ func (t *tensor) Item() interface{} {
 	}
 
 	switch t.Dtype() {
+	case DtypeBool:
+		return bool(C.value_as_bool(v))
 	case DtypeF16, DtypeF32, DtypeF64:
 		return float32(C.value_as_double(v))
 	case DtypeU8:

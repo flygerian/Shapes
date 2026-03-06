@@ -102,3 +102,49 @@ func TestNoGraphDisablesGradAndBackward(t *testing.T) {
 		t.Fatal("NoGraph should disable backward")
 	}
 }
+
+func TestTrainingSetsIsTraining(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	if ctx.IsTraining() {
+		t.Fatal("new context should not be training")
+	}
+
+	ctx.Training(1)
+	if !ctx.IsTraining() {
+		t.Fatal("Training() should set context to training mode")
+	}
+}
+
+func TestInferenceClearsIsTraining(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	ctx.Training(1)
+	ctx.Inference()
+
+	if ctx.IsTraining() {
+		t.Fatal("Inference() should clear training mode")
+	}
+}
+
+func TestDerivedContextsCarryTrainingState(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	ctx.Training(1)
+
+	fused := ctx.Fused()
+	defer fused.Finish()
+	if !fused.IsTraining() {
+		t.Fatal("derived context should inherit training mode")
+	}
+
+	ctx.Inference()
+	noGraph := ctx.NoGraph()
+	defer noGraph.Finish()
+	if noGraph.IsTraining() {
+		t.Fatal("derived context should inherit inference mode")
+	}
+}

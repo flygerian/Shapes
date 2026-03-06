@@ -232,6 +232,9 @@ func sampleIndices(total, limit int) []int {
 	if total <= 0 || limit <= 0 {
 		return nil
 	}
+	if limit == 1 {
+		return []int{0}
+	}
 	if total <= limit {
 		indices := make([]int, total)
 		for i := range total {

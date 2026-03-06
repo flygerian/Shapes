@@ -19,6 +19,7 @@ Result wrap_GetScalar(Tensor *t, Value *result);
 double value_as_double(Value v);
 u64 value_as_u64(Value v);
 i64 value_as_i64(Value v);
+bool value_as_bool(Value v);
 
 Result wrap_Add(Context *ctx, Tensor *a, Tensor *b, Tensor **out);
 Result wrap_Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor **out);

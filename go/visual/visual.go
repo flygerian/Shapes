@@ -275,6 +275,12 @@ func formatValue(ctx shapes.Context, t shapes.Tensor, coords []uint) string {
 		args[i] = c
 	}
 	switch t.Dtype() {
+	case shapes.DtypeBool:
+		v := t.Get(ctx, args...).Item().(bool)
+		if v {
+			return "true"
+		}
+		return "false"
 	case shapes.DtypeF16, shapes.DtypeF32, shapes.DtypeF64:
 		v := t.Get(ctx, args...).Item().(float32)
 		s := fmt.Sprintf("%f", v)

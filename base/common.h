@@ -39,11 +39,12 @@ typedef struct {
   size_t end;
 } Range;
 
-typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64 } Dtype;
+typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL } Dtype;
 
 typedef struct {
   Dtype dtype;
   union {
+    bool boolean;
     u8 u8;
     u16 u16;
     u32 u32;

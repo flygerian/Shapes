@@ -214,6 +214,73 @@ static void test_cast_i32_to_f64(void) {
   freeMemory(mem);
 }
 
+static void test_cast_i8_to_bool(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {3};
+  Dim shape = {.dims = dims, .numOfDims = 1};
+  Tensor *src = T_Int(&ctx, shape, 0);
+  ((i8 *)src->values)[0] = 0;
+  ((i8 *)src->values)[1] = -2;
+  ((i8 *)src->values)[2] = 5;
+
+  Tensor dest;
+  Result r = Cast(&ctx, src, &dest, BOOL);
+  ASSERT_EQ(r, OK, "Cast I8 -> BOOL should return OK");
+  ASSERT_EQ(dest.dtype, BOOL, "Cast I8 -> BOOL dest dtype should be BOOL");
+  ASSERT_EQ(((bool *)dest.values)[0], false, "Cast I8 0 -> BOOL should be false");
+  ASSERT_EQ(((bool *)dest.values)[1], true, "Cast I8 -2 -> BOOL should be true");
+  ASSERT_EQ(((bool *)dest.values)[2], true, "Cast I8 5 -> BOOL should be true");
+
+  freeMemory(mem);
+}
+
+static void test_cast_u8_to_bool(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2};
+  Dim shape = {.dims = dims, .numOfDims = 1};
+  Tensor *src = T_Int(&ctx, shape, 0);
+  src->dtype = U8;
+  size_t bytes = getBytesForDtype(U8) * src->size;
+  src->values = allocate(mem, bytes);
+  ((u8 *)src->values)[0] = 0;
+  ((u8 *)src->values)[1] = 1;
+
+  Tensor dest;
+  Result r = Cast(&ctx, src, &dest, BOOL);
+  ASSERT_EQ(r, OK, "Cast U8 -> BOOL should return OK");
+  ASSERT_EQ(dest.dtype, BOOL, "Cast U8 -> BOOL dest dtype should be BOOL");
+  ASSERT_EQ(((bool *)dest.values)[0], false, "Cast U8 0 -> BOOL should be false");
+  ASSERT_EQ(((bool *)dest.values)[1], true, "Cast U8 1 -> BOOL should be true");
+
+  freeMemory(mem);
+}
+
+static void test_cast_f32_to_bool(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {3};
+  Dim shape = {.dims = dims, .numOfDims = 1};
+  Tensor *src = T_Float(&ctx, shape, 0.0f);
+  ((f32 *)src->values)[0] = 0.0f;
+  ((f32 *)src->values)[1] = 0.1f;
+  ((f32 *)src->values)[2] = -0.2f;
+
+  Tensor dest;
+  Result r = Cast(&ctx, src, &dest, BOOL);
+  ASSERT_EQ(r, OK, "Cast F32 -> BOOL should return OK");
+  ASSERT_EQ(dest.dtype, BOOL, "Cast F32 -> BOOL dest dtype should be BOOL");
+  ASSERT_EQ(((bool *)dest.values)[0], false, "Cast F32 0.0 -> BOOL should be false");
+  ASSERT_EQ(((bool *)dest.values)[1], true, "Cast F32 0.1 -> BOOL should be true");
+  ASSERT_EQ(((bool *)dest.values)[2], true, "Cast F32 -0.2 -> BOOL should be true");
+
+  freeMemory(mem);
+}
+
 static void test_cast_same_dtype_clones(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -439,6 +506,9 @@ void run_cast_tests(void) {
   test_cast_u8_to_u32();
   test_cast_i8_to_f32();
   test_cast_i32_to_f64();
+  test_cast_i8_to_bool();
+  test_cast_u8_to_bool();
+  test_cast_f32_to_bool();
   test_cast_same_dtype_clones();
   test_cast_preserves_2d_shape();
 

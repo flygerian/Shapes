@@ -24,6 +24,23 @@ func TestPlus(t *testing.T) {
 	}
 }
 
+func TestPlusScalar(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Int(ctx, Shape{2, 2}, 3)
+	result := a.Plus(ctx, 1)
+
+	for i := range uint32(2) {
+		for j := range uint32(2) {
+			got := result.Get(ctx, i, j).Item().(int8)
+			if got != 4 {
+				t.Errorf("PlusScalar[%d,%d] = %d, want 4", i, j, got)
+			}
+		}
+	}
+}
+
 func TestMinus(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
@@ -143,28 +160,55 @@ func TestComparisonOps(t *testing.T) {
 	b := FromInt8(ctx, []int8{2, 4, 1})
 
 	gt := a.GreaterThan(ctx, b)
-	if got := gt.Get(ctx, 0).Item().(int8); got != 0 {
-		t.Errorf("GreaterThan[0] = %d, want 0", got)
+	if gt.Dtype() != DtypeBool {
+		t.Fatalf("expected GreaterThan dtype bool, got %s", gt.Dtype())
 	}
-	if got := gt.Get(ctx, 1).Item().(int8); got != 0 {
-		t.Errorf("GreaterThan[1] = %d, want 0", got)
+	if got := gt.Get(ctx, 0).Item().(bool); got != false {
+		t.Errorf("GreaterThan[0] = %v, want false", got)
 	}
-	if got := gt.Get(ctx, 2).Item().(int8); got != 1 {
-		t.Errorf("GreaterThan[2] = %d, want 1", got)
+	if got := gt.Get(ctx, 1).Item().(bool); got != false {
+		t.Errorf("GreaterThan[1] = %v, want false", got)
+	}
+	if got := gt.Get(ctx, 2).Item().(bool); got != true {
+		t.Errorf("GreaterThan[2] = %v, want true", got)
 	}
 
 	ge := a.GreaterThanOrEqual(ctx, b)
-	if got := ge.Get(ctx, 1).Item().(int8); got != 1 {
-		t.Errorf("GreaterThanOrEqual[1] = %d, want 1", got)
+	if ge.Dtype() != DtypeBool {
+		t.Fatalf("expected GreaterThanOrEqual dtype bool, got %s", ge.Dtype())
+	}
+	if got := ge.Get(ctx, 1).Item().(bool); got != true {
+		t.Errorf("GreaterThanOrEqual[1] = %v, want true", got)
 	}
 
 	lt := a.LessThan(ctx, b)
-	if got := lt.Get(ctx, 0).Item().(int8); got != 1 {
-		t.Errorf("LessThan[0] = %d, want 1", got)
+	if lt.Dtype() != DtypeBool {
+		t.Fatalf("expected LessThan dtype bool, got %s", lt.Dtype())
+	}
+	if got := lt.Get(ctx, 0).Item().(bool); got != true {
+		t.Errorf("LessThan[0] = %v, want true", got)
 	}
 
 	le := a.LessThanOrEqual(ctx, b)
-	if got := le.Get(ctx, 1).Item().(int8); got != 1 {
-		t.Errorf("LessThanOrEqual[1] = %d, want 1", got)
+	if le.Dtype() != DtypeBool {
+		t.Fatalf("expected LessThanOrEqual dtype bool, got %s", le.Dtype())
+	}
+	if got := le.Get(ctx, 1).Item().(bool); got != true {
+		t.Errorf("LessThanOrEqual[1] = %v, want true", got)
+	}
+}
+
+func TestComparisonWithScalar(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromInt8(ctx, []int8{1, 4, 3})
+	gt := a.GreaterThan(ctx, 2)
+	expected := []bool{false, true, true}
+	for i, want := range expected {
+		got := gt.Get(ctx, uint32(i)).Item().(bool)
+		if got != want {
+			t.Errorf("GreaterThanScalar[%d] = %v, want %v", i, got, want)
+		}
 	}
 }

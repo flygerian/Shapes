@@ -19,6 +19,88 @@ func (r *TrainingStatsRenderer) SetTrainingContext(ctx shapes.MainContext) {
 	go r.launchTrainingDashboard()
 }
 
+func (r *TrainingStatsRenderer) renderTrainingHeader(header string) Artefact {
+	return Flex(FlexOptions{
+		Direction: DirectionColumn,
+		Children: []Artefact{
+			Text("Makemore Training"),
+			Text(header),
+		},
+	})
+}
+
+func (r *TrainingStatsRenderer) renderMemoryAndLossCharts(stats *shapes.TrainingStats) Artefact {
+	return Flex(FlexOptions{
+		Direction: DirectionColumn,
+		Children: []Artefact{
+			Flex(FlexOptions{
+				Direction: DirectionColumn,
+				Children: []Artefact{
+					Chart(ChartOptions{
+						XAxis: stats.MemorySampleHistoryX,
+						YAxis: stats.UsedBlocksHistory,
+						Mode:  ChartWindowed,
+					}),
+					Box(BoxOptions{
+						Child: Text("Memory"),
+					}),
+				},
+			}),
+			Weighted(WeightOptions{
+				Weight: 3,
+				Child: Flex(FlexOptions{
+					Direction: DirectionColumn,
+					Children: []Artefact{
+						Chart(ChartOptions{
+							XAxis: stats.LossHistoryX,
+							YAxis: stats.LossHistory,
+							Mode:  ChartFitToViewport,
+						}),
+						Box(BoxOptions{
+							Child: Text("Loss"),
+						}),
+					},
+				}),
+			}),
+		},
+	})
+}
+
+func (r *TrainingStatsRenderer) renderSampledTensors(stats *shapes.TrainingStats) Artefact {
+	var charts []Artefact
+
+	for key, sampleTensor := range stats.SampleTensors {
+		if sampleTensor.Dtype() != shapes.DtypeBool {
+			continue
+		}
+
+		chart := Flex(
+			FlexOptions{
+				Direction: DirectionColumn,
+				Children: []Artefact{
+					BooleanChart(BooleanChartOptions{
+						Rows:   int(sampleTensor.Shape()[0]),
+						Values: sampleTensor.Values().([]bool),
+					}),
+					Box(
+						BoxOptions{
+							Child: Text(key),
+						},
+					),
+				},
+			},
+		)
+		charts = append(charts, chart)
+	}
+
+	return Flex(
+		FlexOptions{
+			Children:  charts,
+			Direction: DirectionColumn,
+		},
+	)
+}
+
 func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 	ticker := time.NewTicker(time.Second / 60)
 	defer ticker.Stop()
@@ -45,51 +127,13 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 			Direction: DirectionColumn,
 			Children: []Artefact{
 				Box(BoxOptions{
-					Child: Flex(FlexOptions{
-						Direction: DirectionColumn,
-						Children: []Artefact{
-							Text("Makemore Training"),
-							Text(header),
-						},
-					}),
+					Child: r.renderTrainingHeader(header),
 				}),
 				Weighted(WeightOptions{
-					Weight: 6,
-					Child: Flex(FlexOptions{
-						Direction: DirectionColumn,
-						Children: []Artefact{
-							Flex(FlexOptions{
-								Direction: DirectionColumn,
-								Children: []Artefact{
-									Chart(ChartOptions{
-										XAxis: stats.MemorySampleHistoryX,
-										YAxis: stats.UsedBlocksHistory,
-										Mode:  ChartWindowed,
-									}),
-									Box(BoxOptions{
-										Child: Text("Memory"),
-									}),
-								},
-							}),
-							Weighted(WeightOptions{
-								Weight: 3,
-								Child: Flex(FlexOptions{
-									Direction: DirectionColumn,
-									Children: []Artefact{
-										Chart(ChartOptions{
-											XAxis: stats.LossHistoryX,
-											YAxis: stats.LossHistory,
-											Mode:  ChartFitToViewport,
-										}),
-										Box(BoxOptions{
-											Child: Text("Loss"),
-										}),
-									},
-								}),
-							}),
-						},
-					}),
+					Weight: 3,
+					Child:  r.renderMemoryAndLossCharts(stats),
 				}),
+				r.renderSampledTensors(stats),
 			},
 		})
 

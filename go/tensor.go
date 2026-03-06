@@ -12,6 +12,56 @@ import "unsafe"
 type Shape = []uint
 type Range = []uint
 
+// Dtype represents the data type of tensor elements.
+type Dtype int
+
+// Dtype constants matching the C Dtype enum.
+const (
+	DtypeF16 Dtype = iota
+	DtypeF32
+	DtypeF64
+	DtypeU8
+	DtypeU16
+	DtypeU32
+	DtypeU64
+	DtypeI8
+	DtypeI16
+	DtypeI32
+	DtypeI64
+	DtypeBool
+)
+
+func (d Dtype) String() string {
+	switch d {
+	case DtypeF16:
+		return "f16"
+	case DtypeF32:
+		return "f32"
+	case DtypeF64:
+		return "f64"
+	case DtypeU8:
+		return "u8"
+	case DtypeU16:
+		return "u16"
+	case DtypeU32:
+		return "u32"
+	case DtypeU64:
+		return "u64"
+	case DtypeI8:
+		return "i8"
+	case DtypeI16:
+		return "i16"
+	case DtypeI32:
+		return "i32"
+	case DtypeI64:
+		return "i64"
+	case DtypeBool:
+		return "bool"
+	default:
+		return "unknown"
+	}
+}
+
 type Tensor interface {
 	hasMutatingBinaryOps
 	hasNonMutatingBinaryOps
@@ -19,23 +69,25 @@ type Tensor interface {
 	hasShapeOps
 	hasUnaryOps
 	hasCastOps
+	hasCopyOps
 	hasMatrixOps
 	hasAccessOps
 	hasBackward
 
 	ComputationGraphNode
 
+	Clone(ctx Context) Tensor
+
 	Grad() GradTensor
 	Accumulate(ctx Context, operandB Tensor)
 	Computation() Computation
 	RequiresGrad() bool
 
-	I64(ctx Context) Tensor
-
 	SetLabel(label string)
 	Label() string
 
 	Dtype() Dtype
+	Values() interface{}
 }
 
 // Tensor wraps a C Tensor pointer.
@@ -95,53 +147,6 @@ func ShapeOf(t *tensor) Shape {
 	return shapeOf(t)
 }
 
-// Dtype represents the data type of tensor elements.
-type Dtype int
-
-// Dtype constants matching the C Dtype enum.
-const (
-	DtypeF16 Dtype = iota
-	DtypeF32
-	DtypeF64
-	DtypeU8
-	DtypeU16
-	DtypeU32
-	DtypeU64
-	DtypeI8
-	DtypeI16
-	DtypeI32
-	DtypeI64
-)
-
-func (d Dtype) String() string {
-	switch d {
-	case DtypeF16:
-		return "f16"
-	case DtypeF32:
-		return "f32"
-	case DtypeF64:
-		return "f64"
-	case DtypeU8:
-		return "u8"
-	case DtypeU16:
-		return "u16"
-	case DtypeU32:
-		return "u32"
-	case DtypeU64:
-		return "u64"
-	case DtypeI8:
-		return "i8"
-	case DtypeI16:
-		return "i16"
-	case DtypeI32:
-		return "i32"
-	case DtypeI64:
-		return "i64"
-	default:
-		return "unknown"
-	}
-}
-
 // Dtype returns the tensor's data type.
 func (t *tensor) Dtype() Dtype {
 	return Dtype(t.cTensor.dtype)
@@ -176,6 +181,20 @@ func (t *tensor) Label() string {
 
 func (t *tensor) Op() OpType {
 	return t.computation.op
+}
+
+func (t *tensor) Clone(ctx Context) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Clone((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpSqueeze, squeezeBackward, []Tensor{t}, []Tensor{}, nil)
+	}
+	return out
 }
 
 // Shape returns the shape of the WrappedTensor.

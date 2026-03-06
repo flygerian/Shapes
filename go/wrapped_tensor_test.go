@@ -36,3 +36,19 @@ func TestWrappedTensorAddInPlace(t *testing.T) {
 		}
 	}
 }
+
+func TestWrappedTensorPlusScalar(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2}, 1.5)
+	wa := &WrappedTensor{tensor: a, context: ctx}
+	result := wa.Plus(1.0)
+
+	for i := range uint32(2) {
+		got := result.tensor.Get(ctx, i).Item().(float32)
+		if got != 2.5 {
+			t.Fatalf("result[%d] = %f, want 2.5", i, got)
+		}
+	}
+}

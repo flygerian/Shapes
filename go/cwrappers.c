@@ -51,6 +51,7 @@ Result wrap_GetScalar(Tensor *t, Value *result) { return GetScalar(t, result); }
 
 double value_as_double(Value v) {
   switch (v.dtype) {
+    case BOOL: return v.as.boolean ? 1.0 : 0.0;
     case F16: return (double)v.as.f16;
     case F32: return (double)v.as.f32;
     case F64: return (double)v.as.f64;
@@ -68,6 +69,7 @@ double value_as_double(Value v) {
 
 u64 value_as_u64(Value v) {
   switch (v.dtype) {
+    case BOOL: return v.as.boolean ? 1ULL : 0ULL;
     case U8: return (u64)v.as.u8;
     case U16: return (u64)v.as.u16;
     case U32: return (u64)v.as.u32;
@@ -82,6 +84,7 @@ u64 value_as_u64(Value v) {
 
 i64 value_as_i64(Value v) {
   switch (v.dtype) {
+    case BOOL: return v.as.boolean ? 1LL : 0LL;
     case I8: return (i64)v.as.i8;
     case I16: return (i64)v.as.i16;
     case I32: return (i64)v.as.i32;
@@ -91,6 +94,13 @@ i64 value_as_i64(Value v) {
     case U32: return (i64)v.as.u32;
     case U64: return (i64)v.as.u64;
     default: return 0;
+  }
+}
+
+bool value_as_bool(Value v) {
+  switch (v.dtype) {
+    case BOOL: return v.as.boolean;
+    default: return false;
   }
 }
 

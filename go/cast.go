@@ -20,6 +20,7 @@ type hasCastOps interface {
 	I16(ctx Context) Tensor
 	I32(ctx Context) Tensor
 	I64(ctx Context) Tensor
+	Bool(ctx Context) Tensor
 }
 
 // castTensor is the internal helper that calls the C Cast function.
@@ -87,4 +88,9 @@ func (t *tensor) I32(ctx Context) Tensor {
 // I64 casts the tensor to I64 dtype. Panics if the cast would truncate or cross sign families.
 func (t *tensor) I64(ctx Context) Tensor {
 	return castTensor(ctx, t, DtypeI64)
+}
+
+// Bool casts the tensor to BOOL dtype.
+func (t *tensor) Bool(ctx Context) Tensor {
+	return castTensor(ctx, t, DtypeBool)
 }

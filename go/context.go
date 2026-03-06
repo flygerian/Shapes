@@ -20,7 +20,7 @@ type Context interface {
 	Mark(t Tensor)
 	Track(t Tensor)
 
-	Epoch(epoch int, options ...subContextOption) SubContext
+	Epoch(epoch int, options ...subContextOption) EpochContext
 	Forward(options ...subContextOption) SubContext
 	Backward(options ...subContextOption) SubContext
 	NoGrad(options ...subContextOption) SubContext
@@ -29,6 +29,7 @@ type Context interface {
 
 	GradEnabled() bool
 	BackwardEnabled() bool
+	IsTraining() bool
 
 	UnsafeMemory() unsafe.Pointer
 	UnsafePtr() unsafe.Pointer
@@ -36,6 +37,8 @@ type Context interface {
 	NumAllocatedBlocks() int
 	NumFreeBlocks() int
 	Sweep()
+
+	main() *mainContext
 }
 
 type MainContext interface {
@@ -43,6 +46,7 @@ type MainContext interface {
 
 	Finish()
 	Training(numEpochs int, options ...mainContextOption) MainContext
+	Inference() MainContext
 	TrainingStats() *TrainingStats
 }
 
@@ -51,11 +55,18 @@ type SubContext interface {
 	Finish(...subContextOption)
 }
 
+type EpochContext interface {
+	SubContext
+	SampleTensor(key string, t Tensor)
+	CurrentEpochNum() int
+}
+
 type shapesCtx struct {
 	stdctx.Context // Embedded Go context for cancellation/deadlines
 
 	gradEnabled      bool
 	backwardEnabled  bool
+	isTraining       bool
 	persistant       bool
 	sweepAfterFinish bool
 
@@ -102,6 +113,8 @@ type TrainingStats struct {
 	LossHistory          []int
 	Version              int
 	TrainingDone         chan bool
+
+	SampleTensors map[string]Tensor
 }
 
 type trainingState struct {
@@ -192,20 +205,30 @@ func (c *mainContext) initTrainingStats(numEpochs int) {
 			LossHistory:          make([]int, 0),
 			Version:              0,
 			TrainingDone:         make(chan bool),
+			SampleTensors:        make(map[string]Tensor),
 		},
 	}
 }
 
 func (c *mainContext) Training(numEpochs int, options ...mainContextOption) MainContext {
 	c.initTrainingStats(numEpochs)
+	c.isTraining = true
 	applyMainContextOptions(c, options...)
 	go startMemoryTicker(c)
 
 	return c
 }
 
+func (c *mainContext) Inference() MainContext {
+	c.isTraining = false
+	return c
+}
+
 func (c *mainContext) sampleMemory(sampleCount int) {
 	if c.training == nil || c.training.stats == nil {
+		return
+	}
+	if c.cCtx == nil || c.cCtx.memory == nil {
 		return
 	}
 
@@ -228,7 +251,7 @@ func (c *mainContext) TrainingStats() *TrainingStats {
 // Epoch returns a short-lived context for one training/inference step.
 // It preserves the parent context's grad/backward behavior while keeping
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
-func (c *mainContext) Epoch(currentEpoch int, options ...subContextOption) SubContext {
+func (c *mainContext) Epoch(currentEpoch int, options ...subContextOption) EpochContext {
 	return epoch(c, currentEpoch, options...)
 }
 
@@ -348,6 +371,14 @@ func (c *mainContext) GradEnabled() bool {
 	return c.gradEnabled
 }
 
+func (c *mainContext) main() *mainContext {
+	return c
+}
+
+func (c *mainContext) IsTraining() bool {
+	return c.isTraining
+}
+
 // ---------------------------- Subcontext ----------------------------
 
 type subContext struct {
@@ -389,6 +420,7 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	if sc.sweepAfterFinish && sc.training != nil && sc.training.stats != nil &&
 		sc.training.stats.Epoch == sc.training.stats.NumEpochs {
 		sc.training.doneOnce.Do(func() {
+			sc.main().isTraining = false
 			close(sc.training.stats.TrainingDone)
 		})
 	}
@@ -425,7 +457,7 @@ func (c *subContext) NoGrad(options ...subContextOption) SubContext {
 // Epoch returns a short-lived context for one training/inference step.
 // It preserves the parent context's grad/backward behavior while keeping
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
-func (c *subContext) Epoch(currentEpoch int, options ...subContextOption) SubContext {
+func (c *subContext) Epoch(currentEpoch int, options ...subContextOption) EpochContext {
 	return epoch(c, currentEpoch, options...)
 }
 
@@ -474,6 +506,10 @@ func (c *subContext) GradEnabled() bool {
 	return c.gradEnabled
 }
 
+func (c *subContext) IsTraining() bool {
+	return c.isTraining
+}
+
 // UnsafePtr returns the C Context as an unsafe.Pointer for cross-package CGo casts.
 func (c *subContext) UnsafePtr() unsafe.Pointer {
 	return c.parent.UnsafePtr()
@@ -492,8 +528,27 @@ func (c *subContext) NumAllocatedBlocks() int {
 	return c.parent.NumAllocatedBlocks()
 }
 
+func (c *subContext) CurrentEpochNum() int {
+	return c.training.stats.Epoch
+}
+
 func (ctx *subContext) Sweep() {
 	ctx.parent.Sweep()
+}
+
+func (ctx *subContext) SampleTensor(key string, t Tensor) {
+	if ctx.training == nil {
+		panic("Cannot sample a tensor in a non training context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.SampleTensors[key] = t.Clone(ctx.main())
+}
+
+func (ctx *subContext) main() *mainContext {
+	return ctx.parent.main()
 }
 
 // ---------------------------- funcs ----------------------------
@@ -527,6 +582,7 @@ func derive(ctx Context, gradEnabled, backwardEnabled bool, options ...subContex
 		shapesCtx: shapesCtx{
 			backwardEnabled: backwardEnabled,
 			gradEnabled:     gradEnabled,
+			isTraining:      ctx.IsTraining(),
 			training:        training,
 		},
 	}
@@ -546,7 +602,7 @@ func noGrad(c Context, options ...subContextOption) SubContext {
 // Epoch returns a short-lived context intended for one training step.
 // It preserves grad/backward settings from the parent while providing
 // independent local tracking for cleanup.
-func epoch(c Context, epochNum int, options ...subContextOption) SubContext {
+func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 	if epochNum < 1 {
 		panic("Epoch number cannot be less than 1")
 	}
@@ -573,7 +629,7 @@ func epoch(c Context, epochNum int, options ...subContextOption) SubContext {
 
 	sc := derive(c, c.GradEnabled(), c.BackwardEnabled(), options...)
 	sc.(*subContext).sweepAfterFinish = true
-	return sc
+	return sc.(EpochContext)
 }
 
 // Fused returns a new Context that shares the same C context and memory

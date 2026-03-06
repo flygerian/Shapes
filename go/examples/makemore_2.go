@@ -127,24 +127,34 @@ func MakeMore_2() {
 	newSection()
 
 	embLayer := layer.Embedding(shapesCtx, 27, 30)
-	l1 := layer.Dense(shapesCtx, 90, 100)
-	l2 := layer.Dense(shapesCtx, 100, 27)
+	l1 := layer.Dense(shapesCtx, 90, 100, layer.WithBias(false))
+	l2 := layer.Dense(shapesCtx, 100, 100, layer.WithBias(false))
+	l3 := layer.Dense(shapesCtx, 100, 27)
 
 	bn1 := layer.BatchNorm(shapesCtx, 100)
+	bn2 := layer.BatchNorm(shapesCtx, 100)
 	sgd := optimizer.SGD(shapesCtx, 0.001)
 
 	crossEnthropy := loss.CrossEntropy()
 
-	forward := func(ctx shapes.Context, xBatch shapes.Tensor) shapes.Tensor {
+	forward := func(ctx shapes.EpochContext, xBatch shapes.Tensor) shapes.Tensor {
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 90))
 		h = bn1.Forward(ctx, h)
 		h = activation.Tanh(ctx, h)
-		logits := l2.Forward(ctx, h)
+
+		if ctx.CurrentEpochNum()%100 == 0 {
+			ctx.SampleTensor("layer-1-preact", h.Abs(ctx).GreaterThan(ctx, 0.99))
+		}
+
+		h = l2.Forward(ctx, h)
+		h = bn2.Forward(ctx, h)
+		h = activation.Tanh(ctx, h)
+		logits := l3.Forward(ctx, h)
 
 		return logits
 	}
 
-	numEpochs := 30000
+	numEpochs := 20000
 
 	trainingCtx := shapesCtx.Training(
 		numEpochs,
@@ -179,7 +189,6 @@ func MakeMore_2() {
 		} else {
 			epochCtx.Finish()
 		}
-
 	}
 
 	newSection()
@@ -198,7 +207,7 @@ func MakeMore_2() {
 		for range maxNameLen {
 			xInf := shapes.FromInt8(testCtx, [][]int8{context})
 			emb := embLayer.Forward(testCtx, xInf)
-			logits := forward(testCtx, emb)
+			logits := forward(testCtx.(shapes.EpochContext), emb)
 			probs := activation.Softmax(testCtx, logits)
 
 			// Sample from the probability distribution instead of greedy argmax

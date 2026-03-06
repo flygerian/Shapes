@@ -1823,15 +1823,15 @@ static void test_greater_than_basic_same_shape(void) {
 
   Result r = GreaterThan(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "GreaterThan should return OK");
-  ASSERT_EQ(dest.dtype, I8, "GreaterThan should preserve dtype");
+  ASSERT_EQ(dest.dtype, BOOL, "GreaterThan should return BOOL dtype");
 
-  i8 *vals = (i8 *)dest.values;
-  ASSERT_EQ(vals[0], 0, "1 > 2 should be false");
-  ASSERT_EQ(vals[1], 0, "4 > 4 should be false");
-  ASSERT_EQ(vals[2], 1, "3 > 1 should be true");
-  ASSERT_EQ(vals[3], 0, "2 > 3 should be false");
-  ASSERT_EQ(vals[4], 1, "8 > 7 should be true");
-  ASSERT_EQ(vals[5], 0, "0 > 0 should be false");
+  bool *vals = (bool *)dest.values;
+  ASSERT_EQ(vals[0], false, "1 > 2 should be false");
+  ASSERT_EQ(vals[1], false, "4 > 4 should be false");
+  ASSERT_EQ(vals[2], true, "3 > 1 should be true");
+  ASSERT_EQ(vals[3], false, "2 > 3 should be false");
+  ASSERT_EQ(vals[4], true, "8 > 7 should be true");
+  ASSERT_EQ(vals[5], false, "0 > 0 should be false");
 
   freeMemory(mem);
 }
@@ -1855,15 +1855,18 @@ static void test_greater_or_equal_and_less_or_equal(void) {
   r = LessThanOrEqual(&ctx, a, b, &le);
   ASSERT_EQ(r, OK, "LessThanOrEqual should return OK");
 
-  i8 *geVals = (i8 *)ge.values;
-  ASSERT_EQ(geVals[0], 0, "1 >= 2 should be false");
-  ASSERT_EQ(geVals[1], 1, "4 >= 4 should be true");
-  ASSERT_EQ(geVals[2], 1, "5 >= 3 should be true");
+  ASSERT_EQ(ge.dtype, BOOL, "GreaterThanOrEqual should return BOOL dtype");
+  ASSERT_EQ(le.dtype, BOOL, "LessThanOrEqual should return BOOL dtype");
 
-  i8 *leVals = (i8 *)le.values;
-  ASSERT_EQ(leVals[0], 1, "1 <= 2 should be true");
-  ASSERT_EQ(leVals[1], 1, "4 <= 4 should be true");
-  ASSERT_EQ(leVals[2], 0, "5 <= 3 should be false");
+  bool *geVals = (bool *)ge.values;
+  ASSERT_EQ(geVals[0], false, "1 >= 2 should be false");
+  ASSERT_EQ(geVals[1], true, "4 >= 4 should be true");
+  ASSERT_EQ(geVals[2], true, "5 >= 3 should be true");
+
+  bool *leVals = (bool *)le.values;
+  ASSERT_EQ(leVals[0], true, "1 <= 2 should be true");
+  ASSERT_EQ(leVals[1], true, "4 <= 4 should be true");
+  ASSERT_EQ(leVals[2], false, "5 <= 3 should be false");
 
   freeMemory(mem);
 }
@@ -1886,18 +1889,19 @@ static void test_less_than_broadcast_row_vector(void) {
 
   Result r = LessThan(&ctx, a, b, &dest);
   ASSERT_EQ(r, OK, "LessThan with broadcast should return OK");
+  ASSERT_EQ(dest.dtype, BOOL, "LessThan should return BOOL dtype");
   ASSERT_EQ(dest.shape.numOfDims, 2, "LessThan result should keep rank");
   ASSERT_EQ(dest.shape.dims[0], 2, "LessThan result dim 0 should be 2");
   ASSERT_EQ(dest.shape.dims[1], 3, "LessThan result dim 1 should be 3");
 
-  i8 *vals = (i8 *)dest.values;
+  bool *vals = (bool *)dest.values;
   // [[1<2,4<2,3<7],[5<2,2<2,7<7]] => [[1,0,1],[0,0,0]]
-  ASSERT_EQ(vals[0], 1, "result[0,0] should be true");
-  ASSERT_EQ(vals[1], 0, "result[0,1] should be false");
-  ASSERT_EQ(vals[2], 1, "result[0,2] should be true");
-  ASSERT_EQ(vals[3], 0, "result[1,0] should be false");
-  ASSERT_EQ(vals[4], 0, "result[1,1] should be false");
-  ASSERT_EQ(vals[5], 0, "result[1,2] should be false");
+  ASSERT_EQ(vals[0], true, "result[0,0] should be true");
+  ASSERT_EQ(vals[1], false, "result[0,1] should be false");
+  ASSERT_EQ(vals[2], true, "result[0,2] should be true");
+  ASSERT_EQ(vals[3], false, "result[1,0] should be false");
+  ASSERT_EQ(vals[4], false, "result[1,1] should be false");
+  ASSERT_EQ(vals[5], false, "result[1,2] should be false");
 
   freeMemory(mem);
 }

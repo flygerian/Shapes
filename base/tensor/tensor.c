@@ -215,6 +215,14 @@ Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result)
 void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep,
                               void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
   switch (dtype) {
+    case BOOL: {
+      bool *d = (bool *)destValues;
+      bool *s = (bool *)srcValues;
+      for (u64 i = 0; i < count; i++) {
+        d[destBase + i * destStep] = d[destBase + i * destStep] || s[srcBase + i * srcStep];
+      }
+      break;
+    }
     case U8: {
       u8 *d = (u8 *)destValues;
       u8 *s = (u8 *)srcValues;

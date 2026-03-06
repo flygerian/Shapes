@@ -6,6 +6,11 @@
 #include "value.h"
 #include "unary.h"
 
+static bool isComparisonOp(OpType opType) {
+  return opType == OP_GREATER || opType == OP_GREATER_OR_EQUAL || opType == OP_LESS ||
+         opType == OP_LESS_OR_EQUAL;
+}
+
 static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
   if (a->dtype != b->dtype) {
     return ERR_DTYPE_MISMATCH;
@@ -37,7 +42,12 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
     outputShape = opB->shape;
   }
 
-  Tensor *output = t_Zeros(ctx, outputShape, opA->dtype);
+  Dtype outputDtype = opA->dtype;
+  if (isComparisonOp(opType)) {
+    outputDtype = BOOL;
+  }
+
+  Tensor *output = t_Zeros(ctx, outputShape, outputDtype);
 
   dim_t currentCoord[output->shape.numOfDims];
   dim_t aCoords[output->shape.numOfDims];
@@ -64,10 +74,10 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
       case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      case OP_GREATER: VALUE_BINOP(result, aVal, bVal, >); break;
-      case OP_GREATER_OR_EQUAL: VALUE_BINOP(result, aVal, bVal, >=); break;
-      case OP_LESS: VALUE_BINOP(result, aVal, bVal, <); break;
-      case OP_LESS_OR_EQUAL: VALUE_BINOP(result, aVal, bVal, <=); break;
+      case OP_GREATER: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >, opA->dtype)); break;
+      case OP_GREATER_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >=, opA->dtype)); break;
+      case OP_LESS: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <, opA->dtype)); break;
+      case OP_LESS_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <=, opA->dtype)); break;
 
       default: return ERR_NOT_A_BINOP;
     }
@@ -183,7 +193,7 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
 }
 
 Result GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_GREATER);
+   binaryOp(ctx, a, b, destination, OP_GREATER);
 }
 
 Result GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {

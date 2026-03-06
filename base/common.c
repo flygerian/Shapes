@@ -3,6 +3,7 @@
 
 size_t getBytesForDtype(Dtype type) {
   switch (type) {
+    case BOOL: return sizeof(bool);
     case U8: return sizeof(u8);
     case U16: return sizeof(u16);
     case U32: return sizeof(u32);
@@ -17,4 +18,3 @@ size_t getBytesForDtype(Dtype type) {
     default: return 0;
   }
 }
-
