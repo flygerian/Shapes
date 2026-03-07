@@ -311,6 +311,26 @@ Result wrap_Dot(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
   return r;
 }
 
+Result wrap_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = DenseLinear(ctx, x, w, b, withBias, dest);
+  *out = dest;
+  return r;
+}
+
+Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
+                              Tensor **dX, Tensor **dGamma, Tensor **dBeta) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dGammaLocal = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dBetaLocal = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = BatchNormBackward(ctx, x2d, grad2d, gamma, epsilon, dx, dGammaLocal, dBetaLocal);
+  *dX = dx;
+  *dGamma = dGammaLocal;
+  *dBeta = dBetaLocal;
+  return r;
+}
+
 Result wrap_Slice1(Context *ctx, Tensor *src, Tensor **out, Range *r) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result res = Slice(ctx, src, dest, r[0]);

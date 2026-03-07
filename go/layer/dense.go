@@ -50,11 +50,7 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	}
 
 	// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
-	d.o = input.Mul(fusedCtx, d.w.Transpose(fusedCtx))
-
-	if d.isBiasApplied {
-		d.o = d.o.Plus(fusedCtx, d.b)
-	}
+	d.o = shapes.DenseLinear(fusedCtx, input, d.w, d.b, d.isBiasApplied)
 
 	// If 1D input, squeeze back to 1D output.
 	if is1D {

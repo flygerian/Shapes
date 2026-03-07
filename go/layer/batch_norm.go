@@ -130,36 +130,9 @@ func constructBatchNormBackwardPass(ctx shapes.Context, node shapes.ComputationG
 
 	x2d, originalShape := reshapeToBatchFeature2D(noGraphCtx, x, numFeatures)
 	grad2d, _ := reshapeToBatchFeature2D(noGraphCtx, node.Grad().(shapes.Tensor), numFeatures)
-
-	mean := x2d.Mean(noGraphCtx, 0)
-	centered := x2d.Minus(noGraphCtx, mean)
-	variance := centered.Pow(noGraphCtx, 2).Mean(noGraphCtx, 0)
-	eps := shapes.Float(noGraphCtx, variance.Shape(), epsilon)
-	invStd := variance.Plus(noGraphCtx, eps).Pow(noGraphCtx, -0.5)
-	xHat := centered.Times(noGraphCtx, invStd)
-
-	// dBeta = sum(dY, dim=0)
-	dBeta2d := grad2d.Sum(noGraphCtx, 0)
-	dBeta := dBeta2d.Squeeze(noGraphCtx)
+	dX2d, dGamma, dBeta := shapes.BatchNormBackward(noGraphCtx, x2d, grad2d, gamma, epsilon)
 	beta.Grad().Accumulate(noGraphCtx, dBeta)
-
-	// dGamma = sum(dY * xHat, dim=0)
-	dGamma2d := grad2d.Times(noGraphCtx, xHat).Sum(noGraphCtx, 0)
-	dGamma := dGamma2d.Squeeze(noGraphCtx)
 	gamma.Grad().Accumulate(noGraphCtx, dGamma)
-
-	// dX = (1/m) * invStd * (m*dY*gamma - sum(dY*gamma) - xHat*sum((dY*gamma)*xHat))
-	dXHat := grad2d.Times(noGraphCtx, gamma)
-	sumDXHat := dXHat.Sum(noGraphCtx, 0)
-	sumDXHatXHat := dXHat.Times(noGraphCtx, xHat).Sum(noGraphCtx, 0)
-
-	m := float32(getBatchSizeFor2D(x2d.Shape()))
-	mTensor := shapes.Float(noGraphCtx, xHat.Shape(), m)
-
-	numerator := dXHat.Times(noGraphCtx, mTensor).
-		Minus(noGraphCtx, sumDXHat).
-		Minus(noGraphCtx, xHat.Times(noGraphCtx, sumDXHatXHat))
-	dX2d := invStd.Times(noGraphCtx, numerator).Divide(noGraphCtx, mTensor)
 
 	var dX shapes.Tensor
 	if len(originalShape) == 1 {

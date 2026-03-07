@@ -61,6 +61,9 @@ Tensor *wrap_T_Arange(Context *ctx, f32 start, f32 end, f32 step);
 
 Result wrap_MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor **out);
 Result wrap_Dot(Context *ctx, Tensor *a, Tensor *b, Tensor **out);
+Result wrap_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor **out);
+Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
+                              Tensor **dX, Tensor **dGamma, Tensor **dBeta);
 
 Result wrap_Slice1(Context *ctx, Tensor *src, Tensor **out, Range *r);
 Result wrap_Slice2(Context *ctx, Tensor *src, Tensor **out, Range *r);
