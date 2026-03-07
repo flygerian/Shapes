@@ -39,14 +39,24 @@ func (bn *batchNorm) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor 
 	)
 
 	x2d, originalShape := reshapeToBatchFeature2D(fusedCtx, x, bn.numFeatures)
-
-	mean, variance := bn.resolveStatsForForward(ctx, fusedCtx, x2d)
-	centered := x2d.Minus(fusedCtx, mean)
-	eps := shapes.Float(fusedCtx, variance.Shape(), bn.epsilon)
-	invStd := variance.Plus(fusedCtx, eps).Pow(fusedCtx, -0.5)
-	xHat := centered.Times(fusedCtx, invStd)
-
-	bnOut2d := xHat.Times(fusedCtx, bn.gamma).Plus(fusedCtx, bn.beta)
+	var bnOut2d shapes.Tensor
+	if ctx.IsTraining() || !bn.runningStatsInitialized {
+		// Fused training path computes output + batch stats in one C call.
+		var mean, variance shapes.Tensor
+		bnOut2d, mean, variance = shapes.BatchNormForwardTraining(fusedCtx, x2d, bn.gamma, bn.beta, bn.epsilon)
+		if ctx.IsTraining() {
+			bn.updateRunningStats(mean, variance)
+		}
+	} else {
+		statsShape := shapes.Shape{uint(bn.numFeatures)}
+		mean := shapes.FromFloat32(fusedCtx, statsShape, bn.runningMean)
+		variance := shapes.FromFloat32(fusedCtx, statsShape, bn.runningVar)
+		centered := x2d.Minus(fusedCtx, mean)
+		eps := shapes.Float(fusedCtx, variance.Shape(), bn.epsilon)
+		invStd := variance.Plus(fusedCtx, eps).Pow(fusedCtx, -0.5)
+		xHat := centered.Times(fusedCtx, invStd)
+		bnOut2d = xHat.Times(fusedCtx, bn.gamma).Plus(fusedCtx, bn.beta)
+	}
 
 	if len(originalShape) == 1 {
 		bn.o = bnOut2d.Squeeze(fusedCtx)
@@ -61,29 +71,6 @@ func (bn *batchNorm) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor 
 	)
 
 	return bn.o
-}
-
-func (bn *batchNorm) resolveStatsForForward(
-	ctx shapes.Context,
-	fusedCtx shapes.Context,
-	x2d shapes.Tensor,
-) (shapes.Tensor, shapes.Tensor) {
-	if !ctx.IsTraining() && bn.runningStatsInitialized {
-		statsShape := shapes.Shape{uint(bn.numFeatures)}
-		mean := shapes.FromFloat32(fusedCtx, statsShape, bn.runningMean)
-		variance := shapes.FromFloat32(fusedCtx, statsShape, bn.runningVar)
-		return mean, variance
-	}
-
-	mean := x2d.Mean(fusedCtx, 0)
-	centered := x2d.Minus(fusedCtx, mean)
-	variance := centered.Pow(fusedCtx, 2).Mean(fusedCtx, 0)
-
-	if ctx.IsTraining() {
-		bn.updateRunningStats(mean, variance)
-	}
-
-	return mean, variance
 }
 
 func (bn *batchNorm) updateRunningStats(mean, variance shapes.Tensor) {

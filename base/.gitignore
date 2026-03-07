@@ -1,7 +1,10 @@
-build
+base/build
+base/build-*
 .cache
 *.a
 *.o
 *.so
 *.dylib
 build/openblas
+.prof
+

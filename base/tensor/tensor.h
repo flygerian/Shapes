@@ -68,6 +68,10 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
 
 // Layer ops
 Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor *dest);
+Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
+                     Tensor *dB);
+Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
+                                Tensor *out, Tensor *mean, Tensor *variance);
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
 

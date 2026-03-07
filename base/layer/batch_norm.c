@@ -42,8 +42,186 @@ static Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, D
   return OK;
 }
 
+Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
+                                Tensor *out, Tensor *mean, Tensor *variance) {
+  // Training forward expects flattened activations:
+  // x2d: [m, n] where m=batch/items and n=features/channels.
+  // gamma, beta: [n] affine parameters.
+  // Outputs:
+  // out: [m, n], mean: [n], variance: [n].
+  if (isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (x2d->dtype != gamma->dtype || x2d->dtype != beta->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  dim_t m = x2d->shape.dims[0];
+  dim_t n = x2d->shape.dims[1];
+  if (gamma->shape.dims[0] != n || beta->shape.dims[0] != n) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  // Go may pass views/slices; normalize to contiguous buffers for tight loops.
+  Tensor *xContig = x2d;
+  Tensor *gammaContig = gamma;
+  Tensor *betaContig = beta;
+
+  if (!xContig->isContigous) {
+    xContig = copyToContiguous(ctx, xContig);
+  }
+  if (!gammaContig->isContigous) {
+    gammaContig = copyToContiguous(ctx, gammaContig);
+  }
+  if (!betaContig->isContigous) {
+    betaContig = copyToContiguous(ctx, betaContig);
+  }
+
+  Result res = init2DTensor(ctx, out, m, n, x2d->dtype);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = init1DTensor(ctx, mean, n, x2d->dtype);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = init1DTensor(ctx, variance, n, x2d->dtype);
+  if (res != OK) {
+    goto cleanup;
+  }
+
+  if (x2d->dtype == F64) {
+    double *xVals = xContig->values;
+    double *gammaVals = gammaContig->values;
+    double *betaVals = betaContig->values;
+    double *outVals = out->values;
+    double *meanVals = mean->values;
+    double *varVals = variance->values;
+    double *invStd = allocate(ctx->memory, sizeof(double) * n);
+
+    // Initialize per-feature accumulators.
+    for (tensor_size_t j = 0; j < n; j++) {
+      meanVals[j] = 0.0;
+      varVals[j] = 0.0;
+    }
+
+    // 1) mean over batch axis for each feature.
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        meanVals[j] += xVals[row + j];
+      }
+    }
+
+    double mAsDouble = (double)m;
+    for (tensor_size_t j = 0; j < n; j++) {
+      meanVals[j] /= mAsDouble;
+    }
+
+    // 2) variance over batch axis for each feature.
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        double centered = xVals[row + j] - meanVals[j];
+        varVals[j] += centered * centered;
+      }
+    }
+
+    for (tensor_size_t j = 0; j < n; j++) {
+      varVals[j] /= mAsDouble;
+      invStd[j] = 1.0 / sqrt(varVals[j] + (double)epsilon);
+    }
+
+    // 3) normalize, then apply learned scale (gamma) and shift (beta).
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        double xHat = (xVals[row + j] - meanVals[j]) * invStd[j];
+        outVals[row + j] = xHat * gammaVals[j] + betaVals[j];
+      }
+    }
+
+    freeAlloc(ctx->memory, invStd);
+  } else {
+    float *xVals = xContig->values;
+    float *gammaVals = gammaContig->values;
+    float *betaVals = betaContig->values;
+    float *outVals = out->values;
+    float *meanVals = mean->values;
+    float *varVals = variance->values;
+    float *invStd = allocate(ctx->memory, sizeof(float) * n);
+
+    // Initialize per-feature accumulators.
+    for (tensor_size_t j = 0; j < n; j++) {
+      meanVals[j] = 0.0f;
+      varVals[j] = 0.0f;
+    }
+
+    // 1) mean over batch axis for each feature.
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        meanVals[j] += xVals[row + j];
+      }
+    }
+
+    float mAsFloat = (float)m;
+    for (tensor_size_t j = 0; j < n; j++) {
+      meanVals[j] /= mAsFloat;
+    }
+
+    // 2) variance over batch axis for each feature.
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        float centered = xVals[row + j] - meanVals[j];
+        varVals[j] += centered * centered;
+      }
+    }
+
+    for (tensor_size_t j = 0; j < n; j++) {
+      varVals[j] /= mAsFloat;
+      invStd[j] = 1.0f / sqrtf(varVals[j] + epsilon);
+    }
+
+    // 3) normalize, then apply learned scale (gamma) and shift (beta).
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        float xHat = (xVals[row + j] - meanVals[j]) * invStd[j];
+        outVals[row + j] = xHat * gammaVals[j] + betaVals[j];
+      }
+    }
+
+    freeAlloc(ctx->memory, invStd);
+  }
+
+cleanup:
+  if (xContig != x2d) {
+    FreeTensor(ctx, xContig);
+  }
+  if (gammaContig != gamma) {
+    FreeTensor(ctx, gammaContig);
+  }
+  if (betaContig != beta) {
+    FreeTensor(ctx, betaContig);
+  }
+  return res;
+}
+
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta) {
+  // Backward uses the same flattened [m, n] layout:
+  // grad2d is dL/dy, gamma is [n], outputs are dX [m, n], dGamma [n], dBeta [n].
   if (isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -67,6 +245,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     return ERR_DIM_MISMATCH;
   }
 
+  // Keep backward math on packed memory for predictable stride-1 access.
   Tensor *xContig = x2d;
   Tensor *gradContig = grad2d;
   Tensor *gammaContig = gamma;
@@ -109,6 +288,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     double *sumDXHat = allocate(ctx->memory, sizeof(double) * n);
     double *sumDXHatXHat = allocate(ctx->memory, sizeof(double) * n);
 
+    // Recompute batch stats used by batch norm (matching forward training path).
     for (tensor_size_t j = 0; j < n; j++) {
       mean[j] = 0.0;
       var[j] = 0.0;
@@ -119,6 +299,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       sumDXHatXHat[j] = 0.0;
     }
 
+    // 1) Recompute mean per feature.
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -131,6 +312,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       mean[j] /= mAsDouble;
     }
 
+    // 2) Recompute variance and inverse std per feature.
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -144,6 +326,8 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       invStd[j] = 1.0 / sqrt(var[j] + (double)epsilon);
     }
 
+    // 3) Accumulate parameter grads and helper sums for dX.
+    // dBeta = sum(dy), dGamma = sum(dy * xHat).
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -159,6 +343,8 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       }
     }
 
+    // 4) Closed-form dX:
+    // dX = invStd/m * (m*dxHat - sum(dxHat) - xHat*sum(dxHat*xHat)).
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -192,6 +378,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     float *sumDXHat = allocate(ctx->memory, sizeof(float) * n);
     float *sumDXHatXHat = allocate(ctx->memory, sizeof(float) * n);
 
+    // Recompute batch stats used by batch norm (matching forward training path).
     for (tensor_size_t j = 0; j < n; j++) {
       mean[j] = 0.0f;
       var[j] = 0.0f;
@@ -202,6 +389,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       sumDXHatXHat[j] = 0.0f;
     }
 
+    // 1) Recompute mean per feature.
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -214,6 +402,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       mean[j] /= mAsFloat;
     }
 
+    // 2) Recompute variance and inverse std per feature.
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -227,6 +416,8 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       invStd[j] = 1.0f / sqrtf(var[j] + epsilon);
     }
 
+    // 3) Accumulate parameter grads and helper sums for dX.
+    // dBeta = sum(dy), dGamma = sum(dy * xHat).
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
@@ -242,6 +433,8 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       }
     }
 
+    // 4) Closed-form dX:
+    // dX = invStd/m * (m*dxHat - sum(dxHat) - xHat*sum(dxHat*xHat)).
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {

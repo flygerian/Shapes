@@ -34,6 +34,53 @@ func DenseLinear(ctx Context, x Tensor, w Tensor, b Tensor, withBias bool) Tenso
 	return track(ctx, &tensor{cTensor: dest})
 }
 
+func DenseBackward(ctx Context, x Tensor, w Tensor, gradOut Tensor) (Tensor, Tensor, Tensor) {
+	var dX *C.Tensor
+	var dW *C.Tensor
+	var dB *C.Tensor
+
+	result := C.wrap_DenseBackward(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		w.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		&dX,
+		&dW,
+		&dB,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX}),
+		track(ctx, &tensor{cTensor: dW}),
+		track(ctx, &tensor{cTensor: dB})
+}
+
+func BatchNormForwardTraining(ctx Context, x2d Tensor, gamma Tensor, beta Tensor, epsilon float32) (Tensor, Tensor, Tensor) {
+	var out *C.Tensor
+	var mean *C.Tensor
+	var variance *C.Tensor
+
+	result := C.wrap_BatchNormForwardTraining(
+		(*C.Context)(ctx.UnsafePtr()),
+		x2d.(*tensor).cTensor,
+		gamma.(*tensor).cTensor,
+		beta.(*tensor).cTensor,
+		C.f32(epsilon),
+		&out,
+		&mean,
+		&variance,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: out}),
+		track(ctx, &tensor{cTensor: mean}),
+		track(ctx, &tensor{cTensor: variance})
+}
+
 func BatchNormBackward(ctx Context, x2d Tensor, grad2d Tensor, gamma Tensor, epsilon float32) (Tensor, Tensor, Tensor) {
 	var dX *C.Tensor
 	var dGamma *C.Tensor

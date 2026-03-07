@@ -318,6 +318,32 @@ Result wrap_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool with
   return r;
 }
 
+Result wrap_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor **dX, Tensor **dW,
+                          Tensor **dB) {
+  Tensor *dxLocal = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dwLocal = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dbLocal = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = DenseBackward(ctx, x, w, gradOut, dxLocal, dwLocal, dbLocal);
+  *dX = dxLocal;
+  *dW = dwLocal;
+  *dB = dbLocal;
+  return r;
+}
+
+Result wrap_BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
+                                     Tensor **out, Tensor **mean, Tensor **variance) {
+  Tensor *outLocal = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *meanLocal = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *varLocal = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = BatchNormForwardTraining(ctx, x2d, gamma, beta, epsilon, outLocal, meanLocal, varLocal);
+  *out = outLocal;
+  *mean = meanLocal;
+  *variance = varLocal;
+  return r;
+}
+
 Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                               Tensor **dX, Tensor **dGamma, Tensor **dBeta) {
   Tensor *dx = allocate(ctx->memory, sizeof(Tensor));

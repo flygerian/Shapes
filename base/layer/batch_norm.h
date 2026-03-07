@@ -6,5 +6,7 @@
 
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
+Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
+                                Tensor *out, Tensor *mean, Tensor *variance);
 
 #endif

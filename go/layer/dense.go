@@ -81,21 +81,23 @@ func constructDenseBackwardPass(ctx shapes.Context, node shapes.ComputationGraph
 	w := hiddenState[0]
 	b := hiddenState[1]
 
-	// Forward: o = x @ wᵀ + b
-	grad := node.Grad().SafeUnSqueeze(noGraphCtx, 0)
+	x2d := x.SafeUnSqueeze(noGraphCtx, 0)
+	grad2d := node.Grad().SafeUnSqueeze(noGraphCtx, 0)
+	dX2d, dW, dB := shapes.DenseBackward(noGraphCtx, x2d, w, grad2d)
 
-	// ∂L/∂w = gradᵀ @ x  ([out, batch] @ [batch, in] = [out, in])
-	dW := grad.Transpose(noGraphCtx).Mul(noGraphCtx, x.SafeUnSqueeze(noGraphCtx, 0))
 	gradW := shapes.ReduceBroadcast(noGraphCtx, w, dW.(shapes.GradTensor))
 	w.Grad().Accumulate(noGraphCtx, gradW)
 
-	// ∂L/∂x = grad @ w  ([batch, out] @ [out, in] = [batch, in])
-	dX := grad.Mul(noGraphCtx, w)
+	var dX shapes.Tensor
+	if len(x.Shape()) == 1 {
+		dX = dX2d.Squeeze(noGraphCtx)
+	} else {
+		dX = dX2d
+	}
 	gradX := shapes.ReduceBroadcast(noGraphCtx, x, dX.(shapes.GradTensor))
 	x.Grad().Accumulate(noGraphCtx, gradX)
 
-	// ∂L/∂b = grad (reduced to match b's shape)
-	gradB := shapes.ReduceBroadcast(noGraphCtx, b, grad.(shapes.GradTensor))
+	gradB := shapes.ReduceBroadcast(noGraphCtx, b, dB.(shapes.GradTensor))
 	b.Grad().Accumulate(noGraphCtx, gradB)
 }
 
