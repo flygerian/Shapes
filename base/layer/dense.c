@@ -1,4 +1,4 @@
-#include "dense.h"
+#include "shapes.h"
 
 #include "../memory.h"
 #include "tensor/blas.h"

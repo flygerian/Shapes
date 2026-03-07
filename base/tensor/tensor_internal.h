@@ -1,7 +1,7 @@
 #ifndef shapes_tensor_internal_h
 #define shapes_tensor_internal_h
 
-#include "tensor.h"
+#include "../shapes.h"
 #include "value.h"
 #include <stddef.h>
 
@@ -42,7 +42,7 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
                               void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
 bool isIntType(Tensor *t);
-bool isFloatType(Tensor *t);
+bool isFloatNotType(Tensor *t);
 
 Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);

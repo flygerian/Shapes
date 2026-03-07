@@ -3,6 +3,7 @@
 #include "tensor_test.h"
 #include "unary_test.h"
 #include "cast_test.h"
+#include "sgd_test.h"
 
 int tests_passed = 0;
 int tests_failed = 0;
@@ -12,5 +13,6 @@ int main() {
   run_tensor_tests();
   run_unary_tests();
   run_cast_tests();
+  run_sgd_tests();
   TEST_SUMMARY();
 }

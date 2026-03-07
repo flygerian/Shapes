@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "memory.h"
-#include "tensor/tensor.h"
+#include "shapes.h"
 #include <stddef.h>
 
 Context *newContext(bool grad, size_t arenaSize);

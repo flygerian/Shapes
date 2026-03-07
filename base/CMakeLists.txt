@@ -58,6 +58,7 @@ add_library(shapes_core
     common.c
     layer/dense.c
     layer/batch_norm.c
+    optimizer/sgd.c
     tensor/tensor.c
     tensor/binary_op.c
     tensor/matrix_ops.c
@@ -86,6 +87,7 @@ add_executable(shapes_test
     cmd/test/tensor_test.c
     cmd/test/unary_test.c
     cmd/test/cast_test.c
+    cmd/test/sgd_test.c
 )
 target_link_libraries(shapes_test shapes_core)
 

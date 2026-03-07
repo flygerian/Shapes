@@ -1,10 +1,10 @@
-#ifndef shapes_tensor_h
-#define shapes_tensor_h
+#ifndef shapes_h
+#define shapes_h
 
+#include "common.h"
+#include "result/result.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "../common.h"
-#include "../result/result.h"
 
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
@@ -74,6 +74,10 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
                                 Tensor *out, Tensor *mean, Tensor *variance);
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
+
+// Optimizer ops
+Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
+           f32 learningRate);
 
 // Debug
 void PrintItem(Tensor *t);

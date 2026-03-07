@@ -1,4 +1,4 @@
-#include "batch_norm.h"
+#include "shapes.h"
 
 #include "../memory.h"
 #include "tensor/tensor_internal.h"

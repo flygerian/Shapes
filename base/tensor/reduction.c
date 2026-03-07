@@ -5,7 +5,7 @@
 #include <time.h>
 #include "common.h"
 #include "result/result.h"
-#include "tensor/tensor.h"
+#include "shapes.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include "../memory.h"
@@ -261,7 +261,7 @@ Result Std(Context *ctx, Tensor *t, Tensor *dest) {
     return ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES;
   }
 
-  if (isFloatType(t)) {
+  if (isFloatNotType(t)) {
     return ERR_STD_NOT_FLOAT_TYPE;
   }
 

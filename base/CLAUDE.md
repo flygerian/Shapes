@@ -145,5 +145,5 @@ Enforced by clang-format. Run `make -C build format` before all commits. Key poi
 - `.clang-format`, `.clang-tidy`: Tooling configuration
 - `CMakeLists.txt`: Build configuration, includes format/lint/check-format targets
 - `common.h`: Central type definitions, must read for understanding core types
-- `tensor/tensor.h`: Complete public tensor API
+- `shapes.h`: Complete public C API
 - `grad/grad.h`: Autograd system API

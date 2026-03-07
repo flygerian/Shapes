@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../tensor/tensor.h"
+#include "../../shapes.h"
 #include <string.h>
 
 typedef struct {

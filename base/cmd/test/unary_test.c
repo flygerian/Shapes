@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../tensor/tensor.h"
+#include "../../shapes.h"
 #include "../../tensor/tensor_internal.h"
 #include <math.h>
 #include <stdio.h>

@@ -25,6 +25,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/optimizer/sgd.c.o -c /home/olabode/repos/Shapes/base/optimizer/sgd.c",
+  "file": "/home/olabode/repos/Shapes/base/optimizer/sgd.c",
+  "output": "CMakeFiles/shapes_core.dir/optimizer/sgd.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/tensor.c.o -c /home/olabode/repos/Shapes/base/tensor/tensor.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/tensor.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/tensor.c.o"
@@ -124,5 +130,11 @@
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/sgd_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/sgd_test.c",
+  "file": "/home/olabode/repos/Shapes/base/cmd/test/sgd_test.c",
+  "output": "CMakeFiles/shapes_test.dir/cmd/test/sgd_test.c.o"
 }
 ]

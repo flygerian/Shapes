@@ -1,7 +1,7 @@
 #include "common.h"
 #include "../memory.h"
 #include "result/result.h"
-#include "tensor/tensor.h"
+#include "shapes.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include "unary.h"

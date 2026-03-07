@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <string.h>
-#include "tensor.h"
+#include "../shapes.h"
 #include "common.h"
 #include "tensor_internal.h"
 #include "value.h"
@@ -75,7 +75,7 @@ bool isIntType(Tensor *t) {
          t->dtype != U8 && t->dtype != U16 && t->dtype != U32 && t->dtype != U64;
 }
 
-bool isFloatType(Tensor *t) {
+bool isFloatNotType(Tensor *t) {
   return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
 }
 

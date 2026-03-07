@@ -1,4 +1,4 @@
-#include "../../tensor/tensor.h"
+#include "../../shapes.h"
 #include "common.h"
 #include <stdbool.h>
 #include <stdio.h>

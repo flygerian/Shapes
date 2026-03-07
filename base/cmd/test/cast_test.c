@@ -1,6 +1,6 @@
 #include "test.h"
 #include "common.h"
-#include "tensor/tensor.h"
+#include "shapes.h"
 #include "tensor/value.h"
 #include "memory.h"
 #include <string.h>
