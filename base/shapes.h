@@ -44,6 +44,7 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);
 // Unary
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
+Result Tanh(Context *ctx, Tensor *t, Tensor *dest);
 Result Negate(Context *ctx, Tensor *t, Tensor *dest);
 Result Log(Context *ctx, Tensor *t, Tensor *dest);
 Result Abs(Context *ctx, Tensor *t, Tensor *dest);
@@ -74,6 +75,12 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
                                 Tensor *out, Tensor *mean, Tensor *variance);
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
+
+// Loss ops
+Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor *loss,
+                           Tensor *probs);
+Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut,
+                            Tensor *dLogits);
 
 // Optimizer ops
 Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,

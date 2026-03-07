@@ -4,6 +4,7 @@
 #include "unary_test.h"
 #include "cast_test.h"
 #include "sgd_test.h"
+#include "layer_test.h"
 
 int tests_passed = 0;
 int tests_failed = 0;
@@ -14,5 +15,6 @@ int main() {
   run_unary_tests();
   run_cast_tests();
   run_sgd_tests();
+  run_layer_tests();
   TEST_SUMMARY();
 }

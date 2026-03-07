@@ -196,6 +196,13 @@ Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out) {
   return r;
 }
 
+Result wrap_Tanh(Context *ctx, Tensor *t, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = Tanh(ctx, t, dest);
+  *out = dest;
+  return r;
+}
+
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = Negate(ctx, t, dest);
@@ -221,6 +228,25 @@ Result wrap_Abs(Context *ctx, Tensor *t, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = Abs(ctx, t, dest);
   *out = dest;
+  return r;
+}
+
+Result wrap_CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor **loss,
+                                Tensor **probs) {
+  Tensor *lossLocal = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *probsLocal = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = CrossEntropyForward(ctx, yGround, logits, lossLocal, probsLocal);
+  *loss = lossLocal;
+  *probs = probsLocal;
+  return r;
+}
+
+Result wrap_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut,
+                                 Tensor **dLogits) {
+  Tensor *dLogitsLocal = allocate(ctx->memory, sizeof(Tensor));
+  Result r = CrossEntropyBackward(ctx, yGround, probs, gradOut, dLogitsLocal);
+  *dLogits = dLogitsLocal;
   return r;
 }
 

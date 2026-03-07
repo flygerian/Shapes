@@ -16,10 +16,10 @@ type dense struct {
 }
 
 func Dense(outerCtx shapes.Context, inputSize int, outputSize int, options ...denseLayerOption) Layer {
-
 	// Initialize the hidden state
 	initialization := (5 / 3) / (math.Pow(float64(inputSize), 0.5)) // Kaiming initalization ish
-	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}).Times(outerCtx, initialization)
+	scale := float32(initialization)
+	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}, -scale, scale)
 	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize)})
 
 	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}

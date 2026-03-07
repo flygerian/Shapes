@@ -58,6 +58,7 @@ add_library(shapes_core
     common.c
     layer/dense.c
     layer/batch_norm.c
+    loss/cross_entropy.c
     optimizer/sgd.c
     tensor/tensor.c
     tensor/binary_op.c
@@ -88,6 +89,7 @@ add_executable(shapes_test
     cmd/test/unary_test.c
     cmd/test/cast_test.c
     cmd/test/sgd_test.c
+    cmd/test/layer_test.c
 )
 target_link_libraries(shapes_test shapes_core)
 

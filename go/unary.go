@@ -11,6 +11,7 @@ import "C"
 type hasUnaryOps interface {
 	Pow(ctx Context, power float32) Tensor
 	Exp(ctx Context) Tensor
+	Tanh(ctx Context) Tensor
 	Negate(ctx Context) Tensor
 	Abs(ctx Context) Tensor
 	Log(ctx Context) Tensor
@@ -38,6 +39,16 @@ func (t *tensor) Pow(ctx Context, power float32) Tensor {
 func (t *tensor) Exp(ctx Context) Tensor {
 	var dest *C.Tensor
 	result := C.wrap_Exp((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	return track(ctx, &tensor{cTensor: dest})
+}
+
+// Tanh computes tanh(x) for every element, returning a new tensor.
+func (t *tensor) Tanh(ctx Context) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Tanh((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}

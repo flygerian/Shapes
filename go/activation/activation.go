@@ -8,18 +8,14 @@ import (
 // tanh(x) = (e^(2x) - 1) / (e^(2x) + 1)
 func Tanh(ctx shapes.Context, t shapes.Tensor) shapes.Tensor {
 	fusedCtx := ctx.Fused(shapes.WithInputs(t))
-
-	two := shapes.Float(fusedCtx, t.Shape(), 2.0)
-	ones := shapes.Float(fusedCtx, t.Shape(), 1.0)
-
-	exp2x := t.Times(fusedCtx, two).Exp(fusedCtx)
-	out := exp2x.Minus(fusedCtx, ones).Divide(fusedCtx, exp2x.Plus(fusedCtx, ones))
+	out := t.Tanh(fusedCtx)
 
 	fusedCtx.Finish(
 		shapes.WithResult(out),
 		shapes.WithOpType(shapes.OpTanh),
 		shapes.WithBackward(tanhBackward),
 	)
+
 	return out
 }
 

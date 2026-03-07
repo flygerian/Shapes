@@ -40,10 +40,15 @@ Result wrap_SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *s
 
 Result wrap_Pow(Context *ctx, Tensor *t, f32 power, Tensor **out);
 Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out);
+Result wrap_Tanh(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 Result wrap_Log(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Abs(Context *ctx, Tensor *t, Tensor **out);
+Result wrap_CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor **loss,
+                                Tensor **probs);
+Result wrap_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut,
+                                 Tensor **dLogits);
 
 Result wrap_Sum(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 Result wrap_Mean(Context *ctx, Tensor *t, dim_t dim, Tensor **out);

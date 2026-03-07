@@ -219,13 +219,14 @@ func (c *mainContext) Training(numEpochs int, options ...mainContextOption) Main
 
 	f, err := os.Create("profile.prof")
 	if err != nil {
-		msg := fmt.Sprintf("Could not open profile file", err)
+		msg := fmt.Sprintf("Could not open profile file: %v", err)
 		panic(msg)
 	}
 
 	err = pprof.StartCPUProfile(f)
 	if err != nil {
-		panic("Could not start CPU profile")
+		_ = f.Close()
+		return c
 	}
 
 	go startMemoryTicker(c)
