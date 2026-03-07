@@ -21,6 +21,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
+set_source_files_properties(base/tensor/binary_op.c
+  PROPERTIES COMPILE_FLAGS "-S -o /tmp/binary_op.s"
+)
+
+add_compile_options(-O3 -march=native -fopt-info-vec-missed -c)
 # Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)

@@ -1,115 +1,115 @@
 [
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_memory.dir/memory.c.o -c /home/olabode/repos/Shapes/base/memory.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_memory.dir/memory.c.o -c /home/olabode/repos/Shapes/base/memory.c",
   "file": "/home/olabode/repos/Shapes/base/memory.c",
   "output": "CMakeFiles/shapes_memory.dir/memory.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/common.c.o -c /home/olabode/repos/Shapes/base/common.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/common.c.o -c /home/olabode/repos/Shapes/base/common.c",
   "file": "/home/olabode/repos/Shapes/base/common.c",
   "output": "CMakeFiles/shapes_core.dir/common.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/tensor.c.o -c /home/olabode/repos/Shapes/base/tensor/tensor.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/tensor.c.o -c /home/olabode/repos/Shapes/base/tensor/tensor.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/tensor.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/tensor.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/binary_op.c.o -c /home/olabode/repos/Shapes/base/tensor/binary_op.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/binary_op.c.o -c /home/olabode/repos/Shapes/base/tensor/binary_op.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/binary_op.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/binary_op.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/matrix_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/matrix_ops.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/matrix_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/matrix_ops.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/matrix_ops.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/matrix_ops.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/shape_ops.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/shape_ops.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/shape_ops.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/access.c.o -c /home/olabode/repos/Shapes/base/tensor/access.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/access.c.o -c /home/olabode/repos/Shapes/base/tensor/access.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/access.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/access.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/reduction.c.o -c /home/olabode/repos/Shapes/base/tensor/reduction.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/reduction.c.o -c /home/olabode/repos/Shapes/base/tensor/reduction.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/reduction.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/reduction.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/creation.c.o -c /home/olabode/repos/Shapes/base/tensor/creation.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/creation.c.o -c /home/olabode/repos/Shapes/base/tensor/creation.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/creation.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/creation.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/destruction.c.o -c /home/olabode/repos/Shapes/base/tensor/destruction.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/destruction.c.o -c /home/olabode/repos/Shapes/base/tensor/destruction.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/destruction.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/destruction.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/unary.c.o -c /home/olabode/repos/Shapes/base/tensor/unary.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/unary.c.o -c /home/olabode/repos/Shapes/base/tensor/unary.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/unary.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/unary.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/cast.c.o -c /home/olabode/repos/Shapes/base/tensor/cast.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/cast.c.o -c /home/olabode/repos/Shapes/base/tensor/cast.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/cast.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/cast.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_core.dir/tensor/accumulate.c.o -c /home/olabode/repos/Shapes/base/tensor/accumulate.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/tensor/accumulate.c.o -c /home/olabode/repos/Shapes/base/tensor/accumulate.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/accumulate.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/accumulate.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes.dir/cmd/main/main.c.o -c /home/olabode/repos/Shapes/base/cmd/main/main.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes.dir/cmd/main/main.c.o -c /home/olabode/repos/Shapes/base/cmd/main/main.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/main/main.c",
   "output": "CMakeFiles/shapes.dir/cmd/main/main.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/main.c.o -c /home/olabode/repos/Shapes/base/cmd/test/main.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/main.c.o -c /home/olabode/repos/Shapes/base/cmd/test/main.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/main.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/main.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/memory_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/memory_test.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/memory_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/memory_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/memory_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/memory_test.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/tensor_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/tensor_test.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/tensor_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/tensor_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/tensor_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/tensor_test.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/unary_test.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/unary_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/unary_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/unary_test.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -o CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o -c /home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/test/cast_test.c",
   "output": "CMakeFiles/shapes_test.dir/cmd/test/cast_test.c.o"
 }

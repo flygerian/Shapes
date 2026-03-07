@@ -154,7 +154,7 @@ func MakeMore_2() {
 		return logits
 	}
 
-	numEpochs := 20000
+	numEpochs := 5000
 
 	trainingCtx := shapesCtx.Training(
 		numEpochs,

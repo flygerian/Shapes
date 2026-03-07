@@ -3,6 +3,8 @@ package shapes
 import (
 	stdctx "context"
 	"fmt"
+	"os"
+	"runtime/pprof"
 	"sync"
 	"time"
 	"unsafe"
@@ -214,6 +216,18 @@ func (c *mainContext) Training(numEpochs int, options ...mainContextOption) Main
 	c.initTrainingStats(numEpochs)
 	c.isTraining = true
 	applyMainContextOptions(c, options...)
+
+	f, err := os.Create("profile.prof")
+	if err != nil {
+		msg := fmt.Sprintf("Could not open profile file", err)
+		panic(msg)
+	}
+
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		panic("Could not start CPU profile")
+	}
+
 	go startMemoryTicker(c)
 
 	return c
@@ -422,6 +436,7 @@ func (sc *subContext) Finish(options ...subContextOption) {
 		sc.training.doneOnce.Do(func() {
 			sc.main().isTraining = false
 			close(sc.training.stats.TrainingDone)
+			pprof.StopCPUProfile()
 		})
 	}
 }
