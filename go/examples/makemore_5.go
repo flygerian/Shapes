@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"unicode"
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/activation"
@@ -18,45 +17,7 @@ import (
 	"github.com/flygerian/shapes/visual"
 )
 
-func makeSet(input string) []rune {
-	lookup := make(map[rune]bool)
-	var result []rune
-
-	for _, s := range input {
-
-		s = unicode.ToLower(s)
-		if lookup[s] {
-			continue
-		}
-
-		lookup[s] = true
-		result = append(result, s)
-	}
-
-	return result
-}
-
-func toAlphaPos(ch rune) int8 {
-	return int8(ch - 'a' + 1)
-}
-
-func printFromAphabetPos(positions []int8, itos map[int8]rune) string {
-	chars := make([]rune, len(positions))
-
-	for _, pos := range positions {
-		chars = append(chars, itos[pos])
-	}
-
-	return string(chars)
-}
-
-func newSection() {
-	fmt.Printf("\n\n................................................................................\n\n")
-}
-
-const Mb = 1024 * 1024
-
-func MakeMore_2() {
+func MakeMore_5() {
 	shapesCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(4096*Mb))
 	defer shapesCtx.Finish()
 
@@ -101,7 +62,7 @@ func MakeMore_2() {
 	fmt.Printf("stoi: %v", stoi)
 	fmt.Printf("itos: %v", itos)
 
-	const blockSize = 3
+	const blockSize = 8
 
 	var x [][]int8
 	var y []int8
@@ -126,8 +87,8 @@ func MakeMore_2() {
 
 	newSection()
 
-	embLayer := layer.Embedding(shapesCtx, 27, 30)
-	l1 := layer.Dense(shapesCtx, 90, 100, layer.WithBias(false))
+	embLayer := layer.Embedding(shapesCtx, 27, 10)
+	l1 := layer.Dense(shapesCtx, 80, 100, layer.WithBias(false))
 	l2 := layer.Dense(shapesCtx, 100, 100, layer.WithBias(false))
 	l3 := layer.Dense(shapesCtx, 100, 27)
 
@@ -138,7 +99,7 @@ func MakeMore_2() {
 	crossEnthropy := loss.CrossEntropy()
 
 	forward := func(ctx shapes.EpochContext, xBatch shapes.Tensor) shapes.Tensor {
-		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 90))
+		h := l1.Forward(ctx, xBatch.Reshape(ctx, int(xBatch.Shape()[0]), -1))
 		h = bn1.Forward(ctx, h)
 		h = activation.Tanh(ctx, h)
 
@@ -154,7 +115,7 @@ func MakeMore_2() {
 		return logits
 	}
 
-	numEpochs := 20000
+	numEpochs := 50000
 
 	trainingCtx := shapesCtx.Training(
 		numEpochs,
