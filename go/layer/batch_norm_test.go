@@ -188,3 +188,103 @@ func TestBatchNormInferenceUsesRunningStats(t *testing.T) {
 		}
 	}
 }
+
+func TestBatchNorm2dReturnsResult(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	bn := BatchNorm2d(ctx, 2)
+	x := shapes.Float(ctx, shapes.Shape{2, 2, 3, 3}, 1.0)
+
+	o := bn.Forward(ctx, x)
+	shape := o.Shape()
+	if len(shape) != 4 || shape[0] != 2 || shape[1] != 2 || shape[2] != 3 || shape[3] != 3 {
+		t.Fatalf("expected shape [2,2,3,3], got %v", shape)
+	}
+}
+
+func TestBatchNorm2dNormalizesPerChannel(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	bn := BatchNorm2d(ctx, 2)
+	x := shapes.FromFloat32(ctx, shapes.Shape{1, 2, 2, 2}, []float32{
+		1.0, 3.0,
+		5.0, 7.0,
+		2.0, 4.0,
+		6.0, 8.0,
+	})
+
+	o := bn.Forward(ctx, x)
+
+	denom := float32(math.Sqrt(5.0 + defaultBatchNormEpsilon))
+	tests := []struct {
+		n, c, h, w uint32
+		want       float32
+	}{
+		{0, 0, 0, 0, -3.0 / denom},
+		{0, 0, 0, 1, -1.0 / denom},
+		{0, 0, 1, 0, 1.0 / denom},
+		{0, 0, 1, 1, 3.0 / denom},
+		{0, 1, 0, 0, -3.0 / denom},
+		{0, 1, 0, 1, -1.0 / denom},
+		{0, 1, 1, 0, 1.0 / denom},
+		{0, 1, 1, 1, 3.0 / denom},
+	}
+
+	for _, tt := range tests {
+		got := o.Get(ctx, tt.n, tt.c, tt.h, tt.w).Item().(float32)
+		if math.Abs(float64(got-tt.want)) > 1e-4 {
+			t.Fatalf("BatchNorm2d[%d,%d,%d,%d] = %f, want %f", tt.n, tt.c, tt.h, tt.w, got, tt.want)
+		}
+	}
+}
+
+func TestBatchNorm2dBackward(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	bn := BatchNorm2d(ctx, 2)
+	x := shapes.Float(ctx, shapes.Shape{1, 2, 2, 2}, 1.0)
+
+	o := bn.Forward(ctx, x)
+	o.Backward(ctx)
+
+	xGrad := o.Inputs()[0].Grad()
+	shape := xGrad.Shape()
+	if len(shape) != 4 || shape[0] != 1 || shape[1] != 2 || shape[2] != 2 || shape[3] != 2 {
+		t.Fatalf("expected x grad shape [1,2,2,2], got %v", shape)
+	}
+}
+
+func TestBatchNorm2dPanicsOnNon4DInput(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	bn := BatchNorm2d(ctx, 2)
+	x := shapes.Float(ctx, shapes.Shape{2, 2, 2}, 1.0)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for non-4D input, got nil")
+		}
+	}()
+
+	bn.Forward(ctx, x)
+}
+
+func TestBatchNorm2dPanicsOnMismatchedChannelSize(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	bn := BatchNorm2d(ctx, 3)
+	x := shapes.Float(ctx, shapes.Shape{1, 2, 2, 2}, 1.0)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for mismatched channel size, got nil")
+		}
+	}()
+
+	bn.Forward(ctx, x)
+}

@@ -26,6 +26,22 @@ func transposeBackward(ctx Context, node ComputationGraphNode) {
 	x.Grad().Accumulate(noGraphCtx, gradX)
 }
 
+// permuteBackward applies the inverse permutation to map output grad back to input layout.
+func permuteBackward(ctx Context, node ComputationGraphNode) {
+	noGraphCtx := ctx.Backward()
+	defer noGraphCtx.Finish()
+
+	x := node.Inputs()[0]
+	dims := node.Metadata().([]uint)
+	inverse := make([]uint, len(dims))
+	for outAxis, inAxis := range dims {
+		inverse[inAxis] = uint(outAxis)
+	}
+
+	gradX := node.Grad().Permute(noGraphCtx, inverse...)
+	x.Grad().Accumulate(noGraphCtx, gradX)
+}
+
 // squeezeBackward reshapes the gradient back to the input's original shape.
 func squeezeBackward(ctx Context, node ComputationGraphNode) {
 	noGraphCtx := ctx.Backward()

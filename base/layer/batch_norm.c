@@ -65,9 +65,9 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t m = x2d->shape.dims[0];
-  dim_t n = x2d->shape.dims[1];
-  if (gamma->shape.dims[0] != n || beta->shape.dims[0] != n) {
+  dim_t batchSize = x2d->shape.dims[0];
+  dim_t numFeatures = x2d->shape.dims[1];
+  if (gamma->shape.dims[0] != numFeatures || beta->shape.dims[0] != numFeatures) {
     return ERR_DIM_MISMATCH;
   }
 
@@ -86,119 +86,122 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     betaContig = copyToContiguous(ctx, betaContig);
   }
 
-  Result res = init2DTensor(ctx, out, m, n, x2d->dtype);
+  Result res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
-  res = init1DTensor(ctx, mean, n, x2d->dtype);
+  res = init1DTensor(ctx, mean, numFeatures, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
-  res = init1DTensor(ctx, variance, n, x2d->dtype);
+  res = init1DTensor(ctx, variance, numFeatures, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
 
   if (x2d->dtype == F64) {
-    double *xVals = xContig->values;
-    double *gammaVals = gammaContig->values;
-    double *betaVals = betaContig->values;
-    double *outVals = out->values;
-    double *meanVals = mean->values;
-    double *varVals = variance->values;
-    double *invStd = allocate(ctx->memory, sizeof(double) * n);
+    f64 *xVals = xContig->values;
+    f64 *gammaVals = gammaContig->values;
+    f64 *betaVals = betaContig->values;
+    f64 *outVals = out->values;
+
+    // Mean and variance across batch (dim 0), one value per feature/column.
+    f64 *meanAcrossBatch = mean->values;
+    f64 *varianceAcrossBatch = variance->values;
+
+    f64 *invStd = allocate(ctx->memory, sizeof(f64) * numFeatures);
 
     // Initialize per-feature accumulators.
-    for (tensor_size_t j = 0; j < n; j++) {
-      meanVals[j] = 0.0;
-      varVals[j] = 0.0;
+    for (tensor_size_t j = 0; j < numFeatures; j++) {
+      meanAcrossBatch[j] = 0.0;
+      varianceAcrossBatch[j] = 0.0;
     }
 
     // 1) mean over batch axis for each feature.
-    for (tensor_size_t i = 0; i < m; i++) {
-      tensor_size_t row = i * n;
-      for (tensor_size_t j = 0; j < n; j++) {
-        meanVals[j] += xVals[row + j];
+    for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
+      tensor_size_t row = currentBatch * numFeatures;
+      for (tensor_size_t col = 0; col < numFeatures; col++) {
+        meanAcrossBatch[col] += xVals[row + col];
       }
     }
 
-    double mAsDouble = (double)m;
-    for (tensor_size_t j = 0; j < n; j++) {
-      meanVals[j] /= mAsDouble;
+    f64 mAsDouble = (f64)batchSize;
+    for (tensor_size_t j = 0; j < numFeatures; j++) {
+      meanAcrossBatch[j] /= mAsDouble;
     }
 
     // 2) variance over batch axis for each feature.
-    for (tensor_size_t i = 0; i < m; i++) {
-      tensor_size_t row = i * n;
-      for (tensor_size_t j = 0; j < n; j++) {
-        double centered = xVals[row + j] - meanVals[j];
-        varVals[j] += centered * centered;
+    for (tensor_size_t i = 0; i < batchSize; i++) {
+      tensor_size_t row = i * numFeatures;
+      for (tensor_size_t col = 0; col < numFeatures; col++) {
+        f64 centered = xVals[row + col] - meanAcrossBatch[col];
+        varianceAcrossBatch[col] += centered * centered;
       }
     }
 
-    for (tensor_size_t j = 0; j < n; j++) {
-      varVals[j] /= mAsDouble;
-      invStd[j] = 1.0 / sqrt(varVals[j] + (double)epsilon);
+    for (tensor_size_t j = 0; j < numFeatures; j++) {
+      varianceAcrossBatch[j] /= mAsDouble;
+      invStd[j] = 1.0 / sqrt(varianceAcrossBatch[j] + (f64)epsilon);
     }
 
     // 3) normalize, then apply learned scale (gamma) and shift (beta).
-    for (tensor_size_t i = 0; i < m; i++) {
-      tensor_size_t row = i * n;
-      for (tensor_size_t j = 0; j < n; j++) {
-        double xHat = (xVals[row + j] - meanVals[j]) * invStd[j];
-        outVals[row + j] = xHat * gammaVals[j] + betaVals[j];
+    for (tensor_size_t i = 0; i < batchSize; i++) {
+      tensor_size_t row = i * numFeatures;
+      for (tensor_size_t col = 0; col < numFeatures; col++) {
+        f64 xHat = (xVals[row + col] - meanAcrossBatch[col]) * invStd[col];
+        outVals[row + col] = xHat * gammaVals[col] + betaVals[col];
       }
     }
 
     freeAlloc(ctx->memory, invStd);
   } else {
-    float *xVals = xContig->values;
-    float *gammaVals = gammaContig->values;
-    float *betaVals = betaContig->values;
-    float *outVals = out->values;
-    float *meanVals = mean->values;
-    float *varVals = variance->values;
-    float *invStd = allocate(ctx->memory, sizeof(float) * n);
+    f32 *xVals = xContig->values;
+    f32 *gammaVals = gammaContig->values;
+    f32 *betaVals = betaContig->values;
+    f32 *outVals = out->values;
+    f32 *meanAcrossBatch = mean->values;
+    f32 *varianceAcrossBatch = variance->values;
+    f32 *invStd = allocate(ctx->memory, sizeof(f32) * numFeatures);
 
     // Initialize per-feature accumulators.
-    for (tensor_size_t j = 0; j < n; j++) {
-      meanVals[j] = 0.0f;
-      varVals[j] = 0.0f;
+    for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+      meanAcrossBatch[feature] = 0.0f;
+      varianceAcrossBatch[feature] = 0.0f;
     }
 
     // 1) mean over batch axis for each feature.
-    for (tensor_size_t i = 0; i < m; i++) {
-      tensor_size_t row = i * n;
-      for (tensor_size_t j = 0; j < n; j++) {
-        meanVals[j] += xVals[row + j];
+    for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
+      tensor_size_t row = currentBatch * numFeatures;
+      for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+        meanAcrossBatch[feature] += xVals[row + feature];
       }
     }
 
-    float mAsFloat = (float)m;
-    for (tensor_size_t j = 0; j < n; j++) {
-      meanVals[j] /= mAsFloat;
+    f32 batchAsFloat = (f32)batchSize;
+    for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+      meanAcrossBatch[feature] /= batchAsFloat;
     }
 
     // 2) variance over batch axis for each feature.
-    for (tensor_size_t i = 0; i < m; i++) {
-      tensor_size_t row = i * n;
-      for (tensor_size_t j = 0; j < n; j++) {
-        float centered = xVals[row + j] - meanVals[j];
-        varVals[j] += centered * centered;
+    for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
+      tensor_size_t row = currentBatch * numFeatures;
+      for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+        f32 centered = xVals[row + feature] - meanAcrossBatch[feature];
+        varianceAcrossBatch[feature] += centered * centered;
       }
     }
 
-    for (tensor_size_t j = 0; j < n; j++) {
-      varVals[j] /= mAsFloat;
-      invStd[j] = 1.0f / sqrtf(varVals[j] + epsilon);
+    for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+      varianceAcrossBatch[feature] /= batchAsFloat;
+      invStd[feature] = 1.0f / sqrtf(varianceAcrossBatch[feature] + epsilon);
     }
 
     // 3) normalize, then apply learned scale (gamma) and shift (beta).
-    for (tensor_size_t i = 0; i < m; i++) {
-      tensor_size_t row = i * n;
-      for (tensor_size_t j = 0; j < n; j++) {
-        float xHat = (xVals[row + j] - meanVals[j]) * invStd[j];
-        outVals[row + j] = xHat * gammaVals[j] + betaVals[j];
+    for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
+      tensor_size_t row = currentBatch * numFeatures;
+      for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+        f32 xHat = (xVals[row + feature] - meanAcrossBatch[feature]) * invStd[feature];
+        outVals[row + feature] = xHat * gammaVals[feature] + betaVals[feature];
       }
     }
 
@@ -274,19 +277,19 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
   }
 
   if (x2d->dtype == F64) {
-    double *xVals = xContig->values;
-    double *dyVals = gradContig->values;
-    double *gammaVals = gammaContig->values;
+    f64 *xVals = xContig->values;
+    f64 *dyVals = gradContig->values;
+    f64 *gammaVals = gammaContig->values;
 
-    double *dxVals = dX->values;
-    double *dGammaVals = dGamma->values;
-    double *dBetaVals = dBeta->values;
+    f64 *dxVals = dX->values;
+    f64 *dGammaVals = dGamma->values;
+    f64 *dBetaVals = dBeta->values;
 
-    double *mean = allocate(ctx->memory, sizeof(double) * n);
-    double *var = allocate(ctx->memory, sizeof(double) * n);
-    double *invStd = allocate(ctx->memory, sizeof(double) * n);
-    double *sumDXHat = allocate(ctx->memory, sizeof(double) * n);
-    double *sumDXHatXHat = allocate(ctx->memory, sizeof(double) * n);
+    f64 *mean = allocate(ctx->memory, sizeof(f64) * n);
+    f64 *var = allocate(ctx->memory, sizeof(f64) * n);
+    f64 *invStd = allocate(ctx->memory, sizeof(f64) * n);
+    f64 *sumDXHat = allocate(ctx->memory, sizeof(f64) * n);
+    f64 *sumDXHatXHat = allocate(ctx->memory, sizeof(f64) * n);
 
     // Recompute batch stats used by batch norm (matching forward training path).
     for (tensor_size_t j = 0; j < n; j++) {
@@ -307,7 +310,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       }
     }
 
-    double mAsDouble = (double)m;
+    f64 mAsDouble = (f64)m;
     for (tensor_size_t j = 0; j < n; j++) {
       mean[j] /= mAsDouble;
     }
@@ -316,14 +319,14 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        double centered = xVals[row + j] - mean[j];
+        f64 centered = xVals[row + j] - mean[j];
         var[j] += centered * centered;
       }
     }
 
     for (tensor_size_t j = 0; j < n; j++) {
       var[j] /= mAsDouble;
-      invStd[j] = 1.0 / sqrt(var[j] + (double)epsilon);
+      invStd[j] = 1.0 / sqrt(var[j] + (f64)epsilon);
     }
 
     // 3) Accumulate parameter grads and helper sums for dX.
@@ -331,10 +334,10 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        double centered = xVals[row + j] - mean[j];
-        double xHat = centered * invStd[j];
-        double dy = dyVals[row + j];
-        double dxHat = dy * gammaVals[j];
+        f64 centered = xVals[row + j] - mean[j];
+        f64 xHat = centered * invStd[j];
+        f64 dy = dyVals[row + j];
+        f64 dxHat = dy * gammaVals[j];
 
         dBetaVals[j] += dy;
         dGammaVals[j] += dy * xHat;
@@ -348,12 +351,12 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        double centered = xVals[row + j] - mean[j];
-        double xHat = centered * invStd[j];
-        double dy = dyVals[row + j];
-        double dxHat = dy * gammaVals[j];
+        f64 centered = xVals[row + j] - mean[j];
+        f64 xHat = centered * invStd[j];
+        f64 dy = dyVals[row + j];
+        f64 dxHat = dy * gammaVals[j];
 
-        double numerator = mAsDouble * dxHat - sumDXHat[j] - xHat * sumDXHatXHat[j];
+        f64 numerator = mAsDouble * dxHat - sumDXHat[j] - xHat * sumDXHatXHat[j];
         dxVals[row + j] = (invStd[j] * numerator) / mAsDouble;
       }
     }
@@ -364,19 +367,19 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     freeAlloc(ctx->memory, var);
     freeAlloc(ctx->memory, mean);
   } else {
-    float *xVals = xContig->values;
-    float *dyVals = gradContig->values;
-    float *gammaVals = gammaContig->values;
+    f32 *xVals = xContig->values;
+    f32 *dyVals = gradContig->values;
+    f32 *gammaVals = gammaContig->values;
 
-    float *dxVals = dX->values;
-    float *dGammaVals = dGamma->values;
-    float *dBetaVals = dBeta->values;
+    f32 *dxVals = dX->values;
+    f32 *dGammaVals = dGamma->values;
+    f32 *dBetaVals = dBeta->values;
 
-    float *mean = allocate(ctx->memory, sizeof(float) * n);
-    float *var = allocate(ctx->memory, sizeof(float) * n);
-    float *invStd = allocate(ctx->memory, sizeof(float) * n);
-    float *sumDXHat = allocate(ctx->memory, sizeof(float) * n);
-    float *sumDXHatXHat = allocate(ctx->memory, sizeof(float) * n);
+    f32 *mean = allocate(ctx->memory, sizeof(f32) * n);
+    f32 *var = allocate(ctx->memory, sizeof(f32) * n);
+    f32 *invStd = allocate(ctx->memory, sizeof(f32) * n);
+    f32 *sumDXHat = allocate(ctx->memory, sizeof(f32) * n);
+    f32 *sumDXHatXHat = allocate(ctx->memory, sizeof(f32) * n);
 
     // Recompute batch stats used by batch norm (matching forward training path).
     for (tensor_size_t j = 0; j < n; j++) {
@@ -397,7 +400,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
       }
     }
 
-    float mAsFloat = (float)m;
+    f32 mAsFloat = (f32)m;
     for (tensor_size_t j = 0; j < n; j++) {
       mean[j] /= mAsFloat;
     }
@@ -406,7 +409,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        float centered = xVals[row + j] - mean[j];
+        f32 centered = xVals[row + j] - mean[j];
         var[j] += centered * centered;
       }
     }
@@ -421,10 +424,10 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        float centered = xVals[row + j] - mean[j];
-        float xHat = centered * invStd[j];
-        float dy = dyVals[row + j];
-        float dxHat = dy * gammaVals[j];
+        f32 centered = xVals[row + j] - mean[j];
+        f32 xHat = centered * invStd[j];
+        f32 dy = dyVals[row + j];
+        f32 dxHat = dy * gammaVals[j];
 
         dBetaVals[j] += dy;
         dGammaVals[j] += dy * xHat;
@@ -438,12 +441,12 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        float centered = xVals[row + j] - mean[j];
-        float xHat = centered * invStd[j];
-        float dy = dyVals[row + j];
-        float dxHat = dy * gammaVals[j];
+        f32 centered = xVals[row + j] - mean[j];
+        f32 xHat = centered * invStd[j];
+        f32 dy = dyVals[row + j];
+        f32 dxHat = dy * gammaVals[j];
 
-        float numerator = mAsFloat * dxHat - sumDXHat[j] - xHat * sumDXHatXHat[j];
+        f32 numerator = mAsFloat * dxHat - sumDXHat[j] - xHat * sumDXHatXHat[j];
         dxVals[row + j] = (invStd[j] * numerator) / mAsFloat;
       }
     }

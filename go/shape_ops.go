@@ -16,6 +16,7 @@ type hasShapeOps interface {
 	Slice(ctx Context, ranges ...Range) Tensor
 	Reshape(ctx Context, dims ...int) Tensor
 	Transpose(ctx Context, dims ...uint) Tensor
+	Permute(ctx Context, dims ...uint) Tensor
 	Squeeze(ctx Context) Tensor
 	SqueezeDim(ctx Context, dim uint) Tensor
 	UnSqueeze(ctx Context, dim uint) Tensor
@@ -173,6 +174,42 @@ func (t *tensor) Transpose(ctx Context, dims ...uint) Tensor {
 		toComputationGraphNode(out, OpTranspose, transposeBackward, []Tensor{t}, []Tensor{}, nil)
 		out.computation.meta = [2]uint{d0, d1}
 	}
+	return out
+}
+
+// Permute reorders axes according to dims, where dims[i] selects the source axis for output axis i.
+// Example: NCHW -> NHWC uses Permute(ctx, 0, 2, 3, 1).
+func (t *tensor) Permute(ctx Context, dims ...uint) Tensor {
+	ndims := len(t.Shape())
+	if len(dims) != ndims {
+		panic(fmt.Sprintf("shapes: permute expects %d dims, got %d", ndims, len(dims)))
+	}
+
+	seen := make([]bool, ndims)
+	for _, d := range dims {
+		if int(d) >= ndims {
+			panic(fmt.Sprintf("shapes: permute dim %d out of bounds for rank %d", d, ndims))
+		}
+		if seen[d] {
+			panic(fmt.Sprintf("shapes: permute dimensions must be unique, got duplicate %d", d))
+		}
+		seen[d] = true
+	}
+
+	var dest *C.Tensor
+	order := dim(ctx, dims)
+	result := C.wrap_Permute((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest, order)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		copiedDims := append([]uint(nil), dims...)
+		toComputationGraphNode(out, OpPermute, permuteBackward, []Tensor{t}, []Tensor{}, nil)
+		out.computation.meta = copiedDims
+	}
+
 	return out
 }
 

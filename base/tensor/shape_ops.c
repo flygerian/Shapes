@@ -174,6 +174,65 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   return OK;
 }
 
+Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
+  if (isInvalidTensor(source)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (order.dims == NULL) {
+    return ERR_NULL_SHAPE_PROVIDED;
+  }
+
+  if (order.numOfDims != source->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  bool *seen = allocate(ctx->memory, sizeof(bool) * source->shape.numOfDims);
+  memset(seen, 0, sizeof(bool) * source->shape.numOfDims);
+
+  for (u8 i = 0; i < order.numOfDims; i++) {
+    dim_t sourceDim = order.dims[i];
+    if (sourceDim >= source->shape.numOfDims || seen[sourceDim]) {
+      freeAlloc(ctx->memory, seen);
+      return ERR_DIM_MISMATCH;
+    }
+    seen[sourceDim] = true;
+  }
+
+  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  multiplier_t *newMultipliers =
+      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+
+  for (u8 i = 0; i < order.numOfDims; i++) {
+    dim_t sourceDim = order.dims[i];
+    newDims[i] = source->shape.dims[sourceDim];
+    newMultipliers[i] = source->shape.multipliers[sourceDim];
+  }
+
+  Range *newBoundary = NULL;
+  if (source->boundary != NULL) {
+    newBoundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+    for (u8 i = 0; i < order.numOfDims; i++) {
+      dim_t sourceDim = order.dims[i];
+      newBoundary[i] = source->boundary[sourceDim];
+    }
+  }
+
+  freeAlloc(ctx->memory, seen);
+
+  *dest = (Tensor){.dtype = source->dtype,
+                   .values = source->values,
+                   .size = source->size,
+                   .isView = true,
+                   .isContigous = false,
+                   .shape = {.dims = newDims,
+                             .numOfDims = source->shape.numOfDims,
+                             .multipliers = newMultipliers},
+                   .boundary = newBoundary};
+
+  return OK;
+}
+
 Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;

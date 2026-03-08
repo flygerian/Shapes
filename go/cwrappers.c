@@ -454,6 +454,14 @@ Result wrap_Transpose(Context *ctx, Tensor *src, Tensor **out, dim_t d0, dim_t d
   return r;
 }
 
+Result wrap_Permute(Context *ctx, Tensor *src, Tensor **out, Dim *order) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = Permute(ctx, src, dest, *order);
+  *out = dest;
+  freeAlloc(ctx->memory, order);
+  return r;
+}
+
 Result wrap_Squeeze(Context *ctx, Tensor *src, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = Squeeze(ctx, src, dest);

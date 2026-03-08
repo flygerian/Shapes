@@ -28,6 +28,7 @@ const (
 	OpBatchNorm                // batch normalization
 	OpReshape                  // reshape
 	OpTranspose                // transpose
+	OpPermute                  // permute
 	OpSqueeze                  // squeeze
 	OpSqueezeDim               // squeeze_dim
 	OpUnSqueeze                // unsqueeze
@@ -66,6 +67,8 @@ func (op OpType) String() string {
 		return "reshape"
 	case OpTranspose:
 		return "transpose"
+	case OpPermute:
+		return "permute"
 	case OpSqueeze, OpSqueezeDim:
 		return "squeeze"
 	case OpUnSqueeze:

@@ -84,6 +84,7 @@ Result wrap_Slice7(Context *ctx, Tensor *src, Tensor **out, Range *r);
 Result wrap_Slice8(Context *ctx, Tensor *src, Tensor **out, Range *r);
 Result wrap_Reshape(Context *ctx, Tensor *src, Tensor **out, Dim *newShape);
 Result wrap_Transpose(Context *ctx, Tensor *src, Tensor **out, dim_t d0, dim_t d1);
+Result wrap_Permute(Context *ctx, Tensor *src, Tensor **out, Dim *order);
 Result wrap_Squeeze(Context *ctx, Tensor *src, Tensor **out);
 Result wrap_SqueezeDim(Context *ctx, Tensor *src, Tensor **out, dim_t d);
 Result wrap_UnSqueeze(Context *ctx, Tensor *src, Tensor **out, dim_t d);

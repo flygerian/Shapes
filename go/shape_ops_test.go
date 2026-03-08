@@ -185,6 +185,68 @@ func TestTransposeDimOutOfBounds(t *testing.T) {
 	a.Transpose(ctx, 0, 5)
 }
 
+func TestPermute(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromInt8(ctx, [][][]int8{
+		{
+			{1, 2, 3},
+			{4, 5, 6},
+		},
+	})
+
+	permuted := a.Permute(ctx, 0, 2, 1) // [1,2,3] -> [1,3,2]
+	shape := permuted.Shape()
+	if len(shape) != 3 || shape[0] != 1 || shape[1] != 3 || shape[2] != 2 {
+		t.Fatalf("expected shape [1,3,2], got %v", shape)
+	}
+
+	tests := []struct {
+		i, j, k uint32
+		want    int8
+	}{
+		{0, 0, 0, 1},
+		{0, 0, 1, 4},
+		{0, 1, 0, 2},
+		{0, 1, 1, 5},
+		{0, 2, 0, 3},
+		{0, 2, 1, 6},
+	}
+	for _, tt := range tests {
+		got := permuted.Get(ctx, tt.i, tt.j, tt.k).Item().(int8)
+		if got != tt.want {
+			t.Fatalf("Permute[%d,%d,%d] = %d, want %d", tt.i, tt.j, tt.k, got, tt.want)
+		}
+	}
+}
+
+func TestPermutePanicsOnWrongRank(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Int(ctx, Shape{2, 3}, 1)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for wrong rank dims, got nil")
+		}
+	}()
+	a.Permute(ctx, 1)
+}
+
+func TestPermutePanicsOnDuplicateDims(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Int(ctx, Shape{2, 3}, 1)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for duplicate dims, got nil")
+		}
+	}()
+	a.Permute(ctx, 0, 0)
+}
+
 func TestSqueeze(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
