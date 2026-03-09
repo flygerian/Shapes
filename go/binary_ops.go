@@ -21,6 +21,8 @@ type hasNonMutatingBinaryOps interface {
 
 type hasMutatingBinaryOps interface {
 	AddInPlace(ctx Context, other interface{})
+	SubtractInPlace(ctx Context, other interface{})
+	MultiplyInPlace(ctx Context, other interface{})
 }
 
 func scalarTensorForDtype(ctx Context, dtype Dtype, value interface{}) Tensor {
@@ -242,6 +244,24 @@ func (t *tensor) AddInPlace(ctx Context, other interface{}) {
 	}
 }
 
+// SubtractInPlace performs element-wise subtraction of other from t, modifying t in place.
+func (t *tensor) SubtractInPlace(ctx Context, other interface{}) {
+	otherTensor := normalizeBinaryOperand(ctx, t, other)
+	result := C.wrap_SubtractInPlace((*C.Context)(ctx.UnsafePtr()), t.cTensor, otherTensor.(*tensor).cTensor)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+}
+
+// MultiplyInPlace performs element-wise multiplication of t by other, modifying t in place.
+func (t *tensor) MultiplyInPlace(ctx Context, other interface{}) {
+	otherTensor := normalizeBinaryOperand(ctx, t, other)
+	result := C.wrap_MultiplyInPlace((*C.Context)(ctx.UnsafePtr()), t.cTensor, otherTensor.(*tensor).cTensor)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+}
+
 func wrappedBinaryResult(wt *WrappedTensor, out Tensor) *WrappedTensor {
 	return &WrappedTensor{
 		tensor:  out,
@@ -299,4 +319,14 @@ func (wt *WrappedTensor) LessThanOrEqual(other interface{}) *WrappedTensor {
 // AddInPlace performs element-wise addition of other into wt, modifying wt in place.
 func (wt *WrappedTensor) AddInPlace(other interface{}) {
 	wt.tensor.AddInPlace(wt.context, unwrapWrappedOperand(other))
+}
+
+// SubtractInPlace performs element-wise subtraction of other from wt, modifying wt in place.
+func (wt *WrappedTensor) SubtractInPlace(other interface{}) {
+	wt.tensor.SubtractInPlace(wt.context, unwrapWrappedOperand(other))
+}
+
+// MultiplyInPlace performs element-wise multiplication of wt by other, modifying wt in place.
+func (wt *WrappedTensor) MultiplyInPlace(other interface{}) {
+	wt.tensor.MultiplyInPlace(wt.context, unwrapWrappedOperand(other))
 }

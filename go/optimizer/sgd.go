@@ -16,8 +16,8 @@ import (
 
 func SGD(ctx shapes.Context, lr float32) func(shapes.ComputationGraph) {
 	return func(cg shapes.ComputationGraph) {
-		fusedCtx := ctx.NoGraph()
-		defer fusedCtx.Finish()
+		noGraphCtx := ctx.NoGraph()
+		defer noGraphCtx.Finish()
 
 		parameters := extract.Parameters(cg)
 		if len(parameters) == 0 {
@@ -28,10 +28,7 @@ func SGD(ctx shapes.Context, lr float32) func(shapes.ComputationGraph) {
 		cGrads := make([]*C.Tensor, len(parameters))
 
 		for i, p := range parameters {
-			paramPtr, ok := p.(interface{ UnsafeCTensor() unsafe.Pointer })
-			if !ok {
-				panic("shapes: parameter does not expose underlying C tensor")
-			}
+			paramPtr := p
 			grad := p.Grad()
 			if grad == nil {
 				panic("shapes: parameter gradient is nil")
@@ -46,7 +43,7 @@ func SGD(ctx shapes.Context, lr float32) func(shapes.ComputationGraph) {
 		}
 
 		result := C.Sgd(
-			(*C.Context)(fusedCtx.UnsafePtr()),
+			(*C.Context)(noGraphCtx.UnsafePtr()),
 			(**C.Tensor)(unsafe.Pointer(&cParams[0])),
 			(**C.Tensor)(unsafe.Pointer(&cGrads[0])),
 			C.size_t(len(cParams)),

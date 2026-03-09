@@ -94,7 +94,7 @@ func MakeMore_5() {
 
 	bn1 := layer.BatchNorm(shapesCtx, 100)
 	bn2 := layer.BatchNorm(shapesCtx, 100)
-	sgd := optimizer.SGD(shapesCtx, 0.001)
+	optimizerStep := optimizer.Adam(shapesCtx)
 
 	crossEnthropy := loss.CrossEntropy()
 
@@ -141,7 +141,7 @@ func MakeMore_5() {
 		graph := lossValue.Backward(epochCtx)
 
 		// Update parameters
-		sgd(graph)
+		optimizerStep(graph)
 
 		optimizer.ZeroGrad(shapesCtx, graph)
 

@@ -28,7 +28,7 @@ func Dense(outerCtx shapes.Context, inputSize int, outputSize int, options ...de
 func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 
 	// Initialize a fused context
-	fusedCtx := ctx.Forward(
+	forwardCtx := ctx.Forward(
 		shapes.WithInputs(x),
 		shapes.WithHiddenState(d.w, d.b),
 		shapes.WithOpType(shapes.OpDense),
@@ -40,7 +40,7 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	// If 1D, promote to [1, n] so MatMul works.
 	input := x
 	if is1D {
-		input = x.UnSqueeze(fusedCtx, 0)
+		input = x.UnSqueeze(forwardCtx, 0)
 	}
 
 	tensorLastDimSize := inputShape[len(inputShape)-1]
@@ -50,21 +50,21 @@ func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	}
 
 	// x @ wᵀ + b (batch-friendly: [batch, in] @ [in, out] = [batch, out])
-	d.o = shapes.DenseLinear(fusedCtx, input, d.w, d.b, d.isBiasApplied)
+	d.o = shapes.DenseLinear(forwardCtx, input, d.w, d.b, d.isBiasApplied)
 
 	// If 1D input, squeeze back to 1D output.
 	if is1D {
-		d.o = d.o.Squeeze(fusedCtx)
+		d.o = d.o.Squeeze(forwardCtx)
 	}
 
 	// Result area
 
 	// If o is not initialized output declared, create o in the outer ctx
 	if d.o == nil {
-		d.o = shapes.Zeros(fusedCtx, d.o.Shape())
+		d.o = shapes.Zeros(forwardCtx, d.o.Shape())
 	}
 
-	fusedCtx.Finish(
+	forwardCtx.Finish(
 		shapes.WithResult(d.o),
 		shapes.WithBackward(constructDenseBackwardPass),
 	)

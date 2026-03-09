@@ -70,24 +70,34 @@ DEFINE_ARITH_HELPERS(i64, i64)
 DEFINE_ARITH_HELPERS(f32, f32)
 DEFINE_ARITH_HELPERS(f64, f64)
 
-#define DEFINE_INPLACE_ADD_HELPER(TYPE, NAME)                                                   \
+#define DEFINE_INPLACE_ARITH_HELPERS(TYPE, NAME)                                                 \
   static inline void add_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {             \
     for (tensor_size_t i = 0; i < n; i++) {                                                     \
       a[i] += b[i];                                                                             \
     }                                                                                           \
+  }                                                                                             \
+  static inline void subtract_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {        \
+    for (tensor_size_t i = 0; i < n; i++) {                                                     \
+      a[i] -= b[i];                                                                             \
+    }                                                                                           \
+  }                                                                                             \
+  static inline void multiply_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {        \
+    for (tensor_size_t i = 0; i < n; i++) {                                                     \
+      a[i] *= b[i];                                                                             \
+    }                                                                                           \
   }
 
-DEFINE_INPLACE_ADD_HELPER(bool, bool)
-DEFINE_INPLACE_ADD_HELPER(u8, u8)
-DEFINE_INPLACE_ADD_HELPER(u16, u16)
-DEFINE_INPLACE_ADD_HELPER(u32, u32)
-DEFINE_INPLACE_ADD_HELPER(u64, u64)
-DEFINE_INPLACE_ADD_HELPER(i8, i8)
-DEFINE_INPLACE_ADD_HELPER(i16, i16)
-DEFINE_INPLACE_ADD_HELPER(i32, i32)
-DEFINE_INPLACE_ADD_HELPER(i64, i64)
-DEFINE_INPLACE_ADD_HELPER(f32, f32)
-DEFINE_INPLACE_ADD_HELPER(f64, f64)
+DEFINE_INPLACE_ARITH_HELPERS(bool, bool)
+DEFINE_INPLACE_ARITH_HELPERS(u8, u8)
+DEFINE_INPLACE_ARITH_HELPERS(u16, u16)
+DEFINE_INPLACE_ARITH_HELPERS(u32, u32)
+DEFINE_INPLACE_ARITH_HELPERS(u64, u64)
+DEFINE_INPLACE_ARITH_HELPERS(i8, i8)
+DEFINE_INPLACE_ARITH_HELPERS(i16, i16)
+DEFINE_INPLACE_ARITH_HELPERS(i32, i32)
+DEFINE_INPLACE_ARITH_HELPERS(i64, i64)
+DEFINE_INPLACE_ARITH_HELPERS(f32, f32)
+DEFINE_INPLACE_ARITH_HELPERS(f64, f64)
 
 static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
   tensor_size_t n = dest->size;
@@ -198,75 +208,97 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
   }
 }
 
-static Result straightAddInPlaceBinop(Tensor *a, Tensor *b) {
+static Result straightInPlaceBinop(Tensor *a, Tensor *b, OpType opType) {
   tensor_size_t n = a->size;
 
   switch (a->dtype) {
     case BOOL: {
       bool *pa = a->values;
       const bool *pb = b->values;
-      add_inplace_bool(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_bool(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_bool(pa, pb, n);
+      else multiply_inplace_bool(pa, pb, n);
       return OK;
     }
     case U8: {
       u8 *pa = a->values;
       const u8 *pb = b->values;
-      add_inplace_u8(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_u8(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_u8(pa, pb, n);
+      else multiply_inplace_u8(pa, pb, n);
       return OK;
     }
     case U16: {
       u16 *pa = a->values;
       const u16 *pb = b->values;
-      add_inplace_u16(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_u16(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_u16(pa, pb, n);
+      else multiply_inplace_u16(pa, pb, n);
       return OK;
     }
     case U32: {
       u32 *pa = a->values;
       const u32 *pb = b->values;
-      add_inplace_u32(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_u32(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_u32(pa, pb, n);
+      else multiply_inplace_u32(pa, pb, n);
       return OK;
     }
     case U64: {
       u64 *pa = a->values;
       const u64 *pb = b->values;
-      add_inplace_u64(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_u64(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_u64(pa, pb, n);
+      else multiply_inplace_u64(pa, pb, n);
       return OK;
     }
     case I8: {
       i8 *pa = a->values;
       const i8 *pb = b->values;
-      add_inplace_i8(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_i8(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_i8(pa, pb, n);
+      else multiply_inplace_i8(pa, pb, n);
       return OK;
     }
     case I16: {
       i16 *pa = a->values;
       const i16 *pb = b->values;
-      add_inplace_i16(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_i16(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_i16(pa, pb, n);
+      else multiply_inplace_i16(pa, pb, n);
       return OK;
     }
     case I32: {
       i32 *pa = a->values;
       const i32 *pb = b->values;
-      add_inplace_i32(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_i32(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_i32(pa, pb, n);
+      else multiply_inplace_i32(pa, pb, n);
       return OK;
     }
     case I64: {
       i64 *pa = a->values;
       const i64 *pb = b->values;
-      add_inplace_i64(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_i64(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_i64(pa, pb, n);
+      else multiply_inplace_i64(pa, pb, n);
       return OK;
     }
     case F16:
     case F32: {
       f32 *pa = a->values;
       const f32 *pb = b->values;
-      add_inplace_f32(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_f32(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_f32(pa, pb, n);
+      else multiply_inplace_f32(pa, pb, n);
       return OK;
     }
     case F64: {
       f64 *pa = a->values;
       const f64 *pb = b->values;
-      add_inplace_f64(pa, pb, n);
+      if (opType == OP_ADD) add_inplace_f64(pa, pb, n);
+      else if (opType == OP_SUBTRACT) subtract_inplace_f64(pa, pb, n);
+      else multiply_inplace_f64(pa, pb, n);
       return OK;
     }
     default:
@@ -471,7 +503,7 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   return binaryOp(ctx, a, b, destination, OP_ADD);
 }
 
-Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   if (a->dtype != b->dtype) {
     return ERR_DTYPE_MISMATCH;
   }
@@ -495,7 +527,7 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   if (a->isContigous && opB->isContigous && areTensorsSameShape(a, opB)) {
-    Result res = straightAddInPlaceBinop(a, opB);
+    Result res = straightInPlaceBinop(a, opB, opType);
     if (contiguousB != NULL) {
       FreeTensor(ctx, contiguousB);
     }
@@ -527,7 +559,12 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
     VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
 
     Value result;
-    VALUE_BINOP(result, aVal, bVal, +);
+    switch (opType) {
+      case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
+      case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
+      case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
+      default: return ERR_NOT_A_BINOP;
+    }
 
     VALUE_SET(a->values, aStorageIdx, result);
   }
@@ -541,6 +578,18 @@ Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   return OK;
+}
+
+Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  return inPlaceBinop(ctx, a, b, OP_ADD);
+}
+
+Result SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  return inPlaceBinop(ctx, a, b, OP_SUBTRACT);
+}
+
+Result MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  return inPlaceBinop(ctx, a, b, OP_MULTIPLY);
 }
 
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {

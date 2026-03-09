@@ -161,6 +161,8 @@ Result wrap_LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out) {
 }
 
 Result wrap_AddInPlace(Context *ctx, Tensor *a, Tensor *b) { return AddInPlace(ctx, a, b); }
+Result wrap_SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) { return SubtractInPlace(ctx, a, b); }
+Result wrap_MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) { return MultiplyInPlace(ctx, a, b); }
 
 Result wrap_Cast(Context *ctx, Tensor *src, Dtype target, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));

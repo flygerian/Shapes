@@ -52,3 +52,41 @@ func TestWrappedTensorPlusScalar(t *testing.T) {
 		}
 	}
 }
+
+func TestWrappedTensorSubtractInPlace(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2}, 9.0)
+	b := Float(ctx, Shape{2}, 4.0)
+	wa := &WrappedTensor{tensor: a, context: ctx}
+	wb := &WrappedTensor{tensor: b, context: ctx}
+
+	wa.SubtractInPlace(wb)
+
+	for i := range uint32(2) {
+		got := a.Get(ctx, i).Item().(float32)
+		if got != 5.0 {
+			t.Fatalf("a[%d] = %f, want 5.0", i, got)
+		}
+	}
+}
+
+func TestWrappedTensorMultiplyInPlace(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2}, 3.0)
+	b := Float(ctx, Shape{2}, 2.0)
+	wa := &WrappedTensor{tensor: a, context: ctx}
+	wb := &WrappedTensor{tensor: b, context: ctx}
+
+	wa.MultiplyInPlace(wb)
+
+	for i := range uint32(2) {
+		got := a.Get(ctx, i).Item().(float32)
+		if got != 6.0 {
+			t.Fatalf("a[%d] = %f, want 6.0", i, got)
+		}
+	}
+}

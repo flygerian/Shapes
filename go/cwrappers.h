@@ -30,6 +30,8 @@ Result wrap_GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out)
 Result wrap_LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor **out);
 Result wrap_LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor **out);
 Result wrap_AddInPlace(Context *ctx, Tensor *a, Tensor *b);
+Result wrap_SubtractInPlace(Context *ctx, Tensor *a, Tensor *b);
+Result wrap_MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 Result wrap_Cast(Context *ctx, Tensor *src, Dtype target, Tensor **out);
 

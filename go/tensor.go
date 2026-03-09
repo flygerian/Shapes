@@ -88,6 +88,7 @@ type Tensor interface {
 
 	Dtype() Dtype
 	Values() interface{}
+	UnsafeCTensor() unsafe.Pointer
 }
 
 // Tensor wraps a C Tensor pointer.

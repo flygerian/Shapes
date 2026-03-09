@@ -212,3 +212,41 @@ func TestComparisonWithScalar(t *testing.T) {
 		}
 	}
 }
+
+func TestSubtractInPlace(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2, 2}, 10.0)
+	b := Float(ctx, Shape{2, 2}, 3.0)
+
+	a.SubtractInPlace(ctx, b)
+
+	for i := range uint32(2) {
+		for j := range uint32(2) {
+			got := a.Get(ctx, i, j).Item().(float32)
+			if got != 7.0 {
+				t.Errorf("SubtractInPlace[%d,%d] = %f, want 7.0", i, j, got)
+			}
+		}
+	}
+}
+
+func TestMultiplyInPlace(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2, 2}, 4.0)
+	b := Float(ctx, Shape{2, 2}, 2.5)
+
+	a.MultiplyInPlace(ctx, b)
+
+	for i := range uint32(2) {
+		for j := range uint32(2) {
+			got := a.Get(ctx, i, j).Item().(float32)
+			if got != 10.0 {
+				t.Errorf("MultiplyInPlace[%d,%d] = %f, want 10.0", i, j, got)
+			}
+		}
+	}
+}

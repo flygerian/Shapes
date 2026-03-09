@@ -20,6 +20,8 @@ Result LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 
 Result AddInPlace(Context *ctx, Tensor *a, Tensor *b);
+Result SubtractInPlace(Context *ctx, Tensor *a, Tensor *b);
+Result MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
 Result GetAt(Tensor *t, Dim dim, Value *result);

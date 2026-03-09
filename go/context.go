@@ -152,6 +152,7 @@ func (c *mainContext) Finish() {
 				c.Free(p)
 			}
 		}
+
 		c.handles = nil
 		C.freeMemory(c.cCtx.memory)
 		c.cCtx = nil
