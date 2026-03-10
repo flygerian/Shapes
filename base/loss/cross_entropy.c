@@ -5,29 +5,6 @@
 #include "tensor/value.h"
 #include <math.h>
 
-static Result initTensorLike(Context *ctx, Tensor *dest, Tensor *source) {
-  u8 numDims = source->shape.numOfDims;
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * numDims);
-
-  for (u8 i = 0; i < numDims; i++) {
-    dims[i] = source->shape.dims[i];
-  }
-
-  Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
-
-  *dest = (Tensor){.dtype = source->dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(source->dtype)),
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
-}
-
 Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor *loss,
                            Tensor *probs) {
   if (isInvalidTensor(yGround) || isInvalidTensor(logits)) {
@@ -72,7 +49,7 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
     logitsContig = copyToContiguous(ctx, logitsContig);
   }
 
-  Result res = initTensorLike(ctx, probs, logitsContig);
+  Result res = initTensorLike(ctx, probs, logitsContig, logitsContig->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -211,7 +188,7 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
     gContig = copyToContiguous(ctx, gContig);
   }
 
-  Result res = initTensorLike(ctx, dLogits, pContig);
+  Result res = initTensorLike(ctx, dLogits, pContig, pContig->dtype);
   if (res != OK) {
     goto cleanup;
   }

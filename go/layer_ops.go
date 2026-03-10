@@ -134,3 +134,24 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 
 	return track(ctx, &tensor{cTensor: out})
 }
+
+func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, gradOut Tensor, stride uint8) (Tensor, Tensor) {
+	var dX *C.Tensor
+	var dKernels *C.Tensor
+
+	result := C.wrap_Conv2dBackward(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		kernels.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		C.u8(stride),
+		&dX,
+		&dKernels,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX}),
+		track(ctx, &tensor{cTensor: dKernels})
+}

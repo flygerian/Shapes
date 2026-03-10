@@ -395,6 +395,17 @@ Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 strid
   return r;
 }
 
+Result wrap_Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
+                           Tensor **dX, Tensor **dKernels) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dKernelsLocal = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = Conv2dBackward(ctx, x, kernels, gradOut, stride, dx, dKernelsLocal);
+  *dX = dx;
+  *dKernels = dKernelsLocal;
+  return r;
+}
+
 Result wrap_Slice1(Context *ctx, Tensor *src, Tensor **out, Range *r) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result res = Slice(ctx, src, dest, r[0]);

@@ -458,6 +458,52 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
   freeMemory(mem);
 }
 
+static void test_conv2d_backward_f32_single_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor dX;
+  Tensor dKernels;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 9; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 0.0f;
+  kVals[2] = 0.0f;
+  kVals[3] = 1.0f;
+
+  f32 *gVals = gradOut.values;
+  for (int i = 0; i < 4; i++) {
+    gVals[i] = 1.0f;
+  }
+
+  Result r = Conv2dBackward(&ctx, &x, &kernels, &gradOut, 1, &dX, &dKernels);
+
+  ASSERT_EQ(r, OK, "Conv2dBackward should succeed");
+  ASSERT_EQ(dX.shape.numOfDims, 4, "Conv2dBackward dX should be 4D");
+  ASSERT_EQ(dKernels.shape.numOfDims, 4, "Conv2dBackward dKernels should be 4D");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[9] = {1.0f, 1.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 1.0f, 1.0f};
+  for (int i = 0; i < 9; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward dX mismatch");
+  }
+
+  f32 *dKernelVals = dKernels.values;
+  f32 wantDK[4] = {12.0f, 16.0f, 24.0f, 28.0f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "Conv2dBackward dKernels mismatch");
+  }
+
+  freeMemory(mem);
+}
+
 void run_layer_tests(void) {
   test_dense_linear_forward_with_bias_f32();
   test_dense_backward_f32();
@@ -471,4 +517,5 @@ void run_layer_tests(void) {
   test_conv2d_forward_f32_single_channel();
   test_conv2d_forward_f32_multi_channel();
   test_conv2d_forward_f32_with_batch_dimension();
+  test_conv2d_backward_f32_single_channel();
 }

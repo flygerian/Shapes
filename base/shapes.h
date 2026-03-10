@@ -80,6 +80,8 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
               Dim kernel, Tensor *t, Tensor *dest);
+Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
+                      Tensor *dX, Tensor *dKernels);
 
 // Loss ops
 Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor *loss,

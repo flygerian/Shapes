@@ -3,45 +3,6 @@
 #include "../memory.h"
 #include "tensor/tensor_internal.h"
 
-static Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8));
-
-  dims[0] = size;
-  multipliers[0] = 1;
-
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
-}
-
-static Result init2DTensorLocal(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 2);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 2);
-
-  dims[0] = rows;
-  dims[1] = cols;
-
-  Dim shape = {.dims = dims, .numOfDims = 2, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
-
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
-}
-
 Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
                                 Tensor *out, Tensor *mean, Tensor *variance) {
   // Training forward expects flattened activations:
@@ -86,7 +47,7 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     betaContig = copyToContiguous(ctx, betaContig);
   }
 
-  Result res = init2DTensorLocal(ctx, out, batchSize, numFeatures, x2d->dtype);
+  Result res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -263,7 +224,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     gammaContig = copyToContiguous(ctx, gammaContig);
   }
 
-  Result res = init2DTensorLocal(ctx, dX, m, n, x2d->dtype);
+  Result res = init2DTensor(ctx, dX, m, n, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }

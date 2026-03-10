@@ -31,22 +31,6 @@ static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor 
   return OK;
 }
 
-static Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8));
-  dims[0] = size;
-  multipliers[0] = 1;
-
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-  return OK;
-}
-
 Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor *dest) {
   // Dense expects:
   // x: [..., inputSize]

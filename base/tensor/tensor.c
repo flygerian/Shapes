@@ -45,6 +45,69 @@ tensor_size_t calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
   return numberOfValues;
 }
 
+Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
+  u8 numDims = src->shape.numOfDims;
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * numDims);
+
+  for (u8 i = 0; i < numDims; i++) {
+    dims[i] = src->shape.dims[i];
+  }
+
+  Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
+  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
+
+  *dest = (Tensor){.dtype = dtype,
+                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+                   .size = size,
+                   .shape = shape,
+                   .isView = false,
+                   .isContigous = true,
+                   .boundary = NULL};
+
+  return OK;
+}
+
+Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8));
+  dims[0] = size;
+  multipliers[0] = 1;
+
+  *dest = (Tensor){.dtype = dtype,
+                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+                   .size = size,
+                   .shape = (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
+                   .isView = false,
+                   .isContigous = true,
+                   .boundary = NULL};
+  return OK;
+}
+
+Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
+                    Dtype dtype) {
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 4);
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 4);
+
+  dims[0] = d0;
+  dims[1] = d1;
+  dims[2] = d2;
+  dims[3] = d3;
+
+  Dim shape = {.dims = dims, .numOfDims = 4, .multipliers = multipliers};
+  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
+
+  *dest = (Tensor){.dtype = dtype,
+                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+                   .size = size,
+                   .shape = shape,
+                   .isView = false,
+                   .isContigous = true,
+                   .boundary = NULL};
+
+  return OK;
+}
+
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx) {
   u64 result = 0;
 

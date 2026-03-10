@@ -3,30 +3,7 @@
 #include "result/result.h"
 #include "tensor/tensor_internal.h"
 #include <stddef.h>
-
-static Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
-                           Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 4);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 4);
-
-  dims[0] = d0;
-  dims[1] = d1;
-  dims[2] = d2;
-  dims[3] = d3;
-
-  Dim shape = {.dims = dims, .numOfDims = 4, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
-
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
-}
+#include <string.h>
 
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
               Dim kernelShape, Tensor *t, Tensor *dest) {
@@ -150,6 +127,133 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
             }
 
             outValues[(((b * outChannels + oc) * outH) + ih) * outW + iw] = valueAtPos;
+          }
+        }
+      }
+    }
+  }
+
+  return OK;
+}
+
+Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
+                      Tensor *dX, Tensor *dKernels) {
+  if (isInvalidTensor(x) || isInvalidTensor(kernels) || isInvalidTensor(gradOut) || dX == NULL ||
+      dKernels == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (stride == 0) {
+    return ERR_CONV2D_KERNEL_STRIDE_ZERO;
+  }
+
+  if (isFloatNotType(x) || isFloatNotType(kernels) || isFloatNotType(gradOut)) {
+    return ERR_CONV2D_KERNEL_NOT_FLOAT;
+  }
+
+  if (x->shape.numOfDims != 4 || kernels->shape.numOfDims != 4 || gradOut->shape.numOfDims != 4) {
+    return ERR_CONV2D_INVALID_NUM_TENSOR_DIM;
+  }
+
+  if (x->dtype != kernels->dtype || x->dtype != gradOut->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  dim_t batch = x->shape.dims[0];
+  dim_t inChannels = x->shape.dims[1];
+  dim_t h = x->shape.dims[2];
+  dim_t w = x->shape.dims[3];
+  dim_t outChannels = kernels->shape.dims[0];
+  dim_t kernelInChannels = kernels->shape.dims[1];
+  dim_t kH = kernels->shape.dims[2];
+  dim_t kW = kernels->shape.dims[3];
+
+  if (inChannels != kernelInChannels || h < kH || w < kW) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  dim_t outH = (h - kH) / stride + 1;
+  dim_t outW = (w - kW) / stride + 1;
+
+  if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[1] != outChannels ||
+      gradOut->shape.dims[2] != outH || gradOut->shape.dims[3] != outW) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  Result res = initTensorLike(ctx, dX, x, x->dtype);
+  if (res != OK) {
+    return res;
+  }
+  res = initTensorLike(ctx, dKernels, kernels, kernels->dtype);
+  if (res != OK) {
+    return res;
+  }
+
+  memset(dX->values, 0, dX->size * getBytesForDtype(dX->dtype));
+  memset(dKernels->values, 0, dKernels->size * getBytesForDtype(dKernels->dtype));
+
+  if (x->dtype == F64) {
+    f64 *xValues = x->values;
+    f64 *kernelValues = kernels->values;
+    f64 *gradValues = gradOut->values;
+    f64 *dxValues = dX->values;
+    f64 *dKernelValues = dKernels->values;
+
+    for (dim_t b = 0; b < batch; b++) {
+      for (dim_t oc = 0; oc < outChannels; oc++) {
+        for (dim_t oh = 0; oh < outH; oh++) {
+          for (dim_t ow = 0; ow < outW; ow++) {
+            dim_t gradIdx = (((b * outChannels + oc) * outH) + oh) * outW + ow;
+            f64 grad = gradValues[gradIdx];
+            dim_t inY = oh * stride;
+            dim_t inX = ow * stride;
+
+            for (dim_t ic = 0; ic < inChannels; ic++) {
+              dim_t kernelBase = ((oc * inChannels + ic) * kH) * kW;
+              dim_t inputBase = ((b * inChannels + ic) * h) * w;
+
+              for (dim_t ky = 0; ky < kH; ky++) {
+                for (dim_t kx = 0; kx < kW; kx++) {
+                  dim_t inputIdx = inputBase + (inY + ky) * w + (inX + kx);
+                  dim_t kernelIdx = kernelBase + ky * kW + kx;
+                  dxValues[inputIdx] += grad * kernelValues[kernelIdx];
+                  dKernelValues[kernelIdx] += xValues[inputIdx] * grad;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    f32 *xValues = x->values;
+    f32 *kernelValues = kernels->values;
+    f32 *gradValues = gradOut->values;
+    f32 *dxValues = dX->values;
+    f32 *dKernelValues = dKernels->values;
+
+    for (dim_t b = 0; b < batch; b++) {
+      for (dim_t oc = 0; oc < outChannels; oc++) {
+        for (dim_t oh = 0; oh < outH; oh++) {
+          for (dim_t ow = 0; ow < outW; ow++) {
+            dim_t gradIdx = (((b * outChannels + oc) * outH) + oh) * outW + ow;
+            f32 grad = gradValues[gradIdx];
+            dim_t inY = oh * stride;
+            dim_t inX = ow * stride;
+
+            for (dim_t ic = 0; ic < inChannels; ic++) {
+              dim_t kernelBase = ((oc * inChannels + ic) * kH) * kW;
+              dim_t inputBase = ((b * inChannels + ic) * h) * w;
+
+              for (dim_t ky = 0; ky < kH; ky++) {
+                for (dim_t kx = 0; kx < kW; kx++) {
+                  dim_t inputIdx = inputBase + (inY + ky) * w + (inX + kx);
+                  dim_t kernelIdx = kernelBase + ky * kW + kx;
+                  dxValues[inputIdx] += grad * kernelValues[kernelIdx];
+                  dKernelValues[kernelIdx] += xValues[inputIdx] * grad;
+                }
+              }
+            }
           }
         }
       }

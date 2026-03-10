@@ -16,9 +16,16 @@ type conv struct {
 	bias    shapes.Tensor
 }
 
-func Conv2d(ctx shapes.MainContext, inChannels uint, outChannels uint, kernel shapes.Shape) func(shapes.Context, shapes.Tensor) {
+type convMetadata struct {
+	stride uint8
+}
+
+func Conv2d(ctx shapes.Context, inChannels uint, outChannels uint, kernel shapes.Shape, stride uint8) Layer {
 	if inChannels == 0 || outChannels == 0 {
 		panic("Cannot have in/out channnels as 0")
+	}
+	if len(kernel) != 2 {
+		panic("Conv2d kernel shape should be 2D")
 	}
 
 	for _, s := range kernel {
@@ -41,16 +48,53 @@ func Conv2d(ctx shapes.MainContext, inChannels uint, outChannels uint, kernel sh
 		outChannels: outChannels,
 
 		kernels: kernels,
+		stride:  stride,
 		bias:    bias,
 	}
 
-	return func(ctx shapes.Context, x shapes.Tensor) {
-		fowardCtx := ctx.Forward(
-			shapes.WithInputs(x),
-			shapes.WithHiddenState(state.kernels),
-			shapes.WithOpType(shapes.OpConv),
-		)
+	return &state
+}
 
-		shapes.Conv2d(ctx, x, state.kernels, state.stride)
-	}
+func (c *conv) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
+	forwardCtx := ctx.Forward(
+		shapes.WithInputs(x),
+		shapes.WithHiddenState(c.kernels, c.bias),
+		shapes.WithOpType(shapes.OpConv),
+		shapes.WithMetadata(convMetadata{stride: c.stride}),
+	)
+
+	out := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride).Plus(forwardCtx, c.bias)
+
+	forwardCtx.Finish(
+		shapes.WithResult(out),
+		shapes.WithBackward(convBackward),
+	)
+
+	return out
+}
+
+func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
+	backwardCtx := ctx.Backward()
+	defer backwardCtx.Finish()
+
+	x := out.Inputs()[0]
+	hidden := out.HiddenState()
+	kernels := hidden[0]
+	bias := hidden[1]
+	meta := out.Metadata().(convMetadata)
+
+	dOutput := out.Grad() // (B, C, oH, oW)
+	outputShape := dOutput.Shape()
+
+	B := outputShape[0]
+	C := outputShape[1]
+	oh := outputShape[2]
+	ow := outputShape[3]
+
+	dBias := dOutput.Reshape(backwardCtx, int(B), int(C), int(oh*ow)).Sum(backwardCtx, 2).Sum(backwardCtx, 0).Squeeze(backwardCtx)
+	bias.Grad().Accumulate(backwardCtx, dBias)
+
+	dX, dKernels := shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.stride)
+	x.Grad().Accumulate(backwardCtx, dX)
+	kernels.Grad().Accumulate(backwardCtx, dKernels)
 }

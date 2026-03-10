@@ -84,3 +84,44 @@ func TestConv2dPanicsOnInvalidKernelShape(t *testing.T) {
 	})
 	_ = Conv2d(ctx, x, invalidKernels, 1)
 }
+
+func TestConv2dBackwardSingleChannel(t *testing.T) {
+	ctx := New(stdctx.Background())
+	defer ctx.Finish()
+
+	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
+		1, 2, 3,
+		4, 5, 6,
+		7, 8, 9,
+	})
+	kernels := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+		1, 0,
+		0, 1,
+	})
+	gradOut := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+		1, 1,
+		1, 1,
+	})
+
+	dX, dKernels := Conv2dBackward(ctx, x, kernels, gradOut, 1)
+
+	wantDX := []float32{
+		1, 1, 0,
+		1, 2, 1,
+		0, 1, 1,
+	}
+	gotDX := dX.Values().([]float32)
+	for i := range wantDX {
+		if math.Abs(float64(gotDX[i]-wantDX[i])) > 1e-5 {
+			t.Fatalf("dX[%d]=%f want %f", i, gotDX[i], wantDX[i])
+		}
+	}
+
+	wantDK := []float32{12, 16, 24, 28}
+	gotDK := dKernels.Values().([]float32)
+	for i := range wantDK {
+		if math.Abs(float64(gotDK[i]-wantDK[i])) > 1e-5 {
+			t.Fatalf("dKernels[%d]=%f want %f", i, gotDK[i], wantDK[i])
+		}
+	}
+}
