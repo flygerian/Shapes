@@ -37,6 +37,51 @@ static Tensor create2DTensor(Context *ctx, dim_t rows, dim_t cols, Dtype dtype) 
   return t;
 }
 
+static Tensor create3DTensor(Context *ctx, dim_t d0, dim_t d1, dim_t d2, Dtype dtype) {
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 3);
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 3);
+  dims[0] = d0;
+  dims[1] = d1;
+  dims[2] = d2;
+  multipliers[0] = d1 * d2;
+  multipliers[1] = d2;
+  multipliers[2] = 1;
+
+  tensor_size_t size = d0 * d1 * d2;
+  Tensor t = {.dtype = dtype,
+              .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+              .size = size,
+              .shape = (Dim){.dims = dims, .numOfDims = 3, .multipliers = multipliers},
+              .isView = false,
+              .isContigous = true,
+              .boundary = NULL};
+  return t;
+}
+
+static Tensor create4DTensor(Context *ctx, dim_t batch, dim_t channels, dim_t height, dim_t width,
+                             Dtype dtype) {
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 4);
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 4);
+  dims[0] = batch;
+  dims[1] = channels;
+  dims[2] = height;
+  dims[3] = width;
+  multipliers[0] = channels * height * width;
+  multipliers[1] = height * width;
+  multipliers[2] = width;
+  multipliers[3] = 1;
+
+  tensor_size_t size = batch * channels * height * width;
+  Tensor t = {.dtype = dtype,
+              .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+              .size = size,
+              .shape = (Dim){.dims = dims, .numOfDims = 4, .multipliers = multipliers},
+              .isView = false,
+              .isContigous = true,
+              .boundary = NULL};
+  return t;
+}
+
 static void test_dense_linear_forward_with_bias_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -226,9 +271,204 @@ static void test_batch_norm_backward_f32(void) {
   freeMemory(mem);
 }
 
+static void test_conv2d_rejects_non_float_input(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, I32);
+  Tensor out;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, NULL, kernel, &t, &out);
+
+  ASSERT_EQ(r, ERR_CONV2D_KERNEL_NOT_FLOAT, "Conv2d should reject non-float inputs");
+  freeMemory(mem);
+}
+
+static void test_conv2d_rejects_tensor_with_too_few_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create2DTensor(&ctx, 3, 3, F32);
+  Tensor out;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, NULL, kernel, &t, &out);
+
+  ASSERT_EQ(r, ERR_CONV2D_INVALID_NUM_TENSOR_DIM,
+            "Conv2d should reject tensors with fewer than 3 dims");
+  freeMemory(mem);
+}
+
+static void test_conv2d_rejects_zero_in_channels(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor out;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 0, 1, 1, NULL, kernel, &t, &out);
+
+  ASSERT_EQ(r, ERR_CONV2D_IN_CHANNELS_ZERO, "Conv2d should reject zero input channels");
+  freeMemory(mem);
+}
+
+static void test_conv2d_rejects_zero_out_channels(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor out;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 0, 1, NULL, kernel, &t, &out);
+
+  ASSERT_EQ(r, ERR_CONV2D_OUT_CHANNELS_ZERO, "Conv2d should reject zero output channels");
+  freeMemory(mem);
+}
+
+static void test_conv2d_rejects_non_2d_kernel_shape(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor out;
+
+  dim_t kernelDimsArr[1] = {2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 1, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, NULL, kernel, &t, &out);
+
+  ASSERT_EQ(r, ERR_CONV2D_KERNEL_NOT_2D, "Conv2d should reject non-2D kernel shapes");
+  freeMemory(mem);
+}
+
+static void test_conv2d_forward_f32_single_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor out;
+
+  f32 *x = t.values;
+  for (int i = 0; i < 9; i++) {
+    x[i] = (f32)(i + 1);
+  }
+
+  f32 *k = kernels.values;
+  k[0] = 1.0f;
+  k[1] = 0.0f;
+  k[2] = 0.0f;
+  k[3] = 1.0f;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, kernel, &t, &out);
+
+  ASSERT_EQ(r, OK, "Conv2d single-channel forward should succeed");
+  ASSERT_EQ(out.shape.numOfDims, 4, "Conv2d output should be 4D");
+  ASSERT_EQ(out.shape.dims[0], 1, "Output batch mismatch");
+  ASSERT_EQ(out.shape.dims[1], 1, "Output channels mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Output height mismatch");
+  ASSERT_EQ(out.shape.dims[3], 2, "Output width mismatch");
+
+  f32 *o = out.values;
+  ASSERT(fabsf(o[0] - 6.0f) < 1e-5f, "Conv out[0,0,0,0] mismatch");
+  ASSERT(fabsf(o[1] - 8.0f) < 1e-5f, "Conv out[0,0,0,1] mismatch");
+  ASSERT(fabsf(o[2] - 12.0f) < 1e-5f, "Conv out[0,0,1,0] mismatch");
+  ASSERT(fabsf(o[3] - 14.0f) < 1e-5f, "Conv out[0,0,1,1] mismatch");
+
+  freeMemory(mem);
+}
+
+static void test_conv2d_forward_f32_multi_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 2, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 2, 2, 2, F32);
+  Tensor out;
+
+  f32 *x = t.values;
+  for (int i = 0; i < 18; i++) {
+    x[i] = (f32)(i + 1);
+  }
+
+  f32 *k = kernels.values;
+  for (int i = 0; i < 4; i++) {
+    k[i] = 1.0f;
+  }
+  for (int i = 4; i < 8; i++) {
+    k[i] = 0.5f;
+  }
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 2, 1, 1, &kernels, kernel, &t, &out);
+
+  ASSERT_EQ(r, OK, "Conv2d multi-channel forward should succeed");
+  ASSERT_EQ(out.shape.dims[2], 2, "Multi-channel output height mismatch");
+  ASSERT_EQ(out.shape.dims[3], 2, "Multi-channel output width mismatch");
+
+  f32 *o = out.values;
+  ASSERT(fabsf(o[0] - 36.0f) < 1e-5f, "Conv multi out[0] mismatch");
+  ASSERT(fabsf(o[1] - 42.0f) < 1e-5f, "Conv multi out[1] mismatch");
+  ASSERT(fabsf(o[2] - 54.0f) < 1e-5f, "Conv multi out[2] mismatch");
+  ASSERT(fabsf(o[3] - 60.0f) < 1e-5f, "Conv multi out[3] mismatch");
+
+  freeMemory(mem);
+}
+
+static void test_conv2d_forward_f32_with_batch_dimension(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 2, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor out;
+
+  f32 *x = t.values;
+  for (int i = 0; i < 18; i++) {
+    x[i] = (f32)(i + 1);
+  }
+
+  f32 *k = kernels.values;
+  k[0] = 1.0f;
+  k[1] = 0.0f;
+  k[2] = 0.0f;
+  k[3] = 1.0f;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, kernel, &t, &out);
+
+  ASSERT_EQ(r, OK, "Conv2d batched forward should succeed");
+  ASSERT_EQ(out.shape.dims[0], 2, "Batched output batch mismatch");
+  ASSERT_EQ(out.shape.dims[1], 1, "Batched output channels mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Batched output height mismatch");
+  ASSERT_EQ(out.shape.dims[3], 2, "Batched output width mismatch");
+
+  f32 *o = out.values;
+  ASSERT(fabsf(o[0] - 6.0f) < 1e-5f, "Batched conv out[0] mismatch");
+  ASSERT(fabsf(o[1] - 8.0f) < 1e-5f, "Batched conv out[1] mismatch");
+  ASSERT(fabsf(o[2] - 12.0f) < 1e-5f, "Batched conv out[2] mismatch");
+  ASSERT(fabsf(o[3] - 14.0f) < 1e-5f, "Batched conv out[3] mismatch");
+  ASSERT(fabsf(o[4] - 24.0f) < 1e-5f, "Batched conv out[4] mismatch");
+  ASSERT(fabsf(o[5] - 26.0f) < 1e-5f, "Batched conv out[5] mismatch");
+  ASSERT(fabsf(o[6] - 30.0f) < 1e-5f, "Batched conv out[6] mismatch");
+  ASSERT(fabsf(o[7] - 32.0f) < 1e-5f, "Batched conv out[7] mismatch");
+
+  freeMemory(mem);
+}
+
 void run_layer_tests(void) {
   test_dense_linear_forward_with_bias_f32();
   test_dense_backward_f32();
   test_batch_norm_forward_training_f32();
   test_batch_norm_backward_f32();
+  test_conv2d_rejects_non_float_input();
+  test_conv2d_rejects_tensor_with_too_few_dims();
+  test_conv2d_rejects_zero_in_channels();
+  test_conv2d_rejects_zero_out_channels();
+  test_conv2d_rejects_non_2d_kernel_shape();
+  test_conv2d_forward_f32_single_channel();
+  test_conv2d_forward_f32_multi_channel();
+  test_conv2d_forward_f32_with_batch_dimension();
 }

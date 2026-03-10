@@ -313,3 +313,24 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
     }
   }
 }
+
+Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 2);
+  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 2);
+
+  dims[0] = rows;
+  dims[1] = cols;
+
+  Dim shape = {.dims = dims, .numOfDims = 2, .multipliers = multipliers};
+  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
+
+  *dest = (Tensor){.dtype = dtype,
+                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+                   .size = size,
+                   .shape = shape,
+                   .isView = false,
+                   .isContigous = true,
+                   .boundary = NULL};
+
+  return OK;
+}

@@ -24,6 +24,7 @@ static inline Tensor singleValueTensor(Context *ctx, Value value) {
       .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
 }
 
+Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype);
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords);

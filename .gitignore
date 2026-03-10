@@ -8,4 +8,5 @@ base/build-*
 build/openblas
 *.prof
 *.s
+go/*gocache
 

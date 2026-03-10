@@ -21,7 +21,7 @@ static Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) 
   return OK;
 }
 
-static Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
+static Result init2DTensorLocal(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 2);
   u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 2);
 
@@ -86,7 +86,7 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     betaContig = copyToContiguous(ctx, betaContig);
   }
 
-  Result res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
+  Result res = init2DTensorLocal(ctx, out, batchSize, numFeatures, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -263,7 +263,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     gammaContig = copyToContiguous(ctx, gammaContig);
   }
 
-  Result res = init2DTensor(ctx, dX, m, n, x2d->dtype);
+  Result res = init2DTensorLocal(ctx, dX, m, n, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }

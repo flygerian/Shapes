@@ -41,6 +41,7 @@ const (
 	OpSlice                    // view slice
 	OpIndexWithTensor          // advanced 1D gather
 	OpIndexWithTensor2d        // advanced 2D gather
+	OpConv
 )
 
 func (op OpType) String() string {
