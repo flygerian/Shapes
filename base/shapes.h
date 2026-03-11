@@ -82,6 +82,16 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
               Dim kernel, Tensor *t, Tensor *dest);
 Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
                       Tensor *dX, Tensor *dKernels);
+Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
+                       Tensor *kernels, Dim kernel, Tensor *t, Tensor *dest);
+Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
+                               Tensor *dX, Tensor *dKernels);
+Result MaxPool2d(Context *ctx, Tensor *x, Dim kernel, u8 stride, Tensor *dest);
+Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernel, u8 stride,
+                         Tensor *dX);
+Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest);
+Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW,
+                                 Tensor *dX);
 
 // Loss ops
 Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor *loss,

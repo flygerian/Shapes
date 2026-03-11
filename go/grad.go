@@ -42,6 +42,9 @@ const (
 	OpIndexWithTensor          // advanced 1D gather
 	OpIndexWithTensor2d        // advanced 2D gather
 	OpConv
+	OpConvTranspose
+	OpMaxPool
+	OpAdaptiveAvgPool
 )
 
 func (op OpType) String() string {
@@ -92,6 +95,14 @@ func (op OpType) String() string {
 		return "index_with_tensor"
 	case OpIndexWithTensor2d:
 		return "index_with_tensor2d"
+	case OpConv:
+		return "conv"
+	case OpConvTranspose:
+		return "conv_transpose"
+	case OpMaxPool:
+		return "max_pool"
+	case OpAdaptiveAvgPool:
+		return "adaptive_avg_pool"
 	default:
 		return "?"
 	}

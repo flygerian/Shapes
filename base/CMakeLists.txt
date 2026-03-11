@@ -59,6 +59,7 @@ add_library(shapes_core
     layer/dense.c
     layer/batch_norm.c
     layer/conv.c
+    layer/pool.c
     loss/cross_entropy.c
     optimizer/sgd.c
     tensor/tensor.c

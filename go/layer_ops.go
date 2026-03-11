@@ -155,3 +155,138 @@ func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, gradOut Tensor, strid
 	return track(ctx, &tensor{cTensor: dX}),
 		track(ctx, &tensor{cTensor: dKernels})
 }
+
+func ConvTranspose2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
+	kernelShape := kernels.Shape()
+	if len(kernelShape) < 4 {
+		panic("shapes: ConvTranspose2d kernels must be 4D [inChannels,outChannels,kH,kW]")
+	}
+
+	inChannels := kernelShape[0]
+	outChannels := kernelShape[1]
+	kernelH := kernelShape[2]
+	kernelW := kernelShape[3]
+
+	var out *C.Tensor
+	result := C.wrap_ConvTranspose2d(
+		(*C.Context)(ctx.UnsafePtr()),
+		C.size_t(inChannels),
+		C.size_t(outChannels),
+		C.u8(stride),
+		kernels.(*tensor).cTensor,
+		C.dim_t(kernelH),
+		C.dim_t(kernelW),
+		x.(*tensor).cTensor,
+		&out,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: out})
+}
+
+func ConvTranspose2dBackward(ctx Context, x Tensor, kernels Tensor, gradOut Tensor, stride uint8) (Tensor, Tensor) {
+	var dX *C.Tensor
+	var dKernels *C.Tensor
+
+	result := C.wrap_ConvTranspose2dBackward(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		kernels.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		C.u8(stride),
+		&dX,
+		&dKernels,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX}),
+		track(ctx, &tensor{cTensor: dKernels})
+}
+
+func MaxPool2d(ctx Context, x Tensor, kernel Shape, stride uint8) Tensor {
+	if len(kernel) != 2 {
+		panic("shapes: MaxPool2d kernel must be 2D [kH,kW]")
+	}
+
+	var out *C.Tensor
+	result := C.wrap_MaxPool2d(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		C.dim_t(kernel[0]),
+		C.dim_t(kernel[1]),
+		C.u8(stride),
+		&out,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: out})
+}
+
+func MaxPool2dBackward(ctx Context, x Tensor, gradOut Tensor, kernel Shape, stride uint8) Tensor {
+	if len(kernel) != 2 {
+		panic("shapes: MaxPool2dBackward kernel must be 2D [kH,kW]")
+	}
+
+	var dX *C.Tensor
+	result := C.wrap_MaxPool2dBackward(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		C.dim_t(kernel[0]),
+		C.dim_t(kernel[1]),
+		C.u8(stride),
+		&dX,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX})
+}
+
+func AdaptiveAvgPool2d(ctx Context, x Tensor, outputSize Shape) Tensor {
+	if len(outputSize) != 2 {
+		panic("shapes: AdaptiveAvgPool2d output size must be 2D [outH,outW]")
+	}
+
+	var out *C.Tensor
+	result := C.wrap_AdaptiveAvgPool2d(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		C.dim_t(outputSize[0]),
+		C.dim_t(outputSize[1]),
+		&out,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: out})
+}
+
+func AdaptiveAvgPool2dBackward(ctx Context, x Tensor, gradOut Tensor, outputSize Shape) Tensor {
+	if len(outputSize) != 2 {
+		panic("shapes: AdaptiveAvgPool2dBackward output size must be 2D [outH,outW]")
+	}
+
+	var dX *C.Tensor
+	result := C.wrap_AdaptiveAvgPool2dBackward(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		C.dim_t(outputSize[0]),
+		C.dim_t(outputSize[1]),
+		&dX,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX})
+}

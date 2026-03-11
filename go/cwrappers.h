@@ -79,6 +79,18 @@ Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 strid
                    dim_t kernelH, dim_t kernelW, Tensor *x, Tensor **out);
 Result wrap_Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
                            Tensor **dX, Tensor **dKernels);
+Result wrap_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
+                            Tensor *kernels, dim_t kernelH, dim_t kernelW, Tensor *x,
+                            Tensor **out);
+Result wrap_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut,
+                                    u8 stride, Tensor **dX, Tensor **dKernels);
+Result wrap_MaxPool2d(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
+                      Tensor **out);
+Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t kernelH,
+                              dim_t kernelW, u8 stride, Tensor **dX);
+Result wrap_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor **out);
+Result wrap_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH,
+                                      dim_t outW, Tensor **dX);
 
 Result wrap_Slice1(Context *ctx, Tensor *src, Tensor **out, Range *r);
 Result wrap_Slice2(Context *ctx, Tensor *src, Tensor **out, Range *r);

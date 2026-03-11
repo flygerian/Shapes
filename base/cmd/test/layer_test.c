@@ -504,6 +504,202 @@ static void test_conv2d_backward_f32_single_channel(void) {
   freeMemory(mem);
 }
 
+static void test_conv_transpose2d_forward_f32_single_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor out;
+
+  f32 *xVals = x.values;
+  xVals[0] = 1.0f;
+  xVals[1] = 2.0f;
+  xVals[2] = 3.0f;
+  xVals[3] = 4.0f;
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 0.0f;
+  kVals[2] = 0.0f;
+  kVals[3] = 1.0f;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = ConvTranspose2d(&ctx, 1, 1, 1, &kernels, kernel, &x, &out);
+
+  ASSERT_EQ(r, OK, "ConvTranspose2d should succeed");
+  ASSERT_EQ(out.shape.dims[2], 3, "ConvTranspose2d output height mismatch");
+  ASSERT_EQ(out.shape.dims[3], 3, "ConvTranspose2d output width mismatch");
+
+  f32 *o = out.values;
+  f32 want[9] = {1.0f, 2.0f, 0.0f, 3.0f, 5.0f, 2.0f, 0.0f, 3.0f, 4.0f};
+  for (int i = 0; i < 9; i++) {
+    ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "ConvTranspose2d output mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_conv_transpose2d_backward_f32_single_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor dX;
+  Tensor dKernels;
+
+  f32 *xVals = x.values;
+  xVals[0] = 1.0f;
+  xVals[1] = 2.0f;
+  xVals[2] = 3.0f;
+  xVals[3] = 4.0f;
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 0.0f;
+  kVals[2] = 0.0f;
+  kVals[3] = 1.0f;
+
+  f32 *gVals = gradOut.values;
+  for (int i = 0; i < 9; i++) {
+    gVals[i] = 1.0f;
+  }
+
+  Result r = ConvTranspose2dBackward(&ctx, &x, &kernels, &gradOut, 1, &dX, &dKernels);
+  ASSERT_EQ(r, OK, "ConvTranspose2dBackward should succeed");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[4] = {2.0f, 2.0f, 2.0f, 2.0f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "ConvTranspose2dBackward dX mismatch");
+  }
+
+  f32 *dKernelVals = dKernels.values;
+  f32 wantDK[4] = {10.0f, 10.0f, 10.0f, 10.0f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "ConvTranspose2dBackward dKernels mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_max_pool2d_forward_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
+  Tensor out;
+
+  f32 *xVals = x.values;
+  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f,
+                   7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
+  for (int i = 0; i < 16; i++) {
+    xVals[i] = input[i];
+  }
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = MaxPool2d(&ctx, &x, kernel, 2, &out);
+  ASSERT_EQ(r, OK, "MaxPool2d should succeed");
+
+  f32 *o = out.values;
+  f32 want[4] = {6.0f, 5.0f, 8.0f, 9.0f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "MaxPool2d output mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_max_pool2d_backward_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor dX;
+
+  f32 *xVals = x.values;
+  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f,
+                   7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
+  for (int i = 0; i < 16; i++) {
+    xVals[i] = input[i];
+  }
+
+  f32 *gVals = gradOut.values;
+  gVals[0] = 1.0f;
+  gVals[1] = 2.0f;
+  gVals[2] = 3.0f;
+  gVals[3] = 4.0f;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = MaxPool2dBackward(&ctx, &x, &gradOut, kernel, 2, &dX);
+  ASSERT_EQ(r, OK, "MaxPool2dBackward should succeed");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[16] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 0.0f,
+                    0.0f, 3.0f, 4.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+  for (int i = 0; i < 16; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "MaxPool2dBackward dX mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_adaptive_avg_pool2d_forward_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
+  Tensor out;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 16; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  Result r = AdaptiveAvgPool2d(&ctx, &x, 2, 2, &out);
+  ASSERT_EQ(r, OK, "AdaptiveAvgPool2d should succeed");
+
+  f32 *o = out.values;
+  f32 want[4] = {3.5f, 5.5f, 11.5f, 13.5f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "AdaptiveAvgPool2d output mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_adaptive_avg_pool2d_backward_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor dX;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 16; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  f32 *gVals = gradOut.values;
+  gVals[0] = 1.0f;
+  gVals[1] = 2.0f;
+  gVals[2] = 3.0f;
+  gVals[3] = 4.0f;
+
+  Result r = AdaptiveAvgPool2dBackward(&ctx, &x, &gradOut, 2, 2, &dX);
+  ASSERT_EQ(r, OK, "AdaptiveAvgPool2dBackward should succeed");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[16] = {0.25f, 0.25f, 0.50f, 0.50f, 0.25f, 0.25f, 0.50f, 0.50f,
+                    0.75f, 0.75f, 1.00f, 1.00f, 0.75f, 0.75f, 1.00f, 1.00f};
+  for (int i = 0; i < 16; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "AdaptiveAvgPool2dBackward dX mismatch");
+  }
+
+  freeMemory(mem);
+}
+
 void run_layer_tests(void) {
   test_dense_linear_forward_with_bias_f32();
   test_dense_backward_f32();
@@ -518,4 +714,10 @@ void run_layer_tests(void) {
   test_conv2d_forward_f32_multi_channel();
   test_conv2d_forward_f32_with_batch_dimension();
   test_conv2d_backward_f32_single_channel();
+  test_conv_transpose2d_forward_f32_single_channel();
+  test_conv_transpose2d_backward_f32_single_channel();
+  test_max_pool2d_forward_f32();
+  test_max_pool2d_backward_f32();
+  test_adaptive_avg_pool2d_forward_f32();
+  test_adaptive_avg_pool2d_backward_f32();
 }

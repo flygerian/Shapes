@@ -406,6 +406,64 @@ Result wrap_Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gra
   return r;
 }
 
+Result wrap_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
+                            Tensor *kernels, dim_t kernelH, dim_t kernelW, Tensor *x,
+                            Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  dim_t kernelDims[2] = {kernelH, kernelW};
+  Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
+  Result r = ConvTranspose2d(ctx, inChannels, outChannels, stride, kernels, kernel, x, dest);
+  *out = dest;
+  return r;
+}
+
+Result wrap_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut,
+                                    u8 stride, Tensor **dX, Tensor **dKernels) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dKernelsLocal = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = ConvTranspose2dBackward(ctx, x, kernels, gradOut, stride, dx, dKernelsLocal);
+  *dX = dx;
+  *dKernels = dKernelsLocal;
+  return r;
+}
+
+Result wrap_MaxPool2d(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
+                      Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  dim_t kernelDims[2] = {kernelH, kernelW};
+  Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
+  Result r = MaxPool2d(ctx, x, kernel, stride, dest);
+  *out = dest;
+  return r;
+}
+
+Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t kernelH,
+                              dim_t kernelW, u8 stride, Tensor **dX) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  dim_t kernelDims[2] = {kernelH, kernelW};
+  Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
+
+  Result r = MaxPool2dBackward(ctx, x, gradOut, kernel, stride, dx);
+  *dX = dx;
+  return r;
+}
+
+Result wrap_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = AdaptiveAvgPool2d(ctx, x, outH, outW, dest);
+  *out = dest;
+  return r;
+}
+
+Result wrap_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH,
+                                      dim_t outW, Tensor **dX) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  Result r = AdaptiveAvgPool2dBackward(ctx, x, gradOut, outH, outW, dx);
+  *dX = dx;
+  return r;
+}
+
 Result wrap_Slice1(Context *ctx, Tensor *src, Tensor **out, Range *r) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result res = Slice(ctx, src, dest, r[0]);
