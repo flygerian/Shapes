@@ -103,6 +103,9 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
 Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
            f32 learningRate);
 
+
+Result Adam(Context *ctx, AdamTriplet *triplets);
+
 // Debug
 void PrintItem(Tensor *t);
 char *GetItem(Context *ctx, Tensor *t);

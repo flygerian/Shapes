@@ -20,7 +20,7 @@ type adaptiveAvgPoolMetadata struct {
 	outputSize shapes.Shape
 }
 
-func MaxPooling(kernel shapes.Shape, stride uint8) Layer {
+func MaxPooling(kernel shapes.Shape, stride uint8) *maxPool {
 	if len(kernel) != 2 {
 		panic("MaxPooling kernel shape should be 2D")
 	}
@@ -33,7 +33,7 @@ func MaxPooling(kernel shapes.Shape, stride uint8) Layer {
 	return &maxPool{kernelShape: append(shapes.Shape(nil), kernel...), stride: stride}
 }
 
-func MaxPool2d(kernel shapes.Shape, stride uint8) Layer {
+func MaxPool2d(kernel shapes.Shape, stride uint8) *maxPool {
 	return MaxPooling(kernel, stride)
 }
 
@@ -64,7 +64,7 @@ func maxPoolBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	x.Grad().Accumulate(backwardCtx, dX)
 }
 
-func AdaptiveAvgPool(outputSize shapes.Shape) Layer {
+func AdaptiveAvgPool(outputSize shapes.Shape) *adaptiveAvgPool {
 	if len(outputSize) != 2 {
 		panic("AdaptiveAvgPool output size should be 2D")
 	}
@@ -77,7 +77,7 @@ func AdaptiveAvgPool(outputSize shapes.Shape) Layer {
 	return &adaptiveAvgPool{outputSize: append(shapes.Shape(nil), outputSize...)}
 }
 
-func AdaptiveAvgPool2d(outputSize shapes.Shape) Layer {
+func AdaptiveAvgPool2d(outputSize shapes.Shape) *adaptiveAvgPool {
 	return AdaptiveAvgPool(outputSize)
 }
 

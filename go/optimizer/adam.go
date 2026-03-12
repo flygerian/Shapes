@@ -60,27 +60,48 @@ func Adam(ctx shapes.Context) func(shapes.ComputationGraph) {
 		}
 
 		for _, p := range parameters {
-			go func() {
-				idx := uintptr(p.UnsafeCTensor())
-				m := state.m[idx]
-				v := state.v[idx]
+			idx := uintptr(p.UnsafeCTensor())
+			m := state.m[idx]
+			v := state.v[idx]
 
-				// Keep optimizer state tensors stable across epochs by updating in-place.
-				// Rebinding m/v to tensors created in a short-lived subcontext can leave
-				// dangling pointers after epoch sweep.
-				m.SubtractInPlace(noGraphCtx, m.Times(noGraphCtx, 1-state.b1))
-				m.AddInPlace(noGraphCtx, p.Grad().Times(noGraphCtx, 1-state.b1))
+			// Keep optimizer state tensors stable across epochs by updating in-place.
+			// Rebinding m/v to tensors created in a short-lived subcontext can leave
+			// dangling pointers after epoch sweep.
+			m.SubtractInPlace(
+				noGraphCtx,
+				m.Times(noGraphCtx, 1-state.b1),
+			)
+			m.AddInPlace(
+				noGraphCtx,
+				p.Grad().Times(noGraphCtx, 1-state.b1),
+			)
 
-				v.SubtractInPlace(noGraphCtx, v.Times(noGraphCtx, 1-state.b2))
-				v.AddInPlace(noGraphCtx, p.Grad().Pow(noGraphCtx, 2).Times(noGraphCtx, 1-state.b2))
+			v.SubtractInPlace(
+				noGraphCtx,
+				v.Times(noGraphCtx, 1-state.b2),
+			)
 
-				mHat := m.Divide(noGraphCtx, (1 - math.Pow(float64(state.b1), float64(state.step))))
-				vHat := v.Divide(noGraphCtx, (1 - math.Pow(float64(state.b2), float64(state.step))))
+			v.AddInPlace(
+				noGraphCtx,
+				p.Grad().Pow(noGraphCtx, 2).Times(noGraphCtx, 1-state.b2),
+			)
 
-				update := mHat.Times(noGraphCtx, state.a).Divide(noGraphCtx, vHat.Plus(noGraphCtx, state.epsilon).Pow(noGraphCtx, 0.5))
+			mHat := m.Divide(
+				noGraphCtx,
+				(1 - math.Pow(float64(state.b1), float64(state.step))),
+			)
 
-				p.SubtractInPlace(noGraphCtx, update)
-			}()
+			vHat := v.Divide(
+				noGraphCtx,
+				(1 - math.Pow(float64(state.b2), float64(state.step))),
+			)
+
+			update := mHat.
+				Times(noGraphCtx, state.a).
+				Divide(noGraphCtx, vHat.Plus(noGraphCtx, state.epsilon).
+					Pow(noGraphCtx, 0.5))
+
+			p.SubtractInPlace(noGraphCtx, update)
 		}
 
 	}

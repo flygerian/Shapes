@@ -72,6 +72,13 @@ typedef struct {
   bool isContigous;
 } Tensor;
 
+typedef struct {
+  Tensor *param;
+  Tensor *paramGrad;
+  Tensor *m;
+  Tensor *v;
+} AdamTriplet;
+
 typedef struct Context {
   Memory *memory;
 } Context;

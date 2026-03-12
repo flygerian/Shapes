@@ -12,15 +12,23 @@ type conv struct {
 	inChannels  uint
 	outChannels uint
 
-	kernels shapes.Tensor
-	bias    shapes.Tensor
+	kernels       shapes.Tensor
+	bias          shapes.Tensor
+	isBiasApplied bool
 }
 
 type convMetadata struct {
 	stride uint8
 }
 
-func Conv2d(ctx shapes.Context, inChannels uint, outChannels uint, kernel shapes.Shape, stride uint8) Layer {
+func Conv2d(
+	ctx shapes.Context,
+	inChannels uint,
+	outChannels uint,
+	kernel shapes.Shape,
+	stride uint8,
+	options ...layerOption,
+) Layer {
 	if inChannels == 0 || outChannels == 0 {
 		panic("Cannot have in/out channnels as 0")
 	}
@@ -52,7 +60,15 @@ func Conv2d(ctx shapes.Context, inChannels uint, outChannels uint, kernel shapes
 		bias:    bias,
 	}
 
+	for _, opt := range options {
+		opt(&state)
+	}
+
 	return &state
+}
+
+func (c *conv) SetBiasEnabled(isBiasEnabled bool) {
+	c.isBiasApplied = isBiasEnabled
 }
 
 func (c *conv) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {

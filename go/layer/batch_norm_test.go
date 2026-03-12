@@ -132,7 +132,7 @@ func TestBatchNormTracksRunningStatsDuringTraining(t *testing.T) {
 
 	ctx.Training(2)
 	bnLayer := BatchNorm(ctx, 1)
-	bn := bnLayer.(*batchNorm)
+	bn := bnLayer
 
 	x1 := shapes.FromFloat32(ctx, shapes.Shape{2, 1}, []float32{0.0, 2.0}) // mean=1, var=1
 	e1 := ctx.Epoch(1)

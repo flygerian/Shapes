@@ -12,11 +12,19 @@ type convTranspose struct {
 	inChannels  uint
 	outChannels uint
 
-	kernels shapes.Tensor
-	bias    shapes.Tensor
+	kernels       shapes.Tensor
+	bias          shapes.Tensor
+	isBiasApplied bool
 }
 
-func ConvTranspose2d(ctx shapes.Context, inChannels uint, outChannels uint, kernel shapes.Shape, stride uint8) Layer {
+func ConvTranspose2d(
+	ctx shapes.Context,
+	inChannels uint,
+	outChannels uint,
+	kernel shapes.Shape,
+	stride uint8,
+	options ...layerOption,
+) Layer {
 	if inChannels == 0 || outChannels == 0 {
 		panic("Cannot have in/out channnels as 0")
 	}
@@ -47,7 +55,15 @@ func ConvTranspose2d(ctx shapes.Context, inChannels uint, outChannels uint, kern
 		bias:        bias,
 	}
 
+	for _, opt := range options {
+		opt(&state)
+	}
+
 	return &state
+}
+
+func (c *convTranspose) SetBiasEnabled(isBiasEnabled bool) {
+	c.isBiasApplied = isBiasEnabled
 }
 
 func (c *convTranspose) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {

@@ -24,7 +24,7 @@ type batchNormMetadata struct {
 	dims    int8
 }
 
-func BatchNorm(outerCtx shapes.Context, numFeatures int) Layer {
+func BatchNorm(outerCtx shapes.Context, numFeatures int) *batchNorm {
 	gamma := shapes.Float(outerCtx, shapes.Shape{uint(numFeatures)}, 1.0)
 	beta := shapes.Float(outerCtx, shapes.Shape{uint(numFeatures)}, 0.0)
 
@@ -38,7 +38,7 @@ func BatchNorm(outerCtx shapes.Context, numFeatures int) Layer {
 	}
 }
 
-func BatchNorm2d(outerCtx shapes.Context, numFeatures int) Layer {
+func BatchNorm2d(outerCtx shapes.Context, numFeatures int) *batchNorm {
 	gamma := shapes.Float(outerCtx, shapes.Shape{uint(numFeatures)}, 1.0)
 	beta := shapes.Float(outerCtx, shapes.Shape{uint(numFeatures)}, 0.0)
 

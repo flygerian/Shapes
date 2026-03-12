@@ -15,14 +15,24 @@ type dense struct {
 	isBiasApplied bool
 }
 
-func Dense(outerCtx shapes.Context, inputSize int, outputSize int, options ...denseLayerOption) Layer {
+func Dense(outerCtx shapes.Context, inputSize int, outputSize int, options ...layerOption) Layer {
 	// Initialize the hidden state
 	initialization := (5 / 3) / (math.Pow(float64(inputSize), 0.5)) // Kaiming initalization ish
 	scale := float32(initialization)
 	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}, -scale, scale)
 	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize)})
 
-	return &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
+	dl := &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
+
+	for _, opt := range options {
+		opt(dl)
+	}
+
+	return dl
+}
+
+func (d *dense) SetBiasEnabled(isBiasEnabled bool) {
+	d.isBiasApplied = isBiasEnabled
 }
 
 func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
@@ -99,12 +109,4 @@ func constructDenseBackwardPass(ctx shapes.Context, node shapes.ComputationGraph
 
 	gradB := shapes.ReduceBroadcast(noGraphCtx, b, dB.(shapes.GradTensor))
 	b.Grad().Accumulate(noGraphCtx, gradB)
-}
-
-type denseLayerOption func(layer dense)
-
-func WithBias(isBiasApplied bool) denseLayerOption {
-	return func(layer dense) {
-		layer.isBiasApplied = isBiasApplied
-	}
 }
