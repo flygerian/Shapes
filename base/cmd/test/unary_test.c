@@ -237,5 +237,4 @@ void run_unary_tests(void) {
   test_pow_f64_dtype();
   test_pow_null_tensor();
   test_pow_invalid_dtype();
-
 }

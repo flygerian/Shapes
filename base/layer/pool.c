@@ -21,7 +21,7 @@ Result MaxPool2d(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *de
     return ERR_CONV2D_KERNEL_STRIDE_ZERO;
   }
 
-  if (isFloatNotType(x)) {
+  if (isNotFloatType(x)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 
@@ -120,7 +120,7 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
     return ERR_CONV2D_KERNEL_STRIDE_ZERO;
   }
 
-  if (isFloatNotType(x) || isFloatNotType(gradOut)) {
+  if (isNotFloatType(x) || isNotFloatType(gradOut)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 
@@ -231,7 +231,7 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  if (isFloatNotType(x)) {
+  if (isNotFloatType(x)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 
@@ -320,7 +320,7 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  if (isFloatNotType(x) || isFloatNotType(gradOut)) {
+  if (isNotFloatType(x) || isNotFloatType(gradOut)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 

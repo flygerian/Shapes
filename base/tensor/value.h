@@ -8,7 +8,7 @@
 #define VALUE_SET(arr, idx, v)                                                                     \
   do {                                                                                             \
     switch ((v).dtype) {                                                                           \
-      case BOOL: ((bool *)(arr))[(idx)] = (v).as.boolean; break;                                       \
+      case BOOL: ((bool *)(arr))[(idx)] = (v).as.boolean; break;                                   \
       case U8: ((u8 *)(arr))[(idx)] = (v).as.u8; break;                                            \
       case U16: ((u16 *)(arr))[(idx)] = (v).as.u16; break;                                         \
       case U32: ((u32 *)(arr))[(idx)] = (v).as.u32; break;                                         \
@@ -27,7 +27,7 @@
   do {                                                                                             \
     (v)->dtype = (dt);                                                                             \
     switch ((dt)) {                                                                                \
-      case BOOL: (v)->as.boolean = ((bool *)(arr))[(idx)]; break;                                     \
+      case BOOL: (v)->as.boolean = ((bool *)(arr))[(idx)]; break;                                  \
       case U8: (v)->as.u8 = ((u8 *)(arr))[(idx)]; break;                                           \
       case U16: (v)->as.u16 = ((u16 *)(arr))[(idx)]; break;                                        \
       case U32: (v)->as.u32 = ((u32 *)(arr))[(idx)]; break;                                        \
@@ -45,7 +45,7 @@
 #define VALUE_BINOP(dest, a, b, op)                                                                \
   do {                                                                                             \
     switch ((a).dtype) {                                                                           \
-      case BOOL: (dest).as.boolean = (a).as.boolean op(b).as.boolean; break;                          \
+      case BOOL: (dest).as.boolean = (a).as.boolean op(b).as.boolean; break;                       \
       case U8: (dest).as.u8 = (a).as.u8 op(b).as.u8; break;                                        \
       case U16: (dest).as.u16 = (a).as.u16 op(b).as.u16; break;                                    \
       case U32: (dest).as.u32 = (a).as.u32 op(b).as.u32; break;                                    \
@@ -64,7 +64,7 @@
 #define VALUE_UNBOX(v, dest)                                                                       \
   do {                                                                                             \
     switch ((v).dtype) {                                                                           \
-      case BOOL: *((bool *)(dest)) = (v).as.boolean; break;                                            \
+      case BOOL: *((bool *)(dest)) = (v).as.boolean; break;                                        \
       case U8: *((u8 *)(dest)) = (v).as.u8; break;                                                 \
       case U16: *((u16 *)(dest)) = (v).as.u16; break;                                              \
       case U32: *((u32 *)(dest)) = (v).as.u32; break;                                              \
@@ -81,7 +81,7 @@
 
 
 #define VALUE(type, data)                                                                          \
-  ((type) == BOOL  ? (Value){.dtype = (type), .as.boolean = (bool)(data)}                              \
+  ((type) == BOOL  ? (Value){.dtype = (type), .as.boolean = (bool)(data)}                          \
    : (type) == U8  ? (Value){.dtype = (type), .as.u8 = (u8)(data)}                                 \
    : (type) == U16 ? (Value){.dtype = (type), .as.u16 = (u16)(data)}                               \
    : (type) == U32 ? (Value){.dtype = (type), .as.u32 = (u32)(data)}                               \
@@ -95,7 +95,7 @@
                    : (Value){.dtype = (type), .as.f64 = (double)(data)})
 
 #define VALUE_CMP(a, b, op, dtype)                                                                 \
-  ((dtype) == BOOL  ? (a).as.boolean op(b).as.boolean                                                    \
+  ((dtype) == BOOL  ? (a).as.boolean op(b).as.boolean                                              \
    : (dtype) == U8  ? (a).as.u8 op(b).as.u8                                                        \
    : (dtype) == U16 ? (a).as.u16 op(b).as.u16                                                      \
    : (dtype) == U32 ? (a).as.u32 op(b).as.u32                                                      \
@@ -111,7 +111,7 @@
 #define PRINT_VALUE(v)                                                                             \
   do {                                                                                             \
     switch ((v).dtype) {                                                                           \
-      case BOOL: printf("%s", (v).as.boolean ? "true" : "false"); break;                               \
+      case BOOL: printf("%s", (v).as.boolean ? "true" : "false"); break;                           \
       case U8: printf("%u", (unsigned int)(v).as.u8); break;                                       \
       case U16: printf("%u", (unsigned int)(v).as.u16); break;                                     \
       case U32: printf("%u", (unsigned int)(v).as.u32); break;                                     \
@@ -129,7 +129,7 @@
 #define VALUE_TO_STRING(v, dest, size)                                                             \
   do {                                                                                             \
     switch ((v).dtype) {                                                                           \
-      case BOOL: snprintf(dest, size, "%s", (v).as.boolean ? "true" : "false"); break;                 \
+      case BOOL: snprintf(dest, size, "%s", (v).as.boolean ? "true" : "false"); break;             \
       case U8: snprintf(dest, size, "%u", (unsigned int)(v).as.u8); break;                         \
       case U16: snprintf(dest, size, "%u", (unsigned int)(v).as.u16); break;                       \
       case U32: snprintf(dest, size, "%u", (unsigned int)(v).as.u32); break;                       \

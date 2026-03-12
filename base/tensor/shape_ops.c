@@ -29,7 +29,8 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
 
   Dim newShape = {.dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
                   .numOfDims = source->shape.numOfDims,
-                  .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
+                  .multipliers =
+                      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
   Range *boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
 
   for (u8 x = 0; x < source->shape.numOfDims; x++) {
@@ -49,9 +50,8 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
   // the same underlying storage layout (including sliced/transposed sources).
   memcpy(newShape.multipliers, source->shape.multipliers,
          sizeof(multiplier_t) * source->shape.numOfDims);
-  tensor_size_t size =
-      calculateNumValuesAndMultipliers((Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims},
-                                       NULL);
+  tensor_size_t size = calculateNumValuesAndMultipliers(
+      (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims}, NULL);
   freeAlloc(ctx->memory, ranges);
   *dest = ((Tensor){
       .isView = true,

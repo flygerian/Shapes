@@ -8,15 +8,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define STRAIGHT_CMP_LOOP(TYPE, op)                                                             \
-  do {                                                                                          \
-    TYPE *pa = a->values;                                                                       \
-    TYPE *pb = b->values;                                                                       \
-    bool *po = dest->values;                                                                    \
-    for (tensor_size_t i = 0; i < dest->size; i++) {                                           \
-      po[i] = pa[i] op pb[i];                                                                   \
-    }                                                                                           \
-    return OK;                                                                                  \
+#define STRAIGHT_CMP_LOOP(TYPE, op)                                                                \
+  do {                                                                                             \
+    TYPE *pa = a->values;                                                                          \
+    TYPE *pb = b->values;                                                                          \
+    bool *po = dest->values;                                                                       \
+    for (tensor_size_t i = 0; i < dest->size; i++) {                                               \
+      po[i] = pa[i] op pb[i];                                                                      \
+    }                                                                                              \
+    return OK;                                                                                     \
   } while (0)
 
 static bool isComparisonOp(OpType opType) {
@@ -29,7 +29,7 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
     return false;
   }
 
-  for (tensor_size_t i = 0; i < a->shape.numOfDims; i ++) {
+  for (tensor_size_t i = 0; i < a->shape.numOfDims; i++) {
     if (a->shape.dims[i] != b->shape.dims[i]) {
       return false;
     }
@@ -38,24 +38,24 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
   return true;
 }
 
-#define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                        \
-  static inline void add_##NAME(const TYPE *restrict a, const TYPE *restrict b,                \
-                                TYPE *restrict out, tensor_size_t n) {                          \
-    for (tensor_size_t i = 0; i < n; i++) {                                                     \
-      out[i] = a[i] + b[i];                                                                     \
-    }                                                                                           \
-  }                                                                                             \
-  static inline void subtract_##NAME(const TYPE *restrict a, const TYPE *restrict b,           \
-                                     TYPE *restrict out, tensor_size_t n) {                     \
-    for (tensor_size_t i = 0; i < n; i++) {                                                     \
-      out[i] = a[i] - b[i];                                                                     \
-    }                                                                                           \
-  }                                                                                             \
-  static inline void multiply_##NAME(const TYPE *restrict a, const TYPE *restrict b,           \
-                                     TYPE *restrict out, tensor_size_t n) {                     \
-    for (tensor_size_t i = 0; i < n; i++) {                                                     \
-      out[i] = a[i] * b[i];                                                                     \
-    }                                                                                           \
+#define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                           \
+  static inline void add_##NAME(const TYPE *restrict a, const TYPE *restrict b,                    \
+                                TYPE *restrict out, tensor_size_t n) {                             \
+    for (tensor_size_t i = 0; i < n; i++) {                                                        \
+      out[i] = a[i] + b[i];                                                                        \
+    }                                                                                              \
+  }                                                                                                \
+  static inline void subtract_##NAME(const TYPE *restrict a, const TYPE *restrict b,               \
+                                     TYPE *restrict out, tensor_size_t n) {                        \
+    for (tensor_size_t i = 0; i < n; i++) {                                                        \
+      out[i] = a[i] - b[i];                                                                        \
+    }                                                                                              \
+  }                                                                                                \
+  static inline void multiply_##NAME(const TYPE *restrict a, const TYPE *restrict b,               \
+                                     TYPE *restrict out, tensor_size_t n) {                        \
+    for (tensor_size_t i = 0; i < n; i++) {                                                        \
+      out[i] = a[i] * b[i];                                                                        \
+    }                                                                                              \
   }
 
 DEFINE_ARITH_HELPERS(bool, bool)
@@ -70,21 +70,21 @@ DEFINE_ARITH_HELPERS(i64, i64)
 DEFINE_ARITH_HELPERS(f32, f32)
 DEFINE_ARITH_HELPERS(f64, f64)
 
-#define DEFINE_INPLACE_ARITH_HELPERS(TYPE, NAME)                                                 \
-  static inline void add_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {             \
-    for (tensor_size_t i = 0; i < n; i++) {                                                     \
-      a[i] += b[i];                                                                             \
-    }                                                                                           \
-  }                                                                                             \
-  static inline void subtract_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {        \
-    for (tensor_size_t i = 0; i < n; i++) {                                                     \
-      a[i] -= b[i];                                                                             \
-    }                                                                                           \
-  }                                                                                             \
-  static inline void multiply_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {        \
-    for (tensor_size_t i = 0; i < n; i++) {                                                     \
-      a[i] *= b[i];                                                                             \
-    }                                                                                           \
+#define DEFINE_INPLACE_ARITH_HELPERS(TYPE, NAME)                                                   \
+  static inline void add_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {                 \
+    for (tensor_size_t i = 0; i < n; i++) {                                                        \
+      a[i] += b[i];                                                                                \
+    }                                                                                              \
+  }                                                                                                \
+  static inline void subtract_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {            \
+    for (tensor_size_t i = 0; i < n; i++) {                                                        \
+      a[i] -= b[i];                                                                                \
+    }                                                                                              \
+  }                                                                                                \
+  static inline void multiply_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {            \
+    for (tensor_size_t i = 0; i < n; i++) {                                                        \
+      a[i] *= b[i];                                                                                \
+    }                                                                                              \
   }
 
 DEFINE_INPLACE_ARITH_HELPERS(bool, bool)
@@ -107,81 +107,108 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
       const bool *restrict pa = a->values;
       const bool *restrict pb = b->values;
       bool *restrict po = dest->values;
-      if (opType == OP_ADD) add_bool(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_bool(pa, pb, po, n);
-      else multiply_bool(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_bool(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_bool(pa, pb, po, n);
+      else
+        multiply_bool(pa, pb, po, n);
       return OK;
     }
     case U8: {
       const u8 *restrict pa = a->values;
       const u8 *restrict pb = b->values;
       u8 *restrict po = dest->values;
-      if (opType == OP_ADD) add_u8(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_u8(pa, pb, po, n);
-      else multiply_u8(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_u8(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_u8(pa, pb, po, n);
+      else
+        multiply_u8(pa, pb, po, n);
       return OK;
     }
     case U16: {
       const u16 *restrict pa = a->values;
       const u16 *restrict pb = b->values;
       u16 *restrict po = dest->values;
-      if (opType == OP_ADD) add_u16(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_u16(pa, pb, po, n);
-      else multiply_u16(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_u16(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_u16(pa, pb, po, n);
+      else
+        multiply_u16(pa, pb, po, n);
       return OK;
     }
     case U32: {
       const u32 *restrict pa = a->values;
       const u32 *restrict pb = b->values;
       u32 *restrict po = dest->values;
-      if (opType == OP_ADD) add_u32(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_u32(pa, pb, po, n);
-      else multiply_u32(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_u32(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_u32(pa, pb, po, n);
+      else
+        multiply_u32(pa, pb, po, n);
       return OK;
     }
     case U64: {
       const u64 *restrict pa = a->values;
       const u64 *restrict pb = b->values;
       u64 *restrict po = dest->values;
-      if (opType == OP_ADD) add_u64(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_u64(pa, pb, po, n);
-      else multiply_u64(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_u64(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_u64(pa, pb, po, n);
+      else
+        multiply_u64(pa, pb, po, n);
       return OK;
     }
     case I8: {
       const i8 *restrict pa = a->values;
       const i8 *restrict pb = b->values;
       i8 *restrict po = dest->values;
-      if (opType == OP_ADD) add_i8(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_i8(pa, pb, po, n);
-      else multiply_i8(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_i8(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_i8(pa, pb, po, n);
+      else
+        multiply_i8(pa, pb, po, n);
       return OK;
     }
     case I16: {
       const i16 *restrict pa = a->values;
       const i16 *restrict pb = b->values;
       i16 *restrict po = dest->values;
-      if (opType == OP_ADD) add_i16(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_i16(pa, pb, po, n);
-      else multiply_i16(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_i16(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_i16(pa, pb, po, n);
+      else
+        multiply_i16(pa, pb, po, n);
       return OK;
     }
     case I32: {
       const i32 *restrict pa = a->values;
       const i32 *restrict pb = b->values;
       i32 *restrict po = dest->values;
-      if (opType == OP_ADD) add_i32(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_i32(pa, pb, po, n);
-      else multiply_i32(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_i32(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_i32(pa, pb, po, n);
+      else
+        multiply_i32(pa, pb, po, n);
       return OK;
     }
     case I64: {
       const i64 *restrict pa = a->values;
       const i64 *restrict pb = b->values;
       i64 *restrict po = dest->values;
-      if (opType == OP_ADD) add_i64(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_i64(pa, pb, po, n);
-      else multiply_i64(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_i64(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_i64(pa, pb, po, n);
+      else
+        multiply_i64(pa, pb, po, n);
       return OK;
     }
     case F16:
@@ -189,22 +216,27 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
       const f32 *restrict pa = a->values;
       const f32 *restrict pb = b->values;
       f32 *restrict po = dest->values;
-      if (opType == OP_ADD) add_f32(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_f32(pa, pb, po, n);
-      else multiply_f32(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_f32(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_f32(pa, pb, po, n);
+      else
+        multiply_f32(pa, pb, po, n);
       return OK;
     }
     case F64: {
       const f64 *restrict pa = a->values;
       const f64 *restrict pb = b->values;
       f64 *restrict po = dest->values;
-      if (opType == OP_ADD) add_f64(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT) subtract_f64(pa, pb, po, n);
-      else multiply_f64(pa, pb, po, n);
+      if (opType == OP_ADD)
+        add_f64(pa, pb, po, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_f64(pa, pb, po, n);
+      else
+        multiply_f64(pa, pb, po, n);
       return OK;
     }
-    default:
-      return ERR_NOT_A_BINOP;
+    default: return ERR_NOT_A_BINOP;
   }
 }
 
@@ -215,94 +247,126 @@ static Result straightInPlaceBinop(Tensor *a, Tensor *b, OpType opType) {
     case BOOL: {
       bool *pa = a->values;
       const bool *pb = b->values;
-      if (opType == OP_ADD) add_inplace_bool(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_bool(pa, pb, n);
-      else multiply_inplace_bool(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_bool(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_bool(pa, pb, n);
+      else
+        multiply_inplace_bool(pa, pb, n);
       return OK;
     }
     case U8: {
       u8 *pa = a->values;
       const u8 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_u8(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_u8(pa, pb, n);
-      else multiply_inplace_u8(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_u8(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_u8(pa, pb, n);
+      else
+        multiply_inplace_u8(pa, pb, n);
       return OK;
     }
     case U16: {
       u16 *pa = a->values;
       const u16 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_u16(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_u16(pa, pb, n);
-      else multiply_inplace_u16(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_u16(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_u16(pa, pb, n);
+      else
+        multiply_inplace_u16(pa, pb, n);
       return OK;
     }
     case U32: {
       u32 *pa = a->values;
       const u32 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_u32(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_u32(pa, pb, n);
-      else multiply_inplace_u32(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_u32(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_u32(pa, pb, n);
+      else
+        multiply_inplace_u32(pa, pb, n);
       return OK;
     }
     case U64: {
       u64 *pa = a->values;
       const u64 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_u64(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_u64(pa, pb, n);
-      else multiply_inplace_u64(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_u64(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_u64(pa, pb, n);
+      else
+        multiply_inplace_u64(pa, pb, n);
       return OK;
     }
     case I8: {
       i8 *pa = a->values;
       const i8 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_i8(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_i8(pa, pb, n);
-      else multiply_inplace_i8(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_i8(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_i8(pa, pb, n);
+      else
+        multiply_inplace_i8(pa, pb, n);
       return OK;
     }
     case I16: {
       i16 *pa = a->values;
       const i16 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_i16(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_i16(pa, pb, n);
-      else multiply_inplace_i16(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_i16(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_i16(pa, pb, n);
+      else
+        multiply_inplace_i16(pa, pb, n);
       return OK;
     }
     case I32: {
       i32 *pa = a->values;
       const i32 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_i32(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_i32(pa, pb, n);
-      else multiply_inplace_i32(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_i32(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_i32(pa, pb, n);
+      else
+        multiply_inplace_i32(pa, pb, n);
       return OK;
     }
     case I64: {
       i64 *pa = a->values;
       const i64 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_i64(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_i64(pa, pb, n);
-      else multiply_inplace_i64(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_i64(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_i64(pa, pb, n);
+      else
+        multiply_inplace_i64(pa, pb, n);
       return OK;
     }
     case F16:
     case F32: {
       f32 *pa = a->values;
       const f32 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_f32(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_f32(pa, pb, n);
-      else multiply_inplace_f32(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_f32(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_f32(pa, pb, n);
+      else
+        multiply_inplace_f32(pa, pb, n);
       return OK;
     }
     case F64: {
       f64 *pa = a->values;
       const f64 *pb = b->values;
-      if (opType == OP_ADD) add_inplace_f64(pa, pb, n);
-      else if (opType == OP_SUBTRACT) subtract_inplace_f64(pa, pb, n);
-      else multiply_inplace_f64(pa, pb, n);
+      if (opType == OP_ADD)
+        add_inplace_f64(pa, pb, n);
+      else if (opType == OP_SUBTRACT)
+        subtract_inplace_f64(pa, pb, n);
+      else
+        multiply_inplace_f64(pa, pb, n);
       return OK;
     }
-    default:
-      return ERR_NOT_A_BINOP;
+    default: return ERR_NOT_A_BINOP;
   }
 }
 
@@ -376,14 +440,14 @@ static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
         case F64: STRAIGHT_CMP_LOOP(double, <=);
       }
       break;
-    default:
-      return ERR_NOT_A_BINOP;
+    default: return ERR_NOT_A_BINOP;
   }
 
   return ERR_NOT_A_BINOP;
 }
 
-static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *output, OpType opType) {
+static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *output,
+                             OpType opType) {
   dim_t currentCoord[output->shape.numOfDims];
   dim_t aCoords[output->shape.numOfDims];
   dim_t bCoords[output->shape.numOfDims];
@@ -420,7 +484,6 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
     }
 
     VALUE_SET(output->values, x, result);
-
   }
 
   return OK;

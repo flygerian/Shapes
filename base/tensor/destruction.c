@@ -47,9 +47,12 @@ Result FreeTensor(Context *ctx, Tensor *t) {
 }
 
 Result freeTensorBuffers(Context *ctx, Tensor *t) {
-  if (t->values) freeAlloc(ctx->memory, t->values);
-  if (t->shape.dims) freeAlloc(ctx->memory, t->shape.dims);
-  if (t->shape.multipliers) freeAlloc(ctx->memory, t->shape.multipliers);
+  if (t->values)
+    freeAlloc(ctx->memory, t->values);
+  if (t->shape.dims)
+    freeAlloc(ctx->memory, t->shape.dims);
+  if (t->shape.multipliers)
+    freeAlloc(ctx->memory, t->shape.multipliers);
 
   t->values = NULL;
   t->shape.dims = NULL;

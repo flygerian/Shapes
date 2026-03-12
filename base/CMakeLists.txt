@@ -62,6 +62,7 @@ add_library(shapes_core
     layer/pool.c
     loss/cross_entropy.c
     optimizer/sgd.c
+    optimizer/adam.c
     tensor/tensor.c
     tensor/binary_op.c
     tensor/matrix_ops.c
@@ -91,6 +92,7 @@ add_executable(shapes_test
     cmd/test/unary_test.c
     cmd/test/cast_test.c
     cmd/test/sgd_test.c
+    cmd/test/adam_test.c
     cmd/test/layer_test.c
 )
 target_link_libraries(shapes_test shapes_core)

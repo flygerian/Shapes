@@ -138,7 +138,7 @@ bool isIntType(Tensor *t) {
          t->dtype != U8 && t->dtype != U16 && t->dtype != U32 && t->dtype != U64;
 }
 
-bool isFloatNotType(Tensor *t) {
+bool isNotFloatType(Tensor *t) {
   return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
 }
 

@@ -77,20 +77,20 @@ typedef struct {
   Tensor *paramGrad;
   Tensor *m;
   Tensor *v;
-} AdamTriplet;
+} AdamData;
 
 typedef struct Context {
   Memory *memory;
 } Context;
 
-typedef enum { 
-  OP_ADD, 
-  OP_SUBTRACT, 
-  OP_MULTIPLY, 
-  OP_GREATER, 
-  OP_GREATER_OR_EQUAL, 
-  OP_LESS, 
-  OP_LESS_OR_EQUAL 
+typedef enum {
+  OP_ADD,
+  OP_SUBTRACT,
+  OP_MULTIPLY,
+  OP_GREATER,
+  OP_GREATER_OR_EQUAL,
+  OP_LESS,
+  OP_LESS_OR_EQUAL
 } OpType;
 
 size_t getBytesForDtype(Dtype type);

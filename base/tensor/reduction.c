@@ -75,14 +75,14 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
-  *dest =
-      (Tensor){.dtype = workingTensor->dtype,
-               .isContigous = true,
-               .isView = false,
-               .size = (resultSize),
-               .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
-               .boundary = NULL,
-               };
+  *dest = (Tensor){
+      .dtype = workingTensor->dtype,
+      .isContigous = true,
+      .isView = false,
+      .size = (resultSize),
+      .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
+      .boundary = NULL,
+  };
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -194,14 +194,14 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
-  *dest =
-      (Tensor){.dtype = workingTensor->dtype,
-               .isContigous = true,
-               .isView = false,
-               .size = resultSize,
-               .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
-               .boundary = NULL,
-      };
+  *dest = (Tensor){
+      .dtype = workingTensor->dtype,
+      .isContigous = true,
+      .isView = false,
+      .size = resultSize,
+      .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
+      .boundary = NULL,
+  };
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -244,7 +244,8 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   return OK;
 }
 
-static inline void cleanupStd(Context *ctx, bool isCopiedToContigous, Tensor *workingTensor, Tensor *mean) {
+static inline void cleanupStd(Context *ctx, bool isCopiedToContigous, Tensor *workingTensor,
+                              Tensor *mean) {
   if (isCopiedToContigous) {
     FreeTensor(ctx, workingTensor);
   }
@@ -261,7 +262,7 @@ Result Std(Context *ctx, Tensor *t, Tensor *dest) {
     return ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES;
   }
 
-  if (isFloatNotType(t)) {
+  if (isNotFloatType(t)) {
     return ERR_STD_NOT_FLOAT_TYPE;
   }
 
@@ -357,14 +358,14 @@ Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
-  *dest =
-      (Tensor){.dtype = workingTensor->dtype,
-               .isContigous = true,
-               .isView = false,
-               .size = resultSize,
-               .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
-               .boundary = NULL,
-      };
+  *dest = (Tensor){
+      .dtype = workingTensor->dtype,
+      .isContigous = true,
+      .isView = false,
+      .size = resultSize,
+      .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * resultSize),
+      .boundary = NULL,
+  };
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -439,13 +440,14 @@ Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
-  *dest = (Tensor){.dtype = I64,
-                   .isContigous = true,
-                   .isView = false,
-                   .size = resultSize,
-                   .values = allocate(ctx->memory, sizeof(i64) * resultSize),
-                   .boundary = NULL,
-                   };
+  *dest = (Tensor){
+      .dtype = I64,
+      .isContigous = true,
+      .isView = false,
+      .size = resultSize,
+      .values = allocate(ctx->memory, sizeof(i64) * resultSize),
+      .boundary = NULL,
+  };
 
   i64 *destValues = (i64 *)dest->values;
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {

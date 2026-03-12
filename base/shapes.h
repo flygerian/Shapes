@@ -104,7 +104,8 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
            f32 learningRate);
 
 
-Result Adam(Context *ctx, AdamTriplet *triplets);
+Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step,
+            f32 a, f32 epsilon);
 
 // Debug
 void PrintItem(Tensor *t);

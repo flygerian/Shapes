@@ -241,18 +241,15 @@ Result Abs(Context *ctx, Tensor *t, Tensor *dest) {
     workingTensor = copyToContiguous(ctx, t);
   }
 
-  *dest = (Tensor) {
-    .dtype = t->dtype, 
-      .size = t->size, 
-      .isView = false,
-      .isContigous = true,
-      .shape = {
-        .dims = allocate(ctx->memory, t->shape.numOfDims * sizeof(dim_t)),
-        .numOfDims = t->shape.numOfDims,
-        .multipliers = t->shape.multipliers
-      },
-      .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) * workingTensor->size)
-  };
+  *dest = (Tensor){.dtype = t->dtype,
+                   .size = t->size,
+                   .isView = false,
+                   .isContigous = true,
+                   .shape = {.dims = allocate(ctx->memory, t->shape.numOfDims * sizeof(dim_t)),
+                             .numOfDims = t->shape.numOfDims,
+                             .multipliers = t->shape.multipliers},
+                   .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) *
+                                                       workingTensor->size)};
 
   memcpy(dest->shape.dims, t->shape.dims, t->shape.numOfDims * sizeof(dim_t));
   memcpy(dest->shape.multipliers, t->shape.multipliers, t->shape.numOfDims * sizeof(multiplier_t));

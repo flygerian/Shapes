@@ -14,14 +14,13 @@ static inline Tensor singleValueTensor(Context *ctx, Value value) {
   void *values = allocate(ctx->memory, getBytesForDtype(value.dtype));
   VALUE_SET(values, 0, value);
 
-  return (Tensor){
-      .dtype = value.dtype,
-      .values = values,
-      .size = 1,
-      .isContigous = true,
-      .isView = false,
-      .boundary = NULL,
-      .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
+  return (Tensor){.dtype = value.dtype,
+                  .values = values,
+                  .size = 1,
+                  .isContigous = true,
+                  .isView = false,
+                  .boundary = NULL,
+                  .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
 }
 
 Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype);
@@ -47,7 +46,7 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
                               void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
 bool isIntType(Tensor *t);
-bool isFloatNotType(Tensor *t);
+bool isNotFloatType(Tensor *t);
 
 Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);

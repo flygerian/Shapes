@@ -28,7 +28,7 @@
 #define COMPUTE_ABS(val, dtype_enum, c_type, abs_fn)                                               \
   case dtype_enum: {                                                                               \
     c_type num = (val)->as.c_type;                                                                 \
-    (val)->as.c_type = (c_type)abs_fn(num);                                                \
+    (val)->as.c_type = (c_type)abs_fn(num);                                                        \
     return OK;                                                                                     \
   }
 

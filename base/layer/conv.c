@@ -15,7 +15,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     return ERR_CONV2D_KERNEL_STRIDE_ZERO;
   }
 
-  if (isFloatNotType(t)) {
+  if (isNotFloatType(t)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 
@@ -147,7 +147,7 @@ Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut,
     return ERR_CONV2D_KERNEL_STRIDE_ZERO;
   }
 
-  if (isFloatNotType(x) || isFloatNotType(kernels) || isFloatNotType(gradOut)) {
+  if (isNotFloatType(x) || isNotFloatType(kernels) || isNotFloatType(gradOut)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 
@@ -273,7 +273,7 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
     return ERR_CONV2D_KERNEL_STRIDE_ZERO;
   }
 
-  if (isFloatNotType(t)) {
+  if (isNotFloatType(t)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 
@@ -401,7 +401,7 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
     return ERR_CONV2D_KERNEL_STRIDE_ZERO;
   }
 
-  if (isFloatNotType(x) || isFloatNotType(kernels) || isFloatNotType(gradOut)) {
+  if (isNotFloatType(x) || isNotFloatType(kernels) || isNotFloatType(gradOut)) {
     return ERR_CONV2D_KERNEL_NOT_FLOAT;
   }
 

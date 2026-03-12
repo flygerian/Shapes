@@ -21,9 +21,9 @@
   ((blockfooter *)((uint8_t *)(blockHeader) + sizeof(blockheader) + blockHeader->blockSize))
 
 #define TOTAL_BLOCK_SIZE(blockSize) (blockSize + (sizeof(blockheader) + sizeof(blockfooter)))
-#define INVALID_OFFSET ((size_t)-1)
+#define INVALID_OFFSET              ((size_t)-1)
 
-#define HEADER_AT(memory, offset) ((blockheader *)(ARENA(memory) + (offset)))
+#define HEADER_AT(memory, offset)     ((blockheader *)(ARENA(memory) + (offset)))
 #define HEADER_OFFSET(memory, header) BLOCK_HEADER_OFFSET(ARENA(memory), (header))
 
 #define GROW_CAPACITY(capacity) (capacity) < 8 ? 8 : (capacity) * 2

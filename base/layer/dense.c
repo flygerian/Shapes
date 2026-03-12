@@ -203,10 +203,9 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
                 (int)inputSize);
 
     // dW = gradOut^T * x
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize,
-                (int)rows, 1.0, (double *)gContig->values, (int)outputSize,
-                (double *)xContig->values, (int)inputSize, 0.0, (double *)dW->values,
-                (int)inputSize);
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+                1.0, (double *)gContig->values, (int)outputSize, (double *)xContig->values,
+                (int)inputSize, 0.0, (double *)dW->values, (int)inputSize);
 
     // dB is the row-wise sum of gradOut (one accumulator per output feature).
     double *gVals = gContig->values;
@@ -228,10 +227,9 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
                 (int)inputSize);
 
     // dW = gradOut^T * x
-    cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize,
-                (int)rows, 1.0f, (float *)gContig->values, (int)outputSize,
-                (float *)xContig->values, (int)inputSize, 0.0f, (float *)dW->values,
-                (int)inputSize);
+    cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+                1.0f, (float *)gContig->values, (int)outputSize, (float *)xContig->values,
+                (int)inputSize, 0.0f, (float *)dW->values, (int)inputSize);
 
     // dB is the row-wise sum of gradOut (one accumulator per output feature).
     float *gVals = gContig->values;
