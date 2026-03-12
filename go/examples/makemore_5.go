@@ -91,10 +91,9 @@ func MakeMore_5() {
 	l1 := layer.Dense(shapesCtx, 80, 100, layer.WithBias(false))
 	l2 := layer.Dense(shapesCtx, 100, 100, layer.WithBias(false))
 	l3 := layer.Dense(shapesCtx, 100, 27)
-
 	bn1 := layer.BatchNorm(shapesCtx, 100)
 	bn2 := layer.BatchNorm(shapesCtx, 100)
-	optimizerStep := optimizer.Adam(shapesCtx)
+	optimizerStep := optimizer.Adam(shapesCtx, optimizer.WithLearningRate(0.0001))
 
 	crossEnthropy := loss.CrossEntropy()
 
@@ -115,7 +114,7 @@ func MakeMore_5() {
 		return logits
 	}
 
-	numEpochs := 50000
+	numEpochs := 5000
 
 	trainingCtx := shapesCtx.Training(
 		numEpochs,

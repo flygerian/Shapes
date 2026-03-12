@@ -75,6 +75,42 @@ func ResultString(r uint32) string {
 		return "std requires float values"
 	case C.ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES:
 		return "std requires at least two values"
+	case C.ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE:
+		return "learning rate cannot be zero or negative"
+	case C.ERR_SGD_PARAMS_HAVE_TO_BE_CONTIGOUS:
+		return "sgd params must be contiguous"
+	case C.ERR_SGD_PARAMS_HAVE_TO_BE_FLOAT:
+		return "sgd params must be float tensors"
+	case C.ERR_SGD_PARAMS_NUMBER_MISMATCH:
+		return "sgd params number mismatch"
+	case C.ERR_SGD_PARAMS_GRAD_DTYPE_MISMATCH:
+		return "sgd params grad dtype mismatch"
+	case C.ERR_CONV2D_INVALID_NUM_TENSOR_DIM:
+		return "conv2d invalid tensor dimension"
+	case C.ERR_CONV2D_IN_CHANNELS_ZERO:
+		return "conv2d in channels cannot be zero"
+	case C.ERR_CONV2D_OUT_CHANNELS_ZERO:
+		return "conv2d out channels cannot be zero"
+	case C.ERR_CONV2D_KERNEL_NOT_2D:
+		return "conv2d kernel must be 2D"
+	case C.ERR_CONV2D_KERNEL_NOT_FLOAT:
+		return "conv2d kernel must be float"
+	case C.ERR_CONV2D_KERNEL_STRIDE_ZERO:
+		return "conv2d kernel stride cannot be zero"
+	case C.ERR_ADAM_NULL_TRIPLETS:
+		return "adam triplets array is null"
+	case C.ERR_ADAM_NULL_M:
+		return "adam m tensor is null"
+	case C.ERR_ADAM_NULL_V:
+		return "adam v tensor is null"
+	case C.ERR_ADAM_NULL_PARAM:
+		return "adam param tensor is null"
+	case C.ERR_ADAM_NULL_GRAD:
+		return "adam paramGrad tensor is null"
+	case C.ERR_ADAM_ONLY_FLOAT_TENSORS:
+		return "adam requires float tensors"
+	case C.ERR_ADAM_PARAMS_SIZE_MISMATCH:
+		return "adam tensor sizes must match"
 	default:
 		return fmt.Sprintf("unknown error (%d)", int(r))
 	}

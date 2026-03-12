@@ -59,22 +59,22 @@ static void test_adam_single_step(void) {
   ASSERT_EQ(r, OK, "Adam single step should return OK");
 
   // Manually compute expected values for step 1 with b1=0.9, b2=0.999, a=0.1:
+  // Bias correction: (1 - b1^1) = 0.1, (1 - b2^1) = 0.001
   // For grad=0.1:
   //   m = 0.9*0 + 0.1*0.1 = 0.01
   //   v = 0.999*0 + 0.001*0.01 = 0.00001
-  //   bc1 = 0.9, bc2 = 0.999
-  //   m_hat = 0.01 / 0.9 = 0.011111...
-  //   v_hat = 0.00001 / 0.999 = 0.00001001
-  //   sqrt(v_hat) = 0.003164
-  //   update = 0.1 * 0.011111 / (0.003164 + 1e-8) = 0.3511
-  //   param_new = 1.0 - 0.3511 = 0.6489
+  //   m_hat = 0.01 / 0.1 = 0.1 (grad after bias correction)
+  //   v_hat = 0.00001 / 0.001 = 0.01 (grad^2 after bias correction)
+  //   sqrt(v_hat) = 0.1
+  //   update = 0.1 * 0.1 / (0.1 + 1e-8) ≈ 0.1
+  //   param_new = 1.0 - 0.1 = 0.9
   //
-  // For grad=0.2: update ≈ 0.3511, param_new ≈ 1.6489
-  // For grad=0.3: update ≈ 0.3511, param_new ≈ 2.6489
+  // For grad=0.2: update ≈ 0.1, param_new ≈ 1.9
+  // For grad=0.3: update ≈ 0.1, param_new ≈ 2.9
 
-  ASSERT(fabsf(pVals[0] - 0.6489f) < 1e-3f, "param[0] should be updated correctly");
-  ASSERT(fabsf(pVals[1] - 1.6489f) < 1e-3f, "param[1] should be updated correctly");
-  ASSERT(fabsf(pVals[2] - 2.6489f) < 1e-3f, "param[2] should be updated correctly");
+  ASSERT(fabsf(pVals[0] - 0.9f) < 1e-5f, "param[0] should be updated correctly");
+  ASSERT(fabsf(pVals[1] - 1.9f) < 1e-5f, "param[1] should be updated correctly");
+  ASSERT(fabsf(pVals[2] - 2.9f) < 1e-5f, "param[2] should be updated correctly");
 
   // Check m and v values
   ASSERT(fabsf(mVals[0] - 0.01f) < 1e-6f, "m[0] should accumulate correctly");

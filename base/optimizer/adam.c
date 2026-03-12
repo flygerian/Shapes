@@ -43,10 +43,11 @@ Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2
     f32 *mVals = trip.m->values;
     f32 *vVals = trip.v->values;
 
-    f32 bc1 = powf(b1, step);
-    f32 bc2 = powf(b2, step);
-    f32 inv_bc1 = 1.0f / bc1;
-    f32 inv_bc2 = 1.0f / bc2;
+    // Compute bias correction factors: (1 - beta^step)
+    f32 biasCorrection1 = 1.0f - powf(b1, step);
+    f32 biasCorrection2 = 1.0f - powf(b2, step);
+    f32 inv_bc1 = 1.0f / biasCorrection1;
+    f32 inv_bc2 = 1.0f / biasCorrection2;
 
     for (tensor_size_t i = 0; i < trip.param->size; i++) {
       mVals[i] = b1 * mVals[i] + (1 - b1) * gradVals[i];
