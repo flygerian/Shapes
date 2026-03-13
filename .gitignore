@@ -9,4 +9,5 @@ build/openblas
 *.prof
 *.s
 go/*gocache
+go/main
 
