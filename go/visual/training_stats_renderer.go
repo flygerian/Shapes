@@ -49,15 +49,33 @@ func (r *TrainingStatsRenderer) renderMemoryAndLossCharts(stats *shapes.Training
 			Weighted(WeightOptions{
 				Weight: 3,
 				Child: Flex(FlexOptions{
-					Direction: DirectionColumn,
+					Direction: DirectionRow,
 					Children: []Artefact{
-						Chart(ChartOptions{
-							XAxis: stats.LossHistoryX,
-							YAxis: stats.LossHistory,
-							Mode:  ChartFitToViewport,
+						Flex(FlexOptions{
+							Direction: DirectionColumn,
+							Children: []Artefact{
+								Chart(ChartOptions{
+									XAxis: stats.LossHistoryX,
+									YAxis: stats.LossHistory,
+									Mode:  ChartFitToViewport,
+								}),
+								Box(BoxOptions{
+									Child: Text("Loss"),
+								}),
+							},
 						}),
-						Box(BoxOptions{
-							Child: Text("Loss"),
+						Flex(FlexOptions{
+							Direction: DirectionColumn,
+							Children: []Artefact{
+								Chart(ChartOptions{
+									XAxis: stats.ValidationLossHistoryX,
+									YAxis: stats.ValidationLossHistory,
+									Mode:  ChartFitToViewport,
+								}),
+								Box(BoxOptions{
+									Child: Text("Val Loss"),
+								}),
+							},
 						}),
 					},
 				}),
@@ -121,7 +139,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 		}
 		lastVersion = stats.Version
 
-		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f", stats.Epoch, stats.NumEpochs, stats.Loss)
+		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f | Val Loss %.6f", stats.Epoch, stats.NumEpochs, stats.Loss, stats.ValidationLoss)
 		dashboard := Flex(FlexOptions{
 			MinHeight: 60,
 			Direction: DirectionColumn,

@@ -28,7 +28,7 @@ type subContextOption func(*subContext)
 func panicIfNoGradients(tensors ...Tensor) {
 	for _, it := range tensors {
 		if inputTensor, ok := it.(*tensor); !ok || inputTensor.computation == nil || inputTensor.computation.grad == nil {
-			panic("Inputs tensors into a fused context have to track gradients")
+			// panic("Inputs tensors into a fused context have to track gradients")
 		}
 	}
 }

@@ -29,6 +29,7 @@ type Context interface {
 	NoGrad(options ...subContextOption) SubContext
 	Fused(options ...subContextOption) SubContext
 	NoGraph(options ...subContextOption) SubContext
+	Test(options ...subContextOption) SubContext
 
 	GradEnabled() bool
 	BackwardEnabled() bool
@@ -62,6 +63,8 @@ type EpochContext interface {
 	SubContext
 	SampleTensor(key string, t Tensor)
 	CurrentEpochNum() int
+	SetValidationLoss(loss float64)
+	SetTestLoss(loss float64)
 }
 
 type shapesCtx struct {
@@ -107,15 +110,21 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 }
 
 type TrainingStats struct {
-	Epoch                int
-	NumEpochs            int
-	Loss                 float64
-	MemorySampleHistoryX []int
-	UsedBlocksHistory    []int
-	LossHistoryX         []int
-	LossHistory          []int
-	Version              int
-	TrainingDone         chan bool
+	Epoch                  int
+	NumEpochs              int
+	Loss                   float64
+	TestLoss               float64
+	ValidationLoss         float64
+	MemorySampleHistoryX   []int
+	UsedBlocksHistory      []int
+	LossHistoryX           []int
+	LossHistory            []int
+	TestLossHistoryX       []int
+	TestLossHistory        []int
+	ValidationLossHistoryX []int
+	ValidationLossHistory  []int
+	Version                int
+	TrainingDone           chan bool
 
 	SampleTensors map[string]Tensor
 }
@@ -201,16 +210,22 @@ func (c *mainContext) NoGrad(options ...subContextOption) SubContext {
 func (c *mainContext) initTrainingStats(numEpochs int) {
 	c.training = &trainingState{
 		stats: &TrainingStats{
-			NumEpochs:            numEpochs,
-			Epoch:                0,
-			Loss:                 0,
-			MemorySampleHistoryX: make([]int, 0),
-			UsedBlocksHistory:    make([]int, 0),
-			LossHistoryX:         make([]int, 0),
-			LossHistory:          make([]int, 0),
-			Version:              0,
-			TrainingDone:         make(chan bool),
-			SampleTensors:        make(map[string]Tensor),
+			NumEpochs:              numEpochs,
+			Epoch:                  0,
+			Loss:                   0,
+			TestLoss:               0,
+			ValidationLoss:         0,
+			MemorySampleHistoryX:   make([]int, 0),
+			UsedBlocksHistory:      make([]int, 0),
+			LossHistoryX:           make([]int, 0),
+			LossHistory:            make([]int, 0),
+			TestLossHistoryX:       make([]int, 0),
+			TestLossHistory:        make([]int, 0),
+			ValidationLossHistoryX: make([]int, 0),
+			ValidationLossHistory:  make([]int, 0),
+			Version:                0,
+			TrainingDone:           make(chan bool),
+			SampleTensors:          make(map[string]Tensor),
 		},
 	}
 }
@@ -296,6 +311,12 @@ func (c *mainContext) Fused(options ...subContextOption) SubContext {
 // turns off all gradient tacking. For use in backward pass only
 func (c *mainContext) NoGraph(options ...subContextOption) SubContext {
 	return noGraph(c, options...)
+}
+
+// Test returns a new Context that shares the same C context and memory
+// with gradients and backward pass disabled. Suitable for validation/testing.
+func (c *mainContext) Test(options ...subContextOption) SubContext {
+	return test(c, options...)
 }
 
 func (c *mainContext) Memory() *C.Memory {
@@ -407,6 +428,7 @@ const (
 	SubContextTypeFused
 	SubContextTypeNoGrad
 	SubContextTypeNoGraph
+	SubContextTypeTest
 )
 
 type subContext struct {
@@ -521,6 +543,12 @@ func (c *subContext) NoGraph(options ...subContextOption) SubContext {
 	return noGraph(c, options...)
 }
 
+// Test returns a new Context that shares the same C context and memory
+// with gradients and backward pass disabled. Suitable for validation/testing.
+func (c *subContext) Test(options ...subContextOption) SubContext {
+	return test(c, options...)
+}
+
 func (sc *subContext) Track(t Tensor) {
 	sc.parent.Track(t)
 	sc.locals = append(sc.locals, t)
@@ -580,6 +608,34 @@ func (ctx *subContext) SampleTensor(key string, t Tensor) {
 	defer ctx.training.mu.Unlock()
 
 	ctx.training.stats.SampleTensors[key] = t.Clone(ctx.main())
+}
+
+func (ctx *subContext) SetValidationLoss(loss float64) {
+	if ctx.training == nil {
+		panic("Cannot set validation loss in a non training context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.ValidationLoss = loss
+	ctx.training.stats.ValidationLossHistoryX = append(ctx.training.stats.ValidationLossHistoryX, ctx.training.stats.Epoch)
+	ctx.training.stats.ValidationLossHistory = append(ctx.training.stats.ValidationLossHistory, int(loss*1000))
+	ctx.training.stats.Version++
+}
+
+func (ctx *subContext) SetTestLoss(loss float64) {
+	if ctx.training == nil {
+		panic("Cannot set test loss in a non training context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.TestLoss = loss
+	ctx.training.stats.TestLossHistoryX = append(ctx.training.stats.TestLossHistoryX, ctx.training.stats.Epoch)
+	ctx.training.stats.TestLossHistory = append(ctx.training.stats.TestLossHistory, int(loss*1000))
+	ctx.training.stats.Version++
 }
 
 func (ctx *subContext) main() *mainContext {
@@ -679,10 +735,6 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 // but turns of backward passes for any ops used in that context.
 // Meant for doing compund operations where the caller might want to specify the backward pass manually
 func fused(c Context, options ...subContextOption) SubContext {
-	if !c.GradEnabled() {
-		panic("Creating fused context from a context where gradients are not tracked")
-	}
-
 	return derive(c, SubContextTypeFused, true, false, options...)
 }
 
@@ -690,6 +742,12 @@ func fused(c Context, options ...subContextOption) SubContext {
 // turns off all gradient tacking. For use in backward pass only
 func noGraph(c Context, options ...subContextOption) SubContext {
 	return derive(c, SubContextTypeNoGraph, false, false, options...)
+}
+
+// Test returns a new Context that shares the same C context and memory
+// with gradients and backward pass disabled. Suitable for validation/testing.
+func test(c Context, options ...subContextOption) SubContext {
+	return derive(c, SubContextTypeTest, false, false, options...)
 }
 
 func startMemoryTicker(c *mainContext) {

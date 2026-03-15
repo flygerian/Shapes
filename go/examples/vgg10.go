@@ -37,6 +37,13 @@ func getTrainingParams() trainingParams {
 	}
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
 	imageTensors := make([]imageLabelPair, 0)
 
@@ -63,7 +70,7 @@ func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
 	return imageTensors
 }
 
-func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []string) {
+func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []imageLabelPair, []string) {
 
 	batchFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/data_batch_1.bin")
 	if err != nil {
@@ -86,8 +93,13 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []strin
 	}
 	defer testFile.Close()
 
-	train := getTensors(ctx, batchFile)
+	allTrain := getTensors(ctx, batchFile)
 	test := getTensors(ctx, testFile)
+
+	// 80/20 train/validation split
+	trainSize := int(float64(len(allTrain)) * 0.8)
+	train := allTrain[:trainSize]
+	validation := allTrain[trainSize:]
 
 	scanner := bufio.NewScanner(labelsFile)
 
@@ -101,7 +113,7 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []strin
 		labels = append(labels, text)
 	}
 
-	return train, test, labels
+	return train, validation, test, labels
 }
 
 // Model
@@ -134,7 +146,7 @@ func linearBlock(ctx shapes.Context, numLabels int) layer.Sequential {
 }
 
 func modelForward(
-	ctx shapes.EpochContext,
+	ctx shapes.Context,
 	params trainingParams,
 	blocks []layer.Sequential,
 	x shapes.Tensor) shapes.Tensor {
@@ -148,11 +160,37 @@ func modelForward(
 	return x
 }
 
+func computeAndSetValidationLoss(
+	epochCtx shapes.EpochContext,
+	shapeCtx shapes.Context,
+	hyperParams trainingParams,
+	validation []imageLabelPair,
+	XVal shapes.Tensor,
+	YVal shapes.Tensor,
+	labels []string,
+	blocks []layer.Sequential,
+	crossEnthropy func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Tensor,
+) {
+	testCtx := epochCtx.Test()
+	defer testCtx.Finish()
+
+	valBatchSize := min(hyperParams.batchSize, len(validation))
+	valIx := shapes.FloatRandom(shapeCtx, shapes.Shape{uint(valBatchSize)}, 0, float32(XVal.Shape()[0])).I64(testCtx)
+	valBatch := XVal.Get(testCtx, valIx)
+	valLogits := modelForward(testCtx, hyperParams, blocks, valBatch.F32(testCtx))
+	valYBatch := YVal.Get(testCtx, valIx)
+	valYOneHot := shapes.OneHot(testCtx, valYBatch, uint(len(labels))).Squeeze(testCtx)
+	valLoss := crossEnthropy(testCtx, valYOneHot, valLogits)
+	valLossScalar := valLoss.Get(testCtx, 0).Item().(float32)
+
+	epochCtx.SetValidationLoss(float64(valLossScalar))
+}
+
 func Vgg_cifar10() {
 	shapeCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(16000*Mb))
 	defer shapeCtx.Finish()
 
-	train, test, labels := getDataSet(shapeCtx)
+	train, validation, test, labels := getDataSet(shapeCtx)
 	hyperParams := getTrainingParams()
 
 	fmt.Printf("There are %d training images\n", len(train))
@@ -207,6 +245,20 @@ func Vgg_cifar10() {
 		trainLabels = append(trainLabels, shapes.UInt8(shapeCtx, shapes.Shape{1}, uint8(pair.label)))
 	}
 
+	valImgs := make([]shapes.Tensor, 0)
+	valLabels := make([]shapes.Tensor, 0)
+	for i, pair := range validation {
+		if pair.imageData == nil {
+			err := fmt.Sprintf("Validation imagedata %d is nil", i)
+			panic(err)
+		}
+		valImgs = append(valImgs, pair.imageData)
+		valLabels = append(valLabels, shapes.UInt8(shapeCtx, shapes.Shape{1}, uint8(pair.label)))
+	}
+
+	XVal := shapes.Stack(shapeCtx, 0, valImgs...)
+	YVal := shapes.Stack(shapeCtx, 0, valLabels...)
+
 	trainingCtx := shapeCtx.Training(
 		hyperParams.epochs,
 		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
@@ -236,6 +288,9 @@ func Vgg_cifar10() {
 		optimerStep(graph)
 
 		optimizer.ZeroGrad(shapeCtx, graph)
+
+		// Compute validation loss
+		computeAndSetValidationLoss(epochCtx, shapeCtx, hyperParams, validation, XVal, YVal, labels, blocks, crossEnthropy)
 
 		lossScalar := loss.Get(epochCtx, 0).Item().(float32)
 		epochCtx.Finish(shapes.WithLoss(lossScalar))

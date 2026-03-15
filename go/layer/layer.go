@@ -27,7 +27,7 @@ func WithBias(isBiasApplied bool) layerOption {
 	}
 }
 
-func (s *Sequential) Forward(ctx shapes.EpochContext, x shapes.Tensor) shapes.Tensor {
+func (s *Sequential) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 	out := x.Clone(ctx)
 
 	fmt.Println()
