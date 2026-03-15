@@ -31,9 +31,9 @@ type trainingParams struct {
 func getTrainingParams() trainingParams {
 	return trainingParams{
 		batchSize:    32,
-		learningRate: 1e-5,
+		learningRate: 1e-4,
 		inputShape:   shapes.Shape{3, 32, 32},
-		epochs:       20,
+		epochs:       100,
 	}
 }
 
