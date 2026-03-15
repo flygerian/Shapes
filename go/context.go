@@ -65,6 +65,7 @@ type EpochContext interface {
 	CurrentEpochNum() int
 	SetValidationLoss(loss float64)
 	SetTestLoss(loss float64)
+	SetAccuracy(accuracy float64)
 }
 
 type shapesCtx struct {
@@ -115,6 +116,7 @@ type TrainingStats struct {
 	Loss                   float64
 	TestLoss               float64
 	ValidationLoss         float64
+	Accuracy               float64
 	MemorySampleHistoryX   []int
 	UsedBlocksHistory      []int
 	LossHistoryX           []int
@@ -123,6 +125,8 @@ type TrainingStats struct {
 	TestLossHistory        []int
 	ValidationLossHistoryX []int
 	ValidationLossHistory  []int
+	AccuracyHistoryX       []int
+	AccuracyHistory        []int
 	Version                int
 	TrainingDone           chan bool
 
@@ -215,6 +219,7 @@ func (c *mainContext) initTrainingStats(numEpochs int) {
 			Loss:                   0,
 			TestLoss:               0,
 			ValidationLoss:         0,
+			Accuracy:               0,
 			MemorySampleHistoryX:   make([]int, 0),
 			UsedBlocksHistory:      make([]int, 0),
 			LossHistoryX:           make([]int, 0),
@@ -223,6 +228,8 @@ func (c *mainContext) initTrainingStats(numEpochs int) {
 			TestLossHistory:        make([]int, 0),
 			ValidationLossHistoryX: make([]int, 0),
 			ValidationLossHistory:  make([]int, 0),
+			AccuracyHistoryX:       make([]int, 0),
+			AccuracyHistory:        make([]int, 0),
 			Version:                0,
 			TrainingDone:           make(chan bool),
 			SampleTensors:          make(map[string]Tensor),
@@ -635,6 +642,20 @@ func (ctx *subContext) SetTestLoss(loss float64) {
 	ctx.training.stats.TestLoss = loss
 	ctx.training.stats.TestLossHistoryX = append(ctx.training.stats.TestLossHistoryX, ctx.training.stats.Epoch)
 	ctx.training.stats.TestLossHistory = append(ctx.training.stats.TestLossHistory, int(loss*1000))
+	ctx.training.stats.Version++
+}
+
+func (ctx *subContext) SetAccuracy(accuracy float64) {
+	if ctx.training == nil {
+		panic("Cannot set accuracy in a non training context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.Accuracy = accuracy
+	ctx.training.stats.AccuracyHistoryX = append(ctx.training.stats.AccuracyHistoryX, ctx.training.stats.Epoch)
+	ctx.training.stats.AccuracyHistory = append(ctx.training.stats.AccuracyHistory, int(accuracy*100))
 	ctx.training.stats.Version++
 }
 

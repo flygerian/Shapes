@@ -77,6 +77,19 @@ func (r *TrainingStatsRenderer) renderMemoryAndLossCharts(stats *shapes.Training
 								}),
 							},
 						}),
+						Flex(FlexOptions{
+							Direction: DirectionColumn,
+							Children: []Artefact{
+								Chart(ChartOptions{
+									XAxis: stats.AccuracyHistoryX,
+									YAxis: stats.AccuracyHistory,
+									Mode:  ChartFitToViewport,
+								}),
+								Box(BoxOptions{
+									Child: Text("Accuracy"),
+								}),
+							},
+						}),
 					},
 				}),
 			}),
@@ -139,7 +152,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 		}
 		lastVersion = stats.Version
 
-		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f | Val Loss %.6f", stats.Epoch, stats.NumEpochs, stats.Loss, stats.ValidationLoss)
+		header := fmt.Sprintf("Epoch %d/%d | Loss %.6f | Val Loss %.6f | Acc %.2f%%", stats.Epoch, stats.NumEpochs, stats.Loss, stats.ValidationLoss, stats.Accuracy*100)
 		dashboard := Flex(FlexOptions{
 			MinHeight: 60,
 			Direction: DirectionColumn,

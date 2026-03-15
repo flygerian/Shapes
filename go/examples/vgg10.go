@@ -160,7 +160,7 @@ func modelForward(
 	return x
 }
 
-func computeAndSetValidationLoss(
+func computeAndSetValidationMetrics(
 	epochCtx shapes.EpochContext,
 	shapeCtx shapes.Context,
 	hyperParams trainingParams,
@@ -183,7 +183,23 @@ func computeAndSetValidationLoss(
 	valLoss := crossEnthropy(testCtx, valYOneHot, valLogits)
 	valLossScalar := valLoss.Get(testCtx, 0).Item().(float32)
 
+	// Compute accuracy: compare predicted class (argmax of logits) with actual labels
+	predictions := valLogits.ArgMax(testCtx, 1) // Get predicted class indices
+	actualLabels := valYBatch.Squeeze(testCtx)  // Remove the singleton dimension
+
+	correct := 0
+	predValues := predictions.Values().([]int64)
+	actualValues := actualLabels.Values().([]uint8)
+
+	for i := range predValues {
+		if predValues[i] == int64(actualValues[i]) {
+			correct++
+		}
+	}
+	accuracy := float64(correct) / float64(valBatchSize)
+
 	epochCtx.SetValidationLoss(float64(valLossScalar))
+	epochCtx.SetAccuracy(accuracy)
 }
 
 func Vgg_cifar10() {
@@ -290,7 +306,7 @@ func Vgg_cifar10() {
 		optimizer.ZeroGrad(shapeCtx, graph)
 
 		// Compute validation loss
-		computeAndSetValidationLoss(epochCtx, shapeCtx, hyperParams, validation, XVal, YVal, labels, blocks, crossEnthropy)
+		computeAndSetValidationMetrics(epochCtx, shapeCtx, hyperParams, validation, XVal, YVal, labels, blocks, crossEnthropy)
 
 		lossScalar := loss.Get(epochCtx, 0).Item().(float32)
 		epochCtx.Finish(shapes.WithLoss(lossScalar))
