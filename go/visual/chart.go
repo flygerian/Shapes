@@ -6,6 +6,7 @@ import (
 )
 
 type chart struct {
+	layoutState
 	xAxis []int
 	yAxis []int
 	mode  ChartMode
@@ -48,7 +49,7 @@ func (c *chart) Weight() int {
 	return 1
 }
 
-func (c *chart) Measure(budget Bounds) Bounds {
+func (c *chart) Measure(budget Area) Area {
 	width := max(len(c.xAxis), 1)
 	height := 2
 
@@ -65,29 +66,30 @@ func (c *chart) Measure(budget Bounds) Bounds {
 		height = 2
 	}
 
-	return Bounds{Width: width, Height: height}
+	return Area{Width: width, Height: height}
 }
 
-// Render draws the chart inside the provided bounds.
-func (c *chart) Render(target io.Writer, bounds Bounds) {
-	if c == nil || len(c.xAxis) == 0 || len(c.yAxis) == 0 || bounds.Width <= 0 || bounds.Height <= 0 {
+// Render draws the chart inside the measured area.
+func (c *chart) Render(target io.Writer) {
+	frame := layoutOf(c)
+	if c == nil || len(c.xAxis) == 0 || len(c.yAxis) == 0 || frame.Width <= 0 || frame.Height <= 0 {
 		return
 	}
 	nPoints := min(len(c.yAxis), len(c.xAxis))
-	if nPoints == 0 || bounds.Height < 2 {
+	if nPoints == 0 || frame.Height < 2 {
 		return
 	}
 
 	yData := c.yAxis[:nPoints]
 
 	// Use all available vertical budget minus one row for the baseline axis.
-	plotHeight := bounds.Height - 1
+	plotHeight := frame.Height - 1
 	if plotHeight < 1 {
 		plotHeight = 1
 	}
-	plotY := bounds.Y + (bounds.Height - 1 - plotHeight)
+	plotY := frame.Y + (frame.Height - 1 - plotHeight)
 	const barWidth = 1
-	maxBars := max(bounds.Width/barWidth, 1)
+	maxBars := max(frame.Width/barWidth, 1)
 
 	values, barOffset := c.valuesForBars(yData, nPoints, maxBars)
 	if len(values) == 0 {
@@ -126,20 +128,16 @@ func (c *chart) Render(target io.Writer, bounds Bounds) {
 	}
 
 	for i, bar := range bars {
-		bar.Render(target, Bounds{
-			X:      bounds.X + i,
-			Y:      plotY,
-			Width:  barWidth,
-			Height: plotHeight,
-		})
+		layoutAt(bar, Point{X: frame.X + i, Y: plotY}, Area{Width: barWidth, Height: plotHeight})
+		bar.Render(target)
 	}
 
-	Line().Render(target, Bounds{
-		X:      bounds.X,
-		Y:      bounds.Y + bounds.Height - 1,
-		Width:  bounds.Width,
-		Height: 1,
-	})
+	RenderAt(
+		target,
+		Line(),
+		Point{X: frame.X, Y: frame.Y + frame.Height - 1},
+		Area{Width: frame.Width, Height: 1},
+	)
 }
 
 func (c *chart) valuesForBars(yData []int, nPoints, maxBars int) ([]int, int) {
@@ -164,6 +162,7 @@ func (c *chart) valuesForBars(yData []int, nPoints, maxBars int) ([]int, int) {
 }
 
 type chartBar struct {
+	layoutState
 	value    int
 	min      int
 	max      int
@@ -176,7 +175,7 @@ func (b *chartBar) Weight() int {
 	return 1
 }
 
-func (b *chartBar) Measure(budget Bounds) Bounds {
+func (b *chartBar) Measure(budget Area) Area {
 	width := 1
 	height := 1
 	if budget.Width > 0 {
@@ -185,17 +184,18 @@ func (b *chartBar) Measure(budget Bounds) Bounds {
 	if budget.Height > 0 {
 		height = budget.Height
 	}
-	return Bounds{Width: width, Height: height}
+	return Area{Width: width, Height: height}
 }
 
-func (b *chartBar) Render(target io.Writer, bounds Bounds) {
-	if b == nil || bounds.Width <= 0 || bounds.Height <= 0 {
+func (b *chartBar) Render(target io.Writer) {
+	frame := layoutOf(b)
+	if b == nil || frame.Width <= 0 || frame.Height <= 0 {
 		return
 	}
 
-	x := bounds.X + bounds.Width/2
+	x := frame.X + frame.Width/2
 
-	for y := bounds.Y; y < bounds.Y+bounds.Height; y++ {
+	for y := frame.Y; y < frame.Y+frame.Height; y++ {
 		fmt.Fprintf(target, "\033[90m\033[%d;%dH%s\033[0m", y, x, chartTrackDot)
 	}
 
@@ -203,19 +203,19 @@ func (b *chartBar) Render(target io.Writer, bounds Bounds) {
 		return
 	}
 
-	y := valueToY(b.value, b.min, b.max, bounds)
-	for yy := y; yy < bounds.Y+bounds.Height; yy++ {
+	y := valueToY(b.value, b.min, b.max, frame)
+	for yy := y; yy < frame.Y+frame.Height; yy++ {
 		fmt.Fprintf(target, "\033[97m\033[%d;%dH%s\033[0m", yy, x, chartDataDot)
 	}
 }
 
-func valueToY(value, minValue, maxValue int, bounds Bounds) int {
-	height := bounds.Height
+func valueToY(value, minValue, maxValue int, plot frame) int {
+	height := plot.Height
 	if height <= 1 {
-		return bounds.Y
+		return plot.Y
 	}
 	if maxValue <= minValue {
-		return bounds.Y + (height-1)/2
+		return plot.Y + (height-1)/2
 	}
 	normalized := (value - minValue) * (height - 1) / (maxValue - minValue)
 	if normalized > height-1 {
@@ -225,7 +225,7 @@ func valueToY(value, minValue, maxValue int, bounds Bounds) int {
 		normalized = 0
 	}
 	offset := (height - 1) - normalized
-	return bounds.Y + offset
+	return plot.Y + offset
 }
 
 func sampleIndices(total, limit int) []int {

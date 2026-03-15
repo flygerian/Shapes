@@ -8,6 +8,7 @@ import (
 const booleanChartDot = "●"
 
 type booleanChart struct {
+	layoutState
 	values []bool
 	rows   int
 }
@@ -24,10 +25,7 @@ func BooleanChart(options BooleanChartOptions) Artefact {
 	valuesCopy := make([]bool, len(options.Values))
 	copy(valuesCopy, options.Values)
 
-	rows := 0
-	if options.Rows > 0 {
-		rows = options.Rows
-	}
+	rows := max(options.Rows, 0)
 
 	return &booleanChart{values: valuesCopy, rows: rows}
 }
@@ -36,10 +34,23 @@ func (c *booleanChart) Weight() int {
 	return 1
 }
 
-func (c *booleanChart) Measure(budget Bounds) Bounds {
+func (c *booleanChart) Measure(budget Area) Area {
 	if c.rows > 0 {
 		cols := max(1, divideRoundUp(max(len(c.values), 1), c.rows))
-		return Bounds{Width: cols, Height: c.rows}
+		height := c.rows
+		if budget.Height > 0 && height > budget.Height {
+			height = budget.Height
+		}
+		if height < 1 {
+			height = 1
+		}
+		if height != c.rows {
+			cols = max(1, divideRoundUp(max(len(c.values), 1), height))
+		}
+		if budget.Width > 0 && cols > budget.Width {
+			cols = budget.Width
+		}
+		return Area{Width: cols, Height: height}
 	}
 
 	width := max(len(c.values), 1)
@@ -56,19 +67,20 @@ func (c *booleanChart) Measure(budget Bounds) Bounds {
 	if height < 1 {
 		height = 1
 	}
-	return Bounds{Width: width, Height: height}
+	return Area{Width: width, Height: height}
 }
 
-func (c *booleanChart) Render(target io.Writer, bounds Bounds) {
-	if c == nil || len(c.values) == 0 || bounds.Width <= 0 || bounds.Height <= 0 {
+func (c *booleanChart) Render(target io.Writer) {
+	frame := layoutOf(c)
+	if c == nil || len(c.values) == 0 || frame.Width <= 0 || frame.Height <= 0 {
 		return
 	}
 
-	gridWidth := bounds.Width
-	gridHeight := bounds.Height
+	gridWidth := frame.Width
+	gridHeight := frame.Height
 	if c.rows > 0 {
-		gridHeight = min(c.rows, bounds.Height)
-		gridWidth = min(max(1, divideRoundUp(len(c.values), c.rows)), bounds.Width)
+		gridHeight = min(c.rows, frame.Height)
+		gridWidth = min(max(1, divideRoundUp(len(c.values), c.rows)), frame.Width)
 	}
 
 	capacity := gridWidth * gridHeight
@@ -80,9 +92,9 @@ func (c *booleanChart) Render(target io.Writer, bounds Bounds) {
 	start := len(c.values) - count
 	for i := range count {
 		value := c.values[start+i]
-		x := bounds.X + (i % gridWidth)
-		y := bounds.Y + (i / gridWidth)
-		if y >= bounds.Y+gridHeight {
+		x := frame.X + (i % gridWidth)
+		y := frame.Y + (i / gridWidth)
+		if y >= frame.Y+gridHeight {
 			break
 		}
 

@@ -23,6 +23,7 @@ type lineChartSeries struct {
 }
 
 type lineChart struct {
+	layoutState
 	xAxis  []int
 	series []LineSeries
 	mode   ChartMode
@@ -59,7 +60,7 @@ func (c *lineChart) Weight() int {
 	return 1
 }
 
-func (c *lineChart) Measure(budget Bounds) Bounds {
+func (c *lineChart) Measure(budget Area) Area {
 	width := max(len(c.xAxis), 1)
 	height := 2
 
@@ -76,10 +77,11 @@ func (c *lineChart) Measure(budget Bounds) Bounds {
 		height = 2
 	}
 
-	return Bounds{Width: width, Height: height}
+	return Area{Width: width, Height: height}
 }
 
-func (c *lineChart) Render(target io.Writer, bounds Bounds) {
+func (c *lineChart) Render(target io.Writer) {
+	bounds := layoutOf(c)
 	if c == nil || len(c.xAxis) == 0 || len(c.series) == 0 || bounds.Width <= 0 || bounds.Height <= 0 {
 		return
 	}
@@ -92,7 +94,10 @@ func (c *lineChart) Render(target io.Writer, bounds Bounds) {
 		plotHeight = 1
 	}
 	plotY := bounds.Y + (bounds.Height - 1 - plotHeight)
-	plotBounds := Bounds{X: bounds.X, Y: plotY, Width: bounds.Width, Height: plotHeight}
+	plot := frame{
+		Point: Point{X: bounds.X, Y: plotY},
+		Area:  Area{Width: bounds.Width, Height: plotHeight},
+	}
 
 	renderSeries := make([]lineChartSeries, len(c.series))
 	hasScale := false
@@ -149,7 +154,7 @@ func (c *lineChart) Render(target io.Writer, bounds Bounds) {
 		for j, v := range seriesData.values {
 			points[j] = chartPoint{
 				x: bounds.X + seriesData.offset + j,
-				y: valueToY(v, globalMinY, globalMaxY, plotBounds),
+				y: valueToY(v, globalMinY, globalMaxY, plot),
 			}
 		}
 
@@ -162,12 +167,12 @@ func (c *lineChart) Render(target io.Writer, bounds Bounds) {
 		}
 	}
 
-	Line().Render(target, Bounds{
-		X:      bounds.X,
-		Y:      bounds.Y + bounds.Height - 1,
-		Width:  bounds.Width,
-		Height: 1,
-	})
+	RenderAt(
+		target,
+		Line(),
+		Point{X: bounds.X, Y: bounds.Y + bounds.Height - 1},
+		Area{Width: bounds.Width, Height: 1},
+	)
 }
 
 func (c *lineChart) valuesForColumns(yData []int, nPoints, width int) ([]int, int) {

@@ -26,7 +26,7 @@ func TestLineChartRenderConnectsPoints(t *testing.T) {
 		Mode: ChartWindowed,
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 3, Height: 3})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 3, Height: 3})
 	rendered := out.String()
 
 	expected := []string{
@@ -52,7 +52,7 @@ func TestLineChartFitToViewportWidthOneRendersSinglePoint(t *testing.T) {
 		Mode: ChartFitToViewport,
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 1, Height: 2})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 1, Height: 2})
 	rendered := out.String()
 
 	if strings.Count(rendered, "●") != 1 {
@@ -74,7 +74,7 @@ func TestLineChartRenderMultipleSeriesColors(t *testing.T) {
 		Mode: ChartWindowed,
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 3, Height: 3})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 3, Height: 3})
 	rendered := out.String()
 
 	if !strings.Contains(rendered, "\033[96m") {
@@ -91,7 +91,7 @@ func TestBooleanChartRenderColorsAndWrap(t *testing.T) {
 		Values: []bool{true, false, true, false, true},
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 3, Height: 2})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 3, Height: 2})
 	rendered := out.String()
 
 	expected := []string{
@@ -114,7 +114,7 @@ func TestBooleanChartRenderWindowsToLatestValues(t *testing.T) {
 		Values: []bool{false, false, true, true},
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 2, Height: 1})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 2, Height: 1})
 	rendered := out.String()
 
 	if strings.Contains(rendered, "\033[90m\033[1;1H●\033[0m") {
@@ -131,7 +131,7 @@ func TestBooleanChartMeasureRowsOption(t *testing.T) {
 		Rows:   2,
 	})
 
-	size := chart.Measure(Bounds{})
+	size := chart.Measure(Area{})
 	if size.Height != 2 {
 		t.Fatalf("expected height 2, got %d", size.Height)
 	}
@@ -147,7 +147,7 @@ func TestBooleanChartRenderRowsOption(t *testing.T) {
 		Rows:   2,
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 10, Height: 10})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 10, Height: 10})
 	rendered := out.String()
 
 	expected := []string{
@@ -171,7 +171,7 @@ func TestBooleanChartRenderRowsOptionRespectsBounds(t *testing.T) {
 		Rows:   4,
 	})
 
-	chart.Render(&out, Bounds{X: 1, Y: 1, Width: 2, Height: 2})
+	RenderAt(&out, chart, Point{X: 1, Y: 1}, Area{Width: 2, Height: 2})
 	rendered := out.String()
 
 	if strings.Contains(rendered, "\033[3;") || strings.Contains(rendered, "\033[4;") {

@@ -6,7 +6,9 @@ import (
 )
 
 // line draws a simple line within its allocated bounds.
-type line struct{}
+type line struct {
+	layoutState
+}
 
 var _ Artefact = (*line)(nil)
 
@@ -19,8 +21,8 @@ func (line *line) Weight() int {
 	return 1
 }
 
-func (line *line) Measure(budget Bounds) Bounds {
-	size := Bounds{Width: 1, Height: 1}
+func (line *line) Measure(budget Area) Area {
+	size := Area{Width: 1, Height: 1}
 	if budget.Width > 0 {
 		size.Width = budget.Width
 	}
@@ -30,35 +32,37 @@ func (line *line) Measure(budget Bounds) Bounds {
 	return size
 }
 
-// Render draws a horizontal or vertical line based on the bounds aspect ratio.
-func (line *line) Render(target io.Writer, bounds Bounds) {
-	if line == nil || bounds.Width <= 0 || bounds.Height <= 0 {
+// Render draws a horizontal or vertical line based on the measured area aspect ratio.
+func (line *line) Render(target io.Writer) {
+	frame := layoutOf(line)
+	if line == nil || frame.Width <= 0 || frame.Height <= 0 {
 		return
 	}
 
-	if bounds.Width >= bounds.Height {
-		y := bounds.Y + bounds.Height/2
-		for x := bounds.X; x < bounds.X+bounds.Width; x++ {
+	if frame.Width >= frame.Height {
+		y := frame.Y + frame.Height/2
+		for x := frame.X; x < frame.X+frame.Width; x++ {
 			fmt.Fprintf(target, "\033[%d;%dH─", y, x)
 		}
 		return
 	}
 
-	x := bounds.X + bounds.Width/2
-	for y := bounds.Y; y < bounds.Y+bounds.Height; y++ {
+	x := frame.X + frame.Width/2
+	for y := frame.Y; y < frame.Y+frame.Height; y++ {
 		fmt.Fprintf(target, "\033[%d;%dH│", y, x)
 	}
 }
 
 // connector draws the graph edge between two boxes.
 type connector struct {
-	from Bounds
-	to   Bounds
+	layoutState
+	from frame
+	to   frame
 }
 
 var _ Artefact = (*connector)(nil)
 
-func graphConnector(from, to Bounds) Artefact {
+func graphConnector(from, to frame) Artefact {
 	return &connector{from: from, to: to}
 }
 
@@ -66,7 +70,7 @@ func (line *connector) Weight() int {
 	return 1
 }
 
-func (line *connector) Measure(budget Bounds) Bounds {
+func (line *connector) Measure(budget Area) Area {
 	width := line.to.X - line.from.X
 	if width < 0 {
 		width = -width
@@ -93,18 +97,19 @@ func (line *connector) Measure(budget Bounds) Bounds {
 		height = 1
 	}
 
-	return Bounds{Width: width, Height: height}
+	return Area{Width: width, Height: height}
 }
 
-func (line *connector) Render(target io.Writer, bounds Bounds) {
+func (line *connector) Render(target io.Writer) {
 	if line == nil {
 		return
 	}
+	offset := layoutOf(line).Point
 
-	startX := line.from.X + line.from.Width/2 + bounds.X
-	startY := line.from.Y + line.from.Height + bounds.Y
-	endX := line.to.X + line.to.Width/2 + bounds.X
-	endY := line.to.Y - 1 + bounds.Y
+	startX := offset.X + line.from.X + line.from.Width/2
+	startY := offset.Y + line.from.Y + line.from.Height
+	endX := offset.X + line.to.X + line.to.Width/2
+	endY := offset.Y + line.to.Y - 1
 	midY := (startY + endY) / 2
 
 	for y := startY; y <= midY; y++ {

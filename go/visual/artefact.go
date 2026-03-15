@@ -3,7 +3,7 @@ package visual
 import "io"
 
 type Artefact interface {
-	Render(target io.Writer, bounds Bounds)
-	Measure(budget Bounds) Bounds
+	Render(target io.Writer)
+	Measure(area Area) Area
 	Weight() int
 }

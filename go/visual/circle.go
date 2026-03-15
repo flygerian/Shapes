@@ -5,7 +5,9 @@ import (
 	"io"
 )
 
-type circle struct{}
+type circle struct {
+	layoutState
+}
 
 var _ Artefact = (*circle)(nil)
 
@@ -18,8 +20,8 @@ func (c *circle) Weight() int {
 	return 1
 }
 
-func (c *circle) Measure(budget Bounds) Bounds {
-	size := Bounds{Width: 1, Height: 1}
+func (c *circle) Measure(budget Area) Area {
+	size := Area{Width: 1, Height: 1}
 	if budget.Width > 0 && size.Width > budget.Width {
 		size.Width = budget.Width
 	}
@@ -29,13 +31,14 @@ func (c *circle) Measure(budget Bounds) Bounds {
 	return size
 }
 
-// Render draws a centered circle glyph within the provided bounds.
-func (c *circle) Render(target io.Writer, bounds Bounds) {
-	if c == nil || bounds.Width <= 0 || bounds.Height <= 0 {
+// Render draws a centered circle glyph within the measured area.
+func (c *circle) Render(target io.Writer) {
+	frame := layoutOf(c)
+	if c == nil || frame.Width <= 0 || frame.Height <= 0 {
 		return
 	}
 
-	x := bounds.X + bounds.Width/2
-	y := bounds.Y + bounds.Height/2
+	x := frame.X + frame.Width/2
+	y := frame.Y + frame.Height/2
 	fmt.Fprintf(target, "\033[%d;%dH●", y, x)
 }

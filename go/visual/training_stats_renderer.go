@@ -139,7 +139,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 
 		var frame bytes.Buffer
 
-		dashboard.Render(&frame, Bounds{X: 1, Y: 1, Width: 90, Height: 0})
+		RenderAt(&frame, dashboard, Point{X: 1, Y: 1}, Area{Width: 90, Height: 90})
 		_, _ = os.Stdout.Write([]byte("\033[H"))
 		_, _ = os.Stdout.Write(frame.Bytes())
 	}

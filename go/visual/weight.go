@@ -3,6 +3,7 @@ package visual
 import "io"
 
 type weightedArtefact struct {
+	layoutState
 	child  Artefact
 	weight int
 }
@@ -29,16 +30,18 @@ func (w *weightedArtefact) Weight() int {
 	return w.weight
 }
 
-func (w *weightedArtefact) Measure(budget Bounds) Bounds {
+func (w *weightedArtefact) Measure(budget Area) Area {
 	if w == nil || w.child == nil {
-		return Bounds{}
+		return Area{}
 	}
-	return w.child.Measure(budget)
+	return measure(w.child, budget)
 }
 
-func (w *weightedArtefact) Render(target io.Writer, bounds Bounds) {
+func (w *weightedArtefact) Render(target io.Writer) {
 	if w == nil || w.child == nil {
 		return
 	}
-	w.child.Render(target, bounds)
+	frame := layoutOf(w)
+	setLayout(w.child, frame.Point, frame.Area)
+	w.child.Render(target)
 }

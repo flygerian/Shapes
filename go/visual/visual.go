@@ -77,10 +77,9 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 		}
 	}
 
-	// Build rows with flex and keep per-node bounds for edge rendering.
-	rows := make([]Artefact, maxLevel+1)
-	rowBounds := make([]Bounds, maxLevel+1)
-	boxBounds := make([]Bounds, len(queue))
+	// Build rows and keep per-node frames for edge rendering.
+	rows := make([][]Artefact, maxLevel+1)
+	boxFrames := make([]frame, len(queue))
 	currentY := 2
 	bottomY := 2
 
@@ -92,7 +91,7 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 		}
 
 		children := make([]Artefact, nodesAtLevel)
-		childSizes := make([]Bounds, nodesAtLevel)
+		childSizes := make([]Area, nodesAtLevel)
 		rowHeight := 1
 		totalWidth := 0
 		for idx, nodeIdx := range indices {
@@ -109,7 +108,7 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 			})
 			children[idx] = nodeBox
 
-			size := measure(nodeBox, Bounds{Width: boxWidth})
+			size := measure(nodeBox, Area{Width: boxWidth})
 			childSizes[idx] = size
 			if size.Height > rowHeight {
 				rowHeight = size.Height
@@ -127,25 +126,14 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 
 		x := startX
 		for idx, nodeIdx := range indices {
-			boxBounds[nodeIdx] = Bounds{
-				X:      x,
-				Y:      currentY,
-				Width:  childSizes[idx].Width,
-				Height: childSizes[idx].Height,
+			boxFrames[nodeIdx] = frame{
+				Point: Point{X: x, Y: currentY},
+				Area:  childSizes[idx],
 			}
 			x += childSizes[idx].Width + flexGap
 		}
 
-		rows[lv] = Flex(FlexOptions{
-			Direction: DirectionRow,
-			Children:  children,
-		})
-		rowBounds[lv] = Bounds{
-			X:      startX,
-			Y:      currentY,
-			Width:  totalWidth,
-			Height: 0,
-		}
+		rows[lv] = children
 
 		levelBottom := currentY + rowHeight
 		if levelBottom > bottomY {
@@ -157,14 +145,16 @@ func VisualizeTo(ctx shapes.Context, w io.Writer, t shapes.ComputationGraphNode)
 	ClearScreen(w)
 
 	for lv := range rows {
-		if rows[lv] != nil {
-			rows[lv].Render(w, rowBounds[lv])
+		for idx, child := range rows[lv] {
+			nodeIdx := levelNodes[lv][idx]
+			RenderAt(w, child, boxFrames[nodeIdx].Point, boxFrames[nodeIdx].Area)
+			boxFrames[nodeIdx] = layoutOf(child)
 		}
 	}
 
 	for i, e := range queue {
 		if e.parentIdx >= 0 {
-			graphConnector(boxBounds[e.parentIdx], boxBounds[i]).Render(w, Bounds{})
+			RenderAt(w, graphConnector(boxFrames[e.parentIdx], boxFrames[i]), Point{}, Area{})
 		}
 	}
 

@@ -15,6 +15,7 @@ import (
 )
 
 type imageArtefact struct {
+	layoutState
 	tensor   shapes.Tensor
 	ctx      shapes.Context
 	maxWidth int
@@ -40,14 +41,14 @@ func (i *imageArtefact) Weight() int {
 	return 1
 }
 
-func (i *imageArtefact) Measure(budget Bounds) Bounds {
+func (i *imageArtefact) Measure(budget Area) Area {
 	if i == nil || i.tensor == nil {
-		return Bounds{Width: 1, Height: 1}
+		return Area{Width: 1, Height: 1}
 	}
 
 	shape := i.tensor.Shape()
 	if len(shape) != 3 {
-		return Bounds{Width: 1, Height: 1}
+		return Area{Width: 1, Height: 1}
 	}
 
 	height := int(shape[1])
@@ -65,11 +66,12 @@ func (i *imageArtefact) Measure(budget Bounds) Bounds {
 		height = int(float64(height) * scale)
 	}
 
-	return Bounds{Width: width, Height: height}
+	return Area{Width: width, Height: height}
 }
 
-func (i *imageArtefact) Render(target io.Writer, bounds Bounds) {
-	if i == nil || i.tensor == nil || bounds.Width <= 0 || bounds.Height <= 0 {
+func (i *imageArtefact) Render(target io.Writer) {
+	frame := layoutOf(i)
+	if i == nil || i.tensor == nil || frame.Width <= 0 || frame.Height <= 0 {
 		return
 	}
 
@@ -149,8 +151,8 @@ func (i *imageArtefact) Render(target io.Writer, bounds Bounds) {
 		}
 	}
 
-	displayWidth := bounds.Width
-	displayHeight := bounds.Height
+	displayWidth := frame.Width
+	displayHeight := frame.Height
 
 	if width != displayWidth || height != displayHeight {
 		img = resizeImage(img, displayWidth, displayHeight)
@@ -163,7 +165,7 @@ func (i *imageArtefact) Render(target io.Writer, bounds Bounds) {
 
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	renderKittyImage(target, encoded, bounds.X, bounds.Y, displayWidth, displayHeight)
+	renderKittyImage(target, encoded, frame.X, frame.Y, displayWidth, displayHeight)
 }
 
 func (i *imageArtefact) getPixel(channel, y, x int) uint8 {

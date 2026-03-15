@@ -194,7 +194,7 @@ func Vgg_cifar10() {
 		Children:  rows[5:10],
 	})
 
-	flex.Render(os.Stdout, visual.Bounds{X: 0, Y: 0, Width: 40, Height: 80})
+	visual.RenderAt(os.Stdout, flex, visual.Point{}, visual.Area{Width: 40, Height: 80})
 
 	trainImgs := make([]shapes.Tensor, 0)
 	trainLabels := make([]shapes.Tensor, 0)
