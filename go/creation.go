@@ -23,12 +23,21 @@ func Zeros(ctx Context, shape Shape) Tensor {
 	return t
 }
 
-// Int creates a tensor filled with the given int8 value.
-func Int(ctx Context, shape Shape, value int8) Tensor {
+// Int8 creates a tensor filled with the given int8 value.
+func Int8(ctx Context, shape Shape, value int8) Tensor {
 	if len(shape) == 0 {
 		return nil
 	}
 	cTensor := C.wrap_T_Int((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.i8(value))
+	t := track(ctx, &tensor{cTensor: cTensor})
+	return t
+}
+
+func UInt8(ctx Context, shape Shape, value uint8) Tensor {
+	if len(shape) == 0 {
+		return nil
+	}
+	cTensor := C.wrap_T_UInt((*C.Context)(ctx.UnsafePtr()), dim(ctx, shape), C.u8(value))
 	t := track(ctx, &tensor{cTensor: cTensor})
 	return t
 }
@@ -136,7 +145,7 @@ func FromInt8(ctx Context, data interface{}) Tensor {
 		return nil
 	}
 
-	t := Int(ctx, shape, 0)
+	t := Int8(ctx, shape, 0)
 
 	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
 
@@ -205,7 +214,7 @@ func IntRandom(ctx Context, shape Shape, rng ...int8) Tensor {
 		panic("shapes: IntRandom requires 0 or 2 range arguments (min, max)")
 	}
 
-	t := Int(ctx, shape, 0)
+	t := Int8(ctx, shape, 0)
 	n := int(t.(*tensor).cTensor.size)
 	data := make([]int8, n)
 	rangeSize := int(max) - int(min) + 1 // +1 because max is inclusive

@@ -1,4 +1,4 @@
-package loss
+package loss_fns
 
 import (
 	shapes "github.com/flygerian/shapes"

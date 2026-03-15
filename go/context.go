@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime/pprof"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 )
@@ -122,6 +123,7 @@ type TrainingStats struct {
 type trainingState struct {
 	mu       sync.Mutex
 	doneOnce sync.Once
+	inEpoch  atomic.Bool
 	stats    *TrainingStats
 }
 
@@ -397,12 +399,23 @@ func (c *mainContext) IsTraining() bool {
 
 // ---------------------------- Subcontext ----------------------------
 
+type SubContextType int
+
+const (
+	SubContextTypeEpoch SubContextType = iota
+	SubContextTypeForward
+	SubContextTypeFused
+	SubContextTypeNoGrad
+	SubContextTypeNoGraph
+)
+
 type subContext struct {
 	shapesCtx
 	parent Context
 	locals []Tensor // this ctx: tensors created through this ctx
 
-	op OpType
+	subContextType SubContextType
+	op             OpType
 
 	inputs      []Tensor
 	hiddenState []Tensor
@@ -429,6 +442,11 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	sc.cleanup()
 	if sc.sweepAfterFinish {
 		sc.parent.Sweep()
+	}
+
+	mainCtx := sc.main()
+	if mainCtx.training != nil && mainCtx.training.inEpoch.Load() && sc.subContextType == SubContextTypeEpoch {
+		mainCtx.training.inEpoch.Store(false)
 	}
 
 	// Signal training completion exactly once at the end of the final epoch context.
@@ -584,7 +602,7 @@ func applyMainContextOptions(sc *mainContext, options ...mainContextOption) {
 
 // derive creates a new derived context sharing the same C context and root.
 // Fresh locals slice; handles and intermediates are root-owned.
-func derive(ctx Context, gradEnabled, backwardEnabled bool, options ...subContextOption) SubContext {
+func derive(ctx Context, subContextType SubContextType, gradEnabled, backwardEnabled bool, options ...subContextOption) SubContext {
 	var training *trainingState
 	switch parent := ctx.(type) {
 	case *mainContext:
@@ -594,8 +612,9 @@ func derive(ctx Context, gradEnabled, backwardEnabled bool, options ...subContex
 	}
 
 	sc := &subContext{
-		parent: ctx,
-		locals: make([]Tensor, 0),
+		parent:         ctx,
+		locals:         make([]Tensor, 0),
+		subContextType: subContextType,
 		shapesCtx: shapesCtx{
 			backwardEnabled: backwardEnabled,
 			gradEnabled:     gradEnabled,
@@ -613,13 +632,14 @@ func noGrad(c Context, options ...subContextOption) SubContext {
 		panic("Creating NoGrad context from a context where gradients are not tracked")
 	}
 
-	return derive(c, false, c.BackwardEnabled(), options...)
+	return derive(c, SubContextTypeNoGrad, false, c.BackwardEnabled(), options...)
 }
 
 // Epoch returns a short-lived context intended for one training step.
 // It preserves grad/backward settings from the parent while providing
 // independent local tracking for cleanup.
 func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
+
 	if epochNum < 1 {
 		panic("Epoch number cannot be less than 1")
 	}
@@ -637,6 +657,12 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 			panic("Can only call epoch on a training context")
 		}
 
+		if mc.training.inEpoch.Load() {
+			panic("Cannot create a new epoch context while one is still running. Did you forget to finish the epoch?")
+		}
+
+		mc.training.inEpoch.Store(true)
+
 		mc.training.mu.Lock()
 		mc.training.stats.Epoch = epochNum
 		mc.training.mu.Unlock()
@@ -644,7 +670,7 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 		panic("You can only call Epoch() in the main context")
 	}
 
-	sc := derive(c, c.GradEnabled(), c.BackwardEnabled(), options...)
+	sc := derive(c, SubContextTypeEpoch, c.GradEnabled(), c.BackwardEnabled(), options...)
 	sc.(*subContext).sweepAfterFinish = true
 	return sc.(EpochContext)
 }
@@ -657,13 +683,13 @@ func fused(c Context, options ...subContextOption) SubContext {
 		panic("Creating fused context from a context where gradients are not tracked")
 	}
 
-	return derive(c, true, false, options...)
+	return derive(c, SubContextTypeFused, true, false, options...)
 }
 
 // NoGraph() returns a new Context that shares the same C context and memory
 // turns off all gradient tacking. For use in backward pass only
 func noGraph(c Context, options ...subContextOption) SubContext {
-	return derive(c, false, false, options...)
+	return derive(c, SubContextTypeNoGraph, false, false, options...)
 }
 
 func startMemoryTicker(c *mainContext) {

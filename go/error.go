@@ -111,6 +111,8 @@ func ResultString(r uint32) string {
 		return "adam requires float tensors"
 	case C.ERR_ADAM_PARAMS_SIZE_MISMATCH:
 		return "adam tensor sizes must match"
+	case C.ERR_ADAM_PARAMS_MUST_BE_CONTIGUOUS:
+		return "adam params must be contiguous"
 	default:
 		return fmt.Sprintf("unknown error (%d)", int(r))
 	}

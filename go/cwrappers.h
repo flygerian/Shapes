@@ -60,6 +60,7 @@ Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 
 Tensor *wrap_T_Zeros(Context *ctx, Dim *shape);
 Tensor *wrap_T_Int(Context *ctx, Dim *shape, i8 value);
+Tensor *wrap_T_UInt(Context *ctx, Dim *shape, u8 value);
 Tensor *wrap_T_Float(Context *ctx, Dim *shape, f32 value);
 Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out);
 Result wrap_Copy(Context *ctx, Tensor *src, Tensor *dest);
@@ -106,5 +107,7 @@ Result wrap_Permute(Context *ctx, Tensor *src, Tensor **out, Dim *order);
 Result wrap_Squeeze(Context *ctx, Tensor *src, Tensor **out);
 Result wrap_SqueezeDim(Context *ctx, Tensor *src, Tensor **out, dim_t d);
 Result wrap_UnSqueeze(Context *ctx, Tensor *src, Tensor **out, dim_t d);
+Result wrap_Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensors,
+                   Tensor **out);
 
 #endif

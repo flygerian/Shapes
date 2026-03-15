@@ -12,7 +12,7 @@ import (
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/activation"
 	"github.com/flygerian/shapes/layer"
-	"github.com/flygerian/shapes/loss"
+	"github.com/flygerian/shapes/loss_fns"
 	"github.com/flygerian/shapes/optimizer"
 	"github.com/flygerian/shapes/visual"
 )
@@ -95,7 +95,7 @@ func MakeMore_5() {
 	bn2 := layer.BatchNorm(shapesCtx, 100)
 	optimizerStep := optimizer.Adam(shapesCtx, optimizer.WithLearningRate(0.0001))
 
-	crossEnthropy := loss.CrossEntropy()
+	crossEnthropy := loss_fns.CrossEntropy()
 
 	forward := func(ctx shapes.EpochContext, xBatch shapes.Tensor) shapes.Tensor {
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, int(xBatch.Shape()[0]), -1))

@@ -11,6 +11,7 @@ import "unsafe"
 
 type Shape = []uint
 type Range = []uint
+type Kernel = Shape
 
 // Dtype represents the data type of tensor elements.
 type Dtype int

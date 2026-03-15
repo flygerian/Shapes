@@ -40,6 +40,8 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Clone(Context *ctx, Tensor *t, Tensor *dest);
 Result Copy(Context *ctx, Tensor *src, Tensor *dest);
+Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensorsToAdd,
+              Tensor *dest);
 
 // Cast
 Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);
@@ -114,6 +116,7 @@ char *GetItem(Context *ctx, Tensor *t);
 // Tensor creation
 Tensor *T_Zeros(Context *ctx, Dim shape);
 Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
+Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue);
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
 Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
 Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step);

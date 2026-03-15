@@ -4465,6 +4465,433 @@ static void test_meandim_dim_out_of_bounds(void) {
   freeMemory(mem);
 }
 
+// ============================================================================
+// Concat Tests
+// ============================================================================
+
+static void test_concat_2d_dim0_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 2x3 tensor with values 1.0
+  dim_t targetDims[] = {2, 3};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  // Additional tensor: 3x3 tensor with values 2.0
+  dim_t addDims[] = {3, 3};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat 2D dim0 should return OK");
+  ASSERT_EQ(dest.shape.numOfDims, 2, "result should have 2 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 5, "dim[0] should be 2+3=5");
+  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
+  ASSERT_EQ(dest.size, 15, "size should be 15");
+  ASSERT(dest.isContigous, "result should be contiguous");
+  ASSERT(!dest.isView, "result should not be a view");
+
+  freeMemory(mem);
+}
+
+static void test_concat_2d_dim1_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 2x2 tensor with values 1.0
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  // Additional tensor: 2x3 tensor with values 3.0
+  dim_t addDims[] = {2, 3};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 3.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 1, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat 2D dim1 should return OK");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim[0] should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 5, "dim[1] should be 2+3=5");
+
+  freeMemory(mem);
+}
+
+static void test_concat_multiple_tensors(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 1x2 tensor
+  dim_t targetDims[] = {1, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  // Two additional tensors: 2x2 and 3x2
+  dim_t add1Dims[] = {2, 2};
+  Tensor *toAdd1 = T_Float(&ctx, (Dim){.dims = add1Dims, .numOfDims = 2}, 2.0f);
+
+  dim_t add2Dims[] = {3, 2};
+  Tensor *toAdd2 = T_Float(&ctx, (Dim){.dims = add2Dims, .numOfDims = 2}, 3.0f);
+
+  Tensor *tensors[] = {toAdd1, toAdd2};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 2, &dest);
+  ASSERT_EQ(r, OK, "Concat multiple tensors should return OK");
+  ASSERT_EQ(dest.shape.dims[0], 6, "dim[0] should be 1+2+3=6");
+  ASSERT_EQ(dest.shape.dims[1], 2, "dim[1] should be 2");
+
+  freeMemory(mem);
+}
+
+static void test_concat_1d_tensors(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 3-element vector
+  dim_t targetDims[] = {3};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 1}, 1.0f);
+
+  // Additional: 2-element vector
+  dim_t addDims[] = {2};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat 1D should return OK");
+  ASSERT_EQ(dest.shape.numOfDims, 1, "result should be 1D");
+  ASSERT_EQ(dest.shape.dims[0], 5, "dim[0] should be 3+2=5");
+
+  freeMemory(mem);
+}
+
+static void test_concat_3d_tensors(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 2x3x4 tensor
+  dim_t targetDims[] = {2, 3, 4};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 3}, 1.0f);
+
+  // Additional: 3x3x4 tensor (concat along dim 0)
+  dim_t addDims[] = {3, 3, 4};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 3}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat 3D should return OK");
+  ASSERT_EQ(dest.shape.numOfDims, 3, "result should have 3 dimensions");
+  ASSERT_EQ(dest.shape.dims[0], 5, "dim[0] should be 2+3=5");
+  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
+  ASSERT_EQ(dest.shape.dims[2], 4, "dim[2] should be 4");
+
+  freeMemory(mem);
+}
+
+static void test_concat_data_correctness(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 2x2 tensor with sequential values 0, 1, 2, 3
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 0.0f);
+  f32 *targetVals = (f32 *)target->values;
+  targetVals[0] = 0.0f;
+  targetVals[1] = 1.0f;
+  targetVals[2] = 2.0f;
+  targetVals[3] = 3.0f;
+
+  // Additional: 2x2 tensor with values 10, 11, 12, 13
+  dim_t addDims[] = {2, 2};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 0.0f);
+  f32 *addVals = (f32 *)toAdd->values;
+  addVals[0] = 10.0f;
+  addVals[1] = 11.0f;
+  addVals[2] = 12.0f;
+  addVals[3] = 13.0f;
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  // Concat along dim 0: result should be 4x2
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat should return OK");
+  ASSERT_EQ(dest.shape.dims[0], 4, "dim[0] should be 4");
+  ASSERT_EQ(dest.shape.dims[1], 2, "dim[1] should be 2");
+
+  // Verify values are in correct positions
+  f32 *destVals = (f32 *)dest.values;
+  // First 2 rows from target
+  ASSERT_EQ(destVals[0], 0.0f, "dest[0,0] should be 0");
+  ASSERT_EQ(destVals[1], 1.0f, "dest[0,1] should be 1");
+  ASSERT_EQ(destVals[2], 2.0f, "dest[1,0] should be 2");
+  ASSERT_EQ(destVals[3], 3.0f, "dest[1,1] should be 3");
+  // Last 2 rows from toAdd
+  ASSERT_EQ(destVals[4], 10.0f, "dest[2,0] should be 10");
+  ASSERT_EQ(destVals[5], 11.0f, "dest[2,1] should be 11");
+  ASSERT_EQ(destVals[6], 12.0f, "dest[3,0] should be 12");
+  ASSERT_EQ(destVals[7], 13.0f, "dest[3,1] should be 13");
+
+  freeMemory(mem);
+}
+
+static void test_concat_null_target(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2, 2};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 1.0f);
+
+  Tensor invalid = {0};
+  invalid.isContigous = false; // Mark as invalid
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, &invalid, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Concat with null target should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_target_zero_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Create a tensor with 0 dims by manually setting it up
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  target->shape.numOfDims = 0; // Force to 0 dims
+
+  dim_t addDims[] = {2, 2};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS,
+            "Concat with 0-dim target should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_target_dim_out_of_bounds(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  dim_t addDims[] = {2, 2};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 5, tensors, 1, &dest); // dim 5 is out of bounds
+  ASSERT_EQ(r, ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS, "Concat with out of bounds dim should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_null_tensor_in_array(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  // Create an invalid tensor
+  Tensor invalid = {0};
+  invalid.isContigous = false;
+
+  Tensor *tensors[] = {&invalid};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_CONCAT_TENSOR_IS_NULL, "Concat with null tensor in array should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_unequal_num_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  dim_t addDims[] = {4}; // 1D tensor
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_CONCAT_TENSORS_UNEQUAL_DIMS, "Concat with unequal dimensions should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_mismatched_non_target_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 3}; // 2 rows, 3 cols
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  dim_t addDims[] = {2, 4}; // 2 rows, 4 cols - mismatched dim 1
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_CONCAT_TENSORS_UNEQUAL_DIMS,
+            "Concat with mismatched non-target dims should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_dtype_mismatch(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  dim_t addDims[] = {2, 2};
+  Tensor *toAdd = T_Int(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2); // Integer dtype
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_CONCAT_TENSOR_NOT_SAME_DTYPE, "Concat with dtype mismatch should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_non_contiguous_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 2};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+
+  // Create a transposed tensor (non-contiguous)
+  dim_t origDims[] = {2, 3};
+  Tensor *orig = T_Float(&ctx, (Dim){.dims = origDims, .numOfDims = 2}, 2.0f);
+  Tensor transposed;
+  Transpose(&ctx, orig, &transposed, (dim_t)0, (dim_t)1);
+  ASSERT(!transposed.isContigous, "transposed should not be contiguous");
+
+  Tensor *tensors[] = {&transposed};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, ERR_CONCAT_TENSOR_NOT_CONTIGOUS, "Concat with non-contiguous tensor should fail");
+
+  freeMemory(mem);
+}
+
+static void test_concat_with_non_contiguous_target(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Create a transposed tensor (non-contiguous) as target
+  dim_t origDims[] = {3, 2};
+  Tensor *orig = T_Float(&ctx, (Dim){.dims = origDims, .numOfDims = 2}, 1.0f);
+  Tensor target;
+  Transpose(&ctx, orig, &target, (dim_t)0, (dim_t)1);
+  ASSERT(!target.isContigous, "target should not be contiguous");
+
+  // Set specific values to verify copying works
+  f32 *origVals = (f32 *)orig->values;
+  origVals[0] = 1.0f;
+  origVals[1] = 2.0f;
+  origVals[2] = 3.0f;
+  origVals[3] = 4.0f;
+  origVals[4] = 5.0f;
+  origVals[5] = 6.0f;
+
+  // Additional tensor
+  dim_t addDims[] = {2, 3};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 10.0f);
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, &target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat with non-contiguous target should succeed");
+  ASSERT_EQ(dest.shape.dims[0], 4, "dim[0] should be 2+2=4");
+  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
+
+  freeMemory(mem);
+}
+
+static void test_concat_single_element_tensors(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  // Target: 1x1 tensor
+  dim_t targetDims[] = {1, 1};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  ((f32 *)target->values)[0] = 1.0f;
+
+  // Additional: 1x1 tensor
+  dim_t addDims[] = {1, 1};
+  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+  ((f32 *)toAdd->values)[0] = 2.0f;
+
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(r, OK, "Concat single element tensors should succeed");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim[0] should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 1, "dim[1] should be 1");
+
+  // Verify values
+  f32 *destVals = (f32 *)dest.values;
+  ASSERT_EQ(destVals[0], 1.0f, "dest[0,0] should be 1");
+  ASSERT_EQ(destVals[1], 2.0f, "dest[1,0] should be 2");
+
+  freeMemory(mem);
+}
+
+static void test_concat_no_additional_tensors(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t targetDims[] = {2, 3};
+  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  ((f32 *)target->values)[0] = 5.0f;
+  ((f32 *)target->values)[1] = 6.0f;
+
+  // Concat with 0 additional tensors
+  Tensor *tensors[] = {};
+  Tensor dest;
+
+  Result r = Concat(&ctx, target, 0, tensors, 0, &dest);
+  ASSERT_EQ(r, OK, "Concat with 0 additional tensors should succeed");
+  ASSERT_EQ(dest.shape.dims[0], 2, "dim[0] should be 2");
+  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
+
+  // Verify target values are copied
+  f32 *destVals = (f32 *)dest.values;
+  ASSERT_EQ(destVals[0], 5.0f, "dest[0] should be 5");
+  ASSERT_EQ(destVals[1], 6.0f, "dest[1] should be 6");
+
+  freeMemory(mem);
+}
+
 void run_tensor_tests(void) {
   printf("=== Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
@@ -4661,4 +5088,22 @@ void run_tensor_tests(void) {
   test_meandim_dim1();
   test_meandim_non_float_rejected();
   test_meandim_dim_out_of_bounds();
+  // Concat tests
+  test_concat_2d_dim0_basic();
+  test_concat_2d_dim1_basic();
+  test_concat_multiple_tensors();
+  test_concat_1d_tensors();
+  test_concat_3d_tensors();
+  test_concat_data_correctness();
+  test_concat_null_target();
+  test_concat_target_zero_dims();
+  test_concat_target_dim_out_of_bounds();
+  test_concat_null_tensor_in_array();
+  test_concat_unequal_num_dims();
+  test_concat_mismatched_non_target_dims();
+  test_concat_dtype_mismatch();
+  test_concat_non_contiguous_tensor();
+  test_concat_with_non_contiguous_target();
+  test_concat_single_element_tensors();
+  test_concat_no_additional_tensors();
 }

@@ -10,7 +10,7 @@ func TestSlice(t *testing.T) {
 	defer ctx.Finish()
 
 	// 3x4 tensor filled with 5s, slice to [0:2, 1:3] → 2x2
-	a := Int(ctx, Shape{3, 4}, 5)
+	a := Int8(ctx, Shape{3, 4}, 5)
 
 	sliced := a.Slice(ctx, Range{0, 2}, Range{1, 3})
 
@@ -28,7 +28,7 @@ func TestSliceInvalidRange(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{3, 4}, 1)
+	a := Int8(ctx, Shape{3, 4}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -43,7 +43,7 @@ func TestReshape(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3 → 3x2
-	a := Int(ctx, Shape{2, 3}, 7)
+	a := Int8(ctx, Shape{2, 3}, 7)
 
 	reshaped := a.Reshape(ctx, 3, 2)
 
@@ -61,7 +61,7 @@ func TestReshapeSizeMismatch(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 1)
+	a := Int8(ctx, Shape{2, 3}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -76,7 +76,7 @@ func TestReshapeWithMinusOne(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3x4 = 24 elements, reshape to (-1, 4) should infer 6
-	a := Int(ctx, Shape{2, 3, 4}, 7)
+	a := Int8(ctx, Shape{2, 3, 4}, 7)
 
 	reshaped := a.Reshape(ctx, -1, 4)
 
@@ -107,7 +107,7 @@ func TestReshapeWithMinusOneMiddle(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3x4 = 24 elements, reshape to (2, -1, 2) should infer 6
-	a := Int(ctx, Shape{2, 3, 4}, 5)
+	a := Int8(ctx, Shape{2, 3, 4}, 5)
 
 	reshaped := a.Reshape(ctx, 2, -1, 2)
 
@@ -127,7 +127,7 @@ func TestReshapeMultipleMinusOnePanics(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3, 4}, 1)
+	a := Int8(ctx, Shape{2, 3, 4}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -142,7 +142,7 @@ func TestReshapeMinusOneSizeMismatch(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3 = 6 elements, reshape to (-1, 4) would need 4 to divide 6 evenly
-	a := Int(ctx, Shape{2, 3}, 1)
+	a := Int8(ctx, Shape{2, 3}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -157,7 +157,7 @@ func TestTranspose(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3 filled with 4, transpose dims 0,1 → 3x2
-	a := Int(ctx, Shape{2, 3}, 4)
+	a := Int8(ctx, Shape{2, 3}, 4)
 
 	transposed := a.Transpose(ctx, 0, 1)
 
@@ -175,7 +175,7 @@ func TestTransposeDimOutOfBounds(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 1)
+	a := Int8(ctx, Shape{2, 3}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -225,7 +225,7 @@ func TestPermutePanicsOnWrongRank(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 1)
+	a := Int8(ctx, Shape{2, 3}, 1)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Fatal("expected panic for wrong rank dims, got nil")
@@ -238,7 +238,7 @@ func TestPermutePanicsOnDuplicateDims(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 1)
+	a := Int8(ctx, Shape{2, 3}, 1)
 	defer func() {
 		if r := recover(); r == nil {
 			t.Fatal("expected panic for duplicate dims, got nil")
@@ -252,7 +252,7 @@ func TestSqueeze(t *testing.T) {
 	defer ctx.Finish()
 
 	// 1x3x1 → 3
-	a := Int(ctx, Shape{1, 3, 1}, 9)
+	a := Int8(ctx, Shape{1, 3, 1}, 9)
 
 	squeezed := a.Squeeze(ctx)
 
@@ -269,7 +269,7 @@ func TestUnSqueeze(t *testing.T) {
 	defer ctx.Finish()
 
 	// shape [3] → unsqueeze at dim 0 → [1, 3]
-	a := Int(ctx, Shape{3}, 6)
+	a := Int8(ctx, Shape{3}, 6)
 
 	unsqueezed := a.UnSqueeze(ctx, 0)
 
@@ -285,7 +285,7 @@ func TestUnSqueezeDimOutOfBounds(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{3}, 1)
+	a := Int8(ctx, Shape{3}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -293,4 +293,203 @@ func TestUnSqueezeDimOutOfBounds(t *testing.T) {
 		}
 	}()
 	a.UnSqueeze(ctx, 5)
+}
+
+func TestConcat2D(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	// Two 2x3 tensors with different values
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{
+		1, 2, 3,
+		4, 5, 6,
+	})
+	b := FromFloat32(ctx, Shape{2, 3}, []float32{
+		7, 8, 9,
+		10, 11, 12,
+	})
+
+	// Concat along dim 0 (rows) → 4x3
+	concatenated := a.Concat(ctx, 0, b)
+
+	shape := concatenated.Shape()
+	if len(shape) != 2 || shape[0] != 4 || shape[1] != 3 {
+		t.Fatalf("expected shape [4,3], got %v", shape)
+	}
+
+	// Verify values
+	expected := []float32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+	for i := range uint32(4) {
+		for j := range uint32(3) {
+			got := concatenated.Get(ctx, i, j).Item().(float32)
+			idx := i*3 + j
+			if got != expected[idx] {
+				t.Errorf("Concat[%d,%d] = %v, want %v", i, j, got, expected[idx])
+			}
+		}
+	}
+}
+
+func TestConcatDim1(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	// Two 2x2 tensors
+	a := FromFloat32(ctx, Shape{2, 2}, []float32{
+		1, 2,
+		3, 4,
+	})
+	b := FromFloat32(ctx, Shape{2, 3}, []float32{
+		5, 6, 7,
+		8, 9, 10,
+	})
+
+	// Concat along dim 1 (cols) → 2x5
+	concatenated := a.Concat(ctx, 1, b)
+
+	shape := concatenated.Shape()
+	if len(shape) != 2 || shape[0] != 2 || shape[1] != 5 {
+		t.Fatalf("expected shape [2,5], got %v", shape)
+	}
+
+	// Verify values
+	expected := []float32{1, 2, 5, 6, 7, 3, 4, 8, 9, 10}
+	for i := range uint32(2) {
+		for j := range uint32(5) {
+			got := concatenated.Get(ctx, i, j).Item().(float32)
+			idx := i*5 + j
+			if got != expected[idx] {
+				t.Errorf("Concat[%d,%d] = %v, want %v", i, j, got, expected[idx])
+			}
+		}
+	}
+}
+
+func TestConcat1D(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	// Two 1D tensors
+	a := FromFloat32(ctx, Shape{3}, []float32{1, 2, 3})
+	b := FromFloat32(ctx, Shape{2}, []float32{4, 5})
+
+	// Concat → 5-element vector
+	concatenated := a.Concat(ctx, 0, b)
+
+	shape := concatenated.Shape()
+	if len(shape) != 1 || shape[0] != 5 {
+		t.Fatalf("expected shape [5], got %v", shape)
+	}
+
+	expected := []float32{1, 2, 3, 4, 5}
+	for i := range uint32(5) {
+		got := concatenated.Get(ctx, i).Item().(float32)
+		if got != expected[i] {
+			t.Errorf("Concat[%d] = %v, want %v", i, got, expected[i])
+		}
+	}
+}
+
+func TestConcatMultiple(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	// Three 1x2 tensors
+	a := FromFloat32(ctx, Shape{1, 2}, []float32{1, 2})
+	b := FromFloat32(ctx, Shape{1, 2}, []float32{3, 4})
+	c := FromFloat32(ctx, Shape{1, 2}, []float32{5, 6})
+
+	// Concat all three along dim 0
+	concatenated := a.Concat(ctx, 0, b, c)
+
+	shape := concatenated.Shape()
+	if len(shape) != 2 || shape[0] != 3 || shape[1] != 2 {
+		t.Fatalf("expected shape [3,2], got %v", shape)
+	}
+}
+
+func TestConcatEmpty(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2, 3}, 5.0)
+
+	// Concat with no tensors should clone
+	cloned := a.Concat(ctx, 0)
+
+	shape := cloned.Shape()
+	if len(shape) != 2 || shape[0] != 2 || shape[1] != 3 {
+		t.Fatalf("expected shape [2,3], got %v", shape)
+	}
+}
+
+func TestConcatShapeMismatch(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2, 3}, 1.0)
+	b := Float(ctx, Shape{2, 4}, 2.0) // Mismatched dim 1
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for shape mismatch, got nil")
+		}
+	}()
+	a.Concat(ctx, 0, b)
+}
+
+func TestStack(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	// Two 2x3 tensors
+	a := FromFloat32(ctx, Shape{2, 3}, []float32{
+		1, 2, 3,
+		4, 5, 6,
+	})
+	b := FromFloat32(ctx, Shape{2, 3}, []float32{
+		7, 8, 9,
+		10, 11, 12,
+	})
+
+	// Stack along dim 0 → 2x2x3
+	stacked := Stack(ctx, 0, a, b)
+
+	shape := stacked.Shape()
+	if len(shape) != 3 || shape[0] != 2 || shape[1] != 2 || shape[2] != 3 {
+		t.Fatalf("expected shape [2,2,3], got %v", shape)
+	}
+
+	// Verify values: stacked[0] should be a, stacked[1] should be b
+	for i := range uint32(2) {
+		for j := range uint32(3) {
+			got0 := stacked.Get(ctx, 0, i, j).Item().(float32)
+			got1 := stacked.Get(ctx, 1, i, j).Item().(float32)
+			want0 := a.Get(ctx, i, j).Item().(float32)
+			want1 := b.Get(ctx, i, j).Item().(float32)
+			if got0 != want0 {
+				t.Errorf("Stack[0,%d,%d] = %v, want %v", i, j, got0, want0)
+			}
+			if got1 != want1 {
+				t.Errorf("Stack[1,%d,%d] = %v, want %v", i, j, got1, want1)
+			}
+		}
+	}
+}
+
+func TestWrappedTensorConcat(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	// Create wrapped tensors using the Float creation function
+	wa := &WrappedTensor{tensor: Float(ctx, Shape{1, 2}, 1.0), context: ctx}
+	wb := &WrappedTensor{tensor: Float(ctx, Shape{1, 2}, 2.0), context: ctx}
+
+	// Concat using wrapped tensor API
+	concatenated := wa.Concat(0, wb)
+
+	shape := concatenated.Shape()
+	if len(shape) != 2 || shape[0] != 2 || shape[1] != 2 {
+		t.Fatalf("expected shape [2,2], got %v", shape)
+	}
 }

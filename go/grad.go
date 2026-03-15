@@ -45,6 +45,7 @@ const (
 	OpConvTranspose
 	OpMaxPool
 	OpAdaptiveAvgPool
+	OpConcat // concat
 )
 
 func (op OpType) String() string {
@@ -103,6 +104,8 @@ func (op OpType) String() string {
 		return "max_pool"
 	case OpAdaptiveAvgPool:
 		return "adaptive_avg_pool"
+	case OpConcat:
+		return "concat"
 	default:
 		return "?"
 	}

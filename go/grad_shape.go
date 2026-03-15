@@ -82,3 +82,33 @@ func unSqueezeBackward(ctx Context, node ComputationGraphNode) {
 	gradX := node.Grad().SqueezeDim(ctx, dim)
 	x.Grad().Accumulate(ctx, gradX)
 }
+
+// concatBackward slices the gradient and distributes it to all input tensors.
+func concatBackward(ctx Context, node ComputationGraphNode) {
+	noGraphCtx := ctx.Backward()
+	defer noGraphCtx.Finish()
+
+	inputs := node.Inputs()
+	dim := node.Metadata().(uint)
+	grad := node.Grad()
+
+	// Calculate cumulative offsets for slicing
+	offset := uint(0)
+	for _, input := range inputs {
+		inputShape := input.Shape()
+		dimSize := inputShape[dim]
+
+		// Build range for slicing along the concat dimension
+		ranges := make([]Range, len(inputShape))
+		for d := range ranges {
+			ranges[d] = Range{0, inputShape[d]}
+		}
+		ranges[dim] = Range{offset, offset + dimSize}
+
+		// Slice the gradient for this input
+		gradSlice := grad.Slice(noGraphCtx, ranges...)
+		input.Grad().Accumulate(noGraphCtx, gradSlice)
+
+		offset += dimSize
+	}
+}

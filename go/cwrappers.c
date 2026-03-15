@@ -301,6 +301,13 @@ Tensor *wrap_T_Int(Context *ctx, Dim *shape, i8 value) {
   return t;
 }
 
+Tensor *wrap_T_UInt(Context *ctx, Dim *shape, u8 value) {
+  Tensor *t = T_UInt(ctx, *shape, value);
+  freeAlloc(ctx->memory, shape->dims);
+  freeAlloc(ctx->memory, shape);
+  return t;
+}
+
 Tensor *wrap_T_Float(Context *ctx, Dim *shape, f32 value) {
   Tensor *t = T_Float(ctx, *shape, value);
   freeAlloc(ctx->memory, shape->dims);
@@ -560,6 +567,14 @@ Result wrap_SqueezeDim(Context *ctx, Tensor *src, Tensor **out, dim_t d) {
 Result wrap_UnSqueeze(Context *ctx, Tensor *src, Tensor **out, dim_t d) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = UnSqueeze(ctx, src, dest, d);
+  *out = dest;
+  return r;
+}
+
+Result wrap_Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensors,
+                   Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = Concat(ctx, target, targetDim, tensors, numTensors, dest);
   *out = dest;
   return r;
 }

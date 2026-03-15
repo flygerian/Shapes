@@ -9,8 +9,8 @@ func TestPlus(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 2}, 3)
-	b := Int(ctx, Shape{2, 2}, 5)
+	a := Int8(ctx, Shape{2, 2}, 3)
+	b := Int8(ctx, Shape{2, 2}, 5)
 
 	result := a.Plus(ctx, b)
 
@@ -28,7 +28,7 @@ func TestPlusScalar(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 2}, 3)
+	a := Int8(ctx, Shape{2, 2}, 3)
 	result := a.Plus(ctx, 1)
 
 	for i := range uint32(2) {
@@ -45,8 +45,8 @@ func TestMinus(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 10)
-	b := Int(ctx, Shape{2, 3}, 4)
+	a := Int8(ctx, Shape{2, 3}, 10)
+	b := Int8(ctx, Shape{2, 3}, 4)
 
 	result := a.Minus(ctx, b)
 
@@ -64,8 +64,8 @@ func TestTimes(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 2}, 3)
-	b := Int(ctx, Shape{2, 2}, 7)
+	a := Int8(ctx, Shape{2, 2}, 3)
+	b := Int8(ctx, Shape{2, 2}, 7)
 
 	result := a.Times(ctx, b)
 
@@ -102,9 +102,9 @@ func TestBinaryOpChain(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2}, 2)
-	b := Int(ctx, Shape{2}, 3)
-	c := Int(ctx, Shape{2}, 4)
+	a := Int8(ctx, Shape{2}, 2)
+	b := Int8(ctx, Shape{2}, 3)
+	c := Int8(ctx, Shape{2}, 4)
 
 	// (a + b) * c = (2 + 3) * 4 = 20
 	sum := a.Plus(ctx, b)
@@ -122,8 +122,8 @@ func TestBinaryOpBroadcast(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 5)
-	b := Int(ctx, Shape{1, 3}, 2)
+	a := Int8(ctx, Shape{2, 3}, 5)
+	b := Int8(ctx, Shape{1, 3}, 2)
 
 	result := a.Plus(ctx, b)
 
@@ -141,7 +141,7 @@ func TestBinaryOpDtypeMismatch(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2}, 1)
+	a := Int8(ctx, Shape{2}, 1)
 	b := Float(ctx, Shape{2}, 1.0)
 
 	defer func() {

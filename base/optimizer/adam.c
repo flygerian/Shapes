@@ -37,6 +37,11 @@ Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2
       return ERR_ADAM_PARAMS_SIZE_MISMATCH;
     }
 
+    if (!trip.param->isContigous || !trip.paramGrad->isContigous || !trip.m->isContigous ||
+        !trip.v->isContigous) {
+      return ERR_ADAM_PARAMS_MUST_BE_CONTIGUOUS;
+    }
+
     f32 *gradVals = trip.paramGrad->values;
     f32 *pVals = trip.param->values;
 

@@ -32,9 +32,9 @@ func scalarTensorForDtype(ctx Context, dtype Dtype, value interface{}) Tensor {
 		switch v := value.(type) {
 		case bool:
 			if v {
-				return Int(ctx, shape, 1).Bool(ctx)
+				return Int8(ctx, shape, 1).Bool(ctx)
 			}
-			return Int(ctx, shape, 0).Bool(ctx)
+			return Int8(ctx, shape, 0).Bool(ctx)
 		default:
 			panic("shapes: bool tensors only support bool scalars in binary ops")
 		}

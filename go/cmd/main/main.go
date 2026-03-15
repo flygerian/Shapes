@@ -6,6 +6,7 @@ import (
 
 func main() {
 
-	examples.MakeMore_5()
+	examples.Vgg_cifar10()
+	// examples.MakeMore_5()
 	// examples.MakeMore_1(ctx)
 }

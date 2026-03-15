@@ -131,6 +131,13 @@ Tensor *T_Int(Context *ctx, Dim shape, i8 initialValue) {
   return init;
 }
 
+Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue) {
+  Tensor *init = t_Zeros(ctx, shape, U8);
+  Value v = (Value){.dtype = U8, .as.u8 = initialValue};
+  SetValues(init, v);
+  return init;
+}
+
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, F32);
   Value v = (Value){.dtype = F32, .as.f32 = initialValue};

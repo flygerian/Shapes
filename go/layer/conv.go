@@ -48,7 +48,7 @@ func Conv2d(
 		shapes.Shape{uint(outChannels), uint(inChannels), kernel[0], kernel[1]},
 		-float32(initialization), float32(initialization),
 	)
-	bias := shapes.Float(ctx, shapes.Shape{uint(outChannels)}, 0)
+	bias := shapes.Float(ctx, shapes.Shape{1, uint(outChannels), 1, 1}, 0)
 
 	state := conv{
 		kernelShape: kernel,
@@ -79,7 +79,9 @@ func (c *conv) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 		shapes.WithMetadata(convMetadata{stride: c.stride}),
 	)
 
-	out := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride).Plus(forwardCtx, c.bias)
+	out := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride)
+
+	out = out.Plus(forwardCtx, c.bias)
 
 	forwardCtx.Finish(
 		shapes.WithResult(out),
@@ -100,14 +102,13 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	meta := out.Metadata().(convMetadata)
 
 	dOutput := out.Grad() // (B, C, oH, oW)
-	outputShape := dOutput.Shape()
 
-	B := outputShape[0]
-	C := outputShape[1]
-	oh := outputShape[2]
-	ow := outputShape[3]
+	// Go from (B, C, oh, ow) -> (1, C, 1, 1)
+	dBias := dOutput.
+		Sum(backwardCtx, 3).
+		Sum(backwardCtx, 2).
+		Sum(backwardCtx, 0)
 
-	dBias := dOutput.Reshape(backwardCtx, int(B), int(C), int(oh*ow)).Sum(backwardCtx, 2).Sum(backwardCtx, 0).Squeeze(backwardCtx)
 	bias.Grad().Accumulate(backwardCtx, dBias)
 
 	dX, dKernels := shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.stride)

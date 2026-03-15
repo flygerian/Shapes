@@ -1,5 +1,12 @@
 #include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include "common.h"
+#include "result/result.h"
+#include "shapes.h"
 #include "tensor_internal.h"
 #include "../memory.h"
 
@@ -436,6 +443,142 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                .isView = true,
                .boundary = newBoundary,
                .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
+
+  return OK;
+}
+
+Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensorsToAdd,
+              Tensor *dest) {
+  if (isInvalidTensor(target)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (target->shape.numOfDims < 1) {
+    return ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS;
+  }
+
+  if (targetDim > target->shape.numOfDims - 1) {
+    return ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS;
+  }
+
+  bool freeWorkingTarget = false;
+
+  Tensor *workingTarget = target;
+  if (!target->isContigous) {
+    freeWorkingTarget = true;
+    workingTarget = copyToContiguous(ctx, target);
+  }
+
+  tensor_size_t numElementsBeforeTargetDim;
+  calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
+
+  tensor_size_t numElementsAfterTargetDim;
+  calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
+
+  for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
+
+    Tensor *t = tensors[it];
+
+    if (isInvalidTensor(t)) {
+      return ERR_CONCAT_TENSOR_IS_NULL;
+    }
+
+    // Validate tensor has same number of dimensions as workingTarget
+    if (t->shape.numOfDims != workingTarget->shape.numOfDims) {
+      return ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
+    }
+
+    // Validate non-target dimensions match workingTarget
+    for (dim_t id = 0; id < workingTarget->shape.numOfDims; id++) {
+      if (id != targetDim && workingTarget->shape.dims[id] != t->shape.dims[id]) {
+        return ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
+      }
+    }
+
+    if (t->dtype != workingTarget->dtype) {
+      return ERR_CONCAT_TENSOR_NOT_SAME_DTYPE;
+    }
+
+    if (!t->isContigous) {
+      // Should probably come back and handle this properly
+      return ERR_CONCAT_TENSOR_NOT_CONTIGOUS;
+    }
+  }
+
+
+  dim_t *outputDims = allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
+  dim_t dimsToAdd = 0;
+
+  for (tensor_size_t ist = 0; ist < numTensorsToAdd; ist++) {
+    dimsToAdd += tensors[ist]->shape.dims[targetDim];
+  }
+
+  for (dim_t io = 0; io < workingTarget->shape.numOfDims; io++) {
+    if (io == targetDim) {
+      dim_t targetDimCurrSize = workingTarget->shape.dims[io];
+      outputDims[io] = targetDimCurrSize + dimsToAdd;
+      continue;
+    }
+
+    outputDims[io] = workingTarget->shape.dims[io];
+  }
+
+  Dim outputShape = {.dims = outputDims, .numOfDims = workingTarget->shape.numOfDims};
+
+  multiplier_t *multipliers =
+      allocate(ctx->memory, sizeof(multiplier_t) * workingTarget->shape.numOfDims);
+  tensor_size_t outputSize = calculateNumValuesAndMultipliers(outputShape, multipliers);
+
+  outputShape.multipliers = multipliers;
+
+  *dest =
+      (Tensor){.dtype = workingTarget->dtype,
+               .values = allocate(ctx->memory, getBytesForDtype(workingTarget->dtype) * outputSize),
+               .size = outputSize,
+               .isContigous = true,
+               .isView = false,
+               .boundary = NULL,
+               .shape = outputShape};
+
+  dim_t currDimSize = workingTarget->shape.dims[targetDim];
+  dim_t newDimSize = outputShape.dims[targetDim];
+
+  // Copy data slice by slice to handle row-major layout correctly
+  for (tensor_size_t inb = 0; inb < numElementsBeforeTargetDim; inb++) {
+    // Calculate destination offset for this slice
+    tensor_size_t destSliceOffset = inb * newDimSize * numElementsAfterTargetDim;
+    // Calculate source offset in target tensor for this slice
+    tensor_size_t srcSliceOffset = inb * currDimSize * numElementsAfterTargetDim;
+
+    // Copy target tensor slice for this row/group
+    void *destLoc = dest->values + (destSliceOffset * getBytesForDtype(workingTarget->dtype));
+    void *srcLoc = workingTarget->values + (srcSliceOffset * getBytesForDtype(workingTarget->dtype));
+    memcpy(destLoc, srcLoc, (currDimSize * numElementsAfterTargetDim) *
+                                getBytesForDtype(workingTarget->dtype));
+
+    // Copy each additional tensor's slice
+    dim_t dimOffset = currDimSize;
+    for (dim_t ist = 0; ist < numTensorsToAdd; ist++) {
+      Tensor *curr = tensors[ist];
+      dim_t currTargetDimSize = curr->shape.dims[targetDim];
+
+      void *currDestLoc =
+          dest->values + (((destSliceOffset + (dimOffset * numElementsAfterTargetDim))) *
+                          getBytesForDtype(workingTarget->dtype));
+      void *currSrcLoc =
+          curr->values + (inb * currTargetDimSize * numElementsAfterTargetDim) *
+                             getBytesForDtype(workingTarget->dtype);
+      memcpy(currDestLoc, currSrcLoc,
+             (currTargetDimSize * numElementsAfterTargetDim) *
+                 getBytesForDtype(workingTarget->dtype));
+
+      dimOffset += currTargetDimSize;
+    }
+  }
+
+  if (freeWorkingTarget) {
+    FreeTensor(ctx, workingTarget);
+  }
 
   return OK;
 }

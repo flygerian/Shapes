@@ -11,7 +11,7 @@ func TestSumAlongDim0(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3 tensor filled with 2s, sum along dim 0 → 1x3 of 4s
-	a := Int(ctx, Shape{2, 3}, 2)
+	a := Int8(ctx, Shape{2, 3}, 2)
 
 	result := a.Sum(ctx, 0)
 
@@ -28,7 +28,7 @@ func TestSumAlongDim1(t *testing.T) {
 	defer ctx.Finish()
 
 	// 2x3 tensor filled with 3s, sum along dim 1 → 2x1 of 9s
-	a := Int(ctx, Shape{2, 3}, 3)
+	a := Int8(ctx, Shape{2, 3}, 3)
 
 	result := a.Sum(ctx, 1)
 
@@ -44,7 +44,7 @@ func TestSumDimOutOfBounds(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{2, 3}, 1)
+	a := Int8(ctx, Shape{2, 3}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -72,7 +72,7 @@ func TestStdNonFloatPanics(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := Int(ctx, Shape{3}, 1)
+	a := Int8(ctx, Shape{3}, 1)
 
 	defer func() {
 		if r := recover(); r == nil {

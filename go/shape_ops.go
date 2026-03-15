@@ -21,6 +21,7 @@ type hasShapeOps interface {
 	SqueezeDim(ctx Context, dim uint) Tensor
 	UnSqueeze(ctx Context, dim uint) Tensor
 	SafeUnSqueeze(ctx Context, dims ...uint) Tensor
+	Concat(ctx Context, dim uint, tensors ...Tensor) Tensor
 	Shape() Shape
 }
 
@@ -272,4 +273,87 @@ func (t *tensor) SafeUnSqueeze(ctx Context, dims ...uint) Tensor {
 	}
 
 	return t.UnSqueeze(ctx, uint(0))
+}
+
+// Concat concatenates this tensor with other tensors along the specified dimension.
+// All tensors must have the same shape except along the concat dimension.
+func (t *tensor) Concat(ctx Context, dim uint, tensors ...Tensor) Tensor {
+	if len(tensors) == 0 {
+		// No tensors to concat, just clone the target
+		return t.Clone(ctx)
+	}
+
+	// Build array of C tensor pointers
+	numTensors := len(tensors)
+	cTensors := make([]*C.Tensor, numTensors)
+	for i, tt := range tensors {
+		cTensors[i] = tt.(*tensor).cTensor
+	}
+
+	var dest *C.Tensor
+	result := C.wrap_Concat(
+		(*C.Context)(ctx.UnsafePtr()),
+		t.cTensor,
+		C.dim_t(dim),
+		(**C.Tensor)(unsafe.Pointer(&cTensors[0])),
+		C.u32(numTensors),
+		&dest,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	out := track(ctx, &tensor{cTensor: dest})
+
+	// Build list of all input tensors for backward pass
+	allInputs := make([]Tensor, len(tensors)+1)
+	allInputs[0] = t
+	copy(allInputs[1:], tensors)
+
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpConcat, concatBackward, allInputs, []Tensor{}, nil)
+		out.computation.meta = dim
+	}
+	return out
+}
+
+// Helper function to unwrap tensors from WrappedTensor if needed
+func unwrapTensor(t interface{}) Tensor {
+	switch tt := t.(type) {
+	case Tensor:
+		return tt
+	case *WrappedTensor:
+		return tt.tensor
+	default:
+		panic("shapes: operand must be Tensor or WrappedTensor")
+	}
+}
+
+// Concat concatenates this WrappedTensor with other tensors along the specified dimension.
+func (wt *WrappedTensor) Concat(dim uint, tensors ...interface{}) *WrappedTensor {
+	unwrapped := make([]Tensor, len(tensors))
+	for i, t := range tensors {
+		unwrapped[i] = unwrapTensor(t)
+	}
+	return &WrappedTensor{
+		tensor:  wt.tensor.Concat(wt.context, dim, unwrapped...),
+		context: wt.context,
+	}
+}
+
+// Stack creates a new tensor by stacking input tensors along a new dimension.
+// All input tensors must have the same shape.
+// If dim=0, creates a new first dimension and stacks tensors along it.
+func Stack(ctx Context, dim uint, tensors ...Tensor) Tensor {
+	if len(tensors) == 0 {
+		panic("shapes: Stack requires at least one tensor")
+	}
+
+	// Unsqueeze all tensors along the specified dimension
+	unsqueezed := make([]Tensor, len(tensors))
+	for i, t := range tensors {
+		unsqueezed[i] = t.UnSqueeze(ctx, dim)
+	}
+
+	// Concatenate along the new dimension
+	return unsqueezed[0].Concat(ctx, dim, unsqueezed[1:]...)
 }
