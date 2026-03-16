@@ -205,6 +205,13 @@ Result wrap_Tanh(Context *ctx, Tensor *t, Tensor **out) {
   return r;
 }
 
+Result wrap_Relu(Context *ctx, Tensor *t, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = Relu(ctx, t, dest);
+  *out = dest;
+  return r;
+}
+
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = Negate(ctx, t, dest);

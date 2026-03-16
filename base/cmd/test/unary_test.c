@@ -223,6 +223,45 @@ static void test_pow_invalid_dtype(void) {
   freeMemory(mem);
 }
 
+static void test_relu_forward(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {3};
+  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  f32 *values = (f32 *)t->values;
+  values[0] = -1.0f;
+  values[1] = 0.0f;
+  values[2] = 2.5f;
+
+  Tensor result;
+  Result res = Relu(&ctx, t, &result);
+
+  ASSERT_EQ(res, OK, "Relu should succeed");
+  f32 *output = (f32 *)result.values;
+  ASSERT(fabsf(output[0] - 0.0f) < 1e-6, "relu(-1) should be 0");
+  ASSERT(fabsf(output[1] - 0.0f) < 1e-6, "relu(0) should be 0");
+  ASSERT(fabsf(output[2] - 2.5f) < 1e-6, "relu(2.5) should be 2.5");
+
+  freeMemory(mem);
+}
+
+static void test_relu_invalid_dtype(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {2};
+  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 5);
+
+  Tensor result;
+  Result res = Relu(&ctx, t, &result);
+
+  ASSERT_NEQ(res, OK, "Relu should fail on non-float dtype");
+  ASSERT_EQ(res, ERR_RELU_VALUE_NOT_FLOAT, "should return ERR_RELU_VALUE_NOT_FLOAT");
+
+  freeMemory(mem);
+}
+
 void run_unary_tests(void) {
   printf("=== Unary Operation Tests ===\n");
 
@@ -237,4 +276,6 @@ void run_unary_tests(void) {
   test_pow_f64_dtype();
   test_pow_null_tensor();
   test_pow_invalid_dtype();
+  test_relu_forward();
+  test_relu_invalid_dtype();
 }

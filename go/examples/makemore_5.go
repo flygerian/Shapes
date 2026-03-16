@@ -100,7 +100,7 @@ func MakeMore_5() {
 	forward := func(ctx shapes.EpochContext, xBatch shapes.Tensor) shapes.Tensor {
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, int(xBatch.Shape()[0]), -1))
 		h = bn1.Forward(ctx, h)
-		h = activation.Tanh(ctx, h)
+		h = activation.Tanh().Forward(ctx, h)
 
 		if ctx.CurrentEpochNum()%100 == 0 {
 			ctx.SampleTensor("layer-1-preact", h.Abs(ctx).GreaterThan(ctx, 0.99))
@@ -108,7 +108,7 @@ func MakeMore_5() {
 
 		h = l2.Forward(ctx, h)
 		h = bn2.Forward(ctx, h)
-		h = activation.Tanh(ctx, h)
+		h = activation.Tanh().Forward(ctx, h)
 		logits := l3.Forward(ctx, h)
 
 		return logits

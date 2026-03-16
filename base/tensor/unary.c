@@ -115,6 +115,37 @@ Result Tanh(Context *ctx, Tensor *t, Tensor *dest) {
   return OK;
 }
 
+Result Relu(Context *ctx, Tensor *t, Tensor *dest) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
+    return ERR_RELU_VALUE_NOT_FLOAT;
+  }
+
+  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
+
+  if (t->dtype == F64) {
+    f64 *in = t->values;
+    f64 *out = output->values;
+    for (tensor_size_t i = 0; i < t->size; i++) {
+      out[i] = in[i] > 0 ? in[i] : 0;
+    }
+  } else {
+    f32 *in = t->values;
+    f32 *out = output->values;
+    for (tensor_size_t i = 0; i < t->size; i++) {
+      out[i] = in[i] > 0 ? in[i] : 0;
+    }
+  }
+
+  *dest = *output;
+  freeAlloc(ctx->memory, output);
+
+  return OK;
+}
+
 static Result negateValue(Value *v) {
   switch (v->dtype) {
     COMPUTE_NEGATE(v, F16, f16);

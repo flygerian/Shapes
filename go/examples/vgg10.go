@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/flygerian/shapes"
@@ -30,10 +32,10 @@ type trainingParams struct {
 
 func getTrainingParams() trainingParams {
 	return trainingParams{
-		batchSize:    32,
-		learningRate: 1e-4,
+		batchSize:    16,
+		learningRate: 1e-5,
 		inputShape:   shapes.Shape{3, 32, 32},
-		epochs:       100,
+		epochs:       500,
 	}
 }
 
@@ -53,12 +55,12 @@ func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
 		label := make([]byte, 1)
 		image := make([]byte, 3072)
 
-		_, err := reader.Read(label)
+		_, err := io.ReadFull(reader, label)
 		if err != nil {
 			break
 		}
 
-		_, err = reader.Read(image)
+		_, err = io.ReadFull(reader, image)
 		if err != nil {
 			break
 		}
@@ -71,13 +73,14 @@ func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
 }
 
 func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []imageLabelPair, []string) {
-
-	batchFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/data_batch_1.bin")
+	batchFiles, err := filepath.Glob("examples/datasets/cifar-10-binary/cifar-10-batches-bin/data_batch_*.bin")
 	if err != nil {
-		err := fmt.Errorf("could not open cifar_10 file: %e", err)
+		err := fmt.Errorf("could not list cifar_10 batch files: %w", err)
 		panic(err)
 	}
-	defer batchFile.Close()
+	if len(batchFiles) == 0 {
+		panic("could not find cifar_10 batch files")
+	}
 
 	labelsFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/batches.meta.txt")
 	if err != nil {
@@ -93,7 +96,21 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []image
 	}
 	defer testFile.Close()
 
-	allTrain := getTensors(ctx, batchFile)
+	allTrain := make([]imageLabelPair, 0)
+	for _, batchPath := range batchFiles[:2] {
+		batchFile, err := os.Open(batchPath)
+		if err != nil {
+			err := fmt.Errorf("could not open cifar_10 file %q: %w", batchPath, err)
+			panic(err)
+		}
+
+		allTrain = append(allTrain, getTensors(ctx, batchFile)...)
+
+		if err := batchFile.Close(); err != nil {
+			err := fmt.Errorf("could not close cifar_10 file %q: %w", batchPath, err)
+			panic(err)
+		}
+	}
 	test := getTensors(ctx, testFile)
 
 	// 80/20 train/validation split
@@ -118,92 +135,179 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []image
 
 // Model
 
-func convBlock(ctx shapes.Context) layer.Sequential {
+func convBlock(ctx shapes.Context) *layer.Sequential {
 	convBlock := layer.Sequential{
 		Layers: []layer.HasForward{
-			layer.Conv2d(ctx, 3, 64, shapes.Kernel{2, 2}, 1),  // (B, 64, 31, 31)
+			layer.Conv2d(ctx, 3, 64, shapes.Kernel{2, 2}, 1), // (B, 64, 31, 31)
+			activation.Relu(),
 			layer.Conv2d(ctx, 64, 64, shapes.Kernel{2, 2}, 1), // (B, 64, 30, 30)
-			layer.MaxPool2d(shapes.Kernel{2, 2}, 1),           // (B, 64, 29, 29)
-			layer.BatchNorm2d(ctx, 64),                        // (B, 64, 29, 29)
+			activation.Relu(),
 
-			layer.Conv2d(ctx, 64, 128, shapes.Kernel{2, 2}, 1), // (B, 128, 28, 28)
+			layer.MaxPool2d(shapes.Kernel{2, 2}, 2), // (B, 64, 15, 15)
+
+			layer.Conv2d(ctx, 64, 128, shapes.Kernel{2, 2}, 1), // (B, 128, 14, 14)
+			activation.Relu(),
+			layer.Conv2d(ctx, 128, 128, shapes.Kernel{2, 2}, 1), // (B, 128, 13, 13)
+			activation.Relu(),
+
+			layer.MaxPool2d(shapes.Kernel{2, 2}, 2), // (B, 128, 6, 6)
+
+			layer.Conv2d(ctx, 128, 256, shapes.Kernel{2, 2}, 1), // (B, 256, 5, 5)
+			activation.Relu(),
+			layer.Conv2d(ctx, 256, 256, shapes.Kernel{2, 2}, 1), // (B, 256, 4, 4)
+			activation.Relu(),
+			layer.MaxPool2d(shapes.Kernel{2, 2}, 2), // (B, 256, 2, 2)
+
+			layer.Conv2d(ctx, 256, 512, shapes.Kernel{2, 2}, 1), // (B, 512, 1, 1)
+			activation.Relu(),
+			layer.AdaptiveAvgPool2d(shapes.Shape{1, 1}),
 		},
 	}
 
-	return convBlock
+	return &convBlock
 }
 
-func linearBlock(ctx shapes.Context, numLabels int) layer.Sequential {
+func linearBlock(ctx shapes.Context, numLabels int) *layer.Sequential {
 	denseBlock := layer.Sequential{
 		Layers: []layer.HasForward{
-			layer.Dense(ctx, 128*28*28, 4096),
-			layer.Dense(ctx, 4096, 4096),
-			layer.Dense(ctx, 4096, numLabels),
+			layer.Flatten(),
+			layer.Dense(ctx, 512, 256),
+			activation.Relu(),
+			layer.Dense(ctx, 256, numLabels),
 		},
 	}
 
-	return denseBlock
+	return &denseBlock
+}
+
+func makeBatchIndexTensor(ctx shapes.Context, indices []int) shapes.Tensor {
+	batchIndices := make([]float32, len(indices))
+	for i, idx := range indices {
+		batchIndices[i] = float32(idx)
+	}
+
+	return shapes.FromFloat32(ctx, shapes.Shape{uint(len(indices))}, batchIndices).I64(ctx)
 }
 
 func modelForward(
 	ctx shapes.Context,
-	params trainingParams,
-	blocks []layer.Sequential,
+	model layer.Sequential,
 	x shapes.Tensor) shapes.Tensor {
-	x = blocks[0].Forward(ctx, x) // Forward convblock
+	// x = blocks[0].Forward(ctx, x) // Forward convblock
+	// x = blocks[1].Forward(ctx, x)
 
-	x = x.Reshape(ctx, params.batchSize, -1)
-	x = activation.Tanh(ctx, x)
-
-	x = blocks[1].Forward(ctx, x)
-
-	return x
+	return model.Forward(ctx, x)
 }
 
 func computeAndSetValidationMetrics(
 	epochCtx shapes.EpochContext,
-	shapeCtx shapes.Context,
 	hyperParams trainingParams,
-	validation []imageLabelPair,
 	XVal shapes.Tensor,
 	YVal shapes.Tensor,
 	labels []string,
-	blocks []layer.Sequential,
+	model layer.Sequential,
 	crossEnthropy func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Tensor,
 ) {
-	testCtx := epochCtx.Test()
-	defer testCtx.Finish()
+	totalValidationLoss := 0.0
+	totalCorrect := 0
+	totalSeen := 0
 
-	valBatchSize := min(hyperParams.batchSize, len(validation))
-	valIx := shapes.FloatRandom(shapeCtx, shapes.Shape{uint(valBatchSize)}, 0, float32(XVal.Shape()[0])).I64(testCtx)
-	valBatch := XVal.Get(testCtx, valIx)
-	valLogits := modelForward(testCtx, hyperParams, blocks, valBatch.F32(testCtx))
-	valYBatch := YVal.Get(testCtx, valIx)
-	valYOneHot := shapes.OneHot(testCtx, valYBatch, uint(len(labels))).Squeeze(testCtx)
-	valLoss := crossEnthropy(testCtx, valYOneHot, valLogits)
-	valLossScalar := valLoss.Get(testCtx, 0).Item().(float32)
+	for batchStart := 0; batchStart < int(XVal.Shape()[0]); batchStart += hyperParams.batchSize {
+		batchEnd := min(batchStart+hyperParams.batchSize, int(XVal.Shape()[0]))
+		testCtx := epochCtx.Test()
 
-	// Compute accuracy: compare predicted class (argmax of logits) with actual labels
-	predictions := valLogits.ArgMax(testCtx, 1) // Get predicted class indices
-	actualLabels := valYBatch.Squeeze(testCtx)  // Remove the singleton dimension
+		valIndices := make([]int, batchEnd-batchStart)
+		for i := range valIndices {
+			valIndices[i] = batchStart + i
+		}
 
-	correct := 0
-	predValues := predictions.Values().([]int64)
-	actualValues := actualLabels.Values().([]uint8)
+		valIx := makeBatchIndexTensor(testCtx, valIndices)
+		valBatch := XVal.Get(testCtx, valIx)
+		valLogits := modelForward(testCtx, model, valBatch.F32(testCtx))
+		valYBatch := YVal.Get(testCtx, valIx)
+		valYOneHot := shapes.OneHot(testCtx, valYBatch, uint(len(labels))).Squeeze(testCtx)
+		valLoss := crossEnthropy(testCtx, valYOneHot, valLogits)
+		valLossScalar := valLoss.Get(testCtx, 0).Item().(float32)
+		totalValidationLoss += float64(valLossScalar) * float64(len(valIndices))
 
-	for i := range predValues {
-		if predValues[i] == int64(actualValues[i]) {
-			correct++
+		predictions := valLogits.ArgMax(testCtx, 1)
+		actualLabels := valYBatch.Squeeze(testCtx)
+
+		predValues := predictions.Values().([]int64)
+		actualValues := actualLabels.Values().([]uint8)
+
+		for i := range predValues {
+			if predValues[i] == int64(actualValues[i]) {
+				totalCorrect++
+			}
+		}
+		totalSeen += len(valIndices)
+
+		testCtx.Finish()
+	}
+
+	fmt.Printf("Val loss: %v\n", totalValidationLoss)
+	epochCtx.SetValidationLoss(totalValidationLoss / float64(totalSeen))
+	fmt.Printf("Accuracy: %v\n", float64(totalCorrect)/float64(totalSeen))
+	epochCtx.SetAccuracy(float64(totalCorrect) / float64(totalSeen))
+}
+
+func runTraining(
+	trainingCtx shapes.MainContext,
+	trainSize int,
+	hyperParams trainingParams,
+	globalStep int,
+	crossEnthropy func(shapesCtx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
+	X shapes.Tensor,
+	Y shapes.Tensor,
+	optimizerStep func(cg shapes.ComputationGraph),
+	model layer.Sequential,
+	XVal, YVal shapes.Tensor,
+	labels []string,
+) {
+
+	defer trainingCtx.Finish()
+
+	for range hyperParams.epochs {
+		perm := rand.Perm(trainSize)
+		epochLoss := 0.0
+
+		for batchStart := 0; batchStart < trainSize; batchStart += hyperParams.batchSize {
+			batchEnd := min(batchStart+hyperParams.batchSize, trainSize)
+			stepCtx := trainingCtx.Epoch(globalStep + 1)
+
+			ix := makeBatchIndexTensor(stepCtx, perm[batchStart:batchEnd])
+			batch := X.Get(stepCtx, ix)
+			logits := modelForward(stepCtx, model, batch.F32(stepCtx))
+
+			yBatch := Y.Get(stepCtx, ix)
+			yOneHot := shapes.OneHot(stepCtx, yBatch, uint(len(labels))).Squeeze(stepCtx)
+			loss := crossEnthropy(stepCtx, yOneHot, logits)
+
+			graph := loss.Backward(stepCtx)
+			optimizerStep(graph)
+			optimizer.ZeroGrad(stepCtx, graph)
+
+			lossScalar := loss.Get(stepCtx, 0).Item().(float32)
+			epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
+			globalStep++
+
+			stepCtx.SetLoss(0)
+
+			// fmt.Printf("Loss: %v\n", lossScalar)
+
+			if batchEnd == trainSize {
+				computeAndSetValidationMetrics(stepCtx, hyperParams, XVal, YVal, labels, model, crossEnthropy)
+				stepCtx.Finish(shapes.WithLoss(float32(epochLoss / float64(trainSize))))
+			} else {
+				stepCtx.Finish()
+			}
 		}
 	}
-	accuracy := float64(correct) / float64(valBatchSize)
-
-	epochCtx.SetValidationLoss(float64(valLossScalar))
-	epochCtx.SetAccuracy(accuracy)
 }
 
 func Vgg_cifar10() {
-	shapeCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(16000*Mb))
+	shapeCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
 	defer shapeCtx.Finish()
 
 	train, validation, test, labels := getDataSet(shapeCtx)
@@ -275,42 +379,40 @@ func Vgg_cifar10() {
 	XVal := shapes.Stack(shapeCtx, 0, valImgs...)
 	YVal := shapes.Stack(shapeCtx, 0, valLabels...)
 
-	trainingCtx := shapeCtx.Training(
-		hyperParams.epochs,
-		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
-	)
-
 	X := shapes.Stack(shapeCtx, 0, trainImgs...)
 	Y := shapes.Stack(shapeCtx, 0, trainLabels...)
 
-	optimerStep := optimizer.Adam(shapeCtx, optimizer.WithLearningRate(hyperParams.learningRate))
+	optimerStep := optimizer.SGD(shapeCtx, hyperParams.learningRate)
 	crossEnthropy := loss_fns.CrossEntropy()
 
-	blocks := []layer.Sequential{convBlock(shapeCtx), linearBlock(shapeCtx, len(labels))}
-
-	for epoch := range hyperParams.epochs {
-		epochCtx := trainingCtx.Epoch(epoch + 1)
-		ix := shapes.FloatRandom(shapeCtx, shapes.Shape{uint(hyperParams.batchSize)}, 0, float32(X.Shape()[0])).I64(epochCtx)
-		batch := X.Get(epochCtx, ix)
-
-		logits := modelForward(epochCtx, hyperParams, blocks, batch.F32(epochCtx))
-
-		yBatch := Y.Get(epochCtx, ix)
-		yOneHot := shapes.OneHot(epochCtx, yBatch, uint(len(labels))).Squeeze(shapeCtx)
-		loss := crossEnthropy(epochCtx, yOneHot, logits)
-
-		graph := loss.Backward(epochCtx)
-
-		optimerStep(graph)
-
-		optimizer.ZeroGrad(shapeCtx, graph)
-
-		// Compute validation loss
-		computeAndSetValidationMetrics(epochCtx, shapeCtx, hyperParams, validation, XVal, YVal, labels, blocks, crossEnthropy)
-
-		lossScalar := loss.Get(epochCtx, 0).Item().(float32)
-		epochCtx.Finish(shapes.WithLoss(lossScalar))
+	model := layer.Sequential{
+		Layers: []layer.HasForward{
+			convBlock(shapeCtx),
+			linearBlock(shapeCtx, len(labels)),
+		},
 	}
+	globalStep := 0
 
-	trainingCtx.Finish()
+	fmt.Printf("Training start...\n")
+
+	stepsPerEpoch := (len(train) + hyperParams.batchSize - 1) / hyperParams.batchSize
+	trainingCtx := shapeCtx.Training(
+		hyperParams.epochs*stepsPerEpoch,
+		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
+	)
+
+	runTraining(
+		trainingCtx,
+		len(train),
+		hyperParams,
+		globalStep,
+		crossEnthropy,
+		X, Y,
+		optimerStep,
+		model,
+		XVal,
+		YVal,
+		labels,
+	)
+
 }

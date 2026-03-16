@@ -143,7 +143,6 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 	stats := r.ctx.TrainingStats()
 
 	render := func(force bool) {
-
 		if len(stats.MemorySampleHistoryX) == 0 || len(stats.LossHistoryX) == 0 {
 			return
 		}

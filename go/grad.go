@@ -24,6 +24,7 @@ const (
 	OpPow                      // pow
 	OpExp                      // exp
 	OpTanh                     // tanh
+	OpRelu                     // relu
 	OpDense                    // wx + b
 	OpBatchNorm                // batch normalization
 	OpReshape                  // reshape
@@ -64,6 +65,8 @@ func (op OpType) String() string {
 		return "exp"
 	case OpTanh:
 		return "tanh"
+	case OpRelu:
+		return "relu"
 	case OpDense:
 		return "@w + b"
 	case OpBatchNorm:

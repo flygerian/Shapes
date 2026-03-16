@@ -58,6 +58,7 @@ add_library(shapes_core
     common.c
     layer/dense.c
     layer/batch_norm.c
+    layer/im2col.c
     layer/conv.c
     layer/pool.c
     loss/cross_entropy.c

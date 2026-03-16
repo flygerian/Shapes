@@ -50,6 +50,7 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);
 Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
 Result Tanh(Context *ctx, Tensor *t, Tensor *dest);
+Result Relu(Context *ctx, Tensor *t, Tensor *dest);
 Result Negate(Context *ctx, Tensor *t, Tensor *dest);
 Result Log(Context *ctx, Tensor *t, Tensor *dest);
 Result Abs(Context *ctx, Tensor *t, Tensor *dest);

@@ -63,6 +63,7 @@ type EpochContext interface {
 	SubContext
 	SampleTensor(key string, t Tensor)
 	CurrentEpochNum() int
+	SetLoss(loss float64)
 	SetValidationLoss(loss float64)
 	SetTestLoss(loss float64)
 	SetAccuracy(accuracy float64)
@@ -615,6 +616,20 @@ func (ctx *subContext) SampleTensor(key string, t Tensor) {
 	defer ctx.training.mu.Unlock()
 
 	ctx.training.stats.SampleTensors[key] = t.Clone(ctx.main())
+}
+
+func (ctx *subContext) SetLoss(loss float64) {
+	if ctx.training == nil {
+		panic("Cannot set validation loss in a non training context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.Loss = loss
+	ctx.training.stats.LossHistoryX = append(ctx.training.stats.ValidationLossHistoryX, ctx.training.stats.Epoch)
+	ctx.training.stats.LossHistory = append(ctx.training.stats.ValidationLossHistory, int(loss*1000))
+	ctx.training.stats.Version++
 }
 
 func (ctx *subContext) SetValidationLoss(loss float64) {

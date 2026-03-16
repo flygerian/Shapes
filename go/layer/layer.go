@@ -1,10 +1,6 @@
 package layer
 
-import (
-	"fmt"
-
-	"github.com/flygerian/shapes"
-)
+import "github.com/flygerian/shapes"
 
 type HasForward interface {
 	Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor
@@ -28,9 +24,7 @@ func WithBias(isBiasApplied bool) layerOption {
 }
 
 func (s *Sequential) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
-	out := x.Clone(ctx)
-
-	fmt.Println()
+	out := x
 	for _, l := range s.Layers {
 		out = l.Forward(ctx, out)
 	}

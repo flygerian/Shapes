@@ -84,72 +84,7 @@ func (i *imageArtefact) Render(target io.Writer) {
 	height := int(shape[1])
 	width := int(shape[2])
 
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	// For uint8 tensors, use direct array access (faster and avoids Get bug)
-	if i.tensor.Dtype() == shapes.DtypeU8 {
-		vals := i.tensor.Values().([]uint8)
-		pixelSize := height * width
-
-		for y := range height {
-			for x := range width {
-				var r, g, b uint8
-
-				switch channels {
-				case 1:
-					idx := y*width + x
-					r = vals[idx]
-					g = vals[idx]
-					b = vals[idx]
-				case 3:
-					r = vals[0*pixelSize+y*width+x]
-					g = vals[1*pixelSize+y*width+x]
-					b = vals[2*pixelSize+y*width+x]
-				case 4:
-					r = vals[0*pixelSize+y*width+x]
-					g = vals[1*pixelSize+y*width+x]
-					b = vals[2*pixelSize+y*width+x]
-				default:
-					idx := y*width + x
-					r = vals[idx]
-					g = vals[idx]
-					b = vals[idx]
-				}
-
-				img.Set(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
-			}
-		}
-	} else {
-		// Fallback for other dtypes - use Get (may have bugs)
-		for y := range height {
-			for x := range width {
-				var r, g, b uint8
-
-				switch channels {
-				case 1:
-					val := i.getPixel(0, y, x)
-					r = val
-					g = val
-					b = val
-				case 3:
-					r = i.getPixel(0, y, x)
-					g = i.getPixel(1, y, x)
-					b = i.getPixel(2, y, x)
-				case 4:
-					r = i.getPixel(0, y, x)
-					g = i.getPixel(1, y, x)
-					b = i.getPixel(2, y, x)
-				default:
-					val := i.getPixel(0, y, x)
-					r = val
-					g = val
-					b = val
-				}
-
-				img.Set(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
-			}
-		}
-	}
+	img := tensorImage(i.tensor, i.ctx, channels, width, height)
 
 	displayWidth := frame.Width
 	displayHeight := frame.Height
@@ -168,39 +103,89 @@ func (i *imageArtefact) Render(target io.Writer) {
 	renderKittyImage(target, encoded, frame.X, frame.Y, displayWidth, displayHeight)
 }
 
-func (i *imageArtefact) getPixel(channel, y, x int) uint8 {
-	if i.tensor == nil || i.ctx == nil {
+func tensorImage(t shapes.Tensor, ctx shapes.Context, channels, width, height int) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	if t == nil {
+		return img
+	}
+
+	pixelSize := height * width
+	read := tensorValueReader(t, ctx, pixelSize)
+	for y := range height {
+		for x := range width {
+			idx := y*width + x
+			r, g, b, a := tensorPixel(read, channels, idx, y, x)
+			img.Set(x, y, color.RGBA{R: r, G: g, B: b, A: a})
+		}
+	}
+
+	return img
+}
+
+func tensorPixel(read func(channel, idx, y, x int) uint8, channels, idx, y, x int) (uint8, uint8, uint8, uint8) {
+	switch channels {
+	case 1:
+		value := read(0, idx, y, x)
+		return value, value, value, 255
+	case 3:
+		return read(0, idx, y, x), read(1, idx, y, x), read(2, idx, y, x), 255
+	case 4:
+		return read(0, idx, y, x), read(1, idx, y, x), read(2, idx, y, x), read(3, idx, y, x)
+	default:
+		value := read(0, idx, y, x)
+		return value, value, value, 255
+	}
+}
+
+func tensorValueReader(t shapes.Tensor, ctx shapes.Context, pixelSize int) func(channel, idx, y, x int) uint8 {
+	if t == nil {
+		return func(channel, idx, y, x int) uint8 { return 0 }
+	}
+
+	switch values := t.Values().(type) {
+	case []float32:
+		return func(channel, idx, y, x int) uint8 { return normalizedToByte(values[channel*pixelSize+idx]) }
+	case []float64:
+		return func(channel, idx, y, x int) uint8 { return normalizedToByte(float32(values[channel*pixelSize+idx])) }
+	case []uint8:
+		return func(channel, idx, y, x int) uint8 { return values[channel*pixelSize+idx] }
+	case []int8:
+		return func(channel, idx, y, x int) uint8 { return uint8(values[channel*pixelSize+idx]) }
+	default:
+		return func(channel, idx, y, x int) uint8 { return getPixelViaTensorGet(t, ctx, channel, y, x) }
+	}
+}
+
+func getPixelViaTensorGet(t shapes.Tensor, ctx shapes.Context, channel, y, x int) uint8 {
+	if t == nil || ctx == nil {
 		return 0
 	}
 
-	val := i.tensor.Get(i.ctx, uint(channel), uint(y), uint(x)).Item()
-
-	var normalized float32
+	val := t.Get(ctx, uint(channel), uint(y), uint(x)).Item()
 	switch v := val.(type) {
 	case float32:
-		normalized = v
+		return normalizedToByte(v)
 	case float64:
-		normalized = float32(v)
+		return normalizedToByte(float32(v))
 	case int8:
-		// Raw image bytes stored as int8 - treat as unsigned 0-255
-		// Values 128-255 would be negative in int8, so convert via uint8
-		normalized = float32(uint8(v)) / 255.0
+		return uint8(v)
 	case uint8:
-		normalized = float32(v) / 255.0
+		return v
 	case int:
-		normalized = float32(v) / 255.0
+		return uint8(v)
 	default:
-		normalized = 0
+		return 0
 	}
+}
 
-	if normalized < 0 {
-		normalized = 0
+func normalizedToByte(v float32) uint8 {
+	if v < 0 {
+		v = 0
 	}
-	if normalized > 1 {
-		normalized = 1
+	if v > 1 {
+		v = 1
 	}
-
-	return uint8(normalized * 255)
+	return uint8(v * 255)
 }
 
 func resizeImage(src image.Image, newWidth, newHeight int) *image.RGBA {

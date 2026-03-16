@@ -49,6 +49,8 @@ func ResultString(r uint32) string {
 		return "matmul inner dimension mismatch"
 	case C.ERR_TANH_VALUE_NOT_FLOAT:
 		return "tanh requires float values"
+	case C.ERR_RELU_VALUE_NOT_FLOAT:
+		return "relu requires float values"
 	case C.ERR_POW_VALUE_NOT_FLOAT:
 		return "pow requires float values"
 	case C.ERR_EXP_VALUE_NOT_FLOAT:

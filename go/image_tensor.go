@@ -8,9 +8,6 @@ package shapes
 #include <string.h>
 */
 import "C"
-import (
-	"unsafe"
-)
 
 func TensorFromImagebyes(ctx Context, dims Shape, imageData []byte) Tensor {
 	numChanels := dims[0]
@@ -20,11 +17,14 @@ func TensorFromImagebyes(ctx Context, dims Shape, imageData []byte) Tensor {
 	}
 
 	if numChanels == 2 {
-		panic("Please either provide")
+		panic("Images should either be 1 channel or 3")
 	}
 
-	t := Int8(ctx, dims, 0)
-	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&imageData[0]), C.size_t(len(imageData)))
+	data := make([]float32, len(imageData))
+	for i, value := range imageData {
+		data[i] = float32(value) / 255.0
+	}
 
+	t := FromFloat32(ctx, dims, data)
 	return t
 }

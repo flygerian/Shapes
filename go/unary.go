@@ -12,6 +12,7 @@ type hasUnaryOps interface {
 	Pow(ctx Context, power float32) Tensor
 	Exp(ctx Context) Tensor
 	Tanh(ctx Context) Tensor
+	Relu(ctx Context) Tensor
 	Negate(ctx Context) Tensor
 	Abs(ctx Context) Tensor
 	Log(ctx Context) Tensor
@@ -52,7 +53,25 @@ func (t *tensor) Tanh(ctx Context) Tensor {
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-	return track(ctx, &tensor{cTensor: dest})
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpTanh, tanhBackward, []Tensor{t}, []Tensor{}, nil)
+	}
+	return out
+}
+
+// Relu computes relu(x) = max(0, x) for every element, returning a new tensor.
+func (t *tensor) Relu(ctx Context) Tensor {
+	var dest *C.Tensor
+	result := C.wrap_Relu((*C.Context)(ctx.UnsafePtr()), t.cTensor, &dest)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+	out := track(ctx, &tensor{cTensor: dest})
+	if ctx.BackwardEnabled() {
+		toComputationGraphNode(out, OpRelu, reluBackward, []Tensor{t}, []Tensor{}, nil)
+	}
+	return out
 }
 
 // Negate negates every element (-t), returning a new tensor.

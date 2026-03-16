@@ -1,6 +1,8 @@
 #include "test.h"
 #include "../../shapes.h"
+#include "cblas.h"
 #include <math.h>
+#include <stdlib.h>
 
 static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
@@ -458,6 +460,115 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
   freeMemory(mem);
 }
 
+static void test_conv2d_restores_openblas_threads_after_local_override(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor out;
+
+  f32 *x = t.values;
+  for (int i = 0; i < 9; i++) {
+    x[i] = (f32)(i + 1);
+  }
+
+  f32 *k = kernels.values;
+  k[0] = 1.0f;
+  k[1] = 0.0f;
+  k[2] = 0.0f;
+  k[3] = 1.0f;
+
+  int previousThreads = openblas_get_num_threads();
+  int maxThreads = openblas_get_num_procs();
+  const char *overrideValue = maxThreads > 1 && previousThreads == 1 ? "2" : "1";
+
+  setenv("SHAPES_CONV_THREADS", overrideValue, 1);
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, kernel, &t, &out);
+
+  ASSERT_EQ(r, OK, "Conv2d with a local thread override should succeed");
+  ASSERT_EQ(openblas_get_num_threads(), previousThreads,
+            "Conv2d should restore the previous OpenBLAS thread count");
+
+  unsetenv("SHAPES_CONV_THREADS");
+  freeMemory(mem);
+}
+
+static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 5, 5, F32);
+  Tensor kernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
+  Tensor out;
+
+  f32 *x = t.values;
+  for (int i = 0; i < 25; i++) {
+    x[i] = (f32)(i + 1);
+  }
+
+  f32 *k = kernels.values;
+  k[0] = 1.0f;
+  k[1] = 0.0f;
+  k[2] = 0.0f;
+  k[3] = 1.0f;
+  k[4] = 1.0f;
+  k[5] = 1.0f;
+  k[6] = 0.0f;
+  k[7] = 0.0f;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 2, 2, &kernels, kernel, &t, &out);
+
+  ASSERT_EQ(r, OK, "Conv2d stride-two forward should succeed");
+  ASSERT_EQ(out.shape.dims[1], 2, "Stride-two output channel mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Stride-two output height mismatch");
+  ASSERT_EQ(out.shape.dims[3], 2, "Stride-two output width mismatch");
+
+  f32 *o = out.values;
+  f32 want[8] = {8.0f, 12.0f, 28.0f, 32.0f, 3.0f, 7.0f, 23.0f, 27.0f};
+  for (int i = 0; i < 8; i++) {
+    ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "Conv2d stride-two output mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_conv2d_forward_f64_single_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F64);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F64);
+  Tensor out;
+
+  f64 *x = t.values;
+  for (int i = 0; i < 9; i++) {
+    x[i] = (f64)(i + 1);
+  }
+
+  f64 *k = kernels.values;
+  k[0] = 0.5;
+  k[1] = 1.0;
+  k[2] = -1.0;
+  k[3] = 2.0;
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, kernel, &t, &out);
+
+  ASSERT_EQ(r, OK, "Conv2d f64 forward should succeed");
+
+  f64 *o = out.values;
+  f64 want[4] = {8.5, 11.0, 16.0, 18.5};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabs(o[i] - want[i]) < 1e-9, "Conv2d f64 output mismatch");
+  }
+
+  freeMemory(mem);
+}
+
 static void test_conv2d_backward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -499,6 +610,103 @@ static void test_conv2d_backward_f32_single_channel(void) {
   f32 wantDK[4] = {12.0f, 16.0f, 24.0f, 28.0f};
   for (int i = 0; i < 4; i++) {
     ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "Conv2dBackward dKernels mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_conv2d_backward_f32_stride_two_single_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 5, 5, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor dX;
+  Tensor dKernels;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 25; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 2.0f;
+  kVals[2] = 3.0f;
+  kVals[3] = 4.0f;
+
+  f32 *gVals = gradOut.values;
+  gVals[0] = 1.0f;
+  gVals[1] = 2.0f;
+  gVals[2] = 3.0f;
+  gVals[3] = 4.0f;
+
+  Result r = Conv2dBackward(&ctx, &x, &kernels, &gradOut, 2, &dX, &dKernels);
+  ASSERT_EQ(r, OK, "Conv2dBackward stride-two should succeed");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[25] = {1.0f, 2.0f, 2.0f, 4.0f,  0.0f,  3.0f,  4.0f, 6.0f, 8.0f, 0.0f, 3.0f, 6.0f, 4.0f,
+                    8.0f, 0.0f, 9.0f, 12.0f, 12.0f, 16.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+  for (int i = 0; i < 25; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward stride-two dX mismatch");
+  }
+
+  f32 *dKernelVals = dKernels.values;
+  f32 wantDK[4] = {92.0f, 102.0f, 142.0f, 152.0f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
+           "Conv2dBackward stride-two dKernels mismatch");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 2, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
+  Tensor gradOut = create4DTensor(&ctx, 2, 2, 2, 2, F32);
+  Tensor dX;
+  Tensor dKernels;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 18; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 0.0f;
+  kVals[2] = 0.0f;
+  kVals[3] = 1.0f;
+  kVals[4] = 0.0f;
+  kVals[5] = 1.0f;
+  kVals[6] = 1.0f;
+  kVals[7] = 0.0f;
+
+  f32 *gVals = gradOut.values;
+  f32 grads[16] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
+                   2.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 2.0f, 3.0f};
+  for (int i = 0; i < 16; i++) {
+    gVals[i] = grads[i];
+  }
+
+  Result r = Conv2dBackward(&ctx, &x, &kernels, &gradOut, 1, &dX, &dKernels);
+  ASSERT_EQ(r, OK, "Conv2dBackward multi-batch multi-out should succeed");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[18] = {1.0f, 7.0f, 6.0f, 8.0f, 18.0f, 10.0f, 7.0f, 11.0f, 4.0f,
+                    2.0f, 2.0f, 0.0f, 1.0f, 5.0f,  4.0f,  2.0f, 3.0f,  1.0f};
+  for (int i = 0; i < 18; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward multi-batch dX mismatch");
+  }
+
+  f32 *dKernelVals = dKernels.values;
+  f32 wantDK[8] = {82.0f, 96.0f, 124.0f, 138.0f, 163.0f, 195.0f, 259.0f, 291.0f};
+  for (int i = 0; i < 8; i++) {
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
+           "Conv2dBackward multi-batch dKernels mismatch");
   }
 
   freeMemory(mem);
@@ -713,7 +921,12 @@ void run_layer_tests(void) {
   test_conv2d_forward_f32_single_channel();
   test_conv2d_forward_f32_multi_channel();
   test_conv2d_forward_f32_with_batch_dimension();
+  test_conv2d_restores_openblas_threads_after_local_override();
+  test_conv2d_forward_f32_stride_two_multi_out_channel();
+  test_conv2d_forward_f64_single_channel();
   test_conv2d_backward_f32_single_channel();
+  test_conv2d_backward_f32_stride_two_single_channel();
+  test_conv2d_backward_f32_multi_batch_multi_out_channel();
   test_conv_transpose2d_forward_f32_single_channel();
   test_conv_transpose2d_backward_f32_single_channel();
   test_max_pool2d_forward_f32();
