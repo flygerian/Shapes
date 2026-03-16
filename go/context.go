@@ -61,12 +61,18 @@ type SubContext interface {
 
 type EpochContext interface {
 	SubContext
+	Step(options ...subContextOption) StepContext
 	SampleTensor(key string, t Tensor)
 	CurrentEpochNum() int
 	SetLoss(loss float64)
 	SetValidationLoss(loss float64)
 	SetTestLoss(loss float64)
 	SetAccuracy(accuracy float64)
+}
+
+type StepContext interface {
+	SubContext
+	SetStepLoss(loss float64)
 }
 
 type shapesCtx struct {
@@ -113,8 +119,11 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 
 type TrainingStats struct {
 	Epoch                  int
+	Step                   int
 	NumEpochs              int
+	NumSteps               int
 	Loss                   float64
+	StepLoss               float64
 	TestLoss               float64
 	ValidationLoss         float64
 	Accuracy               float64
@@ -122,6 +131,8 @@ type TrainingStats struct {
 	UsedBlocksHistory      []int
 	LossHistoryX           []int
 	LossHistory            []int
+	StepLossHistoryX       []int
+	StepLossHistory        []int
 	TestLossHistoryX       []int
 	TestLossHistory        []int
 	ValidationLossHistoryX []int
@@ -216,8 +227,11 @@ func (c *mainContext) initTrainingStats(numEpochs int) {
 	c.training = &trainingState{
 		stats: &TrainingStats{
 			NumEpochs:              numEpochs,
+			NumSteps:               0,
 			Epoch:                  0,
+			Step:                   0,
 			Loss:                   0,
+			StepLoss:               0,
 			TestLoss:               0,
 			ValidationLoss:         0,
 			Accuracy:               0,
@@ -225,6 +239,8 @@ func (c *mainContext) initTrainingStats(numEpochs int) {
 			UsedBlocksHistory:      make([]int, 0),
 			LossHistoryX:           make([]int, 0),
 			LossHistory:            make([]int, 0),
+			StepLossHistoryX:       make([]int, 0),
+			StepLossHistory:        make([]int, 0),
 			TestLossHistoryX:       make([]int, 0),
 			TestLossHistory:        make([]int, 0),
 			ValidationLossHistoryX: make([]int, 0),
@@ -289,7 +305,7 @@ func (c *mainContext) TrainingStats() *TrainingStats {
 	return c.training.stats
 }
 
-// Epoch returns a short-lived context for one training/inference step.
+// Epoch returns a short-lived context for one training epoch.
 // It preserves the parent context's grad/backward behavior while keeping
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
 func (c *mainContext) Epoch(currentEpoch int, options ...subContextOption) EpochContext {
@@ -432,6 +448,7 @@ type SubContextType int
 
 const (
 	SubContextTypeEpoch SubContextType = iota
+	SubContextTypeStep
 	SubContextTypeForward
 	SubContextTypeFused
 	SubContextTypeNoGrad
@@ -519,11 +536,15 @@ func (c *subContext) NoGrad(options ...subContextOption) SubContext {
 	return noGrad(c, options...)
 }
 
-// Epoch returns a short-lived context for one training/inference step.
+// Epoch returns a short-lived context for one training epoch.
 // It preserves the parent context's grad/backward behavior while keeping
 // locals isolated so callers can Finish/Sweep at epoch boundaries.
 func (c *subContext) Epoch(currentEpoch int, options ...subContextOption) EpochContext {
 	return epoch(c, currentEpoch, options...)
+}
+
+func (c *subContext) Step(options ...subContextOption) StepContext {
+	return step(c, options...)
 }
 
 // Forward returns a context intended for forward-pass fused operations.
@@ -627,8 +648,25 @@ func (ctx *subContext) SetLoss(loss float64) {
 	defer ctx.training.mu.Unlock()
 
 	ctx.training.stats.Loss = loss
-	ctx.training.stats.LossHistoryX = append(ctx.training.stats.ValidationLossHistoryX, ctx.training.stats.Epoch)
-	ctx.training.stats.LossHistory = append(ctx.training.stats.ValidationLossHistory, int(loss*1000))
+	ctx.training.stats.LossHistoryX = append(ctx.training.stats.LossHistoryX, ctx.training.stats.Epoch)
+	ctx.training.stats.LossHistory = append(ctx.training.stats.LossHistory, int(loss*1000))
+	ctx.training.stats.Version++
+}
+
+func (ctx *subContext) SetStepLoss(loss float64) {
+	if ctx.training == nil {
+		panic("Cannot set step loss in a non training context")
+	}
+	if ctx.subContextType != SubContextTypeStep {
+		panic("Step loss can only be set on a step context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.StepLoss = loss
+	ctx.training.stats.StepLossHistoryX = append(ctx.training.stats.StepLossHistoryX, ctx.training.stats.Step)
+	ctx.training.stats.StepLossHistory = append(ctx.training.stats.StepLossHistory, int(loss*1000))
 	ctx.training.stats.Version++
 }
 
@@ -727,7 +765,7 @@ func noGrad(c Context, options ...subContextOption) SubContext {
 	return derive(c, SubContextTypeNoGrad, false, c.BackwardEnabled(), options...)
 }
 
-// Epoch returns a short-lived context intended for one training step.
+// Epoch returns a short-lived context intended for one training epoch.
 // It preserves grad/backward settings from the parent while providing
 // independent local tracking for cleanup.
 func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
@@ -765,6 +803,24 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 	sc := derive(c, SubContextTypeEpoch, c.GradEnabled(), c.BackwardEnabled(), options...)
 	sc.(*subContext).sweepAfterFinish = true
 	return sc.(EpochContext)
+}
+
+func step(c Context, options ...subContextOption) StepContext {
+	sc, ok := c.(*subContext)
+	if !ok || sc.subContextType != SubContextTypeEpoch {
+		panic("You can only call Step() on an epoch context")
+	}
+	if sc.training == nil || sc.training.stats == nil {
+		panic("Can only call Step() in training mode")
+	}
+
+	sc.training.mu.Lock()
+	sc.training.stats.Step++
+	sc.training.mu.Unlock()
+
+	stepCtx := derive(c, SubContextTypeStep, c.GradEnabled(), c.BackwardEnabled(), options...)
+	stepCtx.(*subContext).sweepAfterFinish = true
+	return stepCtx.(StepContext)
 }
 
 // Fused returns a new Context that shares the same C context and memory

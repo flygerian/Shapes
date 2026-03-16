@@ -148,3 +148,63 @@ func TestDerivedContextsCarryTrainingState(t *testing.T) {
 		t.Fatal("derived context should inherit inference mode")
 	}
 }
+
+func TestEpochStepRecordsStepLossSeparately(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	trainingCtx := ctx.Training(2)
+	stats := trainingCtx.TrainingStats()
+
+	epochCtx := trainingCtx.Epoch(1)
+	stepCtx := epochCtx.Step()
+	stepCtx.SetStepLoss(0.25)
+	stepCtx.Finish()
+
+	epochCtx.SetLoss(0.5)
+	epochCtx.Finish()
+
+	if stats.Step != 1 {
+		t.Fatalf("expected current step to be 1, got %d", stats.Step)
+	}
+	if stats.StepLoss != 0.25 {
+		t.Fatalf("expected step loss 0.25, got %f", stats.StepLoss)
+	}
+	if len(stats.StepLossHistoryX) != 1 || stats.StepLossHistoryX[0] != 1 {
+		t.Fatalf("unexpected step loss x history: %#v", stats.StepLossHistoryX)
+	}
+	if len(stats.StepLossHistory) != 1 || stats.StepLossHistory[0] != 250 {
+		t.Fatalf("unexpected step loss history: %#v", stats.StepLossHistory)
+	}
+	if stats.Loss != 0.5 {
+		t.Fatalf("expected epoch loss 0.5, got %f", stats.Loss)
+	}
+	if len(stats.LossHistoryX) != 1 || stats.LossHistoryX[0] != 1 {
+		t.Fatalf("unexpected epoch loss x history: %#v", stats.LossHistoryX)
+	}
+	if len(stats.LossHistory) != 1 || stats.LossHistory[0] != 500 {
+		t.Fatalf("unexpected epoch loss history: %#v", stats.LossHistory)
+	}
+}
+
+func TestStepRequiresEpochContext(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	trainingCtx := ctx.Training(1)
+
+	mustPanic(t, func() {
+		_ = step(trainingCtx)
+	})
+}
+
+func TestWithNumStepsSetsTrainingStats(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	trainingCtx := ctx.Training(3, WithNumSteps(42))
+
+	if got := trainingCtx.TrainingStats().NumSteps; got != 42 {
+		t.Fatalf("NumSteps = %d, want 42", got)
+	}
+}

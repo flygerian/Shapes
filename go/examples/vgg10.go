@@ -256,7 +256,6 @@ func runTraining(
 	trainingCtx shapes.MainContext,
 	trainSize int,
 	hyperParams trainingParams,
-	globalStep int,
 	crossEnthropy func(shapesCtx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
 	X shapes.Tensor,
 	Y shapes.Tensor,
@@ -268,13 +267,14 @@ func runTraining(
 
 	defer trainingCtx.Finish()
 
-	for range hyperParams.epochs {
+	for epochNum := range hyperParams.epochs {
 		perm := rand.Perm(trainSize)
 		epochLoss := 0.0
+		epochCtx := trainingCtx.Epoch(epochNum + 1)
 
 		for batchStart := 0; batchStart < trainSize; batchStart += hyperParams.batchSize {
 			batchEnd := min(batchStart+hyperParams.batchSize, trainSize)
-			stepCtx := trainingCtx.Epoch(globalStep + 1)
+			stepCtx := epochCtx.Step()
 
 			ix := makeBatchIndexTensor(stepCtx, perm[batchStart:batchEnd])
 			batch := X.Get(stepCtx, ix)
@@ -290,19 +290,16 @@ func runTraining(
 
 			lossScalar := loss.Get(stepCtx, 0).Item().(float32)
 			epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
-			globalStep++
-
-			stepCtx.SetLoss(0)
+			stepCtx.SetStepLoss(float64(lossScalar))
 
 			// fmt.Printf("Loss: %v\n", lossScalar)
 
-			if batchEnd == trainSize {
-				computeAndSetValidationMetrics(stepCtx, hyperParams, XVal, YVal, labels, model, crossEnthropy)
-				stepCtx.Finish(shapes.WithLoss(float32(epochLoss / float64(trainSize))))
-			} else {
-				stepCtx.Finish()
-			}
+			stepCtx.Finish()
 		}
+
+		computeAndSetValidationMetrics(epochCtx, hyperParams, XVal, YVal, labels, model, crossEnthropy)
+		epochCtx.SetLoss(epochLoss / float64(trainSize))
+		epochCtx.Finish()
 	}
 }
 
@@ -310,7 +307,7 @@ func Vgg_cifar10() {
 	shapeCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
 	defer shapeCtx.Finish()
 
-	train, validation, test, labels := getDataSet(shapeCtx)
+	train, _, test, labels := getDataSet(shapeCtx)
 	hyperParams := getTrainingParams()
 
 	fmt.Printf("There are %d training images\n", len(train))
@@ -367,9 +364,9 @@ func Vgg_cifar10() {
 
 	valImgs := make([]shapes.Tensor, 0)
 	valLabels := make([]shapes.Tensor, 0)
-	for i, pair := range validation {
+	for i, pair := range test {
 		if pair.imageData == nil {
-			err := fmt.Sprintf("Validation imagedata %d is nil", i)
+			err := fmt.Sprintf("Test imagedata %d is nil", i)
 			panic(err)
 		}
 		valImgs = append(valImgs, pair.imageData)
@@ -391,13 +388,12 @@ func Vgg_cifar10() {
 			linearBlock(shapeCtx, len(labels)),
 		},
 	}
-	globalStep := 0
-
 	fmt.Printf("Training start...\n")
-
 	stepsPerEpoch := (len(train) + hyperParams.batchSize - 1) / hyperParams.batchSize
+
 	trainingCtx := shapeCtx.Training(
-		hyperParams.epochs*stepsPerEpoch,
+		hyperParams.epochs,
+		shapes.WithNumSteps(stepsPerEpoch),
 		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
 
@@ -405,7 +401,6 @@ func Vgg_cifar10() {
 		trainingCtx,
 		len(train),
 		hyperParams,
-		globalStep,
 		crossEnthropy,
 		X, Y,
 		optimerStep,

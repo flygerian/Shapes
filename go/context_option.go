@@ -23,6 +23,15 @@ func WithTrainingStatsRenderer(renderer TrainingStatsRenderer) mainContextOption
 	}
 }
 
+func WithNumSteps(numSteps int) mainContextOption {
+	return func(mc *mainContext) {
+		if mc.training == nil || mc.training.stats == nil {
+			panic("Can only set num steps in training mode")
+		}
+		mc.training.stats.NumSteps = numSteps
+	}
+}
+
 type subContextOption func(*subContext)
 
 func panicIfNoGradients(tensors ...Tensor) {
@@ -84,10 +93,6 @@ func WithLoss(loss float32) subContextOption {
 			panic("Can only set loss in training mode")
 		}
 
-		sc.training.mu.Lock()
-		sc.training.stats.LossHistoryX = append(sc.training.stats.LossHistoryX, sc.training.stats.Epoch)
-		sc.training.stats.LossHistory = append(sc.training.stats.LossHistory, int(loss*1000))
-		sc.training.stats.Loss = float64(loss)
-		sc.training.mu.Unlock()
+		sc.SetLoss(float64(loss))
 	}
 }
