@@ -5,6 +5,9 @@
 
 void im2colNchwF32(const f32 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW,
                    u8 stride, dim_t outH, dim_t outW, f32 *colBuffer);
+
+void *im2colF32(Context *ctx, Tensor* t, dim_t kernelWidth, dim_t kernelHeight, u8 stride);
+
 void im2colNchwF64(const f64 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW,
                    u8 stride, dim_t outH, dim_t outW, f64 *colBuffer);
 

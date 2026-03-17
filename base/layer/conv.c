@@ -34,66 +34,7 @@ static int clampBlasThreadCount(int threadCount) {
   return threadCount > maxThreads ? maxThreads : threadCount;
 }
 
-static int parseConvThreadOverride(void) {
-  const char *override = getenv("SHAPES_CONV_THREADS");
-  if (override == NULL || *override == '\0') {
-    return 0;
-  }
-
-  char *end = NULL;
-  long parsed = strtol(override, &end, 10);
-  if (end == override || *end != '\0' || parsed < 1) {
-    return 0;
-  }
-
-  return clampBlasThreadCount((int)parsed);
-}
-
-static int chooseConvThreadCount(tensor_size_t patchSize, tensor_size_t positions,
-                                 size_t outChannels) {
-  int override = parseConvThreadOverride();
-  if (override > 0) {
-    return override;
-  }
-
-  size_t gemmWork = outChannels * patchSize * positions;
-  if (gemmWork < 262144 || positions < 1024) {
-    return 1;
-  }
-
-  // Conv still lowers to relatively skinny GEMMs here, so thread overhead can
-  // dominate if we scale too aggressively.
-  int desiredByChannels = (int)(outChannels / 64);
-  int desiredByPatch = (int)(patchSize / 256);
-  int desiredThreads = desiredByChannels < desiredByPatch ? desiredByChannels : desiredByPatch;
-  if (desiredThreads < 1) {
-    desiredThreads = 1;
-  }
-
-  return clampBlasThreadCount(desiredThreads);
-}
-
-static int beginConvThreadScope(tensor_size_t patchSize, tensor_size_t positions,
-                                size_t outChannels) {
-  int desiredThreads = chooseConvThreadCount(patchSize, positions, outChannels);
-  int previousThreads = openblas_get_num_threads();
-
-  if (desiredThreads < 1 || desiredThreads == previousThreads) {
-    return 0;
-  }
-
-  openblas_set_num_threads_local(desiredThreads);
-  return previousThreads;
-}
-
-static void endConvThreadScope(int previousThreads) {
-  if (previousThreads > 0) {
-    openblas_set_num_threads_local(previousThreads);
-  }
-}
-
-Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
-              Dim kernelShape, Tensor *t, Tensor *dest) {
+Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *t, Tensor *dest) {
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   void *colBuffer = NULL;
@@ -123,56 +64,59 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     return ERR_CONV2D_OUT_CHANNELS_ZERO;
   }
 
-  if (kernelShape.numOfDims < 2 || kernelShape.dims == NULL) {
-    return ERR_CONV2D_KERNEL_NOT_2D;
-  }
-
   if (kernels == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  dim_t kH = kernelShape.dims[0];
-  dim_t kW = kernelShape.dims[1];
-  dim_t batch = t->shape.dims[0];
-  dim_t c = t->shape.dims[1];
-  dim_t h = t->shape.dims[2];
-  dim_t w = t->shape.dims[3];
-
-  if (kH == 0 || kW == 0 || c != inChannels || h < kH || w < kW) {
-    return ERR_DIM_MISMATCH;
+  if (kernels->shape.numOfDims < 2 || kernels->shape.dims == NULL) {
+    return ERR_CONV2D_KERNEL_NOT_2D;
   }
-
-  dim_t outH = (h - kH) / stride + 1;
-  dim_t outW = (w - kW) / stride + 1;
 
   if (kernels->shape.numOfDims < 4) {
     return ERR_DIM_MISMATCH;
   }
-  if (kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels ||
-      kernels->shape.dims[2] != kH || kernels->shape.dims[3] != kW) {
-    return ERR_DIM_MISMATCH;
-  }
+
   if (kernels->dtype != t->dtype) {
     return ERR_DTYPE_MISMATCH;
   }
 
-  Result res = init4DTensor(ctx, dest, batch, outChannels, outH, outW, t->dtype);
+  dim_t kernelHeight = kernels->shape.dims[0];
+  dim_t kernelWidth = kernels->shape.dims[1];
+  dim_t batch = t->shape.dims[0];
+  dim_t numChannels = t->shape.dims[1];
+  dim_t height = t->shape.dims[2];
+  dim_t width = t->shape.dims[3];
+
+  if (kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight || width < kernelWidth) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  if (kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels ||
+      kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
+  dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
+
+  Result res = init4DTensor(ctx, dest, batch, outChannels, outputChannelHeight, outputChannelWidth, t->dtype);
   if (res != OK) {
     return res;
   }
+
   destInitialized = true;
 
   if (!inputContig->isContigous) {
     inputContig = copyToContiguous(ctx, inputContig);
   }
   if (!kernelContig->isContigous) {
-    kernelContig = copyToContiguous(ctx, kernelContig);
+    // If this happens something has gone terribly wrong
+    return ERR_CONV2D_KERNEL_NOT_CONTIGOUS;
   }
 
-  tensor_size_t patchSize = inChannels * kH * kW;
-  tensor_size_t positions = outH * outW;
+  tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
+  tensor_size_t positions = outputChannelHeight * outputChannelWidth;
   size_t elemSize = getBytesForDtype(t->dtype);
-  int previousBlasThreads = beginConvThreadScope(patchSize, positions, outChannels);
   colBuffer = allocate(ctx->memory, patchSize * positions * elemSize);
   if (colBuffer == NULL) {
     res = ERR_OUT_OF_MEMORY;
@@ -185,10 +129,10 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     f64 *outValues = dest->values;
 
     for (dim_t b = 0; b < batch; b++) {
-      f64 *inputBatch = input + b * inChannels * h * w;
+      f64 *inputBatch = input + (b * inChannels * height * width);
       f64 *outBatch = outValues + b * outChannels * positions;
 
-      im2colNchwF64(inputBatch, inChannels, h, w, kH, kW, stride, outH, outW, colBuffer);
+      im2colNchwF64(inputBatch, inChannels, height, width, kernelHeight, kernelWidth, stride, outputChannelHeight, outputChannelWidth, colBuffer);
       runGemm(t->dtype, CblasNoTrans, CblasNoTrans, (int)outChannels, (int)positions,
               (int)patchSize, kernelValues, (int)patchSize, colBuffer, (int)positions, false,
               outBatch, (int)positions);
@@ -199,10 +143,10 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     f32 *outValues = dest->values;
 
     for (dim_t b = 0; b < batch; b++) {
-      f32 *inputBatch = input + b * inChannels * h * w;
+      f32 *inputBatch = input + b * inChannels * height * width;
       f32 *outBatch = outValues + b * outChannels * positions;
 
-      im2colNchwF32(inputBatch, inChannels, h, w, kH, kW, stride, outH, outW, colBuffer);
+      im2colNchwF32(inputBatch, inChannels, height, width, kernelHeight, kernelWidth, stride, outputChannelHeight, outputChannelWidth, colBuffer);
       runGemm(t->dtype, CblasNoTrans, CblasNoTrans, (int)outChannels, (int)positions,
               (int)patchSize, kernelValues, (int)patchSize, colBuffer, (int)positions, false,
               outBatch, (int)positions);
@@ -212,7 +156,6 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   res = OK;
 
 cleanup:
-  endConvThreadScope(previousBlasThreads);
   if (colBuffer != NULL) {
     freeAlloc(ctx->memory, colBuffer);
   }
@@ -309,7 +252,6 @@ Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut,
   tensor_size_t patchSize = inChannels * kH * kW;
   tensor_size_t positions = outH * outW;
   size_t elemSize = getBytesForDtype(x->dtype);
-  int previousBlasThreads = beginConvThreadScope(patchSize, positions, outChannels);
 
   colBuffer = allocate(ctx->memory, patchSize * positions * elemSize);
   dColBuffer = allocate(ctx->memory, patchSize * positions * elemSize);
@@ -365,7 +307,6 @@ Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut,
   res = OK;
 
 cleanup:
-  endConvThreadScope(previousBlasThreads);
   if (colBuffer != NULL) {
     freeAlloc(ctx->memory, colBuffer);
   }
