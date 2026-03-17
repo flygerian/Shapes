@@ -113,8 +113,6 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 
 	outChannels := kernelShape[0]
 	inChannels := kernelShape[1]
-	kernelH := kernelShape[2]
-	kernelW := kernelShape[3]
 
 	var out *C.Tensor
 	result := C.wrap_Conv2d(
@@ -123,8 +121,6 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 		C.size_t(outChannels),
 		C.u8(stride),
 		kernels.(*tensor).cTensor,
-		C.dim_t(kernelH),
-		C.dim_t(kernelW),
 		x.(*tensor).cTensor,
 		&out,
 	)

@@ -31,6 +31,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/layer/im2col_v2.c.o -c /home/olabode/repos/Shapes/base/layer/im2col_v2.c",
+  "file": "/home/olabode/repos/Shapes/base/layer/im2col_v2.c",
+  "output": "CMakeFiles/shapes_core.dir/layer/im2col_v2.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -O3 -march=native -fopt-info-vec-missed -c -o CMakeFiles/shapes_core.dir/layer/conv.c.o -c /home/olabode/repos/Shapes/base/layer/conv.c",
   "file": "/home/olabode/repos/Shapes/base/layer/conv.c",
   "output": "CMakeFiles/shapes_core.dir/layer/conv.c.o"

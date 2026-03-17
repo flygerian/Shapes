@@ -37,139 +37,173 @@ static int clampBlasThreadCount(int threadCount) {
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *t, Tensor *dest) {
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
-  void *colBuffer = NULL;
-  bool destInitialized = false;
+  Tensor gemmOutput;
+  Tensor permutedOutput;
+  bool gemmOutputInitialized = false;
+  bool permutedOutputInitialized = false;
+
+  Result result;
 
   if (t == NULL || dest == NULL || ctx == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
+    result = ERR_NULL_TENSOR_PROVIDED;
+    goto cleanup;
   }
 
   if (stride == 0) {
-    return ERR_CONV2D_KERNEL_STRIDE_ZERO;
+    result = ERR_CONV2D_KERNEL_STRIDE_ZERO;
+    goto cleanup;
   }
 
   if (isNotFloatType(t)) {
-    return ERR_CONV2D_KERNEL_NOT_FLOAT;
+    result = ERR_CONV2D_KERNEL_NOT_FLOAT;
+    goto cleanup;
   }
 
   if (t->shape.numOfDims < 4) {
-    return ERR_CONV2D_INVALID_NUM_TENSOR_DIM;
+    result = ERR_CONV2D_INVALID_NUM_TENSOR_DIM;
+    goto cleanup;
   }
 
   if (inChannels < 1) {
-    return ERR_CONV2D_IN_CHANNELS_ZERO;
+    result = ERR_CONV2D_IN_CHANNELS_ZERO;
+    goto cleanup;
   }
 
   if (outChannels < 1) {
-    return ERR_CONV2D_OUT_CHANNELS_ZERO;
+    result = ERR_CONV2D_OUT_CHANNELS_ZERO;
+    goto cleanup;
   }
 
   if (kernels == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
+    result = ERR_NULL_TENSOR_PROVIDED;
+    goto cleanup;
   }
 
   if (kernels->shape.numOfDims < 2 || kernels->shape.dims == NULL) {
-    return ERR_CONV2D_KERNEL_NOT_2D;
+    result = ERR_CONV2D_KERNEL_NOT_2D;
+    goto cleanup;
   }
 
   if (kernels->shape.numOfDims < 4) {
-    return ERR_DIM_MISMATCH;
+    result = ERR_DIM_MISMATCH;
+    goto cleanup;
   }
 
   if (kernels->dtype != t->dtype) {
-    return ERR_DTYPE_MISMATCH;
+    result = ERR_DTYPE_MISMATCH;
+    goto cleanup;
   }
 
-  dim_t kernelHeight = kernels->shape.dims[0];
-  dim_t kernelWidth = kernels->shape.dims[1];
+  dim_t kernelHeight = kernels->shape.dims[2];
+  dim_t kernelWidth = kernels->shape.dims[3];
   dim_t batch = t->shape.dims[0];
   dim_t numChannels = t->shape.dims[1];
   dim_t height = t->shape.dims[2];
   dim_t width = t->shape.dims[3];
 
   if (kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight || width < kernelWidth) {
-    return ERR_DIM_MISMATCH;
+    result = ERR_DIM_MISMATCH;
+    goto cleanup;
   }
 
   if (kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels ||
       kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth) {
-    return ERR_DIM_MISMATCH;
+    result = ERR_DIM_MISMATCH;
+    goto cleanup;
   }
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
-  Result res = init4DTensor(ctx, dest, batch, outChannels, outputChannelHeight, outputChannelWidth, t->dtype);
-  if (res != OK) {
-    return res;
+  result = init4DTensor(ctx, &gemmOutput, batch, outputChannelHeight, outputChannelWidth,
+                        outChannels, t->dtype);
+  if (result != OK) {
+    goto cleanup;
   }
 
-  destInitialized = true;
-
+  gemmOutputInitialized = true;
   if (!inputContig->isContigous) {
     inputContig = copyToContiguous(ctx, inputContig);
   }
   if (!kernelContig->isContigous) {
     // If this happens something has gone terribly wrong
-    return ERR_CONV2D_KERNEL_NOT_CONTIGOUS;
+    result = ERR_CONV2D_KERNEL_NOT_CONTIGOUS;
+    goto cleanup;
   }
 
   tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
   tensor_size_t positions = outputChannelHeight * outputChannelWidth;
-  size_t elemSize = getBytesForDtype(t->dtype);
-  colBuffer = allocate(ctx->memory, patchSize * positions * elemSize);
-  if (colBuffer == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
+
 
   if (t->dtype == F64) {
-    f64 *input = inputContig->values;
     f64 *kernelValues = kernelContig->values;
-    f64 *outValues = dest->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      f64 *inputBatch = input + (b * inChannels * height * width);
-      f64 *outBatch = outValues + b * outChannels * positions;
+    f64 *colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
-      im2colNchwF64(inputBatch, inChannels, height, width, kernelHeight, kernelWidth, stride, outputChannelHeight, outputChannelWidth, colBuffer);
-      runGemm(t->dtype, CblasNoTrans, CblasNoTrans, (int)outChannels, (int)positions,
-              (int)patchSize, kernelValues, (int)patchSize, colBuffer, (int)positions, false,
-              outBatch, (int)positions);
-    }
+    runGemm(t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
+              (int)patchSize, colBuffer, (int)patchSize, kernelValues, (int)patchSize, false,
+              gemmOutput.values, (int)outChannels);
+    
+    freeAlloc(ctx->memory, colBuffer);
   } else {
-    f32 *input = inputContig->values;
     f32 *kernelValues = kernelContig->values;
-    f32 *outValues = dest->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      f32 *inputBatch = input + b * inChannels * height * width;
-      f32 *outBatch = outValues + b * outChannels * positions;
+    f32 *colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
-      im2colNchwF32(inputBatch, inChannels, height, width, kernelHeight, kernelWidth, stride, outputChannelHeight, outputChannelWidth, colBuffer);
-      runGemm(t->dtype, CblasNoTrans, CblasNoTrans, (int)outChannels, (int)positions,
-              (int)patchSize, kernelValues, (int)patchSize, colBuffer, (int)positions, false,
-              outBatch, (int)positions);
-    }
-  }
+    runGemm(t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
+              (int)patchSize, colBuffer, (int)patchSize, kernelValues, (int)patchSize, false,
+              gemmOutput.values, (int)outChannels);
 
-  res = OK;
-
-cleanup:
-  if (colBuffer != NULL) {
     freeAlloc(ctx->memory, colBuffer);
   }
+
+  dim_t *orderDims = allocate(ctx->memory, sizeof(dim_t) * 4);
+  orderDims[0] = 0;
+  orderDims[1] = 3;
+  orderDims[2] = 1;
+  orderDims[3] = 2;
+
+  Dim order = {.dims = orderDims, .numOfDims = 4, .multipliers = NULL};
+  result = Permute(ctx, &gemmOutput, &permutedOutput, order);
+  freeAlloc(ctx->memory, orderDims);
+  if (result != OK) {
+    goto cleanup;
+  }
+  permutedOutputInitialized = true;
+
+  Tensor *contiguousDest = copyToContiguous(ctx, &permutedOutput);
+  if (contiguousDest == NULL) {
+    result = ERR_OUT_OF_MEMORY;
+    goto cleanup;
+  }
+  *dest = *contiguousDest;
+  freeAlloc(ctx->memory, contiguousDest);
+
+  result = OK;
+
+cleanup:
   if (inputContig != t) {
     FreeTensor(ctx, inputContig);
   }
   if (kernelContig != kernels) {
     FreeTensor(ctx, kernelContig);
   }
-  if (res != OK && destInitialized) {
-    freeTensorBuffers(ctx, dest);
+  if (permutedOutputInitialized) {
+    if (permutedOutput.shape.dims != NULL) {
+      freeAlloc(ctx->memory, permutedOutput.shape.dims);
+    }
+    if (permutedOutput.shape.multipliers != NULL) {
+      freeAlloc(ctx->memory, permutedOutput.shape.multipliers);
+    }
+    if (permutedOutput.boundary != NULL) {
+      freeAlloc(ctx->memory, permutedOutput.boundary);
+    }
+  }
+  if (gemmOutputInitialized) {
+    freeTensorBuffers(ctx, &gemmOutput);
   }
 
-  return res;
+  return result;
 }
 
 Result Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,

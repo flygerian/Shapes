@@ -102,12 +102,18 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	meta := out.Metadata().(convMetadata)
 
 	dOutput := out.Grad() // (B, C, oH, oW)
+	outputShape := dOutput.Shape()
+	B := outputShape[0]
+	C := outputShape[1]
+	oh := outputShape[2]
+	ow := outputShape[3]
 
-	// Go from (B, C, oh, ow) -> (1, C, 1, 1)
+	// Collapse spatial dims first so bias reduction is stable even when Sum squeezes singleton dims.
 	dBias := dOutput.
-		Sum(backwardCtx, 3).
+		Reshape(backwardCtx, int(B), int(C), int(oh*ow)).
 		Sum(backwardCtx, 2).
-		Sum(backwardCtx, 0)
+		Sum(backwardCtx, 0).
+		Squeeze(backwardCtx)
 
 	bias.Grad().Accumulate(backwardCtx, dBias)
 

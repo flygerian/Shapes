@@ -399,12 +399,9 @@ Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor 
   return r;
 }
 
-Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
-                   dim_t kernelH, dim_t kernelW, Tensor *x, Tensor **out) {
+Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  dim_t kernelDims[2] = {kernelH, kernelW};
-  Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, kernel, x, dest);
+  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, x, dest);
   *out = dest;
   return r;
 }

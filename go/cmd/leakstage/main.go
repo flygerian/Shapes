@@ -13,7 +13,7 @@ import (
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/layer"
-	"github.com/flygerian/shapes/loss"
+	"github.com/flygerian/shapes/loss_fns"
 	"github.com/flygerian/shapes/optimizer"
 )
 
@@ -60,7 +60,7 @@ func main() {
 	embLayer := layer.Embedding(ctx, 27, 2)
 	l1 := layer.Dense(ctx, 6, 100)
 	l2 := layer.Dense(ctx, 100, 27)
-	crossEntropy := loss.CrossEntropy()
+	crossEntropy := loss_fns.CrossEntropy()
 	sgd := optimizer.SGD(ctx, 0.01)
 
 	forward := func(runCtx shapes.Context, xBatch shapes.Tensor, yBatch shapes.Tensor) shapes.Tensor {

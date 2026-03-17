@@ -32,10 +32,10 @@ type trainingParams struct {
 
 func getTrainingParams() trainingParams {
 	return trainingParams{
-		batchSize:    16,
+		batchSize:    8,
 		learningRate: 1e-5,
 		inputShape:   shapes.Shape{3, 32, 32},
-		epochs:       500,
+		epochs:       10,
 	}
 }
 
@@ -297,9 +297,9 @@ func runTraining(
 			stepCtx.Finish()
 		}
 
-		computeAndSetValidationMetrics(epochCtx, hyperParams, XVal, YVal, labels, model, crossEnthropy)
 		epochCtx.SetLoss(epochLoss / float64(trainSize))
 		epochCtx.Finish()
+		// computeAndSetValidationMetrics(epochCtx, hyperParams, XVal, YVal, labels, model, crossEnthropy)
 	}
 }
 
