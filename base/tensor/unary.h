@@ -1,5 +1,5 @@
 #ifndef shape_unary_h
-#define hapes_unary_h
+#define shapes_unary_h
 
 #include "common.h"
 #include "result/result.h"

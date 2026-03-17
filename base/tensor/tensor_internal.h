@@ -2,6 +2,7 @@
 #define shapes_tensor_internal_h
 
 #include "../shapes.h"
+#include "common.h"
 #include "value.h"
 #include <stddef.h>
 
@@ -37,7 +38,7 @@ bool areBroadcastable(Tensor *a, Tensor *b);
 TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
 
 bool isInvalidTensor(Tensor *t);
-u64 calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers);
+tensor_size_t calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers);
 Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);
