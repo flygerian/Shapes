@@ -39,8 +39,9 @@ func sliceBackward(ctx Context, node ComputationGraphNode) {
 	ranges := node.Metadata().([]Range)
 	cRanges := make([]C.Range, len(ranges))
 	for i, r := range ranges {
-		cRanges[i] = C.Range{start: C.u64(r[0]), end: C.u64(r[1])}
+		cRanges[i] = C.Range{start: C.size_t(r[0]), end: C.size_t(r[1])}
 	}
+
 	res := C.wrap_SliceAccumulate(
 		(*C.Context)(noGraphCtx.UnsafePtr()),
 		x.Grad().(*tensor).cTensor,

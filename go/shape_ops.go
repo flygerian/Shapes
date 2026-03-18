@@ -39,7 +39,7 @@ func (t *tensor) Slice(ctx Context, ranges ...Range) Tensor {
 		if len(r) != 2 {
 			panic(fmt.Sprintf("shapes: slice range %d must have 2 elements [start, end], got %d", i, len(r)))
 		}
-		cRanges[i] = C.Range{start: C.u64(r[0]), end: C.u64(r[1])}
+		cRanges[i] = C.Range{start: C.size_t(r[0]), end: C.size_t(r[1])}
 	}
 
 	cCtx := (*C.Context)(ctx.UnsafePtr())

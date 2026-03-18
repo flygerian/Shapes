@@ -1,4 +1,5 @@
 # Shapes Multi-language Tensor Library
+#
 # Root Makefile for building all components
 
 .PHONY: all help init build build-openblas build-base build-go run debug test test-go clean format lint check-format
@@ -73,7 +74,7 @@ build: build-base build-go
 
 build-base: $(OPENBLAS_LIB)
 	@echo "==> Configuring C library..."
-	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug
+	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=OFF
 	@echo "==> Building C library..."
 	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> C build complete!"
