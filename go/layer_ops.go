@@ -115,6 +115,8 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 	inChannels := kernelShape[1]
 
 	var out *C.Tensor
+	var colBuffer *C.void
+
 	result := C.wrap_Conv2d(
 		(*C.Context)(ctx.UnsafePtr()),
 		C.size_t(inChannels),
@@ -123,6 +125,7 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 		kernels.(*tensor).cTensor,
 		x.(*tensor).cTensor,
 		&out,
+		colBuffer,
 	)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))

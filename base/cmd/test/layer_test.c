@@ -1,6 +1,7 @@
 #include "common.h"
 #include "test.h"
 #include "../../shapes.h"
+#include "../../layer/im2col.h"
 #include "cblas.h"
 #include <math.h>
 #include <stdlib.h>
@@ -282,7 +283,7 @@ static void test_conv2d_rejects_non_float_input(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 1, 1, NULL, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, NULL, &t, &out, NULL);
 
   ASSERT_EQ(r, ERR_CONV2D_KERNEL_NOT_FLOAT, "Conv2d should reject non-float inputs");
   freeMemory(mem);
@@ -296,7 +297,7 @@ static void test_conv2d_rejects_tensor_with_too_few_dims(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 1, 1, NULL, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, NULL, &t, &out, NULL);
 
   ASSERT_EQ(r, ERR_CONV2D_INVALID_NUM_TENSOR_DIM,
             "Conv2d should reject tensors with fewer than 3 dims");
@@ -311,7 +312,7 @@ static void test_conv2d_rejects_zero_in_channels(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 0, 1, 1, NULL, &t, &out);
+  Result r = Conv2d(&ctx, 0, 1, 1, NULL, &t, &out, NULL);
 
   ASSERT_EQ(r, ERR_CONV2D_IN_CHANNELS_ZERO, "Conv2d should reject zero input channels");
   freeMemory(mem);
@@ -325,7 +326,7 @@ static void test_conv2d_rejects_zero_out_channels(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 0, 1, NULL, &t, &out);
+  Result r = Conv2d(&ctx, 1, 0, 1, NULL, &t, &out, NULL);
 
   ASSERT_EQ(r, ERR_CONV2D_OUT_CHANNELS_ZERO, "Conv2d should reject zero output channels");
   freeMemory(mem);
@@ -338,7 +339,7 @@ static void test_conv2d_rejects_non_2d_kernel_shape(void) {
   Tensor out;
 
   Tensor kernels = create2DTensor(&ctx, 1, 1, F32);
-  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "Conv2d should reject kernels without 4 dims");
   freeMemory(mem);
@@ -364,7 +365,7 @@ static void test_conv2d_forward_f32_single_channel(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d single-channel forward should succeed");
   ASSERT_EQ(out.shape.numOfDims, 4, "Conv2d output should be 4D");
@@ -405,7 +406,7 @@ static void test_conv2d_forward_f32_multi_channel(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 2, 1, 1, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 2, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d multi-channel forward should succeed");
   ASSERT_EQ(out.shape.dims[2], 2, "Multi-channel output height mismatch");
@@ -440,7 +441,7 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d batched forward should succeed");
   ASSERT_EQ(out.shape.dims[0], 2, "Batched output batch mismatch");
@@ -487,7 +488,7 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d with a local thread override should succeed");
   ASSERT_EQ(openblas_get_num_threads(), previousThreads,
@@ -521,7 +522,7 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 2, 2, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 1, 2, 2, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d stride-two forward should succeed");
   ASSERT_EQ(out.shape.dims[1], 2, "Stride-two output channel mismatch");
@@ -557,7 +558,7 @@ static void test_conv2d_forward_f64_single_channel(void) {
 
   dim_t kernelDimsArr[2] = {2, 2};
   Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
-  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out);
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d f64 forward should succeed");
 
@@ -595,7 +596,8 @@ static void test_conv2d_backward_f32_single_channel(void) {
     gVals[i] = 1.0f;
   }
 
-  Result r = Conv2dBackward(&ctx, &x, &kernels, &gradOut, 1, &dX, &dKernels);
+  void *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
+  Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 1);
 
   ASSERT_EQ(r, OK, "Conv2dBackward should succeed");
   ASSERT_EQ(dX.shape.numOfDims, 4, "Conv2dBackward dX should be 4D");
@@ -613,6 +615,7 @@ static void test_conv2d_backward_f32_single_channel(void) {
     ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "Conv2dBackward dKernels mismatch");
   }
 
+  freeAlloc(ctx.memory, colBuffer);
   freeMemory(mem);
 }
 
@@ -642,7 +645,8 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   gVals[2] = 3.0f;
   gVals[3] = 4.0f;
 
-  Result r = Conv2dBackward(&ctx, &x, &kernels, &gradOut, 2, &dX, &dKernels);
+  void *colBuffer = im2colF32(&ctx, &x, 2, 2, 2);
+  Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 2);
   ASSERT_EQ(r, OK, "Conv2dBackward stride-two should succeed");
 
   f32 *dxVals = dX.values;
@@ -659,6 +663,7 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
            "Conv2dBackward stride-two dKernels mismatch");
   }
 
+  freeAlloc(ctx.memory, colBuffer);
   freeMemory(mem);
 }
 
@@ -693,7 +698,8 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
     gVals[i] = grads[i];
   }
 
-  Result r = Conv2dBackward(&ctx, &x, &kernels, &gradOut, 1, &dX, &dKernels);
+  void *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
+  Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 1);
   ASSERT_EQ(r, OK, "Conv2dBackward multi-batch multi-out should succeed");
 
   f32 *dxVals = dX.values;
@@ -710,6 +716,7 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
            "Conv2dBackward multi-batch dKernels mismatch");
   }
 
+  freeAlloc(ctx.memory, colBuffer);
   freeMemory(mem);
 }
 

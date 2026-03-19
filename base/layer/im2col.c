@@ -28,14 +28,16 @@ void im2colNchwF32(const f32 *input, dim_t inChannels, dim_t h, dim_t w, dim_t k
 }
 
 // Same packing as im2colNchwF32, but for F64 inputs.
-void im2colNchwF64(const f64 *input, dim_t inChannels, dim_t inputHeight, dim_t inputWidth, dim_t KernelHeight, dim_t kernelWidth,
-                   u8 stride, dim_t outputHeight, dim_t outputWidth, f64 *colBuffer) {
+void im2colNchwF64(const f64 *input, dim_t inChannels, dim_t inputHeight, dim_t inputWidth,
+                   dim_t KernelHeight, dim_t kernelWidth, u8 stride, dim_t outputHeight,
+                   dim_t outputWidth, f64 *colBuffer) {
   dim_t positions = outputHeight * outputWidth;
 
   for (dim_t inputChannelIdx = 0; inputChannelIdx < inChannels; inputChannelIdx++) {
     for (dim_t kernelYPosition = 0; kernelYPosition < KernelHeight; kernelYPosition++) {
       for (dim_t kernelXPosition = 0; kernelXPosition < kernelWidth; kernelXPosition++) {
-        dim_t patchIdx = (inputChannelIdx * KernelHeight + kernelYPosition) * kernelWidth + kernelXPosition;
+        dim_t patchIdx =
+            (inputChannelIdx * KernelHeight + kernelYPosition) * kernelWidth + kernelXPosition;
         dim_t colBase = patchIdx * positions;
         dim_t posIdx = 0;
 
@@ -43,7 +45,8 @@ void im2colNchwF64(const f64 *input, dim_t inChannels, dim_t inputHeight, dim_t 
           dim_t inY = oh * stride + kernelYPosition;
           for (dim_t ow = 0; ow < outputWidth; ow++) {
             dim_t inX = ow * stride + kernelXPosition;
-            colBuffer[colBase + posIdx] = input[(inputChannelIdx * inputHeight + inY) * inputWidth + inX];
+            colBuffer[colBase + posIdx] =
+                input[(inputChannelIdx * inputHeight + inY) * inputWidth + inX];
             posIdx++;
           }
         }

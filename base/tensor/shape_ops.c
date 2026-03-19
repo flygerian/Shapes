@@ -552,9 +552,10 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
 
     // Copy target tensor slice for this row/group
     void *destLoc = dest->values + (destSliceOffset * getBytesForDtype(workingTarget->dtype));
-    void *srcLoc = workingTarget->values + (srcSliceOffset * getBytesForDtype(workingTarget->dtype));
-    memcpy(destLoc, srcLoc, (currDimSize * numElementsAfterTargetDim) *
-                                getBytesForDtype(workingTarget->dtype));
+    void *srcLoc =
+        workingTarget->values + (srcSliceOffset * getBytesForDtype(workingTarget->dtype));
+    memcpy(destLoc, srcLoc,
+           (currDimSize * numElementsAfterTargetDim) * getBytesForDtype(workingTarget->dtype));
 
     // Copy each additional tensor's slice
     dim_t dimOffset = currDimSize;
@@ -565,9 +566,8 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
       void *currDestLoc =
           dest->values + (((destSliceOffset + (dimOffset * numElementsAfterTargetDim))) *
                           getBytesForDtype(workingTarget->dtype));
-      void *currSrcLoc =
-          curr->values + (inb * currTargetDimSize * numElementsAfterTargetDim) *
-                             getBytesForDtype(workingTarget->dtype);
+      void *currSrcLoc = curr->values + (inb * currTargetDimSize * numElementsAfterTargetDim) *
+                                            getBytesForDtype(workingTarget->dtype);
       memcpy(currDestLoc, currSrcLoc,
              (currTargetDimSize * numElementsAfterTargetDim) *
                  getBytesForDtype(workingTarget->dtype));

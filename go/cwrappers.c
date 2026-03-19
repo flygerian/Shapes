@@ -1,4 +1,5 @@
 #include "cwrappers.h"
+#include "layer/im2col.h"
 #include <string.h>
 
 Context *newContext(bool grad, size_t arenaSize) {
@@ -399,19 +400,19 @@ Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor 
   return r;
 }
 
-Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out) {
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, x, dest);
+Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out, void* colBuffer) {
+  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, x, dest, colBuffer);
   *out = dest;
   return r;
 }
 
 Result wrap_Conv2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
-                           Tensor **dX, Tensor **dKernels) {
-  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
-  Tensor *dKernelsLocal = allocate(ctx->memory, sizeof(Tensor));
+                           Tensor **dX, Tensor **dKernels, void* colBuffer) {
 
-  Result r = Conv2dBackward(ctx, x, kernels, gradOut, stride, dx, dKernelsLocal);
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+
+  Result r = Conv2dBackward(ctx, x, dx, kernels, dKernelsLocal, gradOut, colBuffer, stride);
+  freeAlloc(ctx->memory, colBuffer);
   *dX = dx;
   *dKernels = dKernelsLocal;
   return r;
