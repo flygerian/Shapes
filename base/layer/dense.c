@@ -10,7 +10,7 @@ static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor 
                                              Dtype dtype) {
   u8 numDims = x->shape.numOfDims;
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * numDims);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
 
   for (u8 i = 0; i < numDims; i++) {
     dims[i] = x->shape.dims[i];

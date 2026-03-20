@@ -32,7 +32,7 @@ char *GetItem(Context *ctx, Tensor *t) {
 }
 
 
-tensor_size_t calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
+tensor_size_t calculateNumValuesAndMultipliers(Dim shape, multiplier_t *multipliers) {
   u64 numberOfValues = 1;
 
   for (int x = shape.numOfDims - 1; x >= 0; x--) {
@@ -48,7 +48,7 @@ tensor_size_t calculateNumValuesAndMultipliers(Dim shape, u8 *multipliers) {
 Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
   u8 numDims = src->shape.numOfDims;
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * numDims);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
 
   for (u8 i = 0; i < numDims; i++) {
     dims[i] = src->shape.dims[i];
@@ -70,7 +70,7 @@ Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
 
 Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8));
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
   dims[0] = size;
   multipliers[0] = 1;
 
@@ -87,7 +87,7 @@ Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
 Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
                     Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 4);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 4);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 4);
 
   dims[0] = d0;
   dims[1] = d1;
@@ -379,7 +379,7 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
 
 Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 2);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 2);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 2);
 
   dims[0] = rows;
   dims[1] = cols;

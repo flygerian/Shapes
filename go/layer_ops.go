@@ -105,7 +105,7 @@ func BatchNormBackward(ctx Context, x2d Tensor, grad2d Tensor, gamma Tensor, eps
 		track(ctx, &tensor{cTensor: dBeta})
 }
 
-func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
+func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) (Tensor, Tensor) {
 	kernelShape := kernels.Shape()
 	if len(kernelShape) < 4 {
 		panic("shapes: Conv2d kernels must be 4D [outChannels,inChannels,kH,kW]")
@@ -115,7 +115,7 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 	inChannels := kernelShape[1]
 
 	var out *C.Tensor
-	var colBuffer *C.void
+	var colBuffer *C.Tensor
 
 	result := C.wrap_Conv2d(
 		(*C.Context)(ctx.UnsafePtr()),
@@ -125,34 +125,31 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {
 		kernels.(*tensor).cTensor,
 		x.(*tensor).cTensor,
 		&out,
-		colBuffer,
+		&colBuffer,
 	)
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
 
-	return track(ctx, &tensor{cTensor: out})
+	return track(ctx, &tensor{cTensor: out}), track(ctx, &tensor{cTensor: colBuffer})
 }
 
-func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, gradOut Tensor, stride uint8) (Tensor, Tensor) {
-	var dX *C.Tensor
-	var dKernels *C.Tensor
+func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, outputGrad Tensor, colBuffer Tensor, stride uint8) {
 
 	result := C.wrap_Conv2dBackward(
 		(*C.Context)(ctx.UnsafePtr()),
 		x.(*tensor).cTensor,
+		x.Grad().(*tensor).cTensor,
 		kernels.(*tensor).cTensor,
-		gradOut.(*tensor).cTensor,
+		kernels.Grad().(*tensor).cTensor,
+		outputGrad.(*tensor).cTensor,
+		colBuffer.(*tensor).cTensor,
 		C.u8(stride),
-		&dX,
-		&dKernels,
 	)
+
 	if result != C.OK {
 		panic("shapes: " + resultString(uint32(result)))
 	}
-
-	return track(ctx, &tensor{cTensor: dX}),
-		track(ctx, &tensor{cTensor: dKernels})
 }
 
 func ConvTranspose2d(ctx Context, x Tensor, kernels Tensor, stride uint8) Tensor {

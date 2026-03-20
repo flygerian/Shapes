@@ -26,11 +26,11 @@ typedef double_t f64;
 
 typedef size_t tensor_size_t;
 typedef size_t dim_t;
-typedef u8 multiplier_t;
+typedef size_t multiplier_t;
 
 typedef struct {
   dim_t *dims;
-  u8 *multipliers;
+  multiplier_t *multipliers;
   u8 numOfDims;
 } Dim;
 

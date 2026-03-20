@@ -5,10 +5,11 @@
 #include "cblas.h"
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8));
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
   dims[0] = size;
   multipliers[0] = 1;
 
@@ -24,7 +25,7 @@ static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
 
 static Tensor create2DTensor(Context *ctx, dim_t rows, dim_t cols, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 2);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 2);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 2);
   dims[0] = rows;
   dims[1] = cols;
   multipliers[0] = cols;
@@ -43,7 +44,7 @@ static Tensor create2DTensor(Context *ctx, dim_t rows, dim_t cols, Dtype dtype) 
 
 static Tensor create3DTensor(Context *ctx, dim_t d0, dim_t d1, dim_t d2, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 3);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 3);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 3);
   dims[0] = d0;
   dims[1] = d1;
   dims[2] = d2;
@@ -65,7 +66,7 @@ static Tensor create3DTensor(Context *ctx, dim_t d0, dim_t d1, dim_t d2, Dtype d
 static Tensor create4DTensor(Context *ctx, dim_t batch, dim_t channels, dim_t height, dim_t width,
                              Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 4);
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * 4);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 4);
   dims[0] = batch;
   dims[1] = channels;
   dims[2] = height;
@@ -364,7 +365,6 @@ static void test_conv2d_forward_f32_single_channel(void) {
   k[3] = 1.0f;
 
   dim_t kernelDimsArr[2] = {2, 2};
-  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d single-channel forward should succeed");
@@ -374,6 +374,49 @@ static void test_conv2d_forward_f32_single_channel(void) {
   ASSERT_EQ(out.shape.dims[2], 2, "Output height mismatch");
   ASSERT_EQ(out.shape.dims[3], 2, "Output width mismatch");
   ASSERT(out.isContigous, "Conv2d output should be contiguous");
+
+  f32 *o = out.values;
+  ASSERT(fabsf(o[0] - 6.0f) < 1e-5f, "Conv out[0,0,0,0] mismatch");
+  ASSERT(fabsf(o[1] - 8.0f) < 1e-5f, "Conv out[0,0,0,1] mismatch");
+  ASSERT(fabsf(o[2] - 12.0f) < 1e-5f, "Conv out[0,0,1,0] mismatch");
+  ASSERT(fabsf(o[3] - 14.0f) < 1e-5f, "Conv out[0,0,1,1] mismatch");
+
+  freeMemory(mem);
+}
+
+static void test_conv2d_returns_col_buffer_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor out;
+  Tensor colBuffer;
+
+  f32 *x = t.values;
+  for (int i = 0; i < 9; i++) {
+    x[i] = (f32)(i + 1);
+  }
+
+  f32 *k = kernels.values;
+  k[0] = 1.0f;
+  k[1] = 0.0f;
+  k[2] = 0.0f;
+  k[3] = 1.0f;
+
+  Result r = Conv2d(&ctx, 1, 1, 1, &kernels, &t, &out, &colBuffer);
+
+  ASSERT_EQ(r, OK, "Conv2d should return a col buffer when requested");
+  ASSERT_EQ(colBuffer.shape.numOfDims, 2, "Returned col buffer should be 2D");
+  ASSERT_EQ(colBuffer.shape.dims[0], 4, "Returned col buffer row count mismatch");
+  ASSERT_EQ(colBuffer.shape.dims[1], 4, "Returned col buffer column count mismatch");
+  ASSERT(colBuffer.isContigous, "Returned col buffer should be contiguous");
+
+  f32 *col = colBuffer.values;
+  f32 wantCol[16] = {1.0f, 2.0f, 4.0f, 5.0f, 2.0f, 3.0f, 5.0f, 6.0f,
+                     4.0f, 5.0f, 7.0f, 8.0f, 5.0f, 6.0f, 8.0f, 9.0f};
+  for (int i = 0; i < 16; i++) {
+    ASSERT(fabsf(col[i] - wantCol[i]) < 1e-5f, "Returned col buffer contents mismatch");
+  }
 
   f32 *o = out.values;
   ASSERT(fabsf(o[0] - 6.0f) < 1e-5f, "Conv out[0,0,0,0] mismatch");
@@ -616,6 +659,52 @@ static void test_conv2d_backward_f32_single_channel(void) {
   }
 
   freeAlloc(ctx.memory, colBuffer);
+  freeMemory(mem);
+}
+
+static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+  Tensor x = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor dX;
+  Tensor dKernels;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 9; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 0.0f;
+  kVals[2] = 0.0f;
+  kVals[3] = 1.0f;
+
+  f32 *gVals = gradOut.values;
+  for (int i = 0; i < 4; i++) {
+    gVals[i] = 1.0f;
+  }
+
+  Tensor *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
+  memset(colBuffer->values, 0, colBuffer->size * sizeof(f32));
+
+  Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 1);
+
+  ASSERT_EQ(r, OK, "Conv2dBackward should accept an explicitly provided col buffer");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[9] = {1.0f, 1.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 1.0f, 1.0f};
+  for (int i = 0; i < 9; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward dX mismatch with provided col buffer");
+  }
+
+  f32 *dKernelVals = dKernels.values;
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(dKernelVals[i]) < 1e-5f, "Conv2dBackward should use the provided col buffer for dKernels");
+  }
+
   freeMemory(mem);
 }
 
@@ -927,12 +1016,14 @@ void run_layer_tests(void) {
   test_conv2d_rejects_zero_out_channels();
   test_conv2d_rejects_non_2d_kernel_shape();
   test_conv2d_forward_f32_single_channel();
+  test_conv2d_returns_col_buffer_f32();
   test_conv2d_forward_f32_multi_channel();
   test_conv2d_forward_f32_with_batch_dimension();
   test_conv2d_restores_openblas_threads_after_local_override();
   test_conv2d_forward_f32_stride_two_multi_out_channel();
   test_conv2d_forward_f64_single_channel();
   test_conv2d_backward_f32_single_channel();
+  test_conv2d_backward_uses_provided_col_buffer_f32();
   test_conv2d_backward_f32_stride_two_single_channel();
   test_conv2d_backward_f32_multi_batch_multi_out_channel();
   test_conv_transpose2d_forward_f32_single_channel();

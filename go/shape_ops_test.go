@@ -264,6 +264,22 @@ func TestSqueeze(t *testing.T) {
 	}
 }
 
+func TestSqueezeScalarPreservesScalarShape(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	a := FromFloat32(ctx, Shape{}, []float32{9})
+	squeezed := a.Squeeze(ctx)
+
+	if got := squeezed.Shape(); len(got) != 0 {
+		t.Fatalf("Squeeze scalar shape = %v, want []", got)
+	}
+
+	if got := squeezed.Item().(float32); got != 9 {
+		t.Fatalf("Squeeze scalar item = %v, want 9", got)
+	}
+}
+
 func TestUnSqueeze(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()

@@ -53,3 +53,25 @@ func TestConvBackwardAccumulatesInputKernelAndBiasGrads(t *testing.T) {
 		t.Fatalf("biasGrad=%v want [4]", gotDB)
 	}
 }
+
+func TestConvBackwardLargeChannelBiasGradDoesNotCrash(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	layer := Conv2d(ctx, 256, 512, shapes.Shape{2, 2}, 1).(*conv)
+	x := shapes.Float(ctx, shapes.Shape{1, 256, 2, 2}, 1)
+
+	out := layer.Forward(ctx, x)
+	out.Backward(ctx)
+
+	gotDB := layer.bias.Grad().(shapes.Tensor).Values().([]float32)
+	if len(gotDB) != 512 {
+		t.Fatalf("biasGrad len=%d want 512", len(gotDB))
+	}
+
+	for i, v := range gotDB {
+		if math.Abs(float64(v-1.0)) > 1e-5 {
+			t.Fatalf("biasGrad[%d]=%f want 1.0", i, v)
+		}
+	}
+}

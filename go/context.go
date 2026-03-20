@@ -495,7 +495,6 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	if mainCtx.training != nil && mainCtx.training.inEpoch.Load() && sc.subContextType == SubContextTypeEpoch {
 		mainCtx.training.inEpoch.Store(false)
 	}
-
 	// Signal training completion exactly once at the end of the final epoch context.
 	// Closing the channel broadcasts completion to all listeners without risking a blocked send.
 	if sc.sweepAfterFinish && sc.training != nil && sc.training.stats != nil &&

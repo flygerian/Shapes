@@ -134,6 +134,19 @@ static void test_multipliers_4d_tensor(void) {
   freeMemory(tt.mem);
 }
 
+// For shape [1, 512, 1], multipliers should preserve the full 512 stride.
+static void test_multipliers_support_large_strides(void) {
+  dim_t dims[] = {1, 512, 1};
+  TestTensor tt = createZerosTensor(dims, 3);
+
+  ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
+  ASSERT_EQ(tt.tensor.shape.multipliers[0], 512, "3D: multiplier[0] should preserve large stride");
+  ASSERT_EQ(tt.tensor.shape.multipliers[1], 1, "3D: multiplier[1] should be 1");
+  ASSERT_EQ(tt.tensor.shape.multipliers[2], 1, "3D: multiplier[2] should be 1");
+
+  freeMemory(tt.mem);
+}
+
 // AssignValue tests
 static void test_assign_value_success(void) {
   dim_t dims[] = {3, 4};
@@ -1093,8 +1106,8 @@ static void test_transpose_swaps_dims_and_multipliers(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  u8 orig_mult_0 = tt.tensor.shape.multipliers[0];
-  u8 orig_mult_1 = tt.tensor.shape.multipliers[1];
+  multiplier_t orig_mult_0 = tt.tensor.shape.multipliers[0];
+  multiplier_t orig_mult_1 = tt.tensor.shape.multipliers[1];
 
   Tensor transposed;
   Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
@@ -2454,6 +2467,25 @@ static void test_squeeze_all_ones(void) {
   ASSERT_EQ(squeezed.shape.numOfDims, 1, "squeezed should have 1 dim");
   ASSERT_EQ(squeezed.shape.dims[0], 1, "dim 0 should be 1");
   ASSERT_EQ(squeezed.size, 1, "size should be 1");
+
+  freeMemory(mem);
+}
+
+static void test_squeeze_scalar_preserves_zero_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *scalar = T_Float(&ctx, (Dim){.dims = NULL, .numOfDims = 0}, 9.0f);
+
+  Tensor squeezed;
+  Result r = Squeeze(&ctx, scalar, &squeezed);
+  ASSERT_EQ(r, OK, "Squeeze scalar should return OK");
+
+  ASSERT_EQ(squeezed.shape.numOfDims, 0, "scalar squeeze should remain 0-D");
+  ASSERT_EQ(squeezed.shape.dims, NULL, "scalar squeeze dims should remain NULL");
+  ASSERT_EQ(squeezed.shape.multipliers, NULL, "scalar squeeze multipliers should remain NULL");
+  ASSERT_EQ(squeezed.size, 1, "scalar squeeze size should remain 1");
+  ASSERT_EQ(squeezed.values, scalar->values, "scalar squeeze should share data");
 
   freeMemory(mem);
 }
@@ -4902,6 +4934,7 @@ void run_tensor_tests(void) {
   test_multipliers_2d_tensor();
   test_multipliers_3d_tensor();
   test_multipliers_4d_tensor();
+  test_multipliers_support_large_strides();
   test_assign_value_success();
   test_assign_value_dtype_mismatch();
   test_assign_value_dim_mismatch();
@@ -4999,6 +5032,7 @@ void run_tensor_tests(void) {
   test_squeeze_middle_dim();
   test_squeeze_no_single_dims();
   test_squeeze_all_ones();
+  test_squeeze_scalar_preserves_zero_dims();
   test_squeeze_shares_data();
   test_squeeze_dim_specific();
   test_squeeze_after_sum();

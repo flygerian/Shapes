@@ -29,7 +29,7 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
   }
 
   tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
-  tShape.multipliers = allocate(ctx->memory, sizeof(u8) * tShape.numOfDims);
+  tShape.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * tShape.numOfDims);
 
   memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
   tensor_size_t size = calculateNumValuesAndMultipliers(tShape, tShape.multipliers);

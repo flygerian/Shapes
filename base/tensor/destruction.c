@@ -47,7 +47,7 @@ Result FreeTensor(Context *ctx, Tensor *t) {
 }
 
 Result freeTensorBuffers(Context *ctx, Tensor *t) {
-  if (t->values)
+  if (!t->isView && t->values)
     freeAlloc(ctx->memory, t->values);
   if (t->shape.dims)
     freeAlloc(ctx->memory, t->shape.dims);

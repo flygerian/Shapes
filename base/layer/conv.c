@@ -10,6 +10,7 @@
 #include <sched.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -40,7 +41,7 @@ static int clampBlasThreadCount(int threadCount) {
 }
 
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
-              Tensor *t, Tensor *dest, Tensor *colBuffer) {
+              Tensor *t, Tensor *dest, Tensor *colBufferDest) {
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   Tensor gemmOutput;
@@ -141,63 +142,36 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
   tensor_size_t positions = outputChannelHeight * outputChannelWidth;
 
-  void *colBufferValues;
+  Tensor *colBuffer;
   tensor_size_t colBufferSize;
 
   if (t->dtype == F64) {
     f64 *kernelValues = kernelContig->values;
 
-    colBufferValues = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
-    colBufferSize = (tensor_s
+    colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
     runGemm(t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
-            (int)patchSize, colBufferValues, (int)patchSize, kernelValues, (int)patchSize, false,
+            (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
   } else {
     f32 *kernelValues = kernelContig->values;
 
-    colBufferValues = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
+    colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
     runGemm(t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
-            (int)patchSize, colBufferValues, (int)patchSize, kernelValues, (int)patchSize, false,
+            (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
   }
 
-
-
-  *colBuffer = (Tensor) {
-    .size = batch * positions * patchSize,
-    .boundary = NULL,
-    .dtype = inputContig->dtype,
-    .isView = false,
-    .shape = {},
-    .values = colBufferValues
-  }
-
-  // Populate colBufferTensor with im2col result
-  if (colBufferTensor != NULL) {
-    colBufferTensor->values = colBufferValues;
-    colBufferTensor->size = colBufferSize / getBytesForDtype(t->dtype);
-    colBufferTensor->dtype = t->dtype;
-    colBufferTensor->isView = false;
-    colBufferTensor->isContigous = true;
-    colBufferTensor->boundary = NULL;
-    // Shape: (batch * positions, patchSize)
-    dim_t *cbDims = allocate(ctx->memory, sizeof(dim_t) * 2);
-    u8 *cbMults = allocate(ctx->memory, sizeof(u8) * 2);
-    cbDims[0] = batch * positions;
-    cbDims[1] = patchSize;
-    cbMults[0] = patchSize;
-    cbMults[1] = 1;
-    colBufferTensor->shape.dims = cbDims;
-    colBufferTensor->shape.numOfDims = 2;
-    colBufferTensor->shape.multipliers = cbMults;
+  if (colBufferDest != NULL) {
+    *colBufferDest = *colBuffer;
+    freeAlloc(ctx->memory, colBuffer);
   }
 
   dim_t orderDims[4] = {0, 3, 1, 2};
   Dim order = {.dims = orderDims, .numOfDims = 4, .multipliers = NULL};
   result = Permute(ctx, &gemmOutput, &permutedOutput, order);
-  freeAlloc(ctx->memory, orderDims);
+
   if (result != OK) {
     goto cleanup;
   }
@@ -239,7 +213,7 @@ cleanup:
 }
 
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBufferTensor, u8 stride) {
+                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
@@ -252,7 +226,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  if (colBufferTensor == NULL) {
+  if (colBuffer == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
@@ -294,20 +268,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     return ERR_DIM_MISMATCH;
   }
 
-  Result res = initTensorLike(ctx, dInput, input, input->dtype);
-  if (res != OK) {
-    return res;
-  }
-  dInputInitialized = true;
-  res = initTensorLike(ctx, dKernels, kernels, kernels->dtype);
-  if (res != OK) {
-    freeTensorBuffers(ctx, dInput);
-    return res;
-  }
-  dKernelsInitialized = true;
-
-  memset(dInput->values, 0, dInput->size * getBytesForDtype(dInput->dtype));
-  memset(dKernels->values, 0, dKernels->size * getBytesForDtype(dKernels->dtype));
+  Result res;
 
   if (!inputContig->isContigous) {
     inputContig = copyToContiguous(ctx, inputContig);
@@ -315,7 +276,6 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   if (!kernelContig->isContigous) {
     kernelContig = copyToContiguous(ctx, kernelContig);
   }
-
 
   // Expecting outputgrad to be (NCHW) so we need to permute it and copy to contigous
   // to make it NHWC because it was permuted to NCHW in Conv2d
@@ -330,8 +290,6 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   dim_t kS = C_in * kH * kW;
 
   if (input->dtype == F64) {
-    f64 *xValues = inputContig->values;      // (B, C_in, H, W)
-    f64 *dXValues = dInput->values;          // (B, C_in, H, W)
     f64 *wValues = kernelContig->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
     f64 *dWValues = dKernels->values;        // (C_out, Cin, kH, kW) -> (C_out, kS)
     f64 *dOutput = outputGradContig->values; // (B,outH, outW, C_out)
@@ -349,8 +307,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       goto cleanup;
     }
 
-
-    runGemm(F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer,
+    runGemm(F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
             kS, false, dWValues, kS);
 
     runGemm(F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
@@ -358,9 +315,6 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
 
     col2imAccumulateF64(dInput, dColBuffer, kH, kW, stride);
   } else {
-
-    f32 *xValues = inputContig->values;      // (B, C_in, H, W)
-    f32 *dXValues = dInput->values;          // (B, C_in, H, W)
     f32 *wValues = kernelContig->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
     f32 *dWValues = dKernels->values;        // (C_out, Cin, kH, kW) -> (C_out, kS)
     f32 *dOutput = outputGradContig->values; // (B,outH, outW, C_out)
@@ -378,8 +332,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       goto cleanup;
     }
 
-
-    runGemm(F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer,
+    runGemm(F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
             kS, false, dWValues, kS);
 
     runGemm(F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,

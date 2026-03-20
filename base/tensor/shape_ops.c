@@ -82,7 +82,7 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     return ERR_NULL_SHAPE_PROVIDED;
   }
 
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8) * newShape.numOfDims);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * newShape.numOfDims);
   tensor_size_t proposedSize = calculateNumValuesAndMultipliers(newShape, multipliers);
 
   if (proposedSize != source->size) {
@@ -243,6 +243,18 @@ Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
 Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  // Scalars have no singleton dimensions to remove, so preserve the 0-D shape.
+  if (t->shape.numOfDims == 0) {
+    *dest = (Tensor){.dtype = t->dtype,
+                     .values = t->values,
+                     .size = t->size,
+                     .isContigous = t->isContigous,
+                     .isView = true,
+                     .boundary = NULL,
+                     .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
+    return OK;
   }
 
   u8 newNumDims = 0;

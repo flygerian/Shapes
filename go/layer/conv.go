@@ -18,7 +18,8 @@ type conv struct {
 }
 
 type convMetadata struct {
-	stride uint8
+	stride    uint8
+	colBuffer shapes.Tensor
 }
 
 func Conv2d(
@@ -76,16 +77,16 @@ func (c *conv) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 		shapes.WithInputs(x),
 		shapes.WithHiddenState(c.kernels, c.bias),
 		shapes.WithOpType(shapes.OpConv),
-		shapes.WithMetadata(convMetadata{stride: c.stride}),
 	)
 
-	out := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride)
+	out, colBuffer := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride)
 
 	out = out.Plus(forwardCtx, c.bias)
 
 	forwardCtx.Finish(
 		shapes.WithResult(out),
 		shapes.WithBackward(convBackward),
+		shapes.WithMetadata(convMetadata{stride: c.stride, colBuffer: colBuffer}),
 	)
 
 	return out
@@ -117,7 +118,5 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 
 	bias.Grad().Accumulate(backwardCtx, dBias)
 
-	dX, dKernels := shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.stride)
-	x.Grad().Accumulate(backwardCtx, dX)
-	kernels.Grad().Accumulate(backwardCtx, dKernels)
+	shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.colBuffer, meta.stride)
 }

@@ -5,7 +5,7 @@
 
 static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  u8 *multipliers = allocate(ctx->memory, sizeof(u8));
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
   dims[0] = size;
   multipliers[0] = 1;
 

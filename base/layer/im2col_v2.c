@@ -1,6 +1,5 @@
 #include "common.h"
 #include "im2col.h"
-#include "memory.h"
 #include "tensor/tensor_internal.h"
 #include <stddef.h>
 #include <string.h>
@@ -16,10 +15,11 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
   size_t dtypeByteSize = getBytesForDtype(t->dtype);
-  size_t colBufferNumChannels = (outputChannelHeight * outputChannelWidth) * numInputChannels;
 
-  size_t colBufferSize = batch * colBufferNumChannels * kernelSize;
-  f32 *colBuffer = allocate(ctx->memory, dtypeByteSize * colBufferSize);
+  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
+  Dim colBufferShape = {.dims = colBufferDims, .numOfDims= 2};
+  Tensor *colBuffer = t_Zeros(ctx, colBufferShape, F32);
+  f32 *colBufferValues = colBuffer->values;
 
   size_t currRowNum = 0;
   for (dim_t iBatch = 0; iBatch < batch; iBatch++) {
@@ -35,7 +35,7 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
           f32 *patchStart = channelPos + ((yPos * width) + xPos);
 
           for (dim_t kRow = 0; kRow < kernelHeight; kRow++) {
-            f32 *rowStart = colBuffer + (currRowNum * numInputChannels * kernelSize);
+            f32 *rowStart = colBufferValues + (currRowNum * numInputChannels * kernelSize);
             f32 *currentRowPosition = rowStart + (channel * kernelSize) + (kRow * kernelWidth);
             f32 *patchRowStart = patchStart + (kRow * width);
             memcpy(currentRowPosition, patchRowStart, dtypeByteSize * kernelWidth);
@@ -47,11 +47,7 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
     }
   }
 
-  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
-  Dim colBufferShape = {.dims = colBufferDims, .numOfDims= 2};
-  Tensor *colBufferTensor = t_Zeros(ctx, colBufferShape, F32);
-
-  return colBufferTensor;
+  return colBuffer;
 }
 
 Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride) {
@@ -65,10 +61,11 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
   size_t dtypeByteSize = getBytesForDtype(t->dtype);
-  size_t colBufferNumChannels = (outputChannelHeight * outputChannelWidth) * numInputChannels;
 
-  size_t colBufferSize = batch * colBufferNumChannels * kernelSize;
-  f64 *colBuffer = allocate(ctx->memory, dtypeByteSize * colBufferSize);
+  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
+  Dim colBufferShape = {.dims = colBufferDims, .numOfDims= 2};
+  Tensor *colBuffer = t_Zeros(ctx, colBufferShape, F64);
+  f64 *colBufferValues = colBuffer->values;
 
   size_t currRowNum = 0;
   for (dim_t iBatch = 0; iBatch < batch; iBatch++) {
@@ -84,7 +81,7 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
           f64 *patchStart = channelPos + ((yPos * width) + xPos);
 
           for (dim_t kRow = 0; kRow < kernelHeight; kRow++) {
-            f64 *rowStart = colBuffer + (currRowNum * numInputChannels * kernelSize);
+            f64 *rowStart = colBufferValues + (currRowNum * numInputChannels * kernelSize);
             f64 *currentRowPosition = rowStart + (channel * kernelSize) + (kRow * kernelWidth);
             f64 *patchRowStart = patchStart + (kRow * width);
             memcpy(currentRowPosition, patchRowStart, dtypeByteSize * kernelWidth);
@@ -96,12 +93,7 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
     }
   }
 
-  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
-  Dim colBufferShape = {.dims = colBufferDims, .numOfDims= 2};
-  Tensor *colBufferTensor = t_Zeros(ctx, colBufferShape, F64);
-
-
-  return colBufferTensor;
+  return colBuffer;
 }
 
 void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
