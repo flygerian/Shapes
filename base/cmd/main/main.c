@@ -262,14 +262,14 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  Memory *mem = initializeArena((size_t) 1024 * 1024 * 4096, 1);
+  Memory *mem = initializeArena((size_t)1024 * 1024 * 4096, 1);
   Context ctx = {.memory = mem};
 
   int M = 4096, N = 4096, K = 4096;
 
-  f32 *h_A = (f32 *) allocate(ctx.memory, (size_t) M * K * sizeof(f32));
-  f32 *h_B = (f32 *) allocate(ctx.memory, (size_t) K * N * sizeof(f32));
-  f32 *h_C = (f32 *) allocate(ctx.memory, (size_t) M * N * sizeof(f32));
+  f32 *h_A = (f32 *)allocate(ctx.memory, (size_t)M * K * sizeof(f32));
+  f32 *h_B = (f32 *)allocate(ctx.memory, (size_t)K * N * sizeof(f32));
+  f32 *h_C = (f32 *)allocate(ctx.memory, (size_t)M * N * sizeof(f32));
 
   for (int i = 0; i < M * K; i++) {
     h_A[i] = (float)rand() / RAND_MAX;
@@ -283,8 +283,7 @@ int main(int argc, char *argv[]) {
 
   double start = now_ms();
   for (int i = 0; i < 10; i++) {
-    runGemm(&ctx, F32, CblasNoTrans, CblasNoTrans, M, N, K, h_A, M, h_B, K, false, h_C,
-          M);
+    runGemm(&ctx, F32, CblasNoTrans, CblasNoTrans, M, N, K, h_A, M, h_B, K, false, h_C, M);
   }
   double elapsed = now_ms() - start;
 

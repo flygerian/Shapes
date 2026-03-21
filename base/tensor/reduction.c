@@ -76,6 +76,7 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
   *dest = (Tensor){
+      .context = ctx,
       .dtype = workingTensor->dtype,
       .isContigous = true,
       .isView = false,
@@ -195,6 +196,7 @@ Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
   *dest = (Tensor){
+      .context = ctx,
       .dtype = workingTensor->dtype,
       .isContigous = true,
       .isView = false,
@@ -359,6 +361,7 @@ Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
   *dest = (Tensor){
+      .context = ctx,
       .dtype = workingTensor->dtype,
       .isContigous = true,
       .isView = false,
@@ -441,6 +444,7 @@ Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   tensor_size_t resultSize = numBeforeDim * numAfterDim;
   *dest = (Tensor){
+      .context = ctx,
       .dtype = I64,
       .isContigous = true,
       .isView = false,

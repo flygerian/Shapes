@@ -54,7 +54,7 @@ typedef enum {
   OP_LESS_OR_EQUAL
 } OpType;
 
-typedef enum {CPU, CUDA} DeviceType;
+typedef enum { CPU, CUDA } DeviceType;
 
 typedef struct {
   Dtype dtype;
@@ -77,8 +77,8 @@ typedef struct {
 } Value;
 
 typedef struct {
- DeviceType type;
- char *id;
+  DeviceType type;
+  char *id;
 } Device;
 
 typedef struct Context {

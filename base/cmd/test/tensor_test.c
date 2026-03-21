@@ -3283,7 +3283,7 @@ static void test_gemm_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = initializeContext((size_t)1024 * 1024, 1, true);
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
   float a[] = {1, 2, 3, 4, 5, 6};
   float b[] = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
@@ -3300,7 +3300,7 @@ static void test_gemm_gpu_dispatch_basic(void) {
   ASSERT_EQ((int)c[6], 203, "GPU GEMM [1,2] should be 203");
   ASSERT_EQ((int)c[7], 218, "GPU GEMM [1,3] should be 218");
 
-  destroyContext(&ctx);
+  DestroyContext(&ctx);
 }
 
 static void test_gemm_gpu_dispatch_f64(void) {
@@ -3309,7 +3309,7 @@ static void test_gemm_gpu_dispatch_f64(void) {
     return;
   }
 
-  Context ctx = initializeContext((size_t)1024 * 1024, 1, true);
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
   double a[] = {1, 2, 3, 4, 5, 6};
   double b[] = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
@@ -3326,7 +3326,7 @@ static void test_gemm_gpu_dispatch_f64(void) {
   ASSERT_EQ((int)c[6], 203, "GPU F64 GEMM [1,2] should be 203");
   ASSERT_EQ((int)c[7], 218, "GPU F64 GEMM [1,3] should be 218");
 
-  destroyContext(&ctx);
+  DestroyContext(&ctx);
 }
 
 static void test_matmul_2d_basic(void) {

@@ -190,6 +190,7 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
   }
 
   *dest = (Tensor){
+      .context = ctx,
       .dtype = target,
       .values = newValues,
       .size = src->size,

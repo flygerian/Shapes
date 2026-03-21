@@ -133,7 +133,8 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   }
 
   *dest =
-      (Tensor){.dtype = source->dtype,
+      (Tensor){.context = ctx,
+               .dtype = source->dtype,
                .values = destValues,
                .size = destSize,
                .isContigous = true,
@@ -281,7 +282,8 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   }
 
   *dest =
-      (Tensor){.dtype = source->dtype,
+      (Tensor){.context = ctx,
+               .dtype = source->dtype,
                .values = destValues,
                .size = destSize,
                .isContigous = true,
@@ -347,13 +349,9 @@ Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
   }
 
   *dest =
-      (Tensor){.dtype = source->dtype,
-               .values = newValues,
-               .size = source->size / source->shape.dims[0],
-               .isContigous = false,
-               .isView = true,
-               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
-               .boundary = boundary};
+      tensorView(source->context, newValues, source->size / source->shape.dims[0], source->dtype,
+                 (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
+                 boundary, false);
 
   return OK;
 }

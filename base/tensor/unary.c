@@ -272,7 +272,8 @@ Result Abs(Context *ctx, Tensor *t, Tensor *dest) {
     workingTensor = copyToContiguous(ctx, t);
   }
 
-  *dest = (Tensor){.dtype = t->dtype,
+  *dest = (Tensor){.context = ctx,
+                   .dtype = t->dtype,
                    .size = t->size,
                    .isView = false,
                    .isContigous = true,

@@ -18,11 +18,7 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
     tShape.multipliers = NULL;
 
     Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-    *t = (Tensor){.dtype = type,
-                  .values = allocate(ctx->memory, getBytesForDtype(type)),
-                  .shape = tShape,
-                  .size = 1,
-                  .isContigous = true};
+    initTensor(ctx, t, tShape, type);
     memset(t->values, 0, getBytesForDtype(type));
 
     return t;
@@ -36,11 +32,7 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
   size_t bytesRequired = size * getBytesForDtype(type);
 
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-  *t = (Tensor){.dtype = type,
-                .values = allocate(ctx->memory, bytesRequired),
-                .shape = tShape,
-                .size = size,
-                .isContigous = true};
+  initTensor(ctx, t, tShape, type);
   memset(t->values, 0, bytesRequired);
 
   return t;
@@ -71,7 +63,8 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
-  *dest = (Tensor){.dtype = source->dtype,
+  *dest = (Tensor){.context = ctx,
+                   .dtype = source->dtype,
                    .values = newValues,
                    .size = source->size,
                    .isContigous = true,
@@ -189,13 +182,7 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
   // Allocate and fill values
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
   size_t bytesRequired = n * sizeof(f32);
-  *t = (Tensor){.dtype = F32,
-                .values = allocate(ctx->memory, bytesRequired),
-                .shape = shape,
-                .size = n,
-                .isContigous = true,
-                .isView = false,
-                .boundary = NULL};
+  initTensor(ctx, t, shape, F32);
 
   f32 *values = (f32 *)t->values;
   for (tensor_size_t i = 0; i < n; i++) {
@@ -225,11 +212,7 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   // Create output tensor filled with zeros
   Tensor *out = allocate(ctx->memory, sizeof(Tensor));
   size_t bytesRequired = outSize * getBytesForDtype(F32);
-  *out = (Tensor){.dtype = F32,
-                  .values = allocate(ctx->memory, bytesRequired),
-                  .shape = outShape,
-                  .size = outSize,
-                  .isContigous = true};
+  initTensor(ctx, out, outShape, F32);
   memset(out->values, 0, bytesRequired);
 
   // Get source tensor (copy to contiguous if needed)

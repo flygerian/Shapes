@@ -703,12 +703,14 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   f32 *dxVals = dX.values;
   f32 wantDX[9] = {1.0f, 1.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 1.0f, 1.0f};
   for (int i = 0; i < 9; i++) {
-    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward dX mismatch with provided col buffer");
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f,
+           "Conv2dBackward dX mismatch with provided col buffer");
   }
 
   f32 *dKernelVals = dKernels.values;
   for (int i = 0; i < 4; i++) {
-    ASSERT(fabsf(dKernelVals[i]) < 1e-5f, "Conv2dBackward should use the provided col buffer for dKernels");
+    ASSERT(fabsf(dKernelVals[i]) < 1e-5f,
+           "Conv2dBackward should use the provided col buffer for dKernels");
   }
 
   freeMemory(mem);

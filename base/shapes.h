@@ -14,7 +14,11 @@ Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
 Context *CreateContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
 void DestroyContext(Context *ctx);
 void FreeContext(Context *ctx);
-void CopyTensorsToDevice(Device *device, u8 numTensors, ...);
+Result copyBetweenContexts(Context *srcCtx, Context *destCtx, void *srcPtr, void *destPtr,
+                           size_t size);
+void *allocateOnCtx(Context *ctx, size_t size);
+void freeOnCtx(Context *ctx, void *ptr);
+Result MoveTensors(Context *destCtx, u8 numTensors, ...);
 
 // Binary Ops
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
@@ -89,9 +93,9 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
-               Tensor *t, Tensor *dest, Tensor *colBuffer);
+              Tensor *t, Tensor *dest, Tensor *colBuffer);
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride);
+                      Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride);
 Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
                        Tensor *kernels, Dim kernel, Tensor *t, Tensor *dest);
 Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,

@@ -46,19 +46,11 @@ tensor_size_t calculateNumValuesAndMultipliers(Dim shape, multiplier_t *multipli
   return numberOfValues;
 }
 
-Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
-  u8 numDims = src->shape.numOfDims;
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
+Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
+  tensor_size_t size = calculateNumValuesAndMultipliers(shape, shape.multipliers);
 
-  for (u8 i = 0; i < numDims; i++) {
-    dims[i] = src->shape.dims[i];
-  }
-
-  Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
-
-  *dest = (Tensor){.dtype = dtype,
+  *dest = (Tensor){.context = ctx,
+                   .dtype = dtype,
                    .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
                    .size = size,
                    .shape = shape,
@@ -69,20 +61,29 @@ Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
   return OK;
 }
 
+Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
+  u8 numDims = src->shape.numOfDims;
+  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
+
+  for (u8 i = 0; i < numDims; i++) {
+    dims[i] = src->shape.dims[i];
+  }
+
+  Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
+  calculateNumValuesAndMultipliers(shape, multipliers);
+
+  return initTensor(ctx, dest, shape, dtype);
+}
+
 Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
   dims[0] = size;
   multipliers[0] = 1;
 
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-  return OK;
+  return initTensor(ctx, dest, (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
+                    dtype);
 }
 
 Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
@@ -96,17 +97,9 @@ Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, di
   dims[3] = d3;
 
   Dim shape = {.dims = dims, .numOfDims = 4, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
+  calculateNumValuesAndMultipliers(shape, multipliers);
 
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
+  return initTensor(ctx, dest, shape, dtype);
 }
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx) {
@@ -386,17 +379,9 @@ Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dt
   dims[1] = cols;
 
   Dim shape = {.dims = dims, .numOfDims = 2, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
+  calculateNumValuesAndMultipliers(shape, multipliers);
 
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
+  return initTensor(ctx, dest, shape, dtype);
 }
 
 Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
@@ -404,5 +389,26 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  void* locationOnTarget = allocate(destCtx, sizeof(Tensor) * getBytesForDtype(t->dtype));
+  if (destCtx == NULL) {
+    return ERR_COPY_CTX_DEVICE_IS_NULL;
+  }
+
+  Context *tensorCtx = t->context != NULL ? t->context : srcCtx;
+  if (tensorCtx == NULL) {
+    return ERR_COPY_CTX_DEVICE_IS_NULL;
+  }
+
+  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
+  void *locationOnTarget = allocateOnCtx(destCtx, valueBytes);
+  Result copyResult =
+      copyBetweenContexts(tensorCtx, destCtx, t->values, locationOnTarget, valueBytes);
+  if (copyResult != OK) {
+    return copyResult;
+  }
+
+  freeOnCtx(tensorCtx, t->values);
+  t->values = locationOnTarget;
+  t->context = destCtx;
+
+  return OK;
 }

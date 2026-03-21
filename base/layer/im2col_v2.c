@@ -16,8 +16,9 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
   size_t dtypeByteSize = getBytesForDtype(t->dtype);
 
-  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
-  Dim colBufferShape = {.dims = colBufferDims, .numOfDims= 2};
+  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth,
+                            numInputChannels * kernelSize};
+  Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
   Tensor *colBuffer = t_Zeros(ctx, colBufferShape, F32);
   f32 *colBufferValues = colBuffer->values;
 
@@ -62,8 +63,9 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
   size_t dtypeByteSize = getBytesForDtype(t->dtype);
 
-  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
-  Dim colBufferShape = {.dims = colBufferDims, .numOfDims= 2};
+  dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth,
+                            numInputChannels * kernelSize};
+  Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
   Tensor *colBuffer = t_Zeros(ctx, colBufferShape, F64);
   f64 *colBufferValues = colBuffer->values;
 

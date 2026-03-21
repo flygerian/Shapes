@@ -200,7 +200,7 @@ cleanup:
 }
 
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
+                      Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
@@ -293,11 +293,11 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       goto cleanup;
     }
 
-    runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
-            kS, false, dWValues, kS);
+    runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
+            colBuffer->values, kS, false, dWValues, kS);
 
-    runGemm(ctx, F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
-            kS, false, dColBuffer, kS);
+    runGemm(ctx, F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out,
+            wValues, kS, false, dColBuffer, kS);
 
     col2imAccumulateF64(dInput, dColBuffer, kH, kW, stride);
   } else {
@@ -318,11 +318,11 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       goto cleanup;
     }
 
-    runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
-            kS, false, dWValues, kS);
+    runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
+            colBuffer->values, kS, false, dWValues, kS);
 
-    runGemm(ctx, F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
-            kS, false, dColBuffer, kS);
+    runGemm(ctx, F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out,
+            wValues, kS, false, dColBuffer, kS);
 
     col2imAccumulateF32(dInput, dColBuffer, kH, kW, stride);
   }

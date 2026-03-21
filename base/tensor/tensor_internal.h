@@ -17,7 +17,8 @@ static inline Tensor singleValueTensor(Context *ctx, Value value) {
   void *values = allocate(ctx->memory, getBytesForDtype(value.dtype));
   VALUE_SET(values, 0, value);
 
-  return (Tensor){.dtype = value.dtype,
+  return (Tensor){.context = ctx,
+                  .dtype = value.dtype,
                   .values = values,
                   .size = 1,
                   .isContigous = true,
@@ -26,6 +27,19 @@ static inline Tensor singleValueTensor(Context *ctx, Value value) {
                   .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
 }
 
+static inline Tensor tensorView(Context *ctx, void *values, tensor_size_t size, Dtype dtype,
+                                Dim shape, Range *boundary, bool isContigous) {
+  return (Tensor){.context = ctx,
+                  .dtype = dtype,
+                  .values = values,
+                  .size = size,
+                  .isContigous = isContigous,
+                  .isView = true,
+                  .boundary = boundary,
+                  .shape = shape};
+}
+
+Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype);
 Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype);
 Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype);
 Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
@@ -57,16 +71,15 @@ Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
 Result freeTensorBuffers(Context *ctx, Tensor *t);
-void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n,
-                    int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
-                    int ldc);
+void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m,
+             int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
+             int ldc);
 #ifdef __cplusplus
 extern "C" {
 #endif
-void runCudaGemm(Context *ctx, Dtype dtype, cublasOperation_t transA,
-                            cublasOperation_t transB, int m, int n, int k,
-                            const void *a, int lda, const void *b, int ldb,
-                            bool accumulate, void *c, int ldc);
+void runCudaGemm(Context *ctx, Dtype dtype, cublasOperation_t transA, cublasOperation_t transB,
+                 int m, int n, int k, const void *a, int lda, const void *b, int ldb,
+                 bool accumulate, void *c, int ldc);
 #ifdef __cplusplus
 }
 #endif

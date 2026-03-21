@@ -17,17 +17,9 @@ static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor 
   dims[numDims - 1] = lastDim;
 
   Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, multipliers);
+  calculateNumValuesAndMultipliers(shape, multipliers);
 
-  *dest = (Tensor){.dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
+  return initTensor(ctx, dest, shape, dtype);
 }
 
 Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor *dest) {
@@ -190,9 +182,9 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
 
   if (x->dtype == F64) {
     // dX = gradOut * w
-    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize,
-            (int)outputSize, gContig->values, (int)outputSize, wContig->values, (int)inputSize,
-            false, dX->values, (int)inputSize);
+    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
+            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
+            (int)inputSize);
 
     // dW = gradOut^T * x
     runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
@@ -213,9 +205,9 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
     }
   } else {
     // dX = gradOut * w
-    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize,
-            (int)outputSize, gContig->values, (int)outputSize, wContig->values, (int)inputSize,
-            false, dX->values, (int)inputSize);
+    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
+            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
+            (int)inputSize);
 
     // dW = gradOut^T * x
     runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,

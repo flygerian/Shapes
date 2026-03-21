@@ -33,7 +33,7 @@ Result FreeTensor(Context *ctx, Tensor *t) {
   }
 
   if (t->values != NULL) {
-    freeAlloc(ctx->memory, t->values);
+    freeOnCtx(t->context != NULL ? t->context : ctx, t->values);
   }
   if (t->shape.dims != NULL) {
     freeAlloc(ctx->memory, t->shape.dims);
@@ -48,7 +48,7 @@ Result FreeTensor(Context *ctx, Tensor *t) {
 
 Result freeTensorBuffers(Context *ctx, Tensor *t) {
   if (!t->isView && t->values)
-    freeAlloc(ctx->memory, t->values);
+    freeOnCtx(t->context != NULL ? t->context : ctx, t->values);
   if (t->shape.dims)
     freeAlloc(ctx->memory, t->shape.dims);
   if (t->shape.multipliers)

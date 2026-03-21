@@ -5,54 +5,85 @@
 #include <cuda_runtime_api.h>
 #include <driver_types.h>
 #include <stdarg.h>
-#include <stdarg.h>
 #include <stddef.h>
+#include <string.h>
 #include <time.h>
 
-Result copyBetweenContexts(Context* restrict srcCtx, Context* restrict destCtx, void* restrict srcPtr, void* restrict destPtr, size_t size) {
-  if (srcCtx->device->type == CPU && destCtx.device->type == CUDA) {
+static DeviceType getDeviceTypeForContext(Context *ctx) {
+  if (ctx == NULL || ctx->device == NULL) {
+    return CPU;
+  }
+
+  return ctx->device->type;
+}
+
+Result copyBetweenContexts(Context *restrict srcCtx, Context *restrict destCtx,
+                           void *restrict srcPtr, void *restrict destPtr, size_t size) {
+  if (srcPtr == NULL || destPtr == NULL) {
+    return ERR_NULL_PTR;
+  }
+
+  DeviceType srcType = getDeviceTypeForContext(srcCtx);
+  DeviceType destType = getDeviceTypeForContext(destCtx);
+
+  if (srcType == CPU && destType == CPU) {
+    memcpy(destPtr, srcPtr, size);
+    return OK;
+  }
+
+  if (srcType == CPU && destType == CUDA) {
     cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyHostToDevice);
     return OK;
   }
 
-  if (srcCtx->device->type == CUDA && destCtx.device->type == CPU) {
+  if (srcType == CUDA && destType == CPU) {
+    cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyDeviceToHost);
+    return OK;
+  }
+
+  if (srcType == CUDA && destType == CUDA) {
     cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyDeviceToDevice);
-    return  OK;
+    return OK;
   }
 
   return ERR_NO_OP;
 }
 
 void *allocateOnCtx(Context *ctx, size_t size) {
+  if (ctx == NULL) {
+    return NULL;
+  }
+
   if (ctx->device == NULL) {
     // CPU allocate by default
     return allocate(ctx->memory, size);
-  } 
+  }
 
   switch (ctx->device->type) {
-    case CPU:
-      return allocate(ctx->memory, size);
-
-    case CUDA:
+    case CPU: return allocate(ctx->memory, size);
+    case CUDA: {
       void *locationOnDestCtx;
-      cudaMalloc(locationOnDestCtx, size);
+      cudaMalloc(&locationOnDestCtx, size);
       return locationOnDestCtx;
+    }
   }
+
+  return NULL;
 }
 
+void freeOnCtx(Context *ctx, void *ptr) {
+  if (ctx == NULL || ptr == NULL) {
+    return;
+  }
 
-void freeOnCtx(Context *ctx, void* ptr) {
   if (ctx->device == NULL) {
-    // CPU allocate by default
     freeAlloc(ctx->memory, ptr);
-  } 
+    return;
+  }
 
   switch (ctx->device->type) {
-    case CPU:
-      freeAlloc(ctx->memory, ptr);
-
-    case CUDA:
-      cudaFree(ptr);
+    case CPU: freeAlloc(ctx->memory, ptr); return;
+    case CUDA: cudaFree(ptr); return;
   }
 }
 
@@ -99,27 +130,37 @@ void FreeContext(Context *ctx) {
 
 Result MoveTensors(Context *destCtx, u8 numTensors, ...) {
   if (destCtx == NULL) {
-    return ERR_MOVE_CTX_DEVICE_IS_NULL;
+    return ERR_COPY_CTX_DEVICE_IS_NULL;
   }
 
-  Tensor* tensors[numTensors];
+  Tensor *tensors[numTensors];
 
   va_list args;
   va_start(args, numTensors);
 
-  for (u8 x=0; x < numTensors; x++) {
-    tensors[x] = va_arg(args, Tensor*);
+  for (u8 x = 0; x < numTensors; x++) {
+    tensors[x] = va_arg(args, Tensor *);
   }
   va_end(args);
 
   for (u8 x = 0; x < numTensors; x++) {
     Tensor *t = tensors[x];
-    void *locationOnDest = allocateOnCtx(destCtx, t->size * getBytesForDtype(t->dtype));
-    copyBetweenContexts(t->context, destCtx, t->values, locationOnDest, t->size);
+    if (t == NULL || t->context == NULL) {
+      return ERR_NULL_TENSOR_PROVIDED;
+    }
+
+    size_t valueBytes = t->size * getBytesForDtype(t->dtype);
+    void *locationOnDest = allocateOnCtx(destCtx, valueBytes);
+    Result copyResult =
+        copyBetweenContexts(t->context, destCtx, t->values, locationOnDest, valueBytes);
+    if (copyResult != OK) {
+      return copyResult;
+    }
 
     freeOnCtx(t->context, t->values);
     t->context = destCtx;
     t->values = locationOnDest;
   }
-}
 
+  return OK;
+}

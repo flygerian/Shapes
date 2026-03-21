@@ -59,15 +59,8 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
   tensor_size_t size = calculateNumValuesAndMultipliers(
       (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims}, NULL);
   freeAlloc(ctx->memory, ranges);
-  *dest = ((Tensor){
-      .isView = true,
-      .values = source->values,
-      .shape = newShape,
-      .dtype = source->dtype,
-      .boundary = boundary,
-      .size = size,
-      .isContigous = false,
-  });
+  *dest =
+      tensorView(source->context, source->values, size, source->dtype, newShape, boundary, false);
 
   return OK;
 }
@@ -107,12 +100,15 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     }
   }
 
-  *dest = ((Tensor){.isView = isView,
-                    .values = values,
-                    .dtype = source->dtype,
-                    .boundary = boundary,
-                    .size = source->size,
-                    .isContigous = true});
+  *dest = isView ? tensorView(source->context, values, source->size, source->dtype, (Dim){0},
+                              boundary, true)
+                 : (Tensor){.context = ctx,
+                            .isView = false,
+                            .values = values,
+                            .dtype = source->dtype,
+                            .boundary = boundary,
+                            .size = source->size,
+                            .isContigous = true};
   dest->shape =
       (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = multipliers};
   return OK;
@@ -167,15 +163,10 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
     newBoundary[transposeDims[1]] = tmp;
   }
 
-  *dest = (Tensor){.dtype = source->dtype,
-                   .values = source->values,
-                   .size = source->size,
-                   .isView = true,
-                   .isContigous = false,
-                   .shape = {.dims = newDims,
-                             .numOfDims = source->shape.numOfDims,
-                             .multipliers = newMultipliers},
-                   .boundary = newBoundary};
+  *dest = tensorView(
+      source->context, source->values, source->size, source->dtype,
+      (Dim){.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers},
+      newBoundary, false);
 
   return OK;
 }
@@ -226,15 +217,10 @@ Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
 
   freeAlloc(ctx->memory, seen);
 
-  *dest = (Tensor){.dtype = source->dtype,
-                   .values = source->values,
-                   .size = source->size,
-                   .isView = true,
-                   .isContigous = false,
-                   .shape = {.dims = newDims,
-                             .numOfDims = source->shape.numOfDims,
-                             .multipliers = newMultipliers},
-                   .boundary = newBoundary};
+  *dest = tensorView(
+      source->context, source->values, source->size, source->dtype,
+      (Dim){.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers},
+      newBoundary, false);
 
   return OK;
 }
@@ -246,13 +232,9 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
 
   // Scalars have no singleton dimensions to remove, so preserve the 0-D shape.
   if (t->shape.numOfDims == 0) {
-    *dest = (Tensor){.dtype = t->dtype,
-                     .values = t->values,
-                     .size = t->size,
-                     .isContigous = t->isContigous,
-                     .isView = true,
-                     .boundary = NULL,
-                     .shape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL}};
+    *dest =
+        tensorView(t->context, t->values, t->size, t->dtype,
+                   (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL}, NULL, t->isContigous);
     return OK;
   }
 
@@ -312,14 +294,9 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
     }
   }
 
-  *dest =
-      (Tensor){.dtype = t->dtype,
-               .values = t->values,
-               .size = t->size,
-               .isContigous = t->isContigous,
-               .isView = true,
-               .boundary = newBoundary,
-               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
+  *dest = tensorView(t->context, t->values, t->size, t->dtype,
+                     (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
+                     newBoundary, t->isContigous);
 
   return OK;
 }
@@ -349,13 +326,9 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
       newBoundary[0] = t->boundary[0];
     }
 
-    *dest = (Tensor){.dtype = t->dtype,
-                     .values = t->values,
-                     .size = t->size,
-                     .isContigous = t->isContigous,
-                     .isView = true,
-                     .boundary = newBoundary,
-                     .shape = {.dims = newDims, .numOfDims = 1, .multipliers = newMultipliers}};
+    *dest = tensorView(t->context, t->values, t->size, t->dtype,
+                       (Dim){.dims = newDims, .numOfDims = 1, .multipliers = newMultipliers},
+                       newBoundary, t->isContigous);
     return OK;
   }
 
@@ -385,14 +358,9 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  *dest =
-      (Tensor){.dtype = t->dtype,
-               .values = t->values,
-               .size = t->size,
-               .isContigous = t->isContigous,
-               .isView = true,
-               .boundary = newBoundary,
-               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
+  *dest = tensorView(t->context, t->values, t->size, t->dtype,
+                     (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
+                     newBoundary, t->isContigous);
 
   return OK;
 }
@@ -446,14 +414,9 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  *dest =
-      (Tensor){.dtype = t->dtype,
-               .values = t->values,
-               .size = t->size,
-               .isContigous = t->isContigous,
-               .isView = true,
-               .boundary = newBoundary,
-               .shape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers}};
+  *dest = tensorView(t->context, t->values, t->size, t->dtype,
+                     (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
+                     newBoundary, t->isContigous);
 
   return OK;
 }
@@ -542,14 +505,7 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
 
   outputShape.multipliers = multipliers;
 
-  *dest =
-      (Tensor){.dtype = workingTarget->dtype,
-               .values = allocate(ctx->memory, getBytesForDtype(workingTarget->dtype) * outputSize),
-               .size = outputSize,
-               .isContigous = true,
-               .isView = false,
-               .boundary = NULL,
-               .shape = outputShape};
+  initTensor(ctx, dest, outputShape, workingTarget->dtype);
 
   dim_t currDimSize = workingTarget->shape.dims[targetDim];
   dim_t newDimSize = outputShape.dims[targetDim];
