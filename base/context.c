@@ -62,8 +62,11 @@ void *allocateOnCtx(Context *ctx, size_t size) {
   switch (ctx->device->type) {
     case CPU: return allocate(ctx->memory, size);
     case CUDA: {
-      void *locationOnDestCtx;
-      cudaMalloc(&locationOnDestCtx, size);
+      void *locationOnDestCtx = NULL;
+      cudaError_t cudaResult = cudaMalloc(&locationOnDestCtx, size);
+      if (cudaResult != cudaSuccess) {
+        return NULL;
+      }
       return locationOnDestCtx;
     }
   }
@@ -92,14 +95,27 @@ Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda) 
   Context ctx = {.memory = memory};
 
   if (withCuda) {
-    Device *device = allocate(memory, sizeof(Device));
-    device->id = "cuda: 1";
-    device->type = CUDA;
+    int deviceCount = 0;
+    cudaError_t countResult = cudaGetDeviceCount(&deviceCount);
 
-    cublasHandle_t handle;
-    cublasCreate(&handle);
-    ctx.handle = handle;
-    ctx.device = device;
+    if (countResult == cudaSuccess && deviceCount > 0) {
+      cudaError_t setDeviceResult = cudaSetDevice(0);
+      cudaError_t runtimeInitResult = cudaFree(NULL);
+      cublasHandle_t handle;
+      cublasStatus_t handleResult = CUBLAS_STATUS_NOT_INITIALIZED;
+
+      if (setDeviceResult == cudaSuccess && runtimeInitResult == cudaSuccess) {
+        handleResult = cublasCreate(&handle);
+      }
+
+      if (handleResult == CUBLAS_STATUS_SUCCESS) {
+        Device *device = allocate(memory, sizeof(Device));
+        device->id = "cuda:0";
+        device->type = CUDA;
+        ctx.handle = handle;
+        ctx.device = device;
+      }
+    }
   }
 
   return ctx;

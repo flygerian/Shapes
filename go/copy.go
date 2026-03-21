@@ -7,6 +7,13 @@ package shapes
 import "C"
 import "unsafe"
 
+func copyTensorValuesToHost(t *tensor, dest unsafe.Pointer, size C.size_t) {
+	result := C.copyTensorValuesToHost(t.cTensor, dest, size)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+}
+
 type hasCopyOps interface {
 	toF16Slice() []float32
 	toF32Slice() []float32
@@ -39,7 +46,7 @@ func (t *tensor) toF16Slice() []float32 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_float))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_float))
 	return out
 }
 
@@ -50,7 +57,7 @@ func (t *tensor) toF32Slice() []float32 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_float))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_float))
 	return out
 }
 
@@ -61,7 +68,7 @@ func (t *tensor) toF64Slice() []float64 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_double))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_double))
 	return out
 }
 
@@ -72,7 +79,7 @@ func (t *tensor) toU8Slice() []uint8 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_uint8_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_uint8_t))
 	return out
 }
 
@@ -83,7 +90,7 @@ func (t *tensor) toU16Slice() []uint16 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_uint16_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_uint16_t))
 	return out
 }
 
@@ -94,7 +101,7 @@ func (t *tensor) toU32Slice() []uint32 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_uint32_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_uint32_t))
 	return out
 }
 
@@ -105,7 +112,7 @@ func (t *tensor) toU64Slice() []uint64 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_uint64_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_uint64_t))
 	return out
 }
 
@@ -116,7 +123,7 @@ func (t *tensor) toI8Slice() []int8 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_int8_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_int8_t))
 	return out
 }
 
@@ -127,7 +134,7 @@ func (t *tensor) toI16Slice() []int16 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_int16_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_int16_t))
 	return out
 }
 
@@ -138,7 +145,7 @@ func (t *tensor) toI32Slice() []int32 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_int32_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_int32_t))
 	return out
 }
 
@@ -149,7 +156,7 @@ func (t *tensor) toI64Slice() []int64 {
 	if n == 0 {
 		return out
 	}
-	C.memcpy(unsafe.Pointer(&out[0]), ct.values, C.size_t(n)*C.size_t(C.sizeof_int64_t))
+	copyTensorValuesToHost(t, unsafe.Pointer(&out[0]), C.size_t(n)*C.size_t(C.sizeof_int64_t))
 	return out
 }
 
@@ -162,7 +169,7 @@ func (t *tensor) toBoolSlice() []bool {
 	}
 
 	raw := make([]C.bool, n)
-	C.memcpy(unsafe.Pointer(&raw[0]), ct.values,
+	copyTensorValuesToHost(t, unsafe.Pointer(&raw[0]),
 		C.size_t(n)*C.size_t(unsafe.Sizeof(C.bool(false))))
 
 	for i := range n {

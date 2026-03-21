@@ -57,24 +57,25 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
 
   // BLAS expects dense row-major buffers. Views/slices from Go can be
   // non-contiguous, so we materialize contiguous copies when needed.
-  Tensor *xContig = x;
-  Tensor *wContig = w;
-  if (!xContig->isContigous) {
-    xContig = copyToContiguous(ctx, xContig);
+  TensorArg xArg = {0};
+  TensorArg wArg = {0};
+  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
+  if (res != OK) {
+    return res;
   }
-  if (!wContig->isContigous) {
-    wContig = copyToContiguous(ctx, wContig);
+  res = materializeTensorOnContext(ctx, w, true, &wArg);
+  if (res != OK) {
+    releaseTensorArg(ctx, &xArg);
+    return res;
   }
+  Tensor *xContig = xArg.tensor;
+  Tensor *wContig = wArg.tensor;
 
   tensor_size_t rows = x->size / inputSize;
-  Result res = initTensorLikeInputWithLastDim(ctx, dest, x, outputSize, x->dtype);
+  res = initTensorLikeInputWithLastDim(ctx, dest, x, outputSize, x->dtype);
   if (res != OK) {
-    if (xContig != x) {
-      FreeTensor(ctx, xContig);
-    }
-    if (wContig != w) {
-      FreeTensor(ctx, wContig);
-    }
+    releaseTensorArg(ctx, &xArg);
+    releaseTensorArg(ctx, &wArg);
     return res;
   }
 
@@ -107,12 +108,8 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
     }
   }
 
-  if (xContig != x) {
-    FreeTensor(ctx, xContig);
-  }
-  if (wContig != w) {
-    FreeTensor(ctx, wContig);
-  }
+  releaseTensorArg(ctx, &xArg);
+  releaseTensorArg(ctx, &wArg);
 
   return OK;
 }
@@ -154,20 +151,26 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   }
 
   // Same contiguous requirement as forward: BLAS kernels consume packed rows.
-  Tensor *xContig = x;
-  Tensor *wContig = w;
-  Tensor *gContig = gradOut;
-  if (!xContig->isContigous) {
-    xContig = copyToContiguous(ctx, xContig);
+  TensorArg xArg = {0};
+  TensorArg wArg = {0};
+  TensorArg gArg = {0};
+  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
+  if (res != OK) {
+    goto cleanup;
   }
-  if (!wContig->isContigous) {
-    wContig = copyToContiguous(ctx, wContig);
+  res = materializeTensorOnContext(ctx, w, true, &wArg);
+  if (res != OK) {
+    goto cleanup;
   }
-  if (!gContig->isContigous) {
-    gContig = copyToContiguous(ctx, gContig);
+  res = materializeTensorOnContext(ctx, gradOut, true, &gArg);
+  if (res != OK) {
+    goto cleanup;
   }
+  Tensor *xContig = xArg.tensor;
+  Tensor *wContig = wArg.tensor;
+  Tensor *gContig = gArg.tensor;
 
-  Result res = initTensorLikeInputWithLastDim(ctx, dX, x, inputSize, x->dtype);
+  res = initTensorLikeInputWithLastDim(ctx, dX, x, inputSize, x->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -229,14 +232,8 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   }
 
 cleanup:
-  if (xContig != x) {
-    FreeTensor(ctx, xContig);
-  }
-  if (wContig != w) {
-    FreeTensor(ctx, wContig);
-  }
-  if (gContig != gradOut) {
-    FreeTensor(ctx, gContig);
-  }
+  releaseTensorArg(ctx, &xArg);
+  releaseTensorArg(ctx, &wArg);
+  releaseTensorArg(ctx, &gArg);
   return res;
 }

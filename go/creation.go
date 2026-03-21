@@ -10,6 +10,13 @@ import (
 	"unsafe"
 )
 
+func copyHostIntoTensor(t *tensor, src unsafe.Pointer, size C.size_t) {
+	result := C.copyTensorValuesFromHost(t.cTensor, src, size)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+}
+
 // Zeros creates a tensor filled with zeros.
 func Zeros(ctx Context, shape Shape) Tensor {
 	if len(shape) == 0 {
@@ -63,7 +70,7 @@ func FromFloat32(ctx Context, shape Shape, data []float32) Tensor {
 		panic("shapes: data length does not match shape")
 	}
 
-	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&data[0]), C.size_t(expected)*C.sizeof_float)
+	copyHostIntoTensor(t.(*tensor), unsafe.Pointer(&data[0]), C.size_t(expected)*C.sizeof_float)
 
 	return t
 }
@@ -144,7 +151,7 @@ func FromInt8(ctx Context, data interface{}) Tensor {
 
 	t := Int8(ctx, shape, 0)
 
-	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
+	copyHostIntoTensor(t.(*tensor), unsafe.Pointer(&flatData[0]), C.size_t(len(flatData)))
 
 	return t
 }
@@ -181,7 +188,7 @@ func FloatRandom(ctx Context, shape Shape, rng ...float32) Tensor {
 	for i := range n {
 		data[i] = rand.Float32()*scale + min
 	}
-	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
+	copyHostIntoTensor(t.(*tensor), unsafe.Pointer(&data[0]), C.size_t(n)*C.sizeof_float)
 
 	return t
 }
@@ -218,7 +225,7 @@ func IntRandom(ctx Context, shape Shape, rng ...int8) Tensor {
 	for i := range n {
 		data[i] = int8(rand.Intn(rangeSize) + int(min))
 	}
-	C.memcpy(t.(*tensor).cTensor.values, unsafe.Pointer(&data[0]), C.size_t(n))
+	copyHostIntoTensor(t.(*tensor), unsafe.Pointer(&data[0]), C.size_t(n))
 
 	return t
 }

@@ -394,9 +394,8 @@ func Vgg_cifar10() {
 	trainingCtx := shapeCtx.Training(
 		hyperParams.epochs,
 		shapes.WithNumSteps(stepsPerEpoch),
-		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
+		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
-
 	runTraining(
 		trainingCtx,
 		len(train),

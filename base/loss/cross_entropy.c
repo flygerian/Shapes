@@ -40,16 +40,22 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
 
   tensor_size_t rows = logits->size / classCount;
 
+  TensorArg yArg = {0};
+  TensorArg logitsArg = {0};
   Tensor *yContig = yGround;
   Tensor *logitsContig = logits;
-  if (!yContig->isContigous) {
-    yContig = copyToContiguous(ctx, yContig);
+  Result res = materializeTensorOnContext(ctx, yGround, true, &yArg);
+  if (res != OK) {
+    goto cleanup;
   }
-  if (!logitsContig->isContigous) {
-    logitsContig = copyToContiguous(ctx, logitsContig);
+  res = materializeTensorOnContext(ctx, logits, true, &logitsArg);
+  if (res != OK) {
+    goto cleanup;
   }
+  yContig = yArg.tensor;
+  logitsContig = logitsArg.tensor;
 
-  Result res = initTensorLike(ctx, probs, logitsContig, logitsContig->dtype);
+  res = initTensorLike(ctx, probs, logitsContig, logitsContig->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -125,12 +131,8 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
   }
 
 cleanup:
-  if (yContig != yGround) {
-    FreeTensor(ctx, yContig);
-  }
-  if (logitsContig != logits) {
-    FreeTensor(ctx, logitsContig);
-  }
+  releaseTensorArg(ctx, &yArg);
+  releaseTensorArg(ctx, &logitsArg);
 
   return res;
 }
@@ -175,20 +177,29 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
 
   tensor_size_t rows = probs->size / classCount;
 
+  TensorArg yArg = {0};
+  TensorArg pArg = {0};
+  TensorArg gArg = {0};
   Tensor *yContig = yGround;
   Tensor *pContig = probs;
   Tensor *gContig = gradOut;
-  if (!yContig->isContigous) {
-    yContig = copyToContiguous(ctx, yContig);
+  Result res = materializeTensorOnContext(ctx, yGround, true, &yArg);
+  if (res != OK) {
+    goto cleanup;
   }
-  if (!pContig->isContigous) {
-    pContig = copyToContiguous(ctx, pContig);
+  res = materializeTensorOnContext(ctx, probs, true, &pArg);
+  if (res != OK) {
+    goto cleanup;
   }
-  if (!gContig->isContigous) {
-    gContig = copyToContiguous(ctx, gContig);
+  res = materializeTensorOnContext(ctx, gradOut, true, &gArg);
+  if (res != OK) {
+    goto cleanup;
   }
+  yContig = yArg.tensor;
+  pContig = pArg.tensor;
+  gContig = gArg.tensor;
 
-  Result res = initTensorLike(ctx, dLogits, pContig, pContig->dtype);
+  res = initTensorLike(ctx, dLogits, pContig, pContig->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -220,15 +231,9 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
   }
 
 cleanup:
-  if (yContig != yGround) {
-    FreeTensor(ctx, yContig);
-  }
-  if (pContig != probs) {
-    FreeTensor(ctx, pContig);
-  }
-  if (gContig != gradOut) {
-    FreeTensor(ctx, gContig);
-  }
+  releaseTensorArg(ctx, &yArg);
+  releaseTensorArg(ctx, &pArg);
+  releaseTensorArg(ctx, &gArg);
 
   return res;
 }

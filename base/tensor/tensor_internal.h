@@ -13,6 +13,11 @@ typedef struct {
   Tensor *b;
 } TensorPair;
 
+typedef struct {
+  Tensor *tensor;
+  bool ownsTensor;
+} TensorArg;
+
 static inline Tensor singleValueTensor(Context *ctx, Value value) {
   void *values = allocate(ctx->memory, getBytesForDtype(value.dtype));
   VALUE_SET(values, 0, value);
@@ -50,6 +55,11 @@ u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords);
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type);
 Tensor *copyToContiguous(Context *ctx, Tensor *source);
+bool isSameContext(Context *a, Context *b);
+Result materializeTensorOnContext(Context *ctx, Tensor *src, bool requireContiguous,
+                                  TensorArg *arg);
+void releaseTensorArg(Context *fallbackCtx, TensorArg *arg);
+Result clearTensorValues(Tensor *t);
 bool areBroadcastable(Tensor *a, Tensor *b);
 TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
 

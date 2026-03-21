@@ -2,6 +2,8 @@
 #include "layer/im2col.h"
 #include <string.h>
 
+Result clearTensorValues(Tensor *t);
+
 Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
   Dim *d = allocate(mem, sizeof(Dim));
   d->dims = allocate(mem, sizeof(dim_t) * numDims);
@@ -12,10 +14,23 @@ Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
 }
 
 void zeroTensorValues(Tensor *t) {
-  if (t != NULL && t->values != NULL) {
-    size_t bytes = t->size * getBytesForDtype(t->dtype);
-    memset(t->values, 0, bytes);
+  clearTensorValues(t);
+}
+
+Result copyTensorValuesFromHost(Tensor *t, void *src, size_t size) {
+  if (t == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
   }
+
+  return copyBetweenContexts(NULL, t->context, src, t->values, size);
+}
+
+Result copyTensorValuesToHost(Tensor *t, void *dest, size_t size) {
+  if (t == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  return copyBetweenContexts(t->context, NULL, t->values, dest, size);
 }
 
 Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out) {
@@ -288,31 +303,19 @@ Result wrap_ArgMax(Context *ctx, Tensor *t, dim_t dim, Tensor **out) {
 }
 
 Tensor *wrap_T_Zeros(Context *ctx, Dim *shape) {
-  Tensor *t = T_Zeros(ctx, *shape);
-  freeAlloc(ctx->memory, shape->dims);
-  freeAlloc(ctx->memory, shape);
-  return t;
+  return T_Zeros(ctx, *shape);
 }
 
 Tensor *wrap_T_Int(Context *ctx, Dim *shape, i8 value) {
-  Tensor *t = T_Int(ctx, *shape, value);
-  freeAlloc(ctx->memory, shape->dims);
-  freeAlloc(ctx->memory, shape);
-  return t;
+  return T_Int(ctx, *shape, value);
 }
 
 Tensor *wrap_T_UInt(Context *ctx, Dim *shape, u8 value) {
-  Tensor *t = T_UInt(ctx, *shape, value);
-  freeAlloc(ctx->memory, shape->dims);
-  freeAlloc(ctx->memory, shape);
-  return t;
+  return T_UInt(ctx, *shape, value);
 }
 
 Tensor *wrap_T_Float(Context *ctx, Dim *shape, f32 value) {
-  Tensor *t = T_Float(ctx, *shape, value);
-  freeAlloc(ctx->memory, shape->dims);
-  freeAlloc(ctx->memory, shape);
-  return t;
+  return T_Float(ctx, *shape, value);
 }
 
 Result wrap_Clone(Context *ctx, Tensor *src, Tensor **out) {

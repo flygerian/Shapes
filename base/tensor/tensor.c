@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <string.h>
+#include <cuda_runtime_api.h>
 #include "../shapes.h"
 #include "common.h"
 #include "result/result.h"
@@ -46,12 +47,31 @@ tensor_size_t calculateNumValuesAndMultipliers(Dim shape, multiplier_t *multipli
   return numberOfValues;
 }
 
+bool isSameContext(Context *a, Context *b) {
+  return a == b;
+}
+
+Result clearTensorValues(Tensor *t) {
+  if (t == NULL || t->values == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
+  if (t->context == NULL || t->context->device == NULL || t->context->device->type == CPU) {
+    memset(t->values, 0, valueBytes);
+    return OK;
+  }
+
+  cudaMemset(t->values, 0, valueBytes);
+  return OK;
+}
+
 Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   tensor_size_t size = calculateNumValuesAndMultipliers(shape, shape.multipliers);
 
   *dest = (Tensor){.context = ctx,
                    .dtype = dtype,
-                   .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
+                   .values = allocateOnCtx(ctx, size * getBytesForDtype(dtype)),
                    .size = size,
                    .shape = shape,
                    .isView = false,
@@ -166,6 +186,75 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   freeAlloc(ctx->memory, indices);
   return copy;
+}
+
+Result materializeTensorOnContext(Context *ctx, Tensor *src, bool requireContiguous,
+                                  TensorArg *arg) {
+  if (ctx == NULL || src == NULL || arg == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  arg->tensor = NULL;
+  arg->ownsTensor = false;
+
+  if (isSameContext(src->context, ctx) && (!requireContiguous || src->isContigous)) {
+    arg->tensor = src;
+    return OK;
+  }
+
+  Tensor *working = src;
+  bool ownsWorking = false;
+
+  if (requireContiguous && !src->isContigous) {
+    Context *materializeCtx = src->context != NULL ? src->context : ctx;
+    working = copyToContiguous(materializeCtx, src);
+    ownsWorking = true;
+  }
+
+  if (isSameContext(working->context, ctx)) {
+    arg->tensor = working;
+    arg->ownsTensor = ownsWorking;
+    return OK;
+  }
+
+  Tensor *copy = allocate(ctx->memory, sizeof(Tensor));
+  Result initResult = initTensorLike(ctx, copy, working, working->dtype);
+  if (initResult != OK) {
+    if (ownsWorking) {
+      FreeTensor(working->context != NULL ? working->context : ctx, working);
+    }
+    return initResult;
+  }
+
+  size_t valueBytes = working->size * getBytesForDtype(working->dtype);
+  Result copyResult =
+      copyBetweenContexts(working->context, ctx, working->values, copy->values, valueBytes);
+  if (copyResult != OK) {
+    FreeTensor(ctx, copy);
+    if (ownsWorking) {
+      FreeTensor(working->context != NULL ? working->context : ctx, working);
+    }
+    return copyResult;
+  }
+
+  if (ownsWorking) {
+    FreeTensor(working->context != NULL ? working->context : ctx, working);
+  }
+
+  arg->tensor = copy;
+  arg->ownsTensor = true;
+  return OK;
+}
+
+void releaseTensorArg(Context *fallbackCtx, TensorArg *arg) {
+  if (arg == NULL || !arg->ownsTensor || arg->tensor == NULL) {
+    return;
+  }
+
+  Context *freeCtx = arg->tensor->context != NULL ? arg->tensor->context : fallbackCtx;
+  FreeTensor(freeCtx, arg->tensor);
+  arg->tensor = NULL;
+  arg->ownsTensor = false;
 }
 
 bool areBroadcastable(Tensor *a, Tensor *b) {

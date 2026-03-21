@@ -8,6 +8,8 @@
 
 Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims);
 void zeroTensorValues(Tensor *t);
+Result copyTensorValuesFromHost(Tensor *t, void *src, size_t size);
+Result copyTensorValuesToHost(Tensor *t, void *dest, size_t size);
 
 Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out);
 Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor **out);

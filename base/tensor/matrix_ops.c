@@ -54,16 +54,28 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  Tensor *opA = ops.a;
-  Tensor *opB = ops.b;
-
-  if (!opA->isContigous) {
-    opA = copyToContiguous(ctx, opA);
+  TensorArg aArg = {0};
+  TensorArg bArg = {0};
+  Result r = materializeTensorOnContext(ctx, ops.a, true, &aArg);
+  if (r != OK) {
+    if (ops.a != a)
+      FreeViewTensor(ctx, ops.a);
+    if (ops.b != b)
+      FreeViewTensor(ctx, ops.b);
+    return r;
+  }
+  r = materializeTensorOnContext(ctx, ops.b, true, &bArg);
+  if (r != OK) {
+    releaseTensorArg(ctx, &aArg);
+    if (ops.a != a)
+      FreeViewTensor(ctx, ops.a);
+    if (ops.b != b)
+      FreeViewTensor(ctx, ops.b);
+    return r;
   }
 
-  if (!opB->isContigous) {
-    opB = copyToContiguous(ctx, opB);
-  }
+  Tensor *opA = aArg.tensor;
+  Tensor *opB = bArg.tensor;
 
   dim_t m = opA->shape.dims[opA->shape.numOfDims - 2];
   dim_t k = opB->shape.dims[opB->shape.numOfDims - 2];
@@ -71,12 +83,12 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
 
   tensor_size_t batchSizeA, batchSizeB;
   dim_t batchDimIdx = opA->shape.numOfDims - 2;
-  Result r = calculateNumElementsBeforeDim(opA, batchDimIdx, &batchSizeA);
+  r = calculateNumElementsBeforeDim(opA, batchDimIdx, &batchSizeA);
   if (r != OK)
-    return r;
+    goto cleanup;
   r = calculateNumElementsBeforeDim(opB, batchDimIdx, &batchSizeB);
   if (r != OK)
-    return r;
+    goto cleanup;
 
   tensor_size_t batchSize = batchSizeA > batchSizeB ? batchSizeA : batchSizeB;
 
@@ -85,7 +97,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .numOfDims = sentinel->shape.numOfDims};
   r = getDimsBefore(ctx, sentinel, batchDimIdx, &newDim);
   if (r != OK)
-    return r;
+    goto cleanup;
 
   newDim.dims[newDim.numOfDims - 2] = m;
   newDim.dims[newDim.numOfDims - 1] = n;
@@ -99,7 +111,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .isView = false,
                      .shape = newDim,
                      .size = size,
-                     .values = allocate(ctx->memory, getBytesForDtype(opA->dtype) * size)};
+                     .values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * size)};
 
   size_t elemSize = getBytesForDtype(opA->dtype);
   for (tensor_size_t i = 0; i < batchSize; i++) {
@@ -113,16 +125,15 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
             B_batch, (int)n, false, C_batch, (int)n);
   }
 
-  if (opA != ops.a)
-    FreeTensor(ctx, opA);
-  if (opB != ops.b)
-    FreeTensor(ctx, opB);
+cleanup:
+  releaseTensorArg(ctx, &aArg);
+  releaseTensorArg(ctx, &bArg);
   if (ops.a != a)
     FreeViewTensor(ctx, ops.a);
   if (ops.b != b)
     FreeViewTensor(ctx, ops.b);
 
-  return OK;
+  return r;
 }
 
 Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
@@ -146,22 +157,27 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     return ERR_DTYPE_MISMATCH;
   }
 
-  Tensor *opA = a;
-  Tensor *opB = b;
+  TensorArg aArg = {0};
+  TensorArg bArg = {0};
+  Result r = materializeTensorOnContext(ctx, a, true, &aArg);
+  if (r != OK) {
+    return r;
+  }
+  r = materializeTensorOnContext(ctx, b, true, &bArg);
+  if (r != OK) {
+    releaseTensorArg(ctx, &aArg);
+    return r;
+  }
 
-  if (!opA->isContigous) {
-    opA = copyToContiguous(ctx, opA);
-  }
-  if (!opB->isContigous) {
-    opB = copyToContiguous(ctx, opB);
-  }
+  Tensor *opA = aArg.tensor;
+  Tensor *opB = bArg.tensor;
 
   dim_t *resDims = allocate(ctx->memory, sizeof(dim_t));
   resDims[0] = 1;
   multiplier_t *resMult = allocate(ctx->memory, sizeof(multiplier_t));
   resMult[0] = 1;
 
-  void *resVal = allocate(ctx->memory, getBytesForDtype(a->dtype));
+  void *resVal = allocateOnCtx(ctx, getBytesForDtype(a->dtype));
 
   BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
 
@@ -174,10 +190,8 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .values = resVal,
                      .shape = (Dim){.dims = resDims, .numOfDims = 1, .multipliers = resMult}};
 
-  if (opA != a)
-    FreeTensor(ctx, opA);
-  if (opB != b)
-    FreeTensor(ctx, opB);
+  releaseTensorArg(ctx, &aArg);
+  releaseTensorArg(ctx, &bArg);
 
   return OK;
 }

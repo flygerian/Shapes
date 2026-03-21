@@ -19,7 +19,7 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
 
     Tensor *t = allocate(ctx->memory, sizeof(Tensor));
     initTensor(ctx, t, tShape, type);
-    memset(t->values, 0, getBytesForDtype(type));
+    clearTensorValues(t);
 
     return t;
   }
@@ -29,11 +29,9 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
 
   memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
   tensor_size_t size = calculateNumValuesAndMultipliers(tShape, tShape.multipliers);
-  size_t bytesRequired = size * getBytesForDtype(type);
-
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
   initTensor(ctx, t, tShape, type);
-  memset(t->values, 0, bytesRequired);
+  clearTensorValues(t);
 
   return t;
 }
@@ -53,8 +51,12 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   size_t valueBytes = getBytesForDtype(source->dtype) * source->size;
-  void *newValues = allocate(ctx->memory, valueBytes);
-  memcpy(newValues, source->values, valueBytes);
+  void *newValues = allocateOnCtx(ctx, valueBytes);
+  Result valueCopyRes =
+      copyBetweenContexts(source->context, ctx, source->values, newValues, valueBytes);
+  if (valueCopyRes != OK) {
+    return valueCopyRes;
+  }
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
@@ -100,8 +102,15 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
     srcContigous = src;
   }
 
-  memcpy(dest->values, srcContigous->values,
-         srcContigous->size * getBytesForDtype(srcContigous->dtype));
+  Result copyRes =
+      copyBetweenContexts(srcContigous->context, dest->context, srcContigous->values, dest->values,
+                          srcContigous->size * getBytesForDtype(srcContigous->dtype));
+  if (copyRes != OK) {
+    if (!src->isContigous) {
+      FreeTensor(ctx, srcContigous);
+    }
+    return copyRes;
+  }
 
   if (!src->isContigous) {
     // Free the intermediate contigous tensor
@@ -112,6 +121,18 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
 }
 
 void SetValues(Tensor *t, Value value) {
+  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
+  if (t->context != NULL && t->context->device != NULL && t->context->device->type == CUDA) {
+    void *hostValues = allocate(t->context->memory, valueBytes);
+    for (tensor_size_t i = 0; i < t->size; i++) {
+      VALUE_SET(hostValues, i, value);
+    }
+
+    copyBetweenContexts(NULL, t->context, hostValues, t->values, valueBytes);
+    freeAlloc(t->context->memory, hostValues);
+    return;
+  }
+
   for (tensor_size_t i = 0; i < t->size; i++) {
     VALUE_SET(t->values, i, value);
   }
@@ -184,9 +205,18 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
   size_t bytesRequired = n * sizeof(f32);
   initTensor(ctx, t, shape, F32);
 
-  f32 *values = (f32 *)t->values;
-  for (tensor_size_t i = 0; i < n; i++) {
-    values[i] = start + (f32)i * step;
+  if (ctx->device != NULL && ctx->device->type == CUDA) {
+    f32 *hostValues = allocate(ctx->memory, bytesRequired);
+    for (tensor_size_t i = 0; i < n; i++) {
+      hostValues[i] = start + (f32)i * step;
+    }
+    copyBetweenContexts(NULL, ctx, hostValues, t->values, bytesRequired);
+    freeAlloc(ctx->memory, hostValues);
+  } else {
+    f32 *values = (f32 *)t->values;
+    for (tensor_size_t i = 0; i < n; i++) {
+      values[i] = start + (f32)i * step;
+    }
   }
 
   return t;
@@ -211,9 +241,8 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
 
   // Create output tensor filled with zeros
   Tensor *out = allocate(ctx->memory, sizeof(Tensor));
-  size_t bytesRequired = outSize * getBytesForDtype(F32);
   initTensor(ctx, out, outShape, F32);
-  memset(out->values, 0, bytesRequired);
+  clearTensorValues(out);
 
   // Get source tensor (copy to contiguous if needed)
   Tensor *source = indices;
@@ -248,7 +277,12 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     }
 
     tensor_size_t outIdx = i * lastDimStride + (tensor_size_t)classIdx;
-    ((f32 *)out->values)[outIdx] = 1.0f;
+    if (ctx->device != NULL && ctx->device->type == CUDA) {
+      f32 one = 1.0f;
+      copyBetweenContexts(NULL, ctx, &one, (char *)out->values + outIdx * sizeof(f32), sizeof(f32));
+    } else {
+      ((f32 *)out->values)[outIdx] = 1.0f;
+    }
   }
 
   return out;
