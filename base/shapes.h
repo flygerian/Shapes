@@ -10,10 +10,11 @@
 #define MAX_PARALLEL_SUMS 4
 
 // Context
-Context initializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
-Context *createContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
-void destroyContext(Context *ctx);
-void freeContext(Context *ctx);
+Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
+Context *CreateContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
+void DestroyContext(Context *ctx);
+void FreeContext(Context *ctx);
+void CopyTensorsToDevice(Device *device, u8 numTensors, ...);
 
 // Binary Ops
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);

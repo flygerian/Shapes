@@ -272,7 +272,6 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   Permute(ctx, outputGrad, &outGradNhwc, order);
   outputGradContig = copyToContiguous(ctx, &outGradNhwc);
 
-
   dim_t C_in = input->shape.dims[1];
   dim_t kS = C_in * kH * kW;
 

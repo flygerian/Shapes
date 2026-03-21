@@ -108,7 +108,8 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     void *B_batch = (char *)opB->values + bIdx * (k * n) * elemSize;
     void *C_batch = (char *)result->values + i * (m * n) * elemSize;
 
-    BLAS_GEMM(opA->dtype, A_batch, B_batch, C_batch, m, n, k);
+    runGemm(ctx, opA->dtype, CblasNoTrans, CblasNoTrans, (int)m, (int)n, (int)k, A_batch, (int)k,
+            B_batch, (int)n, false, C_batch, (int)n);
   }
 
   if (opA != ops.a)

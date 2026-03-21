@@ -77,6 +77,18 @@ typedef struct {
 } Value;
 
 typedef struct {
+ DeviceType type;
+ char *id;
+} Device;
+
+typedef struct Context {
+  Memory *memory;
+  Device *device;
+  cublasHandle_t handle;
+} Context;
+
+typedef struct {
+  Context *context;
   void *values;
   Range *boundary;
   tensor_size_t size;
@@ -93,17 +105,6 @@ typedef struct {
   Tensor *m;
   Tensor *v;
 } AdamData;
-
-typedef struct {
- DeviceType type;
- char *id;
-} Device;
-
-typedef struct Context {
-  Memory *memory;
-  Device *device;
-  cublasHandle_t handle;
-} Context;
 
 size_t getBytesForDtype(Dtype type);
 

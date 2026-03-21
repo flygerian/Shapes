@@ -1,7 +1,6 @@
 #include "shapes.h"
 
 #include "../memory.h"
-#include "tensor/blas.h"
 #include "tensor/tensor_internal.h"
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
@@ -89,15 +88,9 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
-  if (x->dtype == F64) {
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
-                1.0, (double *)xContig->values, (int)inputSize, (double *)wContig->values,
-                (int)inputSize, 0.0, (double *)dest->values, (int)outputSize);
-  } else {
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
-                1.0f, (float *)xContig->values, (int)inputSize, (float *)wContig->values,
-                (int)inputSize, 0.0f, (float *)dest->values, (int)outputSize);
-  }
+  runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
+          xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, dest->values,
+          (int)outputSize);
 
   if (withBias) {
     // Add bias per output feature for every flattened row.
@@ -197,15 +190,14 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
 
   if (x->dtype == F64) {
     // dX = gradOut * w
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize,
-                (int)outputSize, 1.0, (double *)gContig->values, (int)outputSize,
-                (double *)wContig->values, (int)inputSize, 0.0, (double *)dX->values,
-                (int)inputSize);
+    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize,
+            (int)outputSize, gContig->values, (int)outputSize, wContig->values, (int)inputSize,
+            false, dX->values, (int)inputSize);
 
     // dW = gradOut^T * x
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-                1.0, (double *)gContig->values, (int)outputSize, (double *)xContig->values,
-                (int)inputSize, 0.0, (double *)dW->values, (int)inputSize);
+    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
+            (int)inputSize);
 
     // dB is the row-wise sum of gradOut (one accumulator per output feature).
     double *gVals = gContig->values;
@@ -221,15 +213,14 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
     }
   } else {
     // dX = gradOut * w
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize,
-                (int)outputSize, 1.0f, (float *)gContig->values, (int)outputSize,
-                (float *)wContig->values, (int)inputSize, 0.0f, (float *)dX->values,
-                (int)inputSize);
+    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize,
+            (int)outputSize, gContig->values, (int)outputSize, wContig->values, (int)inputSize,
+            false, dX->values, (int)inputSize);
 
     // dW = gradOut^T * x
-    cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-                1.0f, (float *)gContig->values, (int)outputSize, (float *)xContig->values,
-                (int)inputSize, 0.0f, (float *)dW->values, (int)inputSize);
+    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
+            (int)inputSize);
 
     // dB is the row-wise sum of gradOut (one accumulator per output feature).
     float *gVals = gContig->values;

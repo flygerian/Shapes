@@ -3,22 +3,6 @@
 
 #include "cblas.h"
 
-#define BLAS_GEMM(dt, A, B, C, m, n, k)                                                            \
-  do {                                                                                             \
-    switch (dt) {                                                                                  \
-      case F64:                                                                                    \
-        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, 1.0, (double *)(A), k,     \
-                    (double *)(B), n, 0.0, (double *)(C), n);                                      \
-        break;                                                                                     \
-      case F32:                                                                                    \
-      case F16:                                                                                    \
-        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, 1.0f, (float *)(A), k,     \
-                    (float *)(B), n, 0.0f, (float *)(C), n);                                       \
-        break;                                                                                     \
-      default: break;                                                                              \
-    }                                                                                              \
-  } while (0)
-
 #define BLAS_DOT(dt, n, A, B, result)                                                              \
   do {                                                                                             \
     switch (dt) {                                                                                  \

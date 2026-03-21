@@ -2,6 +2,7 @@
 #include <string.h>
 #include "../shapes.h"
 #include "common.h"
+#include "result/result.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include "../memory.h"
@@ -396,4 +397,12 @@ Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dt
                    .boundary = NULL};
 
   return OK;
+}
+
+Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  void* locationOnTarget = allocate(destCtx, sizeof(Tensor) * getBytesForDtype(t->dtype));
 }

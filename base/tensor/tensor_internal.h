@@ -4,6 +4,7 @@
 #include "../shapes.h"
 #include "cblas.h"
 #include "../common.h"
+#include "result/result.h"
 #include "value.h"
 #include <stddef.h>
 
@@ -46,6 +47,8 @@ Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);
 
 void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep,
                               void *srcValues, u64 srcBase, u64 srcStep, u64 count);
+
+Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t);
 
 bool isIntType(Tensor *t);
 bool isNotFloatType(Tensor *t);
