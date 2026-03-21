@@ -13,6 +13,18 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -O3 -march=native -c -o CMakeFiles/shapes_core.dir/context.c.o -c /home/olabode/repos/Shapes/base/context.c",
+  "file": "/home/olabode/repos/Shapes/base/context.c",
+  "output": "CMakeFiles/shapes_core.dir/context.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -O3 -march=native -c -x cu -c /home/olabode/repos/Shapes/base/cuda/gemm.cu -o CMakeFiles/shapes_core.dir/cuda/gemm.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/gemm.cu",
+  "output": "CMakeFiles/shapes_core.dir/cuda/gemm.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -O3 -march=native -c -o CMakeFiles/shapes_core.dir/layer/dense.c.o -c /home/olabode/repos/Shapes/base/layer/dense.c",
   "file": "/home/olabode/repos/Shapes/base/layer/dense.c",
   "output": "CMakeFiles/shapes_core.dir/layer/dense.c.o"

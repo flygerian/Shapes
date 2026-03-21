@@ -1,9 +1,6 @@
 package memory
 
 /*
-#cgo CFLAGS: -I../../base
-#cgo LDFLAGS: -L../../base/build -L../../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
-
 #include "memory.h"
 */
 import "C"

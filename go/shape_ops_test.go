@@ -268,7 +268,7 @@ func TestSqueezeScalarPreservesScalarShape(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
 
-	a := FromFloat32(ctx, Shape{}, []float32{9})
+	a := FromFloat32(ctx, Shape{1}, []float32{9}).Get(ctx, 0)
 	squeezed := a.Squeeze(ctx)
 
 	if got := squeezed.Shape(); len(got) != 0 {

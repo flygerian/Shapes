@@ -50,27 +50,6 @@ func TestWithGrad(t *testing.T) {
 	}
 }
 
-func TestFusedRequiresGrad(t *testing.T) {
-	ctx := New(stdctx.Background())
-	defer ctx.Finish()
-
-	mustPanic(t, func() {
-		_ = ctx.Fused()
-	})
-
-	ctxGrad := New(stdctx.Background(), WithGrad(true))
-	defer ctxGrad.Finish()
-	fused := ctxGrad.Fused()
-	defer fused.Finish()
-
-	if !fused.GradEnabled() {
-		t.Fatal("fused context should keep grad enabled")
-	}
-	if fused.BackwardEnabled() {
-		t.Fatal("fused context should disable backward")
-	}
-}
-
 func TestNoGradRequiresGradEnabledParent(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()

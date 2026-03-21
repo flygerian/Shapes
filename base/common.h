@@ -7,6 +7,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include <stdio.h>
 #include <termios.h>
 #include <time.h>
 
@@ -99,6 +102,7 @@ typedef struct {
 typedef struct Context {
   Memory *memory;
   Device *device;
+  cublasHandle_t handle;
 } Context;
 
 size_t getBytesForDtype(Dtype type);

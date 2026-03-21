@@ -1,7 +1,6 @@
 package shapes
 
 /*
-#cgo CFLAGS: -I../base
 #include "result/result.h"
 */
 import "C"

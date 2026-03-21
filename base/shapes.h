@@ -9,6 +9,12 @@
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
 
+// Context
+Context initializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
+Context *createContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
+void destroyContext(Context *ctx);
+void freeContext(Context *ctx);
+
 // Binary Ops
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
 Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);

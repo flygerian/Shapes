@@ -6,7 +6,6 @@
 #include "shapes.h"
 #include <stddef.h>
 
-Context *newContext(bool grad, size_t arenaSize);
 Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims);
 void zeroTensorValues(Tensor *t);
 

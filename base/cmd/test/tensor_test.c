@@ -1,5 +1,6 @@
 #include "test.h"
 #include "../../shapes.h"
+#include "../../tensor/tensor_internal.h"
 #include <string.h>
 
 typedef struct {
@@ -3276,6 +3277,58 @@ static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *va
                   .shape = (Dim){.dims = dims, .numOfDims = numOfDims, .multipliers = multipliers}};
 }
 
+static void test_gemm_gpu_dispatch_basic(void) {
+  int deviceCount = 0;
+  if (cudaGetDeviceCount(&deviceCount) != cudaSuccess || deviceCount < 1) {
+    return;
+  }
+
+  Context ctx = initializeContext((size_t)1024 * 1024, 1, true);
+
+  float a[] = {1, 2, 3, 4, 5, 6};
+  float b[] = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+  float c[] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+  runGemm(&ctx, F32, CblasNoTrans, CblasNoTrans, 2, 4, 3, a, 3, b, 4, false, c, 4);
+
+  ASSERT_EQ((int)c[0], 74, "GPU GEMM [0,0] should be 74");
+  ASSERT_EQ((int)c[1], 80, "GPU GEMM [0,1] should be 80");
+  ASSERT_EQ((int)c[2], 86, "GPU GEMM [0,2] should be 86");
+  ASSERT_EQ((int)c[3], 92, "GPU GEMM [0,3] should be 92");
+  ASSERT_EQ((int)c[4], 173, "GPU GEMM [1,0] should be 173");
+  ASSERT_EQ((int)c[5], 188, "GPU GEMM [1,1] should be 188");
+  ASSERT_EQ((int)c[6], 203, "GPU GEMM [1,2] should be 203");
+  ASSERT_EQ((int)c[7], 218, "GPU GEMM [1,3] should be 218");
+
+  destroyContext(&ctx);
+}
+
+static void test_gemm_gpu_dispatch_f64(void) {
+  int deviceCount = 0;
+  if (cudaGetDeviceCount(&deviceCount) != cudaSuccess || deviceCount < 1) {
+    return;
+  }
+
+  Context ctx = initializeContext((size_t)1024 * 1024, 1, true);
+
+  double a[] = {1, 2, 3, 4, 5, 6};
+  double b[] = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+  double c[] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+  runGemm(&ctx, F64, CblasNoTrans, CblasNoTrans, 2, 4, 3, a, 3, b, 4, false, c, 4);
+
+  ASSERT_EQ((int)c[0], 74, "GPU F64 GEMM [0,0] should be 74");
+  ASSERT_EQ((int)c[1], 80, "GPU F64 GEMM [0,1] should be 80");
+  ASSERT_EQ((int)c[2], 86, "GPU F64 GEMM [0,2] should be 86");
+  ASSERT_EQ((int)c[3], 92, "GPU F64 GEMM [0,3] should be 92");
+  ASSERT_EQ((int)c[4], 173, "GPU F64 GEMM [1,0] should be 173");
+  ASSERT_EQ((int)c[5], 188, "GPU F64 GEMM [1,1] should be 188");
+  ASSERT_EQ((int)c[6], 203, "GPU F64 GEMM [1,2] should be 203");
+  ASSERT_EQ((int)c[7], 218, "GPU F64 GEMM [1,3] should be 218");
+
+  destroyContext(&ctx);
+}
+
 static void test_matmul_2d_basic(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -5052,6 +5105,8 @@ void run_tensor_tests(void) {
   test_clone_transposed();
   test_clone_null_tensor();
   // MatMul tests
+  test_gemm_gpu_dispatch_basic();
+  test_gemm_gpu_dispatch_f64();
   test_matmul_2d_basic();
   test_matmul_2d_non_square();
   test_matmul_3d_batch();

@@ -57,4 +57,14 @@ Result freeTensorBuffers(Context *ctx, Tensor *t);
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n,
                     int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
                     int ldc);
+#ifdef __cplusplus
+extern "C" {
+#endif
+void runCudaGemm(Context *ctx, Dtype dtype, cublasOperation_t transA,
+                            cublasOperation_t transB, int m, int n, int k,
+                            const void *a, int lda, const void *b, int ldb,
+                            bool accumulate, void *c, int ldc);
+#ifdef __cplusplus
+}
+#endif
 #endif

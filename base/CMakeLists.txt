@@ -58,6 +58,8 @@ target_include_directories(shapes_memory PUBLIC ${CMAKE_SOURCE_DIR})
 # Core library
 add_library(shapes_core
     common.c
+    context.c
+    cuda/gemm.cu
     layer/dense.c
     layer/batch_norm.c
     layer/im2col.c

@@ -20,6 +20,12 @@ OPENBLAS_LIB := $(OPENBLAS_INSTALL)/lib/libopenblas.a
 # Go
 GO_BINARY := $(GO_DIR)/main
 OPENBLAS_LIB_DIR := $(OPENBLAS_INSTALL)/lib
+CUDA_INCLUDE_DIR := /opt/cuda/targets/x86_64-linux/include
+CUDA_LIB_DIR := /opt/cuda/targets/x86_64-linux/lib
+GO_CACHE_DIR := /tmp/shapes-go-cache
+GO_CGO_CFLAGS := -O0 -g -I$(abspath $(BASE_DIR)) -I$(CUDA_INCLUDE_DIR)
+GO_CGO_LDFLAGS := -L$(abspath $(BUILD_DIR)) -L$(abspath $(OPENBLAS_LIB_DIR)) -L$(CUDA_LIB_DIR) -lshapes_core -lshapes_memory -lopenblas -lcublas -lcudart -lm
+GO_RUNTIME_LD_LIBRARY_PATH := $$PWD/../$(OPENBLAS_LIB_DIR):$(CUDA_LIB_DIR)
 
 # Default target
 all: build
@@ -82,14 +88,14 @@ build-base: $(OPENBLAS_LIB)
 # Build Go bindings
 build-go: build-base
 	@echo "==> Building Go bindings..."
-	cd $(GO_DIR) && CGO_CFLAGS="-O0 -g" go build -gcflags="all=-N -l"  -ldflags="-compressdwarf=false" -v ./cmd/main
+	cd $(GO_DIR) && GOCACHE='$(GO_CACHE_DIR)' CGO_CFLAGS='$(GO_CGO_CFLAGS)' CGO_LDFLAGS='$(GO_CGO_LDFLAGS)' go build -gcflags="all=-N -l" -ldflags="-compressdwarf=false" -v ./cmd/main
 	@echo "==> Go build complete!"
 	@echo ""
-	@echo "To run: cd go && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main"
+	@echo "To run: cd go && LD_LIBRARY_PATH=$(GO_RUNTIME_LD_LIBRARY_PATH) ./main"
 
 # Run the Go binary
 run: build-go
-	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) ./main
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$(GO_RUNTIME_LD_LIBRARY_PATH) ./main
 
 # Debug the Go binary with Delve (ASan disabled to avoid CGo/Go runtime conflicts)
 debug: $(OPENBLAS_LIB)
@@ -98,9 +104,9 @@ debug: $(OPENBLAS_LIB)
 	@echo "==> Building C library..."
 	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> Building Go binary with debug flags..."
-	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
+	cd $(GO_DIR) && GOCACHE='$(GO_CACHE_DIR)' CGO_CFLAGS='$(GO_CGO_CFLAGS)' CGO_LDFLAGS='$(GO_CGO_LDFLAGS)' go build -gcflags='all=-N -l' -o main ./cmd/main
 	@echo "==> Launching Delve debugger..."
-	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) dlv exec ./main
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$(GO_RUNTIME_LD_LIBRARY_PATH) dlv exec ./main
 
 
 debug-gdb: $(OPENBLAS_LIB)
@@ -109,22 +115,22 @@ debug-gdb: $(OPENBLAS_LIB)
 	@echo "==> Building C library..."
 	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> Building Go binary with debug flags..."
-	cd $(GO_DIR) && go build -gcflags='all=-N -l' -o main ./cmd/main
+	cd $(GO_DIR) && GOCACHE='$(GO_CACHE_DIR)' CGO_CFLAGS='$(GO_CGO_CFLAGS)' CGO_LDFLAGS='$(GO_CGO_LDFLAGS)' go build -gcflags='all=-N -l' -o main ./cmd/main
 	@echo "==> Launching Delve debugger..."
-	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) gdb ./main
+	cd $(GO_DIR) && LD_LIBRARY_PATH=$(GO_RUNTIME_LD_LIBRARY_PATH) gdb ./main
 
 # Run all tests
 test: build-base build-go
 	@echo "==> Running C tests..."
 	cd $(BASE_DIR) && ctest --test-dir build --output-on-failure
 	@echo "==> Running Go tests..."
-	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) go test -v ./...
+	cd $(GO_DIR) && GOCACHE='$(GO_CACHE_DIR)' CGO_CFLAGS='$(GO_CGO_CFLAGS)' CGO_LDFLAGS='$(GO_CGO_LDFLAGS)' LD_LIBRARY_PATH=$(GO_RUNTIME_LD_LIBRARY_PATH) go test -v ./...
 	@echo "==> All tests passed!"
 
 # Run Go tests only
 test-go: build-go
 	@echo "==> Running Go tests..."
-	cd $(GO_DIR) && LD_LIBRARY_PATH=$$PWD/../$(OPENBLAS_LIB_DIR) go test -v ./...
+	cd $(GO_DIR) && GOCACHE='$(GO_CACHE_DIR)' CGO_CFLAGS='$(GO_CGO_CFLAGS)' CGO_LDFLAGS='$(GO_CGO_LDFLAGS)' LD_LIBRARY_PATH=$(GO_RUNTIME_LD_LIBRARY_PATH) go test -v ./...
 	@echo "==> Go tests passed!"
 
 # Run tests directly (alternative to ctest)

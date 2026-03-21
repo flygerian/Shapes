@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
   Memory *head;
   head = malloc(sizeof(Memory) + arenaSize); // return the top of the heap;

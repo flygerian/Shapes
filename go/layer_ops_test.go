@@ -7,7 +7,7 @@ import (
 )
 
 func TestConv2dForwardSingleBatchSingleChannel(t *testing.T) {
-	ctx := New(stdctx.Background())
+	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
 	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
@@ -20,7 +20,7 @@ func TestConv2dForwardSingleBatchSingleChannel(t *testing.T) {
 		0, 1,
 	})
 
-	out := Conv2d(ctx, x, kernels, 1)
+	out, _ := Conv2d(ctx, x, kernels, 1)
 	wantShape := Shape{1, 1, 2, 2}
 	if got := out.Shape(); len(got) != len(wantShape) ||
 		got[0] != wantShape[0] || got[1] != wantShape[1] || got[2] != wantShape[2] || got[3] != wantShape[3] {
@@ -37,7 +37,7 @@ func TestConv2dForwardSingleBatchSingleChannel(t *testing.T) {
 }
 
 func TestConv2dForwardBatchDimension(t *testing.T) {
-	ctx := New(stdctx.Background())
+	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
 	x := FromFloat32(ctx, Shape{2, 1, 3, 3}, []float32{
@@ -53,7 +53,7 @@ func TestConv2dForwardBatchDimension(t *testing.T) {
 		0, 1,
 	})
 
-	out := Conv2d(ctx, x, kernels, 1)
+	out, _ := Conv2d(ctx, x, kernels, 1)
 	values := out.Values().([]float32)
 	want := []float32{6, 8, 12, 14, 24, 26, 30, 32}
 	for i := range want {
@@ -64,7 +64,7 @@ func TestConv2dForwardBatchDimension(t *testing.T) {
 }
 
 func TestConv2dPanicsOnInvalidKernelShape(t *testing.T) {
-	ctx := New(stdctx.Background())
+	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
 	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
@@ -82,11 +82,11 @@ func TestConv2dPanicsOnInvalidKernelShape(t *testing.T) {
 		1, 0,
 		0, 1,
 	})
-	_ = Conv2d(ctx, x, invalidKernels, 1)
+	_, _ = Conv2d(ctx, x, invalidKernels, 1)
 }
 
 func TestConv2dBackwardSingleChannel(t *testing.T) {
-	ctx := New(stdctx.Background())
+	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
 	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
@@ -103,14 +103,15 @@ func TestConv2dBackwardSingleChannel(t *testing.T) {
 		1, 1,
 	})
 
-	dX, dKernels := Conv2dBackward(ctx, x, kernels, gradOut, 1)
+	_, colBuffer := Conv2d(ctx, x, kernels, 1)
+	Conv2dBackward(ctx, x, kernels, gradOut, colBuffer, 1)
 
 	wantDX := []float32{
 		1, 1, 0,
 		1, 2, 1,
 		0, 1, 1,
 	}
-	gotDX := dX.Values().([]float32)
+	gotDX := x.Grad().(Tensor).Values().([]float32)
 	for i := range wantDX {
 		if math.Abs(float64(gotDX[i]-wantDX[i])) > 1e-5 {
 			t.Fatalf("dX[%d]=%f want %f", i, gotDX[i], wantDX[i])
@@ -118,7 +119,7 @@ func TestConv2dBackwardSingleChannel(t *testing.T) {
 	}
 
 	wantDK := []float32{12, 16, 24, 28}
-	gotDK := dKernels.Values().([]float32)
+	gotDK := kernels.Grad().(Tensor).Values().([]float32)
 	for i := range wantDK {
 		if math.Abs(float64(gotDK[i]-wantDK[i])) > 1e-5 {
 			t.Fatalf("dKernels[%d]=%f want %f", i, gotDK[i], wantDK[i])

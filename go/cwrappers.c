@@ -2,14 +2,6 @@
 #include "layer/im2col.h"
 #include <string.h>
 
-Context *newContext(bool grad, size_t arenaSize) {
-  (void)grad;
-  Memory *mem = initializeArena(arenaSize, 1);
-  Context *ctx = allocate(mem, sizeof(Context));
-  ctx->memory = mem;
-  return ctx;
-}
-
 Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims) {
   Dim *d = allocate(mem, sizeof(Dim));
   d->dims = allocate(mem, sizeof(dim_t) * numDims);

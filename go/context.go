@@ -12,9 +12,6 @@ import (
 )
 
 /*
-#cgo CFLAGS: -I../base
-#cgo LDFLAGS: -L../base/build -L../base/build/openblas/lib -lshapes_core -lshapes_memory -lopenblas -lm
-
 #include "cwrappers.h"
 */
 import "C"
@@ -109,9 +106,9 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 	}
 
 	if ctx.arenaSize != 0 {
-		ctx.cCtx = C.newContext(C.bool(false), C.size_t(ctx.arenaSize))
+		ctx.cCtx = C.createContext(C.size_t(ctx.arenaSize), 1, C.bool(false))
 	} else {
-		ctx.cCtx = C.newContext(C.bool(false), 1024*1024*64)
+		ctx.cCtx = C.createContext(1024*1024*64, 1, C.bool(false))
 	}
 
 	return ctx
@@ -181,7 +178,7 @@ func (c *mainContext) Finish() {
 		}
 
 		c.handles = nil
-		C.freeMemory(c.cCtx.memory)
+		C.freeContext(c.cCtx)
 		c.cCtx = nil
 	}
 }
