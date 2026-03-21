@@ -221,6 +221,29 @@ func MaxPool2d(ctx Context, x Tensor, kernel Shape, stride uint8) Tensor {
 	return track(ctx, &tensor{cTensor: out})
 }
 
+func MaxPool2dWithIndices(ctx Context, x Tensor, kernel Shape, stride uint8) (Tensor, Tensor) {
+	if len(kernel) != 2 {
+		panic("shapes: MaxPool2dWithIndices kernel must be 2D [kH,kW]")
+	}
+
+	var out *C.Tensor
+	var indices *C.Tensor
+	result := C.wrap_MaxPool2dWithIndices(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		C.dim_t(kernel[0]),
+		C.dim_t(kernel[1]),
+		C.u8(stride),
+		&out,
+		&indices,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: out}), track(ctx, &tensor{cTensor: indices})
+}
+
 func MaxPool2dBackward(ctx Context, x Tensor, gradOut Tensor, kernel Shape, stride uint8) Tensor {
 	if len(kernel) != 2 {
 		panic("shapes: MaxPool2dBackward kernel must be 2D [kH,kW]")
@@ -234,6 +257,22 @@ func MaxPool2dBackward(ctx Context, x Tensor, gradOut Tensor, kernel Shape, stri
 		C.dim_t(kernel[0]),
 		C.dim_t(kernel[1]),
 		C.u8(stride),
+		&dX,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX})
+}
+
+func MaxPool2dBackwardWithIndices(ctx Context, x Tensor, gradOut Tensor, indices Tensor) Tensor {
+	var dX *C.Tensor
+	result := C.wrap_MaxPool2dBackwardWithIndices(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		indices.(*tensor).cTensor,
 		&dX,
 	)
 	if result != C.OK {

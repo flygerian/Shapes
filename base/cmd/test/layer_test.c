@@ -2,10 +2,17 @@
 #include "test.h"
 #include "../../shapes.h"
 #include "../../layer/im2col.h"
+#include "../../tensor/tensor_internal.h"
 #include "cblas.h"
+#include <cuda_runtime.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+static bool hasCudaDevice(void) {
+  int deviceCount = 0;
+  return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
+}
 
 static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
@@ -20,6 +27,19 @@ static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
               .isView = false,
               .isContigous = true,
               .boundary = NULL};
+  return t;
+}
+
+static Tensor createScalarTensor(Context *ctx, Dtype dtype) {
+  Tensor t = {.context = ctx,
+              .metadataMemory = ctx->memory,
+              .values = allocate(ctx->memory, getBytesForDtype(dtype)),
+              .boundary = NULL,
+              .size = 1,
+              .shape = (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL},
+              .dtype = dtype,
+              .isView = false,
+              .isContigous = true};
   return t;
 }
 
@@ -85,6 +105,25 @@ static Tensor create4DTensor(Context *ctx, dim_t batch, dim_t channels, dim_t he
               .isContigous = true,
               .boundary = NULL};
   return t;
+}
+
+static void assertMovedF32TensorClose(Context *srcCtx, Tensor *tensor, const f32 *expected,
+                                      tensor_size_t size, f32 tolerance, const char *label) {
+  Context cpuCtx = {.memory = srcCtx->memory};
+  Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
+  ASSERT_EQ(moveResult, OK, label);
+
+  f32 *values = tensor->values;
+  for (tensor_size_t i = 0; i < size; i++) {
+    ASSERT(fabsf(values[i] - expected[i]) < tolerance, label);
+  }
+}
+
+static void assertScalarF32Close(Tensor *tensor, f32 expected, f32 tolerance, const char *label) {
+  Value value;
+  Result result = GetScalar(tensor, &value);
+  ASSERT_EQ(result, OK, label);
+  ASSERT(fabsf(value.as.f32 - expected) < tolerance, label);
 }
 
 static void test_dense_linear_forward_with_bias_f32(void) {
@@ -279,7 +318,7 @@ static void test_batch_norm_backward_f32(void) {
 static void test_conv2d_rejects_non_float_input(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, I32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, I32);
   Tensor out;
 
   dim_t kernelDimsArr[2] = {2, 2};
@@ -308,7 +347,7 @@ static void test_conv2d_rejects_tensor_with_too_few_dims(void) {
 static void test_conv2d_rejects_zero_in_channels(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor out;
 
   dim_t kernelDimsArr[2] = {2, 2};
@@ -322,7 +361,7 @@ static void test_conv2d_rejects_zero_in_channels(void) {
 static void test_conv2d_rejects_zero_out_channels(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor out;
 
   dim_t kernelDimsArr[2] = {2, 2};
@@ -336,7 +375,7 @@ static void test_conv2d_rejects_zero_out_channels(void) {
 static void test_conv2d_rejects_non_2d_kernel_shape(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor out;
 
   Tensor kernels = create2DTensor(&ctx, 1, 1, F32);
@@ -349,7 +388,7 @@ static void test_conv2d_rejects_non_2d_kernel_shape(void) {
 static void test_conv2d_forward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor out;
 
@@ -370,9 +409,9 @@ static void test_conv2d_forward_f32_single_channel(void) {
   ASSERT_EQ(r, OK, "Conv2d single-channel forward should succeed");
   ASSERT_EQ(out.shape.numOfDims, 4, "Conv2d output should be 4D");
   ASSERT_EQ(out.shape.dims[0], 1, "Output batch mismatch");
-  ASSERT_EQ(out.shape.dims[1], 1, "Output channels mismatch");
-  ASSERT_EQ(out.shape.dims[2], 2, "Output height mismatch");
-  ASSERT_EQ(out.shape.dims[3], 2, "Output width mismatch");
+  ASSERT_EQ(out.shape.dims[1], 2, "Output height mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Output width mismatch");
+  ASSERT_EQ(out.shape.dims[3], 1, "Output channels mismatch");
   ASSERT(out.isContigous, "Conv2d output should be contiguous");
 
   f32 *o = out.values;
@@ -387,7 +426,7 @@ static void test_conv2d_forward_f32_single_channel(void) {
 static void test_conv2d_returns_col_buffer_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor out;
   Tensor colBuffer;
@@ -430,13 +469,15 @@ static void test_conv2d_returns_col_buffer_f32(void) {
 static void test_conv2d_forward_f32_multi_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 2, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 2, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 2, 2, 2, F32);
   Tensor out;
 
   f32 *x = t.values;
+  f32 input[18] = {1.0f, 10.0f, 2.0f, 11.0f, 3.0f, 12.0f, 4.0f, 13.0f, 5.0f,
+                   14.0f, 6.0f, 15.0f, 7.0f, 16.0f, 8.0f, 17.0f, 9.0f, 18.0f};
   for (int i = 0; i < 18; i++) {
-    x[i] = (f32)(i + 1);
+    x[i] = input[i];
   }
 
   f32 *k = kernels.values;
@@ -452,8 +493,9 @@ static void test_conv2d_forward_f32_multi_channel(void) {
   Result r = Conv2d(&ctx, 2, 1, 1, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d multi-channel forward should succeed");
-  ASSERT_EQ(out.shape.dims[2], 2, "Multi-channel output height mismatch");
-  ASSERT_EQ(out.shape.dims[3], 2, "Multi-channel output width mismatch");
+  ASSERT_EQ(out.shape.dims[1], 2, "Multi-channel output height mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Multi-channel output width mismatch");
+  ASSERT_EQ(out.shape.dims[3], 1, "Multi-channel output channels mismatch");
 
   f32 *o = out.values;
   ASSERT(fabsf(o[0] - 36.0f) < 1e-5f, "Conv multi out[0] mismatch");
@@ -467,7 +509,7 @@ static void test_conv2d_forward_f32_multi_channel(void) {
 static void test_conv2d_forward_f32_with_batch_dimension(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 2, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 2, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor out;
 
@@ -488,9 +530,9 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
 
   ASSERT_EQ(r, OK, "Conv2d batched forward should succeed");
   ASSERT_EQ(out.shape.dims[0], 2, "Batched output batch mismatch");
-  ASSERT_EQ(out.shape.dims[1], 1, "Batched output channels mismatch");
-  ASSERT_EQ(out.shape.dims[2], 2, "Batched output height mismatch");
-  ASSERT_EQ(out.shape.dims[3], 2, "Batched output width mismatch");
+  ASSERT_EQ(out.shape.dims[1], 2, "Batched output height mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Batched output width mismatch");
+  ASSERT_EQ(out.shape.dims[3], 1, "Batched output channels mismatch");
 
   f32 *o = out.values;
   ASSERT(fabsf(o[0] - 6.0f) < 1e-5f, "Batched conv out[0] mismatch");
@@ -508,7 +550,7 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
 static void test_conv2d_restores_openblas_threads_after_local_override(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor out;
 
@@ -544,7 +586,7 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
 static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 5, 5, F32);
+  Tensor t = create4DTensor(&ctx, 1, 5, 5, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
   Tensor out;
 
@@ -568,12 +610,12 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
   Result r = Conv2d(&ctx, 1, 2, 2, &kernels, &t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d stride-two forward should succeed");
-  ASSERT_EQ(out.shape.dims[1], 2, "Stride-two output channel mismatch");
-  ASSERT_EQ(out.shape.dims[2], 2, "Stride-two output height mismatch");
-  ASSERT_EQ(out.shape.dims[3], 2, "Stride-two output width mismatch");
+  ASSERT_EQ(out.shape.dims[1], 2, "Stride-two output height mismatch");
+  ASSERT_EQ(out.shape.dims[2], 2, "Stride-two output width mismatch");
+  ASSERT_EQ(out.shape.dims[3], 2, "Stride-two output channel mismatch");
 
   f32 *o = out.values;
-  f32 want[8] = {8.0f, 12.0f, 28.0f, 32.0f, 3.0f, 7.0f, 23.0f, 27.0f};
+  f32 want[8] = {8.0f, 3.0f, 12.0f, 7.0f, 28.0f, 23.0f, 32.0f, 27.0f};
   for (int i = 0; i < 8; i++) {
     ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "Conv2d stride-two output mismatch");
   }
@@ -584,7 +626,7 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
 static void test_conv2d_forward_f64_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor t = create4DTensor(&ctx, 1, 1, 3, 3, F64);
+  Tensor t = create4DTensor(&ctx, 1, 3, 3, 1, F64);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F64);
   Tensor out;
 
@@ -617,10 +659,10 @@ static void test_conv2d_forward_f64_single_channel(void) {
 static void test_conv2d_backward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor x = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor dX = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 2, 2, 1, F32);
+  Tensor dX = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor dKernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
@@ -668,10 +710,10 @@ static void test_conv2d_backward_f32_single_channel(void) {
 static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor x = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor dX = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 2, 2, 1, F32);
+  Tensor dX = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor dKernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
@@ -719,10 +761,10 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
 static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 5, 5, F32);
+  Tensor x = create4DTensor(&ctx, 1, 5, 5, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor dX = create4DTensor(&ctx, 1, 1, 5, 5, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 2, 2, 1, F32);
+  Tensor dX = create4DTensor(&ctx, 1, 5, 5, 1, F32);
   Tensor dKernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
@@ -770,10 +812,10 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
 static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 2, 1, 3, 3, F32);
+  Tensor x = create4DTensor(&ctx, 2, 3, 3, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
   Tensor gradOut = create4DTensor(&ctx, 2, 2, 2, 2, F32);
-  Tensor dX = create4DTensor(&ctx, 2, 1, 3, 3, F32);
+  Tensor dX = create4DTensor(&ctx, 2, 3, 3, 1, F32);
   Tensor dKernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
@@ -792,8 +834,8 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   kVals[7] = 0.0f;
 
   f32 *gVals = gradOut.values;
-  f32 grads[16] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
-                   2.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 2.0f, 3.0f};
+  f32 grads[16] = {1.0f, 5.0f, 2.0f, 6.0f, 3.0f, 7.0f, 4.0f, 8.0f,
+                   2.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f, 3.0f};
   for (int i = 0; i < 16; i++) {
     gVals[i] = grads[i];
   }
@@ -823,10 +865,76 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   freeMemory(mem);
 }
 
+static void test_conv2d_backward_materializes_cuda_sources_on_cpu_target_context(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  Tensor x = create4DTensor(&hostCtx, 1, 3, 3, 1, F32);
+  Tensor kernels = create4DTensor(&hostCtx, 1, 1, 2, 2, F32);
+  Tensor gradOut = create4DTensor(&hostCtx, 1, 2, 2, 1, F32);
+  Tensor dX = create4DTensor(&hostCtx, 1, 3, 3, 1, F32);
+  Tensor dKernels = create4DTensor(&hostCtx, 1, 1, 2, 2, F32);
+
+  x.context = &hostCtx;
+  x.metadataMemory = hostCtx.memory;
+  kernels.context = &hostCtx;
+  kernels.metadataMemory = hostCtx.memory;
+  gradOut.context = &hostCtx;
+  gradOut.metadataMemory = hostCtx.memory;
+  dX.context = &hostCtx;
+  dX.metadataMemory = hostCtx.memory;
+  dKernels.context = &hostCtx;
+  dKernels.metadataMemory = hostCtx.memory;
+
+  f32 *xVals = x.values;
+  for (int i = 0; i < 9; i++) {
+    xVals[i] = (f32)(i + 1);
+  }
+
+  f32 *kVals = kernels.values;
+  kVals[0] = 1.0f;
+  kVals[1] = 0.0f;
+  kVals[2] = 0.0f;
+  kVals[3] = 1.0f;
+
+  f32 *gVals = gradOut.values;
+  for (int i = 0; i < 4; i++) {
+    gVals[i] = 1.0f;
+  }
+
+  Result moveResult = MoveTensors(&ctx, 3, &x, &kernels, &gradOut);
+  ASSERT_EQ(moveResult, OK, "Conv2dBackward mixed-context setup should move tensors to CUDA");
+
+  Tensor *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
+  ASSERT(colBuffer != NULL, "Conv2dBackward mixed-context setup should create CUDA col buffer");
+
+  Result r = Conv2dBackward(&hostCtx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 1);
+  ASSERT_EQ(r, OK, "Conv2dBackward should materialize CUDA sources onto CPU target context");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[9] = {1.0f, 1.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 1.0f, 1.0f};
+  for (int i = 0; i < 9; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward mixed-context dX mismatch");
+  }
+
+  f32 *dKernelVals = dKernels.values;
+  f32 wantDK[4] = {12.0f, 16.0f, 24.0f, 28.0f};
+  for (int i = 0; i < 4; i++) {
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
+           "Conv2dBackward mixed-context dKernels mismatch");
+  }
+
+  DestroyContext(&ctx);
+}
+
 static void test_conv_transpose2d_forward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor x = create4DTensor(&ctx, 1, 2, 2, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor out;
 
@@ -847,8 +955,9 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
   Result r = ConvTranspose2d(&ctx, 1, 1, 1, &kernels, kernel, &x, &out);
 
   ASSERT_EQ(r, OK, "ConvTranspose2d should succeed");
-  ASSERT_EQ(out.shape.dims[2], 3, "ConvTranspose2d output height mismatch");
-  ASSERT_EQ(out.shape.dims[3], 3, "ConvTranspose2d output width mismatch");
+  ASSERT_EQ(out.shape.dims[1], 3, "ConvTranspose2d output height mismatch");
+  ASSERT_EQ(out.shape.dims[2], 3, "ConvTranspose2d output width mismatch");
+  ASSERT_EQ(out.shape.dims[3], 1, "ConvTranspose2d output channels mismatch");
 
   f32 *o = out.values;
   f32 want[9] = {1.0f, 2.0f, 0.0f, 3.0f, 5.0f, 2.0f, 0.0f, 3.0f, 4.0f};
@@ -862,9 +971,9 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
 static void test_conv_transpose2d_backward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor x = create4DTensor(&ctx, 1, 2, 2, 1, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor gradOut = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 3, 3, 1, F32);
   Tensor dX;
   Tensor dKernels;
 
@@ -906,7 +1015,7 @@ static void test_conv_transpose2d_backward_f32_single_channel(void) {
 static void test_max_pool2d_forward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
+  Tensor x = create4DTensor(&ctx, 1, 4, 4, 1, F32);
   Tensor out;
 
   f32 *xVals = x.values;
@@ -933,8 +1042,8 @@ static void test_max_pool2d_forward_f32(void) {
 static void test_max_pool2d_backward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
-  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor x = create4DTensor(&ctx, 1, 4, 4, 1, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 2, 2, 1, F32);
   Tensor dX;
 
   f32 *xVals = x.values;
@@ -965,10 +1074,58 @@ static void test_max_pool2d_backward_f32(void) {
   freeMemory(mem);
 }
 
+static void test_max_pool2d_backward_materializes_cuda_sources_on_cpu_target_context(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+  Tensor x = create4DTensor(&hostCtx, 1, 4, 4, 1, F32);
+  Tensor gradOut = create4DTensor(&hostCtx, 1, 2, 2, 1, F32);
+  Tensor dX;
+
+  x.context = &hostCtx;
+  x.metadataMemory = hostCtx.memory;
+  gradOut.context = &hostCtx;
+  gradOut.metadataMemory = hostCtx.memory;
+
+  f32 *xVals = x.values;
+  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f,
+                   7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
+  for (int i = 0; i < 16; i++) {
+    xVals[i] = input[i];
+  }
+
+  f32 *gVals = gradOut.values;
+  gVals[0] = 1.0f;
+  gVals[1] = 2.0f;
+  gVals[2] = 3.0f;
+  gVals[3] = 4.0f;
+
+  Result moveResult = MoveTensors(&ctx, 2, &x, &gradOut);
+  ASSERT_EQ(moveResult, OK, "MaxPool2dBackward mixed-context setup should move tensors to CUDA");
+
+  dim_t kernelDimsArr[2] = {2, 2};
+  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  Result r = MaxPool2dBackward(&hostCtx, &x, &gradOut, kernel, 2, &dX);
+  ASSERT_EQ(r, OK, "MaxPool2dBackward should materialize CUDA sources onto CPU target context");
+
+  f32 *dxVals = dX.values;
+  f32 wantDX[16] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 0.0f,
+                    0.0f, 3.0f, 4.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+  for (int i = 0; i < 16; i++) {
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f,
+           "MaxPool2dBackward mixed-context dX mismatch");
+  }
+
+  DestroyContext(&ctx);
+}
+
 static void test_adaptive_avg_pool2d_forward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
+  Tensor x = create4DTensor(&ctx, 1, 4, 4, 1, F32);
   Tensor out;
 
   f32 *xVals = x.values;
@@ -991,8 +1148,8 @@ static void test_adaptive_avg_pool2d_forward_f32(void) {
 static void test_adaptive_avg_pool2d_backward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor x = create4DTensor(&ctx, 1, 1, 4, 4, F32);
-  Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
+  Tensor x = create4DTensor(&ctx, 1, 4, 4, 1, F32);
+  Tensor gradOut = create4DTensor(&ctx, 1, 2, 2, 1, F32);
   Tensor dX;
 
   f32 *xVals = x.values;
@@ -1019,6 +1176,71 @@ static void test_adaptive_avg_pool2d_backward_f32(void) {
   freeMemory(mem);
 }
 
+static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  Tensor yGround = create2DTensor(&hostCtx, 2, 3, F32);
+  Tensor logits = create2DTensor(&hostCtx, 2, 3, F32);
+  Tensor loss;
+  Tensor probs;
+
+  f32 yValues[6] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+  f32 logitValues[6] = {2.0f, 1.0f, 0.0f, 0.0f, 1.0f, 2.0f};
+  memcpy(yGround.values, yValues, sizeof(yValues));
+  memcpy(logits.values, logitValues, sizeof(logitValues));
+
+  Result result = CrossEntropyForward(&ctx, &yGround, &logits, &loss, &probs);
+  ASSERT_EQ(result, OK, "CUDA CrossEntropyForward should succeed");
+  ASSERT(loss.context == &ctx, "CUDA CrossEntropyForward loss should live on target context");
+  ASSERT(probs.context == &ctx, "CUDA CrossEntropyForward probs should live on target context");
+
+  f32 expectedLoss = 0.40760595f;
+  f32 expectedProbs[6] = {0.66524094f, 0.24472848f, 0.09003057f,
+                          0.09003057f, 0.24472848f, 0.66524094f};
+  assertScalarF32Close(&loss, expectedLoss, 1e-5f, "CUDA CrossEntropyForward loss should match");
+  assertMovedF32TensorClose(&ctx, &probs, expectedProbs, 6, 1e-5f,
+                            "CUDA CrossEntropyForward probs should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  Tensor yGround = create2DTensor(&hostCtx, 2, 3, F32);
+  Tensor probs = create2DTensor(&hostCtx, 2, 3, F32);
+  Tensor gradOut = createScalarTensor(&hostCtx, F32);
+  Tensor dLogits;
+
+  f32 yValues[6] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+  f32 probValues[6] = {0.66524094f, 0.24472848f, 0.09003057f,
+                       0.09003057f, 0.24472848f, 0.66524094f};
+  memcpy(yGround.values, yValues, sizeof(yValues));
+  memcpy(probs.values, probValues, sizeof(probValues));
+  ((f32 *)gradOut.values)[0] = 1.0f;
+
+  Result result = CrossEntropyBackward(&ctx, &yGround, &probs, &gradOut, &dLogits);
+  ASSERT_EQ(result, OK, "CUDA CrossEntropyBackward should succeed");
+  ASSERT(dLogits.context == &ctx, "CUDA CrossEntropyBackward result should live on target context");
+
+  f32 expected[6] = {-0.16737953f, 0.12236424f, 0.04501529f,
+                     0.04501529f,  0.12236424f, -0.16737953f};
+  assertMovedF32TensorClose(&ctx, &dLogits, expected, 6, 1e-5f,
+                            "CUDA CrossEntropyBackward result should match");
+
+  DestroyContext(&ctx);
+}
+
 void run_layer_tests(void) {
   test_dense_linear_forward_with_bias_f32();
   test_dense_backward_f32();
@@ -1040,10 +1262,14 @@ void run_layer_tests(void) {
   test_conv2d_backward_uses_provided_col_buffer_f32();
   test_conv2d_backward_f32_stride_two_single_channel();
   test_conv2d_backward_f32_multi_batch_multi_out_channel();
+  test_conv2d_backward_materializes_cuda_sources_on_cpu_target_context();
   test_conv_transpose2d_forward_f32_single_channel();
   test_conv_transpose2d_backward_f32_single_channel();
   test_max_pool2d_forward_f32();
   test_max_pool2d_backward_f32();
+  test_max_pool2d_backward_materializes_cuda_sources_on_cpu_target_context();
   test_adaptive_avg_pool2d_forward_f32();
   test_adaptive_avg_pool2d_backward_f32();
+  test_cross_entropy_forward_cuda_dispatch_uses_target_context();
+  test_cross_entropy_backward_cuda_dispatch_uses_target_context();
 }

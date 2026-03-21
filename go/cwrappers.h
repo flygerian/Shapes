@@ -10,6 +10,7 @@ Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims);
 void zeroTensorValues(Tensor *t);
 Result copyTensorValuesFromHost(Tensor *t, void *src, size_t size);
 Result copyTensorValuesToHost(Tensor *t, void *dest, size_t size);
+Result wrap_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims);
 
 Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out);
 Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor **out);
@@ -88,8 +89,12 @@ Result wrap_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Te
                                     u8 stride, Tensor **dX, Tensor **dKernels);
 Result wrap_MaxPool2d(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
                       Tensor **out);
+Result wrap_MaxPool2dWithIndices(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
+                                 Tensor **out, Tensor **indices);
 Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t kernelH,
                               dim_t kernelW, u8 stride, Tensor **dX);
+Result wrap_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices,
+                                         Tensor **dX);
 Result wrap_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor **out);
 Result wrap_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH,
                                       dim_t outW, Tensor **dX);

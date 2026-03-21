@@ -2,6 +2,10 @@
 
 #include "../memory.h"
 #include "tensor/tensor_internal.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
 // the last dim (feature width). Dense uses this to preserve any batch axes.
@@ -20,6 +24,43 @@ static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor 
   calculateNumValuesAndMultipliers(shape, multipliers);
 
   return initTensor(ctx, dest, shape, dtype);
+}
+
+static bool shouldLogOpTiming(void) {
+  const char *value = getenv("SHAPES_LOG_OP_TIMES");
+  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+static double opTimingNowMs(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+}
+
+static Result syncForOpTiming(Context *ctx) {
+  if (!shouldLogOpTiming()) {
+    return OK;
+  }
+
+  return Flush(ctx);
+}
+
+static void logOpTiming(Context *ctx, const char *opName, const char *phase, double startMs) {
+  if (!shouldLogOpTiming()) {
+    return;
+  }
+
+  const char *deviceName = "CPU(default)";
+  if (ctx != NULL && ctx->device != NULL) {
+    switch (ctx->device->type) {
+      case CPU: deviceName = "CPU"; break;
+      case CUDA: deviceName = "CUDA"; break;
+      default: deviceName = "UNKNOWN"; break;
+    }
+  }
+
+  fprintf(stderr, "[opTiming] op=%s device=%s phase=%s ms=%.3f\n", opName, deviceName, phase,
+          opTimingNowMs() - startMs);
 }
 
 Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor *dest) {
@@ -59,6 +100,11 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
   // non-contiguous, so we materialize contiguous copies when needed.
   TensorArg xArg = {0};
   TensorArg wArg = {0};
+  double totalStartMs = 0.0;
+  double phaseStartMs = 0.0;
+  if (shouldLogOpTiming()) {
+    totalStartMs = opTimingNowMs();
+  }
   Result res = materializeTensorOnContext(ctx, x, true, &xArg);
   if (res != OK) {
     return res;
@@ -70,46 +116,65 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
   }
   Tensor *xContig = xArg.tensor;
   Tensor *wContig = wArg.tensor;
+  logOpTiming(ctx, "DenseLinear", "materialize", totalStartMs);
 
   tensor_size_t rows = x->size / inputSize;
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    releaseTensorArg(ctx, &xArg);
+    releaseTensorArg(ctx, &wArg);
+    return res;
+  }
+  phaseStartMs = opTimingNowMs();
   res = initTensorLikeInputWithLastDim(ctx, dest, x, outputSize, x->dtype);
   if (res != OK) {
     releaseTensorArg(ctx, &xArg);
     releaseTensorArg(ctx, &wArg);
     return res;
   }
+  logOpTiming(ctx, "DenseLinear", "alloc_output", phaseStartMs);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    releaseTensorArg(ctx, &xArg);
+    releaseTensorArg(ctx, &wArg);
+    return res;
+  }
+  phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
           xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, dest->values,
           (int)outputSize);
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    releaseTensorArg(ctx, &xArg);
+    releaseTensorArg(ctx, &wArg);
+    return res;
+  }
+  logOpTiming(ctx, "DenseLinear", "gemm", phaseStartMs);
 
   if (withBias) {
-    // Add bias per output feature for every flattened row.
-    if (x->dtype == F64) {
-      double *out = dest->values;
-      double *bias = b->values;
-      for (tensor_size_t r = 0; r < rows; r++) {
-        tensor_size_t base = r * outputSize;
-        for (tensor_size_t c = 0; c < outputSize; c++) {
-          out[base + c] += bias[c];
-        }
-      }
-    } else {
-      float *out = dest->values;
-      float *bias = b->values;
-      for (tensor_size_t r = 0; r < rows; r++) {
-        tensor_size_t base = r * outputSize;
-        for (tensor_size_t c = 0; c < outputSize; c++) {
-          out[base + c] += bias[c];
-        }
-      }
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      releaseTensorArg(ctx, &xArg);
+      releaseTensorArg(ctx, &wArg);
+      return res;
     }
+    phaseStartMs = opTimingNowMs();
+    res = AddInPlace(ctx, dest, b);
+    if (res != OK) {
+      releaseTensorArg(ctx, &xArg);
+      releaseTensorArg(ctx, &wArg);
+      return res;
+    }
+    logOpTiming(ctx, "DenseLinear", "bias_add", phaseStartMs);
   }
 
   releaseTensorArg(ctx, &xArg);
   releaseTensorArg(ctx, &wArg);
+
+  logOpTiming(ctx, "DenseLinear", "total", totalStartMs);
 
   return OK;
 }
@@ -154,6 +219,11 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   TensorArg xArg = {0};
   TensorArg wArg = {0};
   TensorArg gArg = {0};
+  double totalStartMs = 0.0;
+  double phaseStartMs = 0.0;
+  if (shouldLogOpTiming()) {
+    totalStartMs = opTimingNowMs();
+  }
   Result res = materializeTensorOnContext(ctx, x, true, &xArg);
   if (res != OK) {
     goto cleanup;
@@ -169,7 +239,13 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   Tensor *xContig = xArg.tensor;
   Tensor *wContig = wArg.tensor;
   Tensor *gContig = gArg.tensor;
+  logOpTiming(ctx, "DenseBackward", "materialize", totalStartMs);
 
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    goto cleanup;
+  }
+  phaseStartMs = opTimingNowMs();
   res = initTensorLikeInputWithLastDim(ctx, dX, x, inputSize, x->dtype);
   if (res != OK) {
     goto cleanup;
@@ -178,58 +254,89 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   if (res != OK) {
     goto cleanup;
   }
-  res = init1DTensor(ctx, dB, outputSize, gradOut->dtype);
+  logOpTiming(ctx, "DenseBackward", "alloc_outputs", phaseStartMs);
+  if (x->dtype == F64) {
+    // dX = gradOut * w
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
+            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
+            (int)inputSize);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
+
+    // dW = gradOut^T * x
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
+            (int)inputSize);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
+  } else {
+    // dX = gradOut * w
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
+            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
+            (int)inputSize);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
+
+    // dW = gradOut^T * x
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
+            (int)inputSize);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
+  }
+
+  dim_t *grad2dDims = allocate(ctx->memory, sizeof(dim_t) * 2);
+  grad2dDims[0] = rows;
+  grad2dDims[1] = outputSize;
+  Tensor grad2dView = {0};
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    goto cleanup;
+  }
+  phaseStartMs = opTimingNowMs();
+  res = Reshape(ctx, gContig, &grad2dView, (Dim){.dims = grad2dDims, .numOfDims = 2});
   if (res != OK) {
     goto cleanup;
   }
 
-  if (x->dtype == F64) {
-    // dX = gradOut * w
-    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
-            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
-            (int)inputSize);
-
-    // dW = gradOut^T * x
-    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
-            (int)inputSize);
-
-    // dB is the row-wise sum of gradOut (one accumulator per output feature).
-    double *gVals = gContig->values;
-    double *dbVals = dB->values;
-    for (tensor_size_t j = 0; j < outputSize; j++) {
-      dbVals[j] = 0.0;
-    }
-    for (tensor_size_t r = 0; r < rows; r++) {
-      tensor_size_t base = r * outputSize;
-      for (tensor_size_t j = 0; j < outputSize; j++) {
-        dbVals[j] += gVals[base + j];
-      }
-    }
-  } else {
-    // dX = gradOut * w
-    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
-            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
-            (int)inputSize);
-
-    // dW = gradOut^T * x
-    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
-            (int)inputSize);
-
-    // dB is the row-wise sum of gradOut (one accumulator per output feature).
-    float *gVals = gContig->values;
-    float *dbVals = dB->values;
-    for (tensor_size_t j = 0; j < outputSize; j++) {
-      dbVals[j] = 0.0f;
-    }
-    for (tensor_size_t r = 0; r < rows; r++) {
-      tensor_size_t base = r * outputSize;
-      for (tensor_size_t j = 0; j < outputSize; j++) {
-        dbVals[j] += gVals[base + j];
-      }
-    }
+  res = Sum(ctx, &grad2dView, dB, 0);
+  if (res != OK) {
+    goto cleanup;
   }
+  logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);
+  logOpTiming(ctx, "DenseBackward", "total", totalStartMs);
 
 cleanup:
   releaseTensorArg(ctx, &xArg);

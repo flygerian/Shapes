@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/activation"
@@ -32,9 +33,9 @@ type trainingParams struct {
 
 func getTrainingParams() trainingParams {
 	return trainingParams{
-		batchSize:    8,
+		batchSize:    32,
 		learningRate: 1e-2,
-		inputShape:   shapes.Shape{3, 32, 32},
+		inputShape:   shapes.Shape{32, 32, 3},
 		epochs:       10,
 	}
 }
@@ -44,6 +45,18 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func shouldLogTrainStep() bool {
+	value := os.Getenv("SHAPES_LOG_TRAIN_STEP")
+	return value != "" && value != "0"
+}
+
+func logTrainStep(label string, start time.Time) {
+	if !shouldLogTrainStep() {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "[trainStep] phase=%s ms=%.3f\n", label, float64(time.Since(start))/float64(time.Millisecond))
 }
 
 func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
@@ -65,7 +78,22 @@ func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
 			break
 		}
 
-		imageTensors = append(imageTensors, imageLabelPair{label: label[0], imageData: shapes.TensorFromImagebyes(ctx, shapes.Shape{3, 32, 32}, image)})
+		imageNHWC := make([]float32, 32*32*3)
+		channelPlane := 32 * 32
+		for y := range 32 {
+			for x := range 32 {
+				pixelIdx := y*32 + x
+				base := pixelIdx * 3
+				imageNHWC[base+0] = float32(image[pixelIdx]) / 255.0
+				imageNHWC[base+1] = float32(image[channelPlane+pixelIdx]) / 255.0
+				imageNHWC[base+2] = float32(image[2*channelPlane+pixelIdx]) / 255.0
+			}
+		}
+
+		imageTensors = append(imageTensors, imageLabelPair{
+			label:     label[0],
+			imageData: shapes.FromFloat32(ctx, shapes.Shape{32, 32, 3}, imageNHWC),
+		})
 		idx++
 	}
 
@@ -136,48 +164,42 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []image
 // Model
 
 func convBlock(ctx shapes.Context) *layer.Sequential {
-	convBlock := layer.Sequential{
-		Layers: []layer.HasForward{
-			layer.Conv2d(ctx, 3, 64, shapes.Kernel{2, 2}, 1), // (B, 64, 31, 31)
-			activation.Relu(),
-			layer.Conv2d(ctx, 64, 64, shapes.Kernel{2, 2}, 1), // (B, 64, 30, 30)
-			activation.Relu(),
+	return layer.NewSequential(
+		ctx,
+		layer.Conv2d(ctx, 3, 64, shapes.Kernel{2, 2}, 1), // (B, 31, 31, 64)
+		activation.Relu(),
+		layer.Conv2d(ctx, 64, 64, shapes.Kernel{2, 2}, 1), // (B, 30, 30, 64)
+		activation.Relu(),
 
-			layer.MaxPool2d(shapes.Kernel{2, 2}, 2), // (B, 64, 15, 15)
+		layer.MaxPool2d(ctx, shapes.Kernel{2, 2}, 2), // (B, 15, 15, 64)
 
-			layer.Conv2d(ctx, 64, 128, shapes.Kernel{2, 2}, 1), // (B, 128, 14, 14)
-			activation.Relu(),
-			layer.Conv2d(ctx, 128, 128, shapes.Kernel{2, 2}, 1), // (B, 128, 13, 13)
-			activation.Relu(),
+		layer.Conv2d(ctx, 64, 128, shapes.Kernel{2, 2}, 1), // (B, 14, 14, 128)
+		activation.Relu(),
+		layer.Conv2d(ctx, 128, 128, shapes.Kernel{2, 2}, 1), // (B, 13, 13, 128)
+		activation.Relu(),
 
-			layer.MaxPool2d(shapes.Kernel{2, 2}, 2), // (B, 128, 6, 6)
+		layer.MaxPool2d(ctx, shapes.Kernel{2, 2}, 2), // (B, 6, 6, 128)
 
-			layer.Conv2d(ctx, 128, 256, shapes.Kernel{2, 2}, 1), // (B, 256, 5, 5)
-			activation.Relu(),
-			layer.Conv2d(ctx, 256, 256, shapes.Kernel{2, 2}, 1), // (B, 256, 4, 4)
-			activation.Relu(),
-			layer.MaxPool2d(shapes.Kernel{2, 2}, 2), // (B, 256, 2, 2)
+		layer.Conv2d(ctx, 128, 256, shapes.Kernel{2, 2}, 1), // (B, 5, 5, 256)
+		activation.Relu(),
+		layer.Conv2d(ctx, 256, 256, shapes.Kernel{2, 2}, 1), // (B, 4, 4, 256)
+		activation.Relu(),
+		layer.MaxPool2d(ctx, shapes.Kernel{2, 2}, 2), // (B, 2, 2, 256)
 
-			layer.Conv2d(ctx, 256, 512, shapes.Kernel{2, 2}, 1), // (B, 512, 1, 1)
-			activation.Relu(),
-			layer.AdaptiveAvgPool2d(shapes.Shape{1, 1}),
-		},
-	}
-
-	return &convBlock
+		layer.Conv2d(ctx, 256, 512, shapes.Kernel{2, 2}, 1), // (B, 1, 1, 512)
+		activation.Relu(),
+		layer.AdaptiveAvgPool2d(ctx, shapes.Shape{1, 1}),
+	)
 }
 
 func linearBlock(ctx shapes.Context, numLabels int) *layer.Sequential {
-	denseBlock := layer.Sequential{
-		Layers: []layer.HasForward{
-			layer.Flatten(),
-			layer.Dense(ctx, 512, 256),
-			activation.Relu(),
-			layer.Dense(ctx, 256, numLabels),
-		},
-	}
-
-	return &denseBlock
+	return layer.NewSequential(
+		ctx,
+		layer.Flatten(ctx),
+		layer.Dense(ctx, 512, 256),
+		activation.Relu(),
+		layer.Dense(ctx, 256, numLabels),
+	)
 }
 
 func makeBatchIndexTensor(ctx shapes.Context, indices []int) shapes.Tensor {
@@ -191,7 +213,7 @@ func makeBatchIndexTensor(ctx shapes.Context, indices []int) shapes.Tensor {
 
 func modelForward(
 	ctx shapes.Context,
-	model layer.Sequential,
+	model *layer.Sequential,
 	x shapes.Tensor) shapes.Tensor {
 	// x = blocks[0].Forward(ctx, x) // Forward convblock
 	// x = blocks[1].Forward(ctx, x)
@@ -205,8 +227,8 @@ func computeAndSetValidationMetrics(
 	XVal shapes.Tensor,
 	YVal shapes.Tensor,
 	labels []string,
-	model layer.Sequential,
-	crossEnthropy func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Tensor,
+	model *layer.Sequential,
+	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
 ) {
 	totalValidationLoss := 0.0
 	totalCorrect := 0
@@ -226,7 +248,7 @@ func computeAndSetValidationMetrics(
 		valLogits := modelForward(testCtx, model, valBatch.F32(testCtx))
 		valYBatch := YVal.Get(testCtx, valIx)
 		valYOneHot := shapes.OneHot(testCtx, valYBatch, uint(len(labels))).Squeeze(testCtx)
-		valLoss := crossEnthropy(testCtx, valYOneHot, valLogits)
+		valLoss := crossEnthropy(valYOneHot, valLogits)
 		valLossScalar := valLoss.Get(testCtx, 0).Item().(float32)
 		totalValidationLoss += float64(valLossScalar) * float64(len(valIndices))
 
@@ -256,11 +278,11 @@ func runTraining(
 	trainingCtx shapes.MainContext,
 	trainSize int,
 	hyperParams trainingParams,
-	crossEnthropy func(shapesCtx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
+	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
 	X shapes.Tensor,
 	Y shapes.Tensor,
 	optimizerStep func(cg shapes.ComputationGraph),
-	model layer.Sequential,
+	model *layer.Sequential,
 	XVal, YVal shapes.Tensor,
 	labels []string,
 ) {
@@ -274,7 +296,7 @@ func runTraining(
 
 		for batchStart := 0; batchStart < trainSize; batchStart += hyperParams.batchSize {
 			batchEnd := min(batchStart+hyperParams.batchSize, trainSize)
-			stepCtx := epochCtx.Step()
+			stepCtx := epochCtx.Step().Fused().(shapes.StepContext)
 
 			ix := makeBatchIndexTensor(stepCtx, perm[batchStart:batchEnd])
 			batch := X.Get(stepCtx, ix)
@@ -282,19 +304,25 @@ func runTraining(
 
 			yBatch := Y.Get(stepCtx, ix)
 			yOneHot := shapes.OneHot(stepCtx, yBatch, uint(len(labels))).Squeeze(stepCtx)
-			loss := crossEnthropy(stepCtx, yOneHot, logits)
+			loss := crossEnthropy(yOneHot, logits)
 
 			graph := loss.Backward(stepCtx)
 			optimizerStep(graph)
 			optimizer.ZeroGrad(stepCtx, graph)
 
+			phaseStart := time.Now()
 			lossScalar := loss.Get(stepCtx, 0).Item().(float32)
+			logTrainStep("loss_item", phaseStart)
 			epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
+			phaseStart = time.Now()
 			stepCtx.SetStepLoss(float64(lossScalar))
+			logTrainStep("set_step_loss", phaseStart)
 
 			// fmt.Printf("Loss: %v\n", lossScalar)
 
+			phaseStart = time.Now()
 			stepCtx.Finish()
+			logTrainStep("step_finish", phaseStart)
 		}
 
 		epochCtx.SetLoss(epochLoss / float64(trainSize))
@@ -304,10 +332,11 @@ func runTraining(
 }
 
 func Vgg_cifar10() {
-	shapeCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
-	defer shapeCtx.Finish()
+	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
+	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
+	defer cpuCtx.Finish()
 
-	train, _, test, labels := getDataSet(shapeCtx)
+	train, _, test, labels := getDataSet(cpuCtx)
 	hyperParams := getTrainingParams()
 
 	fmt.Printf("There are %d training images\n", len(train))
@@ -322,7 +351,7 @@ func Vgg_cifar10() {
 				Children: []visual.Artefact{
 					visual.Image(visual.ImageOptions{
 						Tensor:   ilp.imageData,
-						Context:  shapeCtx,
+						Context:  cpuCtx,
 						MaxWidth: 32,
 					}),
 					visual.Text(labels[ilp.label]),
@@ -344,12 +373,12 @@ func Vgg_cifar10() {
 		}
 	}
 
-	flex := visual.Flex(visual.FlexOptions{
+	_ = visual.Flex(visual.FlexOptions{
 		Direction: visual.DirectionColumn,
 		Children:  rows[5:10],
 	})
 
-	visual.RenderAt(os.Stdout, flex, visual.Point{}, visual.Area{Width: 40, Height: 80})
+	// visual.RenderAt(os.Stdout, flex, visual.Point{}, visual.Area{Width: 40, Height: 80})
 
 	trainImgs := make([]shapes.Tensor, 0)
 	trainLabels := make([]shapes.Tensor, 0)
@@ -359,7 +388,7 @@ func Vgg_cifar10() {
 			panic(err)
 		}
 		trainImgs = append(trainImgs, pair.imageData)
-		trainLabels = append(trainLabels, shapes.UInt8(shapeCtx, shapes.Shape{1}, uint8(pair.label)))
+		trainLabels = append(trainLabels, shapes.UInt8(cpuCtx, shapes.Shape{1}, uint8(pair.label)))
 	}
 
 	valImgs := make([]shapes.Tensor, 0)
@@ -370,32 +399,32 @@ func Vgg_cifar10() {
 			panic(err)
 		}
 		valImgs = append(valImgs, pair.imageData)
-		valLabels = append(valLabels, shapes.UInt8(shapeCtx, shapes.Shape{1}, uint8(pair.label)))
+		valLabels = append(valLabels, shapes.UInt8(cpuCtx, shapes.Shape{1}, uint8(pair.label)))
 	}
 
-	XVal := shapes.Stack(shapeCtx, 0, valImgs...)
-	YVal := shapes.Stack(shapeCtx, 0, valLabels...)
+	XVal := shapes.Stack(cpuCtx, 0, valImgs...)
+	YVal := shapes.Stack(cpuCtx, 0, valLabels...)
 
-	X := shapes.Stack(shapeCtx, 0, trainImgs...)
-	Y := shapes.Stack(shapeCtx, 0, trainLabels...)
+	X := shapes.Stack(cpuCtx, 0, trainImgs...)
+	Y := shapes.Stack(cpuCtx, 0, trainLabels...)
 
-	optimerStep := optimizer.SGD(shapeCtx, hyperParams.learningRate)
-	crossEnthropy := loss_fns.CrossEntropy()
+	optimerStep := optimizer.SGD(cudaCtx, hyperParams.learningRate)
+	crossEnthropy := loss_fns.CrossEntropy(cudaCtx)
 
-	model := layer.Sequential{
-		Layers: []layer.HasForward{
-			convBlock(shapeCtx),
-			linearBlock(shapeCtx, len(labels)),
-		},
-	}
+	model := layer.NewSequential(
+		cudaCtx,
+		convBlock(cudaCtx),
+		linearBlock(cudaCtx, len(labels)),
+	)
 	fmt.Printf("Training start...\n")
 	stepsPerEpoch := (len(train) + hyperParams.batchSize - 1) / hyperParams.batchSize
 
-	trainingCtx := shapeCtx.Training(
+	trainingCtx := cudaCtx.Training(
 		hyperParams.epochs,
 		shapes.WithNumSteps(stepsPerEpoch),
 		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
+
 	runTraining(
 		trainingCtx,
 		len(train),

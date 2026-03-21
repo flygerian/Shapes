@@ -60,7 +60,8 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
       (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims}, NULL);
   freeAlloc(ctx->memory, ranges);
   *dest =
-      tensorView(source->context, source->values, size, source->dtype, newShape, boundary, false);
+      tensorView(source->context, ctx->memory, source->values, size, source->dtype, newShape,
+                 boundary, false);
 
   return OK;
 }
@@ -89,9 +90,9 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     Tensor *contiguous = copyToContiguous(ctx, source);
     values = contiguous->values;
     isView = false;
-    freeAlloc(ctx->memory, contiguous->shape.dims);
-    freeAlloc(ctx->memory, contiguous->shape.multipliers);
-    freeAlloc(ctx->memory, contiguous);
+    freeAlloc(contiguous->metadataMemory, contiguous->shape.dims);
+    freeAlloc(contiguous->metadataMemory, contiguous->shape.multipliers);
+    freeAlloc(contiguous->metadataMemory, contiguous);
   } else {
     values = source->values;
     if (source->boundary != NULL) {
@@ -100,9 +101,10 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     }
   }
 
-  *dest = isView ? tensorView(source->context, values, source->size, source->dtype, (Dim){0},
-                              boundary, true)
+  *dest = isView ? tensorView(source->context, ctx->memory, values, source->size, source->dtype,
+                              (Dim){0}, boundary, true)
                  : (Tensor){.context = ctx,
+                            .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                             .isView = false,
                             .values = values,
                             .dtype = source->dtype,
@@ -164,7 +166,7 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   }
 
   *dest = tensorView(
-      source->context, source->values, source->size, source->dtype,
+      source->context, ctx->memory, source->values, source->size, source->dtype,
       (Dim){.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers},
       newBoundary, false);
 
@@ -218,7 +220,7 @@ Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
   freeAlloc(ctx->memory, seen);
 
   *dest = tensorView(
-      source->context, source->values, source->size, source->dtype,
+      source->context, ctx->memory, source->values, source->size, source->dtype,
       (Dim){.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers},
       newBoundary, false);
 
@@ -233,7 +235,7 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   // Scalars have no singleton dimensions to remove, so preserve the 0-D shape.
   if (t->shape.numOfDims == 0) {
     *dest =
-        tensorView(t->context, t->values, t->size, t->dtype,
+        tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                    (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL}, NULL, t->isContigous);
     return OK;
   }
@@ -294,7 +296,7 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
     }
   }
 
-  *dest = tensorView(t->context, t->values, t->size, t->dtype,
+  *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                      (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
                      newBoundary, t->isContigous);
 
@@ -326,7 +328,7 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
       newBoundary[0] = t->boundary[0];
     }
 
-    *dest = tensorView(t->context, t->values, t->size, t->dtype,
+    *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                        (Dim){.dims = newDims, .numOfDims = 1, .multipliers = newMultipliers},
                        newBoundary, t->isContigous);
     return OK;
@@ -358,7 +360,7 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  *dest = tensorView(t->context, t->values, t->size, t->dtype,
+  *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                      (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
                      newBoundary, t->isContigous);
 
@@ -414,7 +416,7 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  *dest = tensorView(t->context, t->values, t->size, t->dtype,
+  *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                      (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
                      newBoundary, t->isContigous);
 
@@ -423,6 +425,10 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
 Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensorsToAdd,
               Tensor *dest) {
+  TensorArg targetArg = {0};
+  TensorArg *tensorArgs = NULL;
+  Result result = OK;
+
   if (isInvalidTensor(target)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -435,56 +441,70 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
     return ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS;
   }
 
-  bool freeWorkingTarget = false;
-
-  Tensor *workingTarget = target;
-  if (!target->isContigous) {
-    freeWorkingTarget = true;
-    workingTarget = copyToContiguous(ctx, target);
+  result = materializeTensorOnContext(ctx, target, true, &targetArg);
+  if (result != OK) {
+    return result;
   }
 
+  Tensor *workingTarget = targetArg.tensor;
   tensor_size_t numElementsBeforeTargetDim;
-  calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
+  result = calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
+  if (result != OK) {
+    goto cleanup_concat;
+  }
 
   tensor_size_t numElementsAfterTargetDim;
-  calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
+  result = calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
+  if (result != OK) {
+    goto cleanup_concat;
+  }
+
+  if (numTensorsToAdd > 0) {
+    tensorArgs = allocate(ctx->memory, sizeof(TensorArg) * numTensorsToAdd);
+    memset(tensorArgs, 0, sizeof(TensorArg) * numTensorsToAdd);
+  }
 
   for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
-
     Tensor *t = tensors[it];
 
     if (isInvalidTensor(t)) {
-      return ERR_CONCAT_TENSOR_IS_NULL;
+      result = ERR_CONCAT_TENSOR_IS_NULL;
+      goto cleanup_concat;
     }
 
-    // Validate tensor has same number of dimensions as workingTarget
     if (t->shape.numOfDims != workingTarget->shape.numOfDims) {
-      return ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
+      result = ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
+      goto cleanup_concat;
     }
 
-    // Validate non-target dimensions match workingTarget
     for (dim_t id = 0; id < workingTarget->shape.numOfDims; id++) {
       if (id != targetDim && workingTarget->shape.dims[id] != t->shape.dims[id]) {
-        return ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
+        result = ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
+        goto cleanup_concat;
       }
     }
 
     if (t->dtype != workingTarget->dtype) {
-      return ERR_CONCAT_TENSOR_NOT_SAME_DTYPE;
+      result = ERR_CONCAT_TENSOR_NOT_SAME_DTYPE;
+      goto cleanup_concat;
     }
 
     if (!t->isContigous) {
-      // Should probably come back and handle this properly
-      return ERR_CONCAT_TENSOR_NOT_CONTIGOUS;
+      result = ERR_CONCAT_TENSOR_NOT_CONTIGOUS;
+      goto cleanup_concat;
+    }
+
+    result = materializeTensorOnContext(ctx, t, true, &tensorArgs[it]);
+    if (result != OK) {
+      goto cleanup_concat;
     }
   }
-
 
   dim_t *outputDims = allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
   dim_t dimsToAdd = 0;
 
   for (tensor_size_t ist = 0; ist < numTensorsToAdd; ist++) {
-    dimsToAdd += tensors[ist]->shape.dims[targetDim];
+    dimsToAdd += tensorArgs[ist].tensor->shape.dims[targetDim];
   }
 
   for (dim_t io = 0; io < workingTarget->shape.numOfDims; io++) {
@@ -501,51 +521,56 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
 
   multiplier_t *multipliers =
       allocate(ctx->memory, sizeof(multiplier_t) * workingTarget->shape.numOfDims);
-  tensor_size_t outputSize = calculateNumValuesAndMultipliers(outputShape, multipliers);
-
+  calculateNumValuesAndMultipliers(outputShape, multipliers);
   outputShape.multipliers = multipliers;
 
-  initTensor(ctx, dest, outputShape, workingTarget->dtype);
+  result = initTensor(ctx, dest, outputShape, workingTarget->dtype);
+  if (result != OK) {
+    goto cleanup_concat;
+  }
 
   dim_t currDimSize = workingTarget->shape.dims[targetDim];
   dim_t newDimSize = outputShape.dims[targetDim];
+  size_t bytesPerElem = getBytesForDtype(workingTarget->dtype);
 
-  // Copy data slice by slice to handle row-major layout correctly
   for (tensor_size_t inb = 0; inb < numElementsBeforeTargetDim; inb++) {
-    // Calculate destination offset for this slice
     tensor_size_t destSliceOffset = inb * newDimSize * numElementsAfterTargetDim;
-    // Calculate source offset in target tensor for this slice
     tensor_size_t srcSliceOffset = inb * currDimSize * numElementsAfterTargetDim;
 
-    // Copy target tensor slice for this row/group
-    void *destLoc = dest->values + (destSliceOffset * getBytesForDtype(workingTarget->dtype));
-    void *srcLoc =
-        workingTarget->values + (srcSliceOffset * getBytesForDtype(workingTarget->dtype));
-    memcpy(destLoc, srcLoc,
-           (currDimSize * numElementsAfterTargetDim) * getBytesForDtype(workingTarget->dtype));
+    result = copyBetweenContexts(workingTarget->context, dest->context,
+                                 (char *)workingTarget->values + srcSliceOffset * bytesPerElem,
+                                 (char *)dest->values + destSliceOffset * bytesPerElem,
+                                 currDimSize * numElementsAfterTargetDim * bytesPerElem);
+    if (result != OK) {
+      goto cleanup_concat;
+    }
 
-    // Copy each additional tensor's slice
     dim_t dimOffset = currDimSize;
     for (dim_t ist = 0; ist < numTensorsToAdd; ist++) {
-      Tensor *curr = tensors[ist];
+      Tensor *curr = tensorArgs[ist].tensor;
       dim_t currTargetDimSize = curr->shape.dims[targetDim];
-
-      void *currDestLoc =
-          dest->values + (((destSliceOffset + (dimOffset * numElementsAfterTargetDim))) *
-                          getBytesForDtype(workingTarget->dtype));
-      void *currSrcLoc = curr->values + (inb * currTargetDimSize * numElementsAfterTargetDim) *
-                                            getBytesForDtype(workingTarget->dtype);
-      memcpy(currDestLoc, currSrcLoc,
-             (currTargetDimSize * numElementsAfterTargetDim) *
-                 getBytesForDtype(workingTarget->dtype));
+      tensor_size_t currDestOffset = destSliceOffset + (dimOffset * numElementsAfterTargetDim);
+      tensor_size_t currSrcOffset = inb * currTargetDimSize * numElementsAfterTargetDim;
+      result = copyBetweenContexts(curr->context, dest->context,
+                                   (char *)curr->values + currSrcOffset * bytesPerElem,
+                                   (char *)dest->values + currDestOffset * bytesPerElem,
+                                   currTargetDimSize * numElementsAfterTargetDim * bytesPerElem);
+      if (result != OK) {
+        goto cleanup_concat;
+      }
 
       dimOffset += currTargetDimSize;
     }
   }
 
-  if (freeWorkingTarget) {
-    FreeTensor(ctx, workingTarget);
-  }
+  result = OK;
 
-  return OK;
+cleanup_concat:
+  if (tensorArgs != NULL) {
+    for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
+      releaseTensorArg(ctx, &tensorArgs[it]);
+    }
+  }
+  releaseTensorArg(ctx, &targetArg);
+  return result;
 }

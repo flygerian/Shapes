@@ -17,9 +17,9 @@ func TestConvBackwardAccumulatesInputKernelAndBiasGrads(t *testing.T) {
 		1, 0,
 		0, 1,
 	})
-	layer.bias = shapes.Float(ctx, shapes.Shape{1}, 0)
+	layer.bias = shapes.Float(ctx, shapes.Shape{1, 1, 1, 1}, 0)
 
-	x := shapes.FromFloat32(ctx, shapes.Shape{1, 1, 3, 3}, []float32{
+	x := shapes.FromFloat32(ctx, shapes.Shape{1, 3, 3, 1}, []float32{
 		1, 2, 3,
 		4, 5, 6,
 		7, 8, 9,
@@ -59,7 +59,7 @@ func TestConvBackwardLargeChannelBiasGradDoesNotCrash(t *testing.T) {
 	defer ctx.Finish()
 
 	layer := Conv2d(ctx, 256, 512, shapes.Shape{2, 2}, 1).(*conv)
-	x := shapes.Float(ctx, shapes.Shape{1, 256, 2, 2}, 1)
+	x := shapes.Float(ctx, shapes.Shape{1, 2, 2, 256}, 1)
 
 	out := layer.Forward(ctx, x)
 	out.Backward(ctx)

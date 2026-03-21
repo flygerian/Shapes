@@ -24,6 +24,14 @@ static bool isComparisonOp(OpType opType) {
          opType == OP_LESS_OR_EQUAL;
 }
 
+static bool isArithmeticOp(OpType opType) {
+  return opType == OP_ADD || opType == OP_SUBTRACT || opType == OP_MULTIPLY;
+}
+
+static bool isCudaContext(Context *ctx) {
+  return ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA;
+}
+
 static bool areTensorsSameShape(Tensor *a, Tensor *b) {
   if (a->shape.numOfDims != b->shape.numOfDims) {
     return false;
@@ -37,6 +45,14 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
 
   return true;
 }
+
+#define SWITCH_ARITH_OP(OP_TYPE, ADD_EXPR, SUB_EXPR, MUL_EXPR)                                    \
+  switch (OP_TYPE) {                                                                               \
+    case OP_ADD: ADD_EXPR; break;                                                                  \
+    case OP_SUBTRACT: SUB_EXPR; break;                                                             \
+    case OP_MULTIPLY: MUL_EXPR; break;                                                             \
+    default: return ERR_NOT_A_BINOP;                                                               \
+  }
 
 #define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                           \
   static inline void add_##NAME(const TYPE *restrict a, const TYPE *restrict b,                    \
@@ -107,108 +123,72 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
       const bool *restrict pa = a->values;
       const bool *restrict pb = b->values;
       bool *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_bool(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_bool(pa, pb, po, n);
-      else
-        multiply_bool(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_bool(pa, pb, po, n), subtract_bool(pa, pb, po, n),
+                      multiply_bool(pa, pb, po, n));
       return OK;
     }
     case U8: {
       const u8 *restrict pa = a->values;
       const u8 *restrict pb = b->values;
       u8 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_u8(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_u8(pa, pb, po, n);
-      else
-        multiply_u8(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_u8(pa, pb, po, n), subtract_u8(pa, pb, po, n),
+                      multiply_u8(pa, pb, po, n));
       return OK;
     }
     case U16: {
       const u16 *restrict pa = a->values;
       const u16 *restrict pb = b->values;
       u16 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_u16(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_u16(pa, pb, po, n);
-      else
-        multiply_u16(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_u16(pa, pb, po, n), subtract_u16(pa, pb, po, n),
+                      multiply_u16(pa, pb, po, n));
       return OK;
     }
     case U32: {
       const u32 *restrict pa = a->values;
       const u32 *restrict pb = b->values;
       u32 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_u32(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_u32(pa, pb, po, n);
-      else
-        multiply_u32(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_u32(pa, pb, po, n), subtract_u32(pa, pb, po, n),
+                      multiply_u32(pa, pb, po, n));
       return OK;
     }
     case U64: {
       const u64 *restrict pa = a->values;
       const u64 *restrict pb = b->values;
       u64 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_u64(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_u64(pa, pb, po, n);
-      else
-        multiply_u64(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_u64(pa, pb, po, n), subtract_u64(pa, pb, po, n),
+                      multiply_u64(pa, pb, po, n));
       return OK;
     }
     case I8: {
       const i8 *restrict pa = a->values;
       const i8 *restrict pb = b->values;
       i8 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_i8(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_i8(pa, pb, po, n);
-      else
-        multiply_i8(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_i8(pa, pb, po, n), subtract_i8(pa, pb, po, n),
+                      multiply_i8(pa, pb, po, n));
       return OK;
     }
     case I16: {
       const i16 *restrict pa = a->values;
       const i16 *restrict pb = b->values;
       i16 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_i16(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_i16(pa, pb, po, n);
-      else
-        multiply_i16(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_i16(pa, pb, po, n), subtract_i16(pa, pb, po, n),
+                      multiply_i16(pa, pb, po, n));
       return OK;
     }
     case I32: {
       const i32 *restrict pa = a->values;
       const i32 *restrict pb = b->values;
       i32 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_i32(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_i32(pa, pb, po, n);
-      else
-        multiply_i32(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_i32(pa, pb, po, n), subtract_i32(pa, pb, po, n),
+                      multiply_i32(pa, pb, po, n));
       return OK;
     }
     case I64: {
       const i64 *restrict pa = a->values;
       const i64 *restrict pb = b->values;
       i64 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_i64(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_i64(pa, pb, po, n);
-      else
-        multiply_i64(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_i64(pa, pb, po, n), subtract_i64(pa, pb, po, n),
+                      multiply_i64(pa, pb, po, n));
       return OK;
     }
     case F16:
@@ -216,24 +196,16 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
       const f32 *restrict pa = a->values;
       const f32 *restrict pb = b->values;
       f32 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_f32(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_f32(pa, pb, po, n);
-      else
-        multiply_f32(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_f32(pa, pb, po, n), subtract_f32(pa, pb, po, n),
+                      multiply_f32(pa, pb, po, n));
       return OK;
     }
     case F64: {
       const f64 *restrict pa = a->values;
       const f64 *restrict pb = b->values;
       f64 *restrict po = dest->values;
-      if (opType == OP_ADD)
-        add_f64(pa, pb, po, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_f64(pa, pb, po, n);
-      else
-        multiply_f64(pa, pb, po, n);
+      SWITCH_ARITH_OP(opType, add_f64(pa, pb, po, n), subtract_f64(pa, pb, po, n),
+                      multiply_f64(pa, pb, po, n));
       return OK;
     }
     default: return ERR_NOT_A_BINOP;
@@ -247,123 +219,79 @@ static Result straightInPlaceBinop(Tensor *a, Tensor *b, OpType opType) {
     case BOOL: {
       bool *pa = a->values;
       const bool *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_bool(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_bool(pa, pb, n);
-      else
-        multiply_inplace_bool(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_bool(pa, pb, n), subtract_inplace_bool(pa, pb, n),
+                      multiply_inplace_bool(pa, pb, n));
       return OK;
     }
     case U8: {
       u8 *pa = a->values;
       const u8 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_u8(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_u8(pa, pb, n);
-      else
-        multiply_inplace_u8(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_u8(pa, pb, n), subtract_inplace_u8(pa, pb, n),
+                      multiply_inplace_u8(pa, pb, n));
       return OK;
     }
     case U16: {
       u16 *pa = a->values;
       const u16 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_u16(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_u16(pa, pb, n);
-      else
-        multiply_inplace_u16(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_u16(pa, pb, n), subtract_inplace_u16(pa, pb, n),
+                      multiply_inplace_u16(pa, pb, n));
       return OK;
     }
     case U32: {
       u32 *pa = a->values;
       const u32 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_u32(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_u32(pa, pb, n);
-      else
-        multiply_inplace_u32(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_u32(pa, pb, n), subtract_inplace_u32(pa, pb, n),
+                      multiply_inplace_u32(pa, pb, n));
       return OK;
     }
     case U64: {
       u64 *pa = a->values;
       const u64 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_u64(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_u64(pa, pb, n);
-      else
-        multiply_inplace_u64(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_u64(pa, pb, n), subtract_inplace_u64(pa, pb, n),
+                      multiply_inplace_u64(pa, pb, n));
       return OK;
     }
     case I8: {
       i8 *pa = a->values;
       const i8 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_i8(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_i8(pa, pb, n);
-      else
-        multiply_inplace_i8(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_i8(pa, pb, n), subtract_inplace_i8(pa, pb, n),
+                      multiply_inplace_i8(pa, pb, n));
       return OK;
     }
     case I16: {
       i16 *pa = a->values;
       const i16 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_i16(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_i16(pa, pb, n);
-      else
-        multiply_inplace_i16(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_i16(pa, pb, n), subtract_inplace_i16(pa, pb, n),
+                      multiply_inplace_i16(pa, pb, n));
       return OK;
     }
     case I32: {
       i32 *pa = a->values;
       const i32 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_i32(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_i32(pa, pb, n);
-      else
-        multiply_inplace_i32(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_i32(pa, pb, n), subtract_inplace_i32(pa, pb, n),
+                      multiply_inplace_i32(pa, pb, n));
       return OK;
     }
     case I64: {
       i64 *pa = a->values;
       const i64 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_i64(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_i64(pa, pb, n);
-      else
-        multiply_inplace_i64(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_i64(pa, pb, n), subtract_inplace_i64(pa, pb, n),
+                      multiply_inplace_i64(pa, pb, n));
       return OK;
     }
     case F16:
     case F32: {
       f32 *pa = a->values;
       const f32 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_f32(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_f32(pa, pb, n);
-      else
-        multiply_inplace_f32(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_f32(pa, pb, n), subtract_inplace_f32(pa, pb, n),
+                      multiply_inplace_f32(pa, pb, n));
       return OK;
     }
     case F64: {
       f64 *pa = a->values;
       const f64 *pb = b->values;
-      if (opType == OP_ADD)
-        add_inplace_f64(pa, pb, n);
-      else if (opType == OP_SUBTRACT)
-        subtract_inplace_f64(pa, pb, n);
-      else
-        multiply_inplace_f64(pa, pb, n);
+      SWITCH_ARITH_OP(opType, add_inplace_f64(pa, pb, n), subtract_inplace_f64(pa, pb, n),
+                      multiply_inplace_f64(pa, pb, n));
       return OK;
     }
     default: return ERR_NOT_A_BINOP;
@@ -489,7 +417,51 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
   return OK;
 }
 
-static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
+static void cleanupPaddedPair(Context *ctx, Tensor *originalA, Tensor *originalB, TensorPair *ops) {
+  if (ops->a != originalA) {
+    FreeViewTensor(ctx, ops->a);
+  }
+  if (ops->b != originalB) {
+    FreeViewTensor(ctx, ops->b);
+  }
+}
+
+static Result copyContiguousTensorIntoTensor(Context *srcCtx, Tensor *src, Tensor *dest) {
+  if (src == NULL || dest == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (src->size != dest->size || src->dtype != dest->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  Context *destCtx = dest->context != NULL ? dest->context : srcCtx;
+  size_t valueBytes = src->size * getBytesForDtype(src->dtype);
+
+  if (dest->isContigous && !dest->isView) {
+    return copyBetweenContexts(srcCtx, destCtx, src->values, dest->values, valueBytes);
+  }
+
+  size_t elemBytes = getBytesForDtype(dest->dtype);
+  dim_t currentCoord[dest->shape.numOfDims];
+
+  for (tensor_size_t x = 0; x < dest->size; x++) {
+    unravel_index(x, &dest->shape, currentCoord);
+    u64 destStorageIdx = getContigousIdxFromCoord(dest, currentCoord);
+
+    void *srcPtr = (char *)src->values + x * elemBytes;
+    void *destPtr = (char *)dest->values + destStorageIdx * elemBytes;
+
+    Result copyResult = copyBetweenContexts(srcCtx, destCtx, srcPtr, destPtr, elemBytes);
+    if (copyResult != OK) {
+      return copyResult;
+    }
+  }
+
+  return OK;
+}
+
+static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
   if (a->dtype != b->dtype) {
     return ERR_DTYPE_MISMATCH;
   }
@@ -503,15 +475,22 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  Tensor *opA = ops.a;
-  Tensor *opB = ops.b;
+  TensorArg aArg = {0};
+  TensorArg bArg = {0};
+  Result res = materializeTensorOnContext(ctx, ops.a, true, &aArg);
+  if (res != OK) {
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return res;
+  }
+  res = materializeTensorOnContext(ctx, ops.b, true, &bArg);
+  if (res != OK) {
+    releaseTensorArg(ctx, &aArg);
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return res;
+  }
 
-  if (!opA->isContigous) {
-    opA = copyToContiguous(ctx, opA);
-  }
-  if (!opB->isContigous) {
-    opB = copyToContiguous(ctx, opB);
-  }
+  Tensor *opA = aArg.tensor;
+  Tensor *opB = bArg.tensor;
 
   Dim outputShape;
   if (opA->size > opB->size) {
@@ -527,7 +506,6 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
 
   Tensor *output = t_Zeros(ctx, outputShape, outputDtype);
 
-  Result res;
   if (areTensorsSameShape(opA, opB)) {
     res = straightBinop(opA, opB, output, opType);
   } else {
@@ -536,37 +514,105 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
 
   if (res != OK) {
     FreeTensor(ctx, output);
-    if (opA != ops.a)
-      FreeTensor(ctx, opA);
-    if (opB != ops.b)
-      FreeTensor(ctx, opB);
-    if (ops.a != a)
-      FreeViewTensor(ctx, ops.a);
-    if (ops.b != b)
-      FreeViewTensor(ctx, ops.b);
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    cleanupPaddedPair(ctx, a, b, &ops);
     return res;
   }
 
   *destination = *output;
   freeAlloc(ctx->memory, output);
 
-  if (opA != ops.a)
-    FreeTensor(ctx, opA);
-  if (opB != ops.b)
-    FreeTensor(ctx, opB);
-  if (ops.a != a)
-    FreeViewTensor(ctx, ops.a);
-  if (ops.b != b)
-    FreeViewTensor(ctx, ops.b);
+  releaseTensorArg(ctx, &aArg);
+  releaseTensorArg(ctx, &bArg);
+  cleanupPaddedPair(ctx, a, b, &ops);
 
   return OK;
+}
+
+static Result binaryOpViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, Tensor *destination,
+                                     OpType opType) {
+  Context cpuCtx = {.memory = ctx->memory};
+  Result res = binaryOpCpu(&cpuCtx, a, b, destination, opType);
+  if (res != OK) {
+    return res;
+  }
+
+  return moveTensor(&cpuCtx, ctx, destination);
+}
+
+static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destination,
+                           OpType opType) {
+  if (!isArithmeticOp(opType)) {
+    return ERR_NO_OP;
+  }
+
+  TensorPair ops = {.a = a, .b = b};
+  if (a->shape.numOfDims != b->shape.numOfDims) {
+    ops = padSmallerTensor(ctx, a, b);
+  }
+
+  TensorArg aArg = {0};
+  TensorArg bArg = {0};
+  Result res = materializeTensorOnContext(ctx, ops.a, true, &aArg);
+  if (res != OK) {
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return res;
+  }
+  res = materializeTensorOnContext(ctx, ops.b, true, &bArg);
+  if (res != OK) {
+    releaseTensorArg(ctx, &aArg);
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return res;
+  }
+
+  Tensor *opA = aArg.tensor;
+  Tensor *opB = bArg.tensor;
+  if (!areTensorsSameShape(opA, opB)) {
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return binaryOpViaCpuFallback(ctx, a, b, destination, opType);
+  }
+
+  Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
+  res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
+                        output->size);
+  if (res == OK) {
+    *destination = *output;
+    freeAlloc(ctx->memory, output);
+  } else {
+    FreeTensor(ctx, output);
+  }
+
+  releaseTensorArg(ctx, &aArg);
+  releaseTensorArg(ctx, &bArg);
+  cleanupPaddedPair(ctx, a, b, &ops);
+
+  return res;
+}
+
+static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (!areBroadcastable(a, b)) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
+    case CUDA: return binaryOpCuda(ctx, a, b, destination, opType);
+    case CPU:
+    default: return binaryOpCpu(ctx, a, b, destination, opType);
+  }
 }
 
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
   return binaryOp(ctx, a, b, destination, OP_ADD);
 }
 
-static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   if (a->dtype != b->dtype) {
     return ERR_DTYPE_MISMATCH;
   }
@@ -583,17 +629,19 @@ static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
     paddedB = ops.b;
   }
 
-  Tensor *contiguousB = NULL;
-  if (!opB->isContigous) {
-    opB = copyToContiguous(ctx, opB);
-    contiguousB = opB;
+  TensorArg bArg = {0};
+  Result res = materializeTensorOnContext(ctx, opB, true, &bArg);
+  if (res != OK) {
+    if (paddedB != NULL) {
+      FreeViewTensor(ctx, paddedB);
+    }
+    return res;
   }
+  opB = bArg.tensor;
 
   if (a->isContigous && opB->isContigous && areTensorsSameShape(a, opB)) {
-    Result res = straightInPlaceBinop(a, opB, opType);
-    if (contiguousB != NULL) {
-      FreeTensor(ctx, contiguousB);
-    }
+    res = straightInPlaceBinop(a, opB, opType);
+    releaseTensorArg(ctx, &bArg);
     if (paddedB != NULL) {
       FreeViewTensor(ctx, paddedB);
     }
@@ -626,21 +674,110 @@ static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
       case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      default: return ERR_NOT_A_BINOP;
+      default:
+        releaseTensorArg(ctx, &bArg);
+        if (paddedB != NULL) {
+          FreeViewTensor(ctx, paddedB);
+        }
+        return ERR_NOT_A_BINOP;
     }
 
     VALUE_SET(a->values, aStorageIdx, result);
   }
 
-  if (contiguousB != NULL) {
-    FreeTensor(ctx, contiguousB);
-  }
+  releaseTensorArg(ctx, &bArg);
 
   if (paddedB != NULL) {
     FreeViewTensor(ctx, paddedB);
   }
 
   return OK;
+}
+
+static Result inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+  if (!isArithmeticOp(opType) || !a->isContigous || a->isView || !isSameContext(a->context, ctx)) {
+    return ERR_NO_OP;
+  }
+
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (!areBroadcastable(a, b)) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  Tensor *opB = b;
+  Tensor *paddedB = NULL;
+  if (a->shape.numOfDims != b->shape.numOfDims) {
+    TensorPair ops = padSmallerTensor(ctx, a, b);
+    opB = ops.b;
+    paddedB = ops.b;
+  }
+
+  TensorArg bArg = {0};
+  Result res = materializeTensorOnContext(ctx, opB, true, &bArg);
+  if (res != OK) {
+    if (paddedB != NULL) {
+      FreeViewTensor(ctx, paddedB);
+    }
+    return res;
+  }
+  opB = bArg.tensor;
+
+  if (!areTensorsSameShape(a, opB)) {
+    releaseTensorArg(ctx, &bArg);
+    if (paddedB != NULL) {
+      FreeViewTensor(ctx, paddedB);
+    }
+    return ERR_NO_OP;
+  }
+
+  res = runCudaBinaryOp(ctx, a->dtype, opType, a->values, opB->values, a->values, a->size);
+
+  releaseTensorArg(ctx, &bArg);
+  if (paddedB != NULL) {
+    FreeViewTensor(ctx, paddedB);
+  }
+
+  return res;
+}
+
+static Result inPlaceBinopViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+  Context cpuCtx = {.memory = ctx->memory};
+  TensorArg aArg = {0};
+  Result res = materializeTensorOnContext(&cpuCtx, a, true, &aArg);
+  if (res != OK) {
+    return res;
+  }
+
+  res = inPlaceBinopCpu(&cpuCtx, aArg.tensor, b, opType);
+  if (res == OK) {
+    res = copyContiguousTensorIntoTensor(&cpuCtx, aArg.tensor, a);
+  }
+
+  releaseTensorArg(&cpuCtx, &aArg);
+  return res;
+}
+
+static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+  if (a->dtype != b->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (!areBroadcastable(a, b)) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
+    case CUDA:
+      if (!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims) {
+        return inPlaceBinopViaCpuFallback(ctx, a, b, opType);
+      }
+      return inPlaceBinopCuda(ctx, a, b, opType);
+    case CPU:
+    default: return inPlaceBinopCpu(ctx, a, b, opType);
+  }
 }
 
 Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {

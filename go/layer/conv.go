@@ -7,6 +7,7 @@ import (
 )
 
 type conv struct {
+	ctx         shapes.Context
 	kernelShape shapes.Shape
 	stride      uint8
 	inChannels  uint
@@ -49,9 +50,10 @@ func Conv2d(
 		shapes.Shape{uint(outChannels), uint(inChannels), kernel[0], kernel[1]},
 		-float32(initialization), float32(initialization),
 	)
-	bias := shapes.Float(ctx, shapes.Shape{1, uint(outChannels), 1, 1}, 0)
+	bias := shapes.Float(ctx, shapes.Shape{1, 1, 1, uint(outChannels)}, 0)
 
 	state := conv{
+		ctx:         ctx,
 		kernelShape: kernel,
 		inChannels:  inChannels,
 		outChannels: outChannels,
@@ -102,17 +104,16 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	bias := hidden[1]
 	meta := out.Metadata().(convMetadata)
 
-	dOutput := out.Grad() // (B, C, oH, oW)
+	dOutput := out.Grad() // (B, oH, oW, C)
 	outputShape := dOutput.Shape()
 	B := outputShape[0]
-	C := outputShape[1]
-	oh := outputShape[2]
-	ow := outputShape[3]
+	oh := outputShape[1]
+	ow := outputShape[2]
+	C := outputShape[3]
 
-	// Collapse spatial dims first so bias reduction is stable even when Sum squeezes singleton dims.
 	dBias := dOutput.
-		Reshape(backwardCtx, int(B), int(C), int(oh*ow)).
-		Sum(backwardCtx, 2).
+		Reshape(backwardCtx, int(B), int(oh*ow), int(C)).
+		Sum(backwardCtx, 1).
 		Sum(backwardCtx, 0).
 		Squeeze(backwardCtx)
 

@@ -13,7 +13,6 @@ extern "C" void runCudaGemm(Context *ctx, Dtype dtype, cublasOperation_t transA,
 
     cublasDgemm(ctx->handle, transA, transB, m, n, k, &alpha, (const double *)a, lda,
                 (const double *)b, ldb, &beta, (double *)c, ldc);
-    cudaDeviceSynchronize();
     return;
   }
 
@@ -22,5 +21,4 @@ extern "C" void runCudaGemm(Context *ctx, Dtype dtype, cublasOperation_t transA,
 
   cublasSgemm(ctx->handle, transA, transB, m, n, k, &alpha, (const float *)a, lda,
               (const float *)b, ldb, &beta, (float *)c, ldc);
-  cudaDeviceSynchronize();
 }

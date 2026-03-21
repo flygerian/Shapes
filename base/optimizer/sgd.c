@@ -3,16 +3,11 @@
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
-#include <math.h>
-#include <signal.h>
 #include <stddef.h>
-#include <stdio.h>
-#include <string.h>
 
 Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
            f32 learningRate) {
-  (void)ctx;
-  if (parameters == NULL || parameterGrads == NULL) {
+  if (ctx == NULL || parameters == NULL || parameterGrads == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
@@ -36,10 +31,6 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
       return ERR_SGD_PARAMS_NUMBER_MISMATCH;
     }
 
-    if (!p->isContigous || !g->isContigous) {
-      return ERR_SGD_PARAMS_HAVE_TO_BE_CONTIGOUS;
-    }
-
     if (isNotFloatType(p) || isNotFloatType(g)) {
       return ERR_SGD_PARAMS_HAVE_TO_BE_FLOAT;
     }
@@ -48,30 +39,69 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
   for (size_t i = 0; i < numParameters; i++) {
     Tensor *p = parameters[i];
     Tensor *g = parameterGrads[i];
+    TensorArg pArg = {0};
+    TensorArg gArg = {0};
 
-    if (p->dtype == F16) {
-      f16 *parameterVals = p->values;
-      f16 *gradVals = g->values;
-      for (tensor_size_t x = 0; x < p->size; x++) {
-        parameterVals[x] -= (gradVals[x] * learningRate);
+    Result res = materializeTensorOnContext(ctx, p, true, &pArg);
+    if (res != OK) {
+      return res;
+    }
+
+    res = materializeTensorOnContext(ctx, g, true, &gArg);
+    if (res != OK) {
+      releaseTensorArg(ctx, &pArg);
+      return res;
+    }
+
+    Tensor *pWork = pArg.tensor;
+    Tensor *gWork = gArg.tensor;
+
+    if (ctx->device != NULL && ctx->device->type == CUDA) {
+      res = runCudaSgd(ctx, pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
+    } else {
+      if (p->dtype == F16) {
+        f16 *parameterVals = pWork->values;
+        f16 *gradVals = gWork->values;
+        for (tensor_size_t x = 0; x < pWork->size; x++) {
+          parameterVals[x] -= (gradVals[x] * learningRate);
+        }
+      }
+
+      if (p->dtype == F32) {
+        f32 *parameterVals = pWork->values;
+        f32 *gradVals = gWork->values;
+        for (tensor_size_t x = 0; x < pWork->size; x++) {
+          parameterVals[x] -= (gradVals[x] * learningRate);
+        }
+      }
+
+      if (p->dtype == F64) {
+        f64 *parameterVals = pWork->values;
+        f64 *gradVals = gWork->values;
+        for (tensor_size_t x = 0; x < pWork->size; x++) {
+          parameterVals[x] -= (gradVals[x] * learningRate);
+        }
       }
     }
 
-    if (p->dtype == F32) {
-      f32 *parameterVals = p->values;
-      f32 *gradVals = g->values;
-      for (tensor_size_t x = 0; x < p->size; x++) {
-        parameterVals[x] -= (gradVals[x] * learningRate);
+    if (res != OK) {
+      releaseTensorArg(ctx, &pArg);
+      releaseTensorArg(ctx, &gArg);
+      return res;
+    }
+
+    if (pArg.tensor != p) {
+      size_t valueBytes = pWork->size * getBytesForDtype(pWork->dtype);
+      res = copyBetweenContexts(ctx, p->context, pWork->values, p->values, valueBytes);
+      if (res != OK) {
+        releaseTensorArg(ctx, &pArg);
+        releaseTensorArg(ctx, &gArg);
+        return res;
       }
     }
 
-    if (p->dtype == F64) {
-      f64 *parameterVals = p->values;
-      f64 *gradVals = g->values;
-      for (tensor_size_t x = 0; x < p->size; x++) {
-        parameterVals[x] -= (gradVals[x] * learningRate);
-      }
-    }
+    releaseTensorArg(ctx, &pArg);
+    releaseTensorArg(ctx, &gArg);
   }
 
   return OK;

@@ -133,17 +133,58 @@ static bool isCastSafe(Dtype source, Dtype target) {
   return dtypeRank(target) >= dtypeRank(source);
 }
 
+static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
+  TensorArg sourceArg = {0};
+  Result result = materializeTensorOnContext(ctx, source, true, &sourceArg);
+  if (result != OK) {
+    return result;
+  }
+
+  Tensor *src = sourceArg.tensor;
+  result = initTensorLike(ctx, dest, src, target);
+  if (result != OK) {
+    releaseTensorArg(ctx, &sourceArg);
+    return result;
+  }
+
+  for (tensor_size_t i = 0; i < src->size; i++) {
+    Value v;
+    VALUE_GET_FROM_ARR(src->values, i, &v, src->dtype);
+    Value converted = castValue(v, target);
+    VALUE_SET(dest->values, i, converted);
+  }
+
+  releaseTensorArg(ctx, &sourceArg);
+  return OK;
+}
+
+static Result castOnCudaViaCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
+  Context hostCtx = {.memory = ctx->memory};
+  Tensor cpuDest;
+
+  Result result = castOnCpu(&hostCtx, source, &cpuDest, target);
+  if (result != OK) {
+    return result;
+  }
+
+  result = initTensorLike(ctx, dest, &cpuDest, target);
+  if (result != OK) {
+    FreeTensor(&hostCtx, &cpuDest);
+    return result;
+  }
+
+  size_t valueBytes = cpuDest.size * getBytesForDtype(target);
+  result = copyBetweenContexts(cpuDest.context, ctx, cpuDest.values, dest->values, valueBytes);
+  FreeTensor(&hostCtx, &cpuDest);
+  return result;
+}
+
 Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
   if (isInvalidTensor(source)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
   Dtype srcDtype = source->dtype;
-
-  // Same dtype: just clone
-  if (srcDtype == target) {
-    return Clone(ctx, source, dest);
-  }
 
   // Check cast safety (sign compatibility + truncation)
   int srcFamily = dtypeFamily(srcDtype);
@@ -164,40 +205,19 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
     return ERR_TRUNCATING_CAST;
   }
 
-  // Ensure contiguous source
-  Tensor *src = source;
-  if (!source->isContigous) {
-    src = copyToContiguous(ctx, source);
+  if (srcDtype == target) {
+    return Clone(ctx, source, dest);
   }
 
-  // Allocate destination shape
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * src->shape.numOfDims);
-  memcpy(newDims, src->shape.dims, sizeof(dim_t) * src->shape.numOfDims);
-
-  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * src->shape.numOfDims);
-  memcpy(newMultipliers, src->shape.multipliers, sizeof(multiplier_t) * src->shape.numOfDims);
-
-  // Allocate destination values
-  size_t valueBytes = getBytesForDtype(target) * src->size;
-  void *newValues = allocate(ctx->memory, valueBytes);
-
-  // Element-wise conversion
-  for (tensor_size_t i = 0; i < src->size; i++) {
-    Value v;
-    VALUE_GET_FROM_ARR(src->values, i, &v, srcDtype);
-    Value converted = castValue(v, target);
-    VALUE_SET(newValues, i, converted);
+  DeviceType deviceType = CPU;
+  if (ctx != NULL && ctx->device != NULL) {
+    deviceType = ctx->device->type;
   }
 
-  *dest = (Tensor){
-      .context = ctx,
-      .dtype = target,
-      .values = newValues,
-      .size = src->size,
-      .isContigous = true,
-      .isView = false,
-      .boundary = NULL,
-      .shape = {.dims = newDims, .numOfDims = src->shape.numOfDims, .multipliers = newMultipliers}};
+  switch (deviceType) {
+    case CPU: return castOnCpu(ctx, source, dest, target);
+    case CUDA: return castOnCudaViaCpu(ctx, source, dest, target);
+  }
 
-  return OK;
+  return ERR_NO_OP;
 }

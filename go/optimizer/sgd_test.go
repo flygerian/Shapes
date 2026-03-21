@@ -109,6 +109,70 @@ func TestSGDLossDecreases(t *testing.T) {
 	step(graph)
 }
 
+func TestSGDMixedCpuTargetAndCudaParameters(t *testing.T) {
+	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer cpuCtx.Finish()
+	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
+	defer cudaCtx.Finish()
+
+	dense := layer.Dense(cudaCtx, 3, 2)
+	x := shapes.Float(cudaCtx, shapes.Shape{1, 3}, 1.0)
+
+	o := dense.Forward(cudaCtx, x)
+	graph := o.Backward(cpuCtx)
+
+	params := extract.Parameters(graph)
+	before := snapshotParams(t, cpuCtx, params)
+
+	step := SGD(cpuCtx.NoGraph(), 0.01)
+	step(graph)
+
+	after := snapshotParams(t, cpuCtx, params)
+
+	changed := false
+	for i := range before {
+		if !approxEq(before[i], after[i], 1e-10) {
+			changed = true
+			break
+		}
+	}
+	if !changed {
+		t.Fatal("expected mixed-context SGD step to update parameters")
+	}
+}
+
+func TestSGDCudaTargetAndCudaParameters(t *testing.T) {
+	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer cpuCtx.Finish()
+	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
+	defer cudaCtx.Finish()
+
+	dense := layer.Dense(cudaCtx, 3, 2)
+	x := shapes.Float(cudaCtx, shapes.Shape{1, 3}, 1.0)
+
+	o := dense.Forward(cudaCtx, x)
+	graph := o.Backward(cpuCtx)
+
+	params := extract.Parameters(graph)
+	before := snapshotParams(t, cudaCtx, params)
+
+	step := SGD(cudaCtx.NoGraph(), 0.01)
+	step(graph)
+
+	after := snapshotParams(t, cudaCtx, params)
+
+	changed := false
+	for i := range before {
+		if !approxEq(before[i], after[i], 1e-10) {
+			changed = true
+			break
+		}
+	}
+	if !changed {
+		t.Fatal("expected CUDA-context SGD step to update parameters")
+	}
+}
+
 func runSGDStep(t *testing.T, lr float32) []float32 {
 	t.Helper()
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))

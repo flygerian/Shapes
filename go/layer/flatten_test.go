@@ -11,7 +11,7 @@ func TestFlattenReturnsBatchPreserving2DOutput(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Finish()
 
-	flatten := Flatten()
+	flatten := Flatten(ctx)
 	x := shapes.Float(ctx, shapes.Shape{2, 3, 4, 5}, 1.0)
 
 	out := flatten.Forward(ctx, x)
@@ -29,7 +29,7 @@ func TestFlattenLeaves1DInputUnchanged(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Finish()
 
-	flatten := Flatten()
+	flatten := Flatten(ctx)
 	x := shapes.Float(ctx, shapes.Shape{5}, 1.0)
 
 	out := flatten.Forward(ctx, x)
@@ -43,7 +43,7 @@ func TestFlattenBackwardRestoresOriginalShape(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Finish()
 
-	flatten := Flatten()
+	flatten := Flatten(ctx)
 	x := shapes.Float(ctx, shapes.Shape{2, 3, 4}, 1.0)
 
 	out := flatten.Forward(ctx, x)

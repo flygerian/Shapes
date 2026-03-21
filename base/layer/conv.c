@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static int clampBlasThreadCount(int threadCount) {
   int maxThreads = openblas_get_num_procs();
@@ -27,16 +28,61 @@ static int clampBlasThreadCount(int threadCount) {
   return threadCount > maxThreads ? maxThreads : threadCount;
 }
 
+static bool shouldLogOpTiming(void) {
+  const char *value = getenv("SHAPES_LOG_OP_TIMES");
+  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+static double opTimingNowMs(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+}
+
+static Result syncForOpTiming(Context *ctx) {
+  if (!shouldLogOpTiming()) {
+    return OK;
+  }
+
+  return Flush(ctx);
+}
+
+static void logOpTiming(Context *ctx, const char *opName, const char *phase, double startMs) {
+  if (!shouldLogOpTiming()) {
+    return;
+  }
+
+  const char *deviceName = "CPU(default)";
+  if (ctx != NULL && ctx->device != NULL) {
+    switch (ctx->device->type) {
+      case CPU: deviceName = "CPU"; break;
+      case CUDA: deviceName = "CUDA"; break;
+      default: deviceName = "UNKNOWN"; break;
+    }
+  }
+
+  fprintf(stderr, "[opTiming] op=%s device=%s phase=%s ms=%.3f\n", opName, deviceName, phase,
+          opTimingNowMs() - startMs);
+}
+
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
               Tensor *t, Tensor *dest, Tensor *colBufferDest) {
+  TensorArg inputArg = {0};
+  TensorArg kernelArg = {0};
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   Tensor gemmOutput;
   Tensor permutedOutput;
   bool gemmOutputInitialized = false;
   bool permutedOutputInitialized = false;
+  double totalStartMs = 0.0;
+  double phaseStartMs = 0.0;
 
   Result result;
+
+  if (shouldLogOpTiming()) {
+    totalStartMs = opTimingNowMs();
+  }
 
   if (t == NULL || dest == NULL || ctx == NULL) {
     result = ERR_NULL_TENSOR_PROVIDED;
@@ -91,9 +137,9 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   dim_t kernelHeight = kernels->shape.dims[2];
   dim_t kernelWidth = kernels->shape.dims[3];
   dim_t batch = t->shape.dims[0];
-  dim_t numChannels = t->shape.dims[1];
-  dim_t height = t->shape.dims[2];
-  dim_t width = t->shape.dims[3];
+  dim_t height = t->shape.dims[1];
+  dim_t width = t->shape.dims[2];
+  dim_t numChannels = t->shape.dims[3];
 
   if (kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight ||
       width < kernelWidth) {
@@ -110,21 +156,35 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
+  result = syncForOpTiming(ctx);
+  if (result != OK) {
+    goto cleanup;
+  }
+  phaseStartMs = opTimingNowMs();
   result = init4DTensor(ctx, &gemmOutput, batch, outputChannelHeight, outputChannelWidth,
                         outChannels, t->dtype);
   if (result != OK) {
     goto cleanup;
   }
+  logOpTiming(ctx, "Conv2d", "alloc_gemm_output", phaseStartMs);
 
   gemmOutputInitialized = true;
-  if (!inputContig->isContigous) {
-    inputContig = copyToContiguous(ctx, inputContig);
-  }
-  if (!kernelContig->isContigous) {
-    // If this happens something has gone terribly wrong
-    result = ERR_CONV2D_KERNEL_NOT_CONTIGOUS;
+  result = syncForOpTiming(ctx);
+  if (result != OK) {
     goto cleanup;
   }
+  phaseStartMs = opTimingNowMs();
+  result = materializeTensorOnContext(ctx, t, true, &inputArg);
+  if (result != OK) {
+    goto cleanup;
+  }
+  result = materializeTensorOnContext(ctx, kernels, true, &kernelArg);
+  if (result != OK) {
+    goto cleanup;
+  }
+  inputContig = inputArg.tensor;
+  kernelContig = kernelArg.tensor;
+  logOpTiming(ctx, "Conv2d", "materialize", phaseStartMs);
 
   tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
   tensor_size_t positions = outputChannelHeight * outputChannelWidth;
@@ -135,19 +195,59 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   if (t->dtype == F64) {
     f64 *kernelValues = kernelContig->values;
 
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
+    if (colBuffer == NULL) {
+      result = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
 
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
   } else {
     f32 *kernelValues = kernelContig->values;
 
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
+    if (colBuffer == NULL) {
+      result = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
 
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
   }
 
   if (colBufferDest != NULL) {
@@ -155,42 +255,17 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     freeAlloc(ctx->memory, colBuffer);
   }
 
-  dim_t orderDims[4] = {0, 3, 1, 2};
-  Dim order = {.dims = orderDims, .numOfDims = 4, .multipliers = NULL};
-  result = Permute(ctx, &gemmOutput, &permutedOutput, order);
-
-  if (result != OK) {
-    goto cleanup;
-  }
-  permutedOutputInitialized = true;
-
-  Tensor *contiguousDest = copyToContiguous(ctx, &permutedOutput);
-  if (contiguousDest == NULL) {
-    result = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *dest = *contiguousDest;
-  freeAlloc(ctx->memory, contiguousDest);
+  *dest = gemmOutput;
+  gemmOutputInitialized = false;
 
   result = OK;
+  logOpTiming(ctx, "Conv2d", "total", totalStartMs);
 
 cleanup:
-  if (inputContig != t) {
-    FreeTensor(ctx, inputContig);
-  }
-  if (kernelContig != kernels) {
-    FreeTensor(ctx, kernelContig);
-  }
+  releaseTensorArg(ctx, &inputArg);
+  releaseTensorArg(ctx, &kernelArg);
   if (permutedOutputInitialized) {
-    if (permutedOutput.shape.dims != NULL) {
-      freeAlloc(ctx->memory, permutedOutput.shape.dims);
-    }
-    if (permutedOutput.shape.multipliers != NULL) {
-      freeAlloc(ctx->memory, permutedOutput.shape.multipliers);
-    }
-    if (permutedOutput.boundary != NULL) {
-      freeAlloc(ctx->memory, permutedOutput.boundary);
-    }
+    freeTensorBuffers(ctx, &permutedOutput);
   }
   if (gemmOutputInitialized) {
     freeTensorBuffers(ctx, &gemmOutput);
@@ -201,14 +276,31 @@ cleanup:
 
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
+  TensorArg inputArg = {0};
+  TensorArg kernelArg = {0};
+  TensorArg outputGradArg = {0};
+  TensorArg colBufferArg = {0};
+  TensorArg dInputArg = {0};
+  TensorArg dKernelArg = {0};
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
+  Tensor *colBufferContig = colBuffer;
+  Tensor *dInputWork = dInput;
+  Tensor *dKernelWork = dKernels;
   void *dColBuffer = NULL;
-  bool dInputInitialized = false;
-  bool dKernelsInitialized = false;
+  bool outGradNhwcInitialized = false;
+  bool outputGradPermutedCopied = false;
+  Tensor outGradNhwc = {0};
+  double totalStartMs = 0.0;
+  double phaseStartMs = 0.0;
+  Result res = OK;
 
-  if (isInvalidTensor(input) || isInvalidTensor(kernels) || isInvalidTensor(outputGrad) ||
+  if (shouldLogOpTiming()) {
+    totalStartMs = opTimingNowMs();
+  }
+
+  if (ctx == NULL || isInvalidTensor(input) || isInvalidTensor(kernels) || isInvalidTensor(outputGrad) ||
       dInput == NULL || dKernels == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -235,9 +327,9 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   }
 
   dim_t batch = input->shape.dims[0];
-  dim_t inChannels = input->shape.dims[1];
-  dim_t h = input->shape.dims[2];
-  dim_t w = input->shape.dims[3];
+  dim_t h = input->shape.dims[1];
+  dim_t w = input->shape.dims[2];
+  dim_t inChannels = input->shape.dims[3];
   dim_t outChannels = kernels->shape.dims[0];
   dim_t kernelInChannels = kernels->shape.dims[1];
   dim_t kH = kernels->shape.dims[2];
@@ -250,34 +342,69 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   dim_t outH = (h - kH) / stride + 1;
   dim_t outW = (w - kW) / stride + 1;
 
-  if (outputGrad->shape.dims[0] != batch || outputGrad->shape.dims[1] != outChannels ||
-      outputGrad->shape.dims[2] != outH || outputGrad->shape.dims[3] != outW) {
+  if (outputGrad->shape.dims[0] != batch || outputGrad->shape.dims[1] != outH ||
+      outputGrad->shape.dims[2] != outW || outputGrad->shape.dims[3] != outChannels) {
     return ERR_DIM_MISMATCH;
   }
 
-  Result res;
-
-  if (!inputContig->isContigous) {
-    inputContig = copyToContiguous(ctx, inputContig);
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    goto cleanup;
   }
-  if (!kernelContig->isContigous) {
-    kernelContig = copyToContiguous(ctx, kernelContig);
+  phaseStartMs = opTimingNowMs();
+  res = materializeTensorOnContext(ctx, input, true, &inputArg);
+  if (res != OK) {
+    goto cleanup;
   }
+  res = materializeTensorOnContext(ctx, kernels, true, &kernelArg);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = materializeTensorOnContext(ctx, outputGrad, true, &outputGradArg);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = materializeTensorOnContext(ctx, colBuffer, true, &colBufferArg);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = materializeTensorOnContext(ctx, dInput, true, &dInputArg);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = materializeTensorOnContext(ctx, dKernels, true, &dKernelArg);
+  if (res != OK) {
+    goto cleanup;
+  }
+  inputContig = inputArg.tensor;
+  kernelContig = kernelArg.tensor;
+  outputGradContig = outputGradArg.tensor;
+  colBufferContig = colBufferArg.tensor;
+  dInputWork = dInputArg.tensor;
+  dKernelWork = dKernelArg.tensor;
+  logOpTiming(ctx, "Conv2dBackward", "materialize", phaseStartMs);
 
-  // Expecting outputgrad to be (NCHW) so we need to permute it and copy to contigous
-  // to make it NHWC because it was permuted to NCHW in Conv2d
-  Tensor outGradNhwc;
-  dim_t orderDims[4] = {0, 2, 3, 1};
-  Dim order = {.dims = orderDims, .numOfDims = 4, .multipliers = NULL};
-  Permute(ctx, outputGrad, &outGradNhwc, order);
-  outputGradContig = copyToContiguous(ctx, &outGradNhwc);
+  res = syncForOpTiming(ctx);
+  if (res != OK) {
+    goto cleanup;
+  }
+  phaseStartMs = opTimingNowMs();
+  res = clearTensorValues(dInputWork);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = clearTensorValues(dKernelWork);
+  if (res != OK) {
+    goto cleanup;
+  }
+  logOpTiming(ctx, "Conv2dBackward", "clear_grads", phaseStartMs);
 
-  dim_t C_in = input->shape.dims[1];
+  dim_t C_in = input->shape.dims[3];
   dim_t kS = C_in * kH * kW;
 
   if (input->dtype == F64) {
     f64 *wValues = kernelContig->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
-    f64 *dWValues = dKernels->values;        // (C_out, Cin, kH, kW) -> (C_out, kS)
+    f64 *dWValues = dKernelWork->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
     f64 *dOutput = outputGradContig->values; // (B,outH, outW, C_out)
 
     dim_t batch = input->shape.dims[0];
@@ -287,22 +414,57 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
 
     dim_t outputPositions = batch * outH * outW;
 
-    dColBuffer = allocate(ctx->memory, (outputPositions * kS) * sizeof(f64));
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    dColBuffer = allocateOnCtx(ctx, (outputPositions * kS) * sizeof(f64));
     if (dColBuffer == NULL) {
       res = ERR_OUT_OF_MEMORY;
       goto cleanup;
     }
+    logOpTiming(ctx, "Conv2dBackward", "alloc_dcol_buffer", phaseStartMs);
 
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
-            colBuffer->values, kS, false, dWValues, kS);
+            colBufferContig->values, kS, false, dWValues, kS);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
 
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     runGemm(ctx, F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out,
             wValues, kS, false, dColBuffer, kS);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "gemm_dcol", phaseStartMs);
 
-    col2imAccumulateF64(dInput, dColBuffer, kH, kW, stride);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    res = col2imAccumulateF64(dInputWork, dColBuffer, kH, kW, stride);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
   } else {
     f32 *wValues = kernelContig->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
-    f32 *dWValues = dKernels->values;        // (C_out, Cin, kH, kW) -> (C_out, kS)
+    f32 *dWValues = dKernelWork->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
     f32 *dOutput = outputGradContig->values; // (B,outH, outW, C_out)
 
     dim_t batch = input->shape.dims[0];
@@ -312,43 +474,104 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
 
     dim_t outputPositions = batch * outH * outW;
 
-    dColBuffer = allocate(ctx->memory, (outputPositions * kS) * sizeof(f32));
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    dColBuffer = allocateOnCtx(ctx, (outputPositions * kS) * sizeof(f32));
     if (dColBuffer == NULL) {
       res = ERR_OUT_OF_MEMORY;
       goto cleanup;
     }
+    logOpTiming(ctx, "Conv2dBackward", "alloc_dcol_buffer", phaseStartMs);
 
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
-            colBuffer->values, kS, false, dWValues, kS);
+            colBufferContig->values, kS, false, dWValues, kS);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
 
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
     runGemm(ctx, F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out,
             wValues, kS, false, dColBuffer, kS);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "gemm_dcol", phaseStartMs);
 
-    col2imAccumulateF32(dInput, dColBuffer, kH, kW, stride);
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    res = col2imAccumulateF32(dInputWork, dColBuffer, kH, kW, stride);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
+  }
+
+  if (dInputWork != dInput) {
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    size_t dInputBytes = dInputWork->size * getBytesForDtype(dInputWork->dtype);
+    res = copyBetweenContexts(ctx, dInput->context, dInputWork->values, dInput->values, dInputBytes);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "copy_dx_back", phaseStartMs);
+  }
+  if (dKernelWork != dKernels) {
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    size_t dKernelBytes = dKernelWork->size * getBytesForDtype(dKernelWork->dtype);
+    res = copyBetweenContexts(ctx, dKernels->context, dKernelWork->values, dKernels->values,
+                              dKernelBytes);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "copy_dk_back", phaseStartMs);
   }
 
   res = OK;
+  logOpTiming(ctx, "Conv2dBackward", "total", totalStartMs);
 
 cleanup:
-  freeTensorBuffers(ctx, &outGradNhwc);
+  releaseTensorArg(ctx, &inputArg);
+  releaseTensorArg(ctx, &kernelArg);
+  releaseTensorArg(ctx, &outputGradArg);
+  releaseTensorArg(ctx, &colBufferArg);
+  releaseTensorArg(ctx, &dInputArg);
+  releaseTensorArg(ctx, &dKernelArg);
 
-  if (dColBuffer != NULL) {
-    freeAlloc(ctx->memory, dColBuffer);
-  }
-  if (inputContig != input) {
-    FreeTensor(ctx, inputContig);
-  }
-  if (kernelContig != kernels) {
-    FreeTensor(ctx, kernelContig);
-  }
-  if (outputGradContig != outputGrad) {
+  if (outputGradPermutedCopied && outputGradContig != NULL) {
     FreeTensor(ctx, outputGradContig);
   }
-  if (res != OK && dInputInitialized) {
-    freeTensorBuffers(ctx, dInput);
+  if (outGradNhwcInitialized) {
+    freeTensorBuffers(ctx, &outGradNhwc);
   }
-  if (res != OK && dKernelsInitialized) {
-    freeTensorBuffers(ctx, dKernels);
+
+  if (dColBuffer != NULL) {
+    freeOnCtx(ctx, dColBuffer);
   }
 
   return res;
@@ -391,9 +614,9 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
   dim_t kH = kernelShape.dims[0];
   dim_t kW = kernelShape.dims[1];
   dim_t batch = t->shape.dims[0];
-  dim_t c = t->shape.dims[1];
-  dim_t h = t->shape.dims[2];
-  dim_t w = t->shape.dims[3];
+  dim_t h = t->shape.dims[1];
+  dim_t w = t->shape.dims[2];
+  dim_t c = t->shape.dims[3];
 
   if (kH == 0 || kW == 0 || c != inChannels) {
     return ERR_DIM_MISMATCH;
@@ -413,7 +636,7 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
   dim_t outH = (h - 1) * stride + kH;
   dim_t outW = (w - 1) * stride + kW;
 
-  Result res = init4DTensor(ctx, dest, batch, outChannels, outH, outW, t->dtype);
+  Result res = init4DTensor(ctx, dest, batch, outH, outW, outChannels, t->dtype);
   if (res != OK) {
     return res;
   }
@@ -429,7 +652,7 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
       for (size_t ic = 0; ic < inChannels; ic++) {
         for (dim_t ih = 0; ih < h; ih++) {
           for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * inChannels + ic) * h) + ih) * w + iw;
+            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
             f64 inputValue = input[inputIdx];
             dim_t outY = ih * stride;
             dim_t outX = iw * stride;
@@ -438,7 +661,8 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
               dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
               for (dim_t ky = 0; ky < kH; ky++) {
                 for (dim_t kx = 0; kx < kW; kx++) {
-                  dim_t outIdx = (((b * outChannels + oc) * outH) + (outY + ky)) * outW + outX + kx;
+                  dim_t outIdx =
+                      (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
                   dim_t kernelIdx = kernelBase + ky * kW + kx;
                   outValues[outIdx] += inputValue * kernelValues[kernelIdx];
                 }
@@ -457,7 +681,7 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
       for (size_t ic = 0; ic < inChannels; ic++) {
         for (dim_t ih = 0; ih < h; ih++) {
           for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * inChannels + ic) * h) + ih) * w + iw;
+            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
             f32 inputValue = input[inputIdx];
             dim_t outY = ih * stride;
             dim_t outX = iw * stride;
@@ -466,7 +690,8 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
               dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
               for (dim_t ky = 0; ky < kH; ky++) {
                 for (dim_t kx = 0; kx < kW; kx++) {
-                  dim_t outIdx = (((b * outChannels + oc) * outH) + (outY + ky)) * outW + outX + kx;
+                  dim_t outIdx =
+                      (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
                   dim_t kernelIdx = kernelBase + ky * kW + kx;
                   outValues[outIdx] += inputValue * kernelValues[kernelIdx];
                 }
@@ -505,9 +730,9 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
   }
 
   dim_t batch = x->shape.dims[0];
-  dim_t inChannels = x->shape.dims[1];
-  dim_t h = x->shape.dims[2];
-  dim_t w = x->shape.dims[3];
+  dim_t h = x->shape.dims[1];
+  dim_t w = x->shape.dims[2];
+  dim_t inChannels = x->shape.dims[3];
   dim_t kernelInChannels = kernels->shape.dims[0];
   dim_t outChannels = kernels->shape.dims[1];
   dim_t kH = kernels->shape.dims[2];
@@ -520,8 +745,8 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
   dim_t outH = (h - 1) * stride + kH;
   dim_t outW = (w - 1) * stride + kW;
 
-  if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[1] != outChannels ||
-      gradOut->shape.dims[2] != outH || gradOut->shape.dims[3] != outW) {
+  if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[1] != outH ||
+      gradOut->shape.dims[2] != outW || gradOut->shape.dims[3] != outChannels) {
     return ERR_DIM_MISMATCH;
   }
 
@@ -548,7 +773,7 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
       for (dim_t ic = 0; ic < inChannels; ic++) {
         for (dim_t ih = 0; ih < h; ih++) {
           for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * inChannels + ic) * h) + ih) * w + iw;
+            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
             dim_t outY = ih * stride;
             dim_t outX = iw * stride;
 
@@ -557,7 +782,7 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
               for (dim_t ky = 0; ky < kH; ky++) {
                 for (dim_t kx = 0; kx < kW; kx++) {
                   dim_t gradIdx =
-                      (((b * outChannels + oc) * outH) + (outY + ky)) * outW + outX + kx;
+                      (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
                   dim_t kernelIdx = kernelBase + ky * kW + kx;
                   f64 grad = gradValues[gradIdx];
                   dxValues[inputIdx] += grad * kernelValues[kernelIdx];
@@ -580,7 +805,7 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
       for (dim_t ic = 0; ic < inChannels; ic++) {
         for (dim_t ih = 0; ih < h; ih++) {
           for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * inChannels + ic) * h) + ih) * w + iw;
+            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
             dim_t outY = ih * stride;
             dim_t outX = iw * stride;
 
@@ -589,7 +814,7 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
               for (dim_t ky = 0; ky < kH; ky++) {
                 for (dim_t kx = 0; kx < kW; kx++) {
                   dim_t gradIdx =
-                      (((b * outChannels + oc) * outH) + (outY + ky)) * outW + outX + kx;
+                      (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
                   dim_t kernelIdx = kernelBase + ky * kW + kx;
                   f32 grad = gradValues[gradIdx];
                   dxValues[inputIdx] += grad * kernelValues[kernelIdx];

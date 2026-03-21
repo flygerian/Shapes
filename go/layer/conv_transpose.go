@@ -7,6 +7,7 @@ import (
 )
 
 type convTranspose struct {
+	ctx         shapes.Context
 	kernelShape shapes.Shape
 	stride      uint8
 	inChannels  uint
@@ -44,9 +45,10 @@ func ConvTranspose2d(
 		shapes.Shape{uint(inChannels), uint(outChannels), kernel[0], kernel[1]},
 		-float32(initialization), float32(initialization),
 	)
-	bias := shapes.Float(ctx, shapes.Shape{uint(outChannels)}, 0)
+	bias := shapes.Float(ctx, shapes.Shape{1, 1, 1, uint(outChannels)}, 0)
 
 	state := convTranspose{
+		ctx:         ctx,
 		kernelShape: kernel,
 		inChannels:  inChannels,
 		outChannels: outChannels,
@@ -98,11 +100,11 @@ func convTransposeBackward(ctx shapes.Context, out shapes.ComputationGraphNode) 
 	outputShape := dOutput.Shape()
 
 	B := outputShape[0]
-	C := outputShape[1]
-	oh := outputShape[2]
-	ow := outputShape[3]
+	oh := outputShape[1]
+	ow := outputShape[2]
+	C := outputShape[3]
 
-	dBias := dOutput.Reshape(backwardCtx, int(B), int(C), int(oh*ow)).Sum(backwardCtx, 2).Sum(backwardCtx, 0).Squeeze(backwardCtx)
+	dBias := dOutput.Reshape(backwardCtx, int(B), int(oh*ow), int(C)).Sum(backwardCtx, 1).Sum(backwardCtx, 0).Squeeze(backwardCtx)
 	bias.Grad().Accumulate(backwardCtx, dBias)
 
 	dX, dKernels := shapes.ConvTranspose2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.stride)

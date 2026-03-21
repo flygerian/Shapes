@@ -32,6 +32,12 @@ func WithNumSteps(numSteps int) mainContextOption {
 	}
 }
 
+func WithCuda() mainContextOption {
+	return func(mc *mainContext) {
+		mc.withCuda = true
+	}
+}
+
 type subContextOption func(*subContext)
 
 func panicIfNoGradients(tensors ...Tensor) {

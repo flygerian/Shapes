@@ -1,12 +1,12 @@
 package shapes
 
 /*
-#include "shapes.h"
-#include "common.h"
+#include "cwrappers.h"
 */
 import "C"
 import (
 	"fmt"
+	"unsafe"
 )
 
 // OpType identifies the operation that produced a computation graph node.
@@ -163,11 +163,27 @@ func leafNode(ctx Context, t *tensor) {
 
 // shapeOf extracts the shape from a tensor's C representation.
 func shapeOf(t *tensor) Shape {
-	numDims := int(t.cTensor.shape.numOfDims)
+	var cNumDims C.u8
+	result := C.wrap_CopyShape(t.cTensor, nil, &cNumDims)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	numDims := int(cNumDims)
 	shape := make(Shape, numDims)
-	dims := t.cTensor.shape.dims
+
+	if numDims == 0 {
+		return shape
+	}
+
+	cDims := make([]C.dim_t, numDims)
+	result = C.wrap_CopyShape(t.cTensor, (*C.dim_t)(unsafe.Pointer(&cDims[0])), &cNumDims)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
 	for i := range numDims {
-		shape[i] = *(*uint)(ptrOffset(dims, i))
+		shape[i] = uint(cDims[i])
 	}
 	return shape
 }
@@ -199,7 +215,12 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
 
-	noGraphCtx := ctx.NoGraph()
+	backwardCtx := ctx
+	if t.ctx != nil {
+		backwardCtx = t.ctx
+	}
+
+	noGraphCtx := backwardCtx.NoGraph()
 	defer noGraphCtx.Finish()
 	// Seed the output gradient with ones.
 	onesShape := t.Shape()
@@ -224,9 +245,9 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 		if n.computation.backward == nil {
 			continue
 		}
-		ctx.Mark(n)
+		backwardCtx.Mark(n)
 		if node.Grad() != nil {
-			ctx.Mark(node.Grad().(Tensor))
+			backwardCtx.Mark(node.Grad().(Tensor))
 		}
 	}
 
@@ -246,7 +267,11 @@ func (t *tensor) Grad() GradTensor {
 }
 
 func (t *tensor) Accumulate(ctx Context, operandB Tensor) {
-	t.AddInPlace(ctx, operandB)
+	accCtx := ctx
+	if t.ctx != nil {
+		accCtx = t.ctx
+	}
+	t.AddInPlace(accCtx, operandB)
 }
 
 func (t *tensor) Metadata() any {

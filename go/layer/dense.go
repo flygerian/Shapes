@@ -8,6 +8,7 @@ import (
 )
 
 type dense struct {
+	ctx        shapes.Context
 	w, b, o    shapes.Tensor
 	inputSize  int
 	outputSize int
@@ -22,7 +23,7 @@ func Dense(outerCtx shapes.Context, inputSize int, outputSize int, options ...la
 	w := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize), uint(inputSize)}, -scale, scale)
 	b := shapes.FloatRandom(outerCtx, shapes.Shape{uint(outputSize)})
 
-	dl := &dense{w: w, b: b, inputSize: inputSize, outputSize: outputSize}
+	dl := &dense{ctx: outerCtx, w: w, b: b, inputSize: inputSize, outputSize: outputSize}
 
 	for _, opt := range options {
 		opt(dl)
@@ -36,7 +37,6 @@ func (d *dense) SetBiasEnabled(isBiasEnabled bool) {
 }
 
 func (d *dense) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
-
 	// Initialize a fused context
 	forwardCtx := ctx.Forward(
 		shapes.WithInputs(x),

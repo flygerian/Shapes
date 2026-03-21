@@ -66,6 +66,7 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
   *dest = (Tensor){.context = ctx,
+                   .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                    .dtype = source->dtype,
                    .values = newValues,
                    .size = source->size,
@@ -226,13 +227,20 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   if (isInvalidTensor(indices)) {
     return NULL;
   }
+
+  TensorArg sourceArg = {0};
+  if (materializeTensorOnContext(ctx, indices, true, &sourceArg) != OK) {
+    return NULL;
+  }
+
+  Tensor *source = sourceArg.tensor;
   // Build output shape: input shape + [numClasses]
-  u8 outNumDims = indices->shape.numOfDims + 1;
+  u8 outNumDims = source->shape.numOfDims + 1;
   dim_t *outDims = allocate(ctx->memory, sizeof(dim_t) * outNumDims);
   multiplier_t *outMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * outNumDims);
 
-  for (u8 i = 0; i < indices->shape.numOfDims; i++) {
-    outDims[i] = indices->shape.dims[i];
+  for (u8 i = 0; i < source->shape.numOfDims; i++) {
+    outDims[i] = source->shape.dims[i];
   }
   outDims[outNumDims - 1] = numClasses;
 
@@ -244,18 +252,17 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   initTensor(ctx, out, outShape, F32);
   clearTensorValues(out);
 
-  // Get source tensor (copy to contiguous if needed)
-  Tensor *source = indices;
-  if (!indices->isContigous) {
-    source = copyToContiguous(ctx, indices);
-  }
-
   // Set one-hot values
   // For each element in indices, set the corresponding position to 1.0
   dim_t lastDimStride = numClasses;
-  for (tensor_size_t i = 0; i < indices->size; i++) {
+  for (tensor_size_t i = 0; i < source->size; i++) {
     Value idxVal;
-    VALUE_GET_FROM_ARR(source->values, i, &idxVal, source->dtype);
+    Result readResult = readTensorValueAtFlatIndex(source, i, &idxVal);
+    if (readResult != OK) {
+      releaseTensorArg(ctx, &sourceArg);
+      FreeTensor(ctx, out);
+      return NULL;
+    }
 
     // Convert index to i64 for bounds checking
     i64 classIdx = 0;
@@ -277,13 +284,15 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     }
 
     tensor_size_t outIdx = i * lastDimStride + (tensor_size_t)classIdx;
-    if (ctx->device != NULL && ctx->device->type == CUDA) {
-      f32 one = 1.0f;
-      copyBetweenContexts(NULL, ctx, &one, (char *)out->values + outIdx * sizeof(f32), sizeof(f32));
-    } else {
-      ((f32 *)out->values)[outIdx] = 1.0f;
+    Result writeResult =
+        writeTensorValueAtFlatIndex(out, outIdx, (Value){.dtype = F32, .as.f32 = 1.0f});
+    if (writeResult != OK) {
+      releaseTensorArg(ctx, &sourceArg);
+      FreeTensor(ctx, out);
+      return NULL;
     }
   }
 
+  releaseTensorArg(ctx, &sourceArg);
   return out;
 }

@@ -106,6 +106,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   tensor_size_t size = calculateNumValuesAndMultipliers(newDim, newDim.multipliers);
 
   *result = (Tensor){.context = ctx,
+                     .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                      .dtype = a->dtype,
                      .isContigous = true,
                      .isView = false,
@@ -182,6 +183,7 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
 
   *result = (Tensor){.context = ctx,
+                     .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                      .dtype = a->dtype,
                      .isContigous = true,
                      .isView = false,

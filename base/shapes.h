@@ -14,6 +14,7 @@ Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
 Context *CreateContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
 void DestroyContext(Context *ctx);
 void FreeContext(Context *ctx);
+Result Flush(Context *ctx);
 Result copyBetweenContexts(Context *srcCtx, Context *destCtx, void *srcPtr, void *destPtr,
                            size_t size);
 void *allocateOnCtx(Context *ctx, size_t size);
@@ -38,6 +39,7 @@ Result MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
 Result GetAt(Tensor *t, Dim dim, Value *result);
 Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest);
 Result GetScalar(Tensor *t, Value *result);
+Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims);
 Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value);
 Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest);
 Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices,
@@ -101,8 +103,12 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
 Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
                                Tensor *dX, Tensor *dKernels);
 Result MaxPool2d(Context *ctx, Tensor *x, Dim kernel, u8 stride, Tensor *dest);
+Result MaxPool2dWithIndices(Context *ctx, Tensor *x, Dim kernel, u8 stride, Tensor *dest,
+                            Tensor *indices);
 Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernel, u8 stride,
                          Tensor *dX);
+Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices,
+                                    Tensor *dX);
 Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest);
 Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW,
                                  Tensor *dX);

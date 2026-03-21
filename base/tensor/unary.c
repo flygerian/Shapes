@@ -45,35 +45,6 @@ static Result absValue(Value *v) {
   }
 }
 
-Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
-    return ERR_POW_VALUE_NOT_FLOAT;
-  }
-
-  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
-
-  for (size_t i = 0; i < t->size; i++) {
-    Value val;
-    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
-
-    Result result = powValue(&val, power);
-    if (result != OK) {
-      return result;
-    }
-
-    VALUE_SET(output->values, i, val);
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
-
-  return OK;
-}
-
 static Result expValue(Value *v) {
   switch (v->dtype) {
     COMPUTE_EXP(v, F16, f16, exp);
@@ -82,68 +53,6 @@ static Result expValue(Value *v) {
 
     default: return ERR_EXP_VALUE_NOT_FLOAT;
   }
-}
-
-Result Tanh(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
-    return ERR_TANH_VALUE_NOT_FLOAT;
-  }
-
-  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
-
-  if (t->dtype == F64) {
-    f64 *in = t->values;
-    f64 *out = output->values;
-    for (tensor_size_t i = 0; i < t->size; i++) {
-      out[i] = tanh(in[i]);
-    }
-  } else {
-    f32 *in = t->values;
-    f32 *out = output->values;
-    for (tensor_size_t i = 0; i < t->size; i++) {
-      out[i] = tanhf(in[i]);
-    }
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
-
-  return OK;
-}
-
-Result Relu(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
-    return ERR_RELU_VALUE_NOT_FLOAT;
-  }
-
-  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
-
-  if (t->dtype == F64) {
-    f64 *in = t->values;
-    f64 *out = output->values;
-    for (tensor_size_t i = 0; i < t->size; i++) {
-      out[i] = in[i] > 0 ? in[i] : 0;
-    }
-  } else {
-    f32 *in = t->values;
-    f32 *out = output->values;
-    for (tensor_size_t i = 0; i < t->size; i++) {
-      out[i] = in[i] > 0 ? in[i] : 0;
-    }
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
-
-  return OK;
 }
 
 static Result negateValue(Value *v) {
@@ -160,64 +69,6 @@ static Result negateValue(Value *v) {
   }
 }
 
-Result Negate(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->dtype == U8 || t->dtype == U16 || t->dtype == U32 || t->dtype == U64) {
-    return ERR_NEGATE_UNSUPPORTED_DTYPE;
-  }
-
-  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
-
-  for (size_t i = 0; i < t->size; i++) {
-    Value val;
-    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
-
-    Result result = negateValue(&val);
-    if (result != OK) {
-      return result;
-    }
-
-    VALUE_SET(output->values, i, val);
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
-
-  return OK;
-}
-
-Result Exp(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
-    return ERR_EXP_VALUE_NOT_FLOAT;
-  }
-
-  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
-
-  for (size_t i = 0; i < t->size; i++) {
-    Value val;
-    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
-
-    Result result = expValue(&val);
-    if (result != OK) {
-      return result;
-    }
-
-    VALUE_SET(output->values, i, val);
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
-
-  return OK;
-}
-
 static Result logValue(Value *v) {
   switch (v->dtype) {
     COMPUTE_LOG(v, F16, f16, log);
@@ -228,79 +79,235 @@ static Result logValue(Value *v) {
   }
 }
 
-Result Log(Context *ctx, Tensor *t, Tensor *dest) {
+static DeviceType getUnaryDispatchDevice(Context *ctx) {
+  if (ctx == NULL || ctx->device == NULL) {
+    return CPU;
+  }
+
+  return ctx->device->type;
+}
+
+static Result validateUnaryOpTensor(Tensor *t) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
-
-  if (t->dtype != F16 && t->dtype != F32 && t->dtype != F64) {
-    return ERR_LOG_VALUE_NOT_FLOAT;
-  }
-
-  Tensor *output = t_Zeros(ctx, t->shape, t->dtype);
-
-  for (size_t i = 0; i < t->size; i++) {
-    Value val;
-    VALUE_GET_FROM_ARR(t->values, i, &val, t->dtype);
-
-    Result result = logValue(&val);
-    if (result != OK) {
-      return result;
-    }
-
-    VALUE_SET(output->values, i, val);
-  }
-
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
 
   return OK;
 }
 
-Result Abs(Context *ctx, Tensor *t, Tensor *dest) {
+static Result validatePowTensor(Tensor *t) {
+  Result result = validateUnaryOpTensor(t);
+  if (result != OK) {
+    return result;
+  }
 
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
+  switch (t->dtype) {
+    case F16:
+    case F32:
+    case F64: return OK;
+    default: return ERR_POW_VALUE_NOT_FLOAT;
+  }
+}
+
+static Result validateFloatUnaryTensor(Tensor *t, Result invalidResult) {
+  Result result = validateUnaryOpTensor(t);
+  if (result != OK) {
+    return result;
+  }
+
+  switch (t->dtype) {
+    case F16:
+    case F32:
+    case F64: return OK;
+    default: return invalidResult;
+  }
+}
+
+static Result validateNegateTensor(Tensor *t) {
+  Result result = validateUnaryOpTensor(t);
+  if (result != OK) {
+    return result;
+  }
+
+  switch (t->dtype) {
+    case U8:
+    case U16:
+    case U32:
+    case U64: return ERR_NEGATE_UNSUPPORTED_DTYPE;
+    default: return OK;
+  }
+}
+
+static Result validateAbsTensor(Tensor *t) {
+  Result result = validateUnaryOpTensor(t);
+  if (result != OK) {
+    return result;
   }
 
   if (t->size == 0) {
     return ERR_NO_OP;
   }
 
-  Tensor *workingTensor = t;
-  if (!t->isContigous) {
-    workingTensor = copyToContiguous(ctx, t);
+  switch (t->dtype) {
+    case I8:
+    case I16:
+    case I32:
+    case I64:
+    case F16:
+    case F32:
+    case F64: return OK;
+    default: return ERR_ABS_VALUE_NOT_SIGNED;
+  }
+}
+
+static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
+  switch (opType) {
+    case UNARY_OP_POW: return powValue(value, param);
+    case UNARY_OP_TANH:
+      switch (value->dtype) {
+        case F16: value->as.f16 = (f16)tanh((double)value->as.f16); return OK;
+        case F32: value->as.f32 = (f32)tanh((double)value->as.f32); return OK;
+        case F64: value->as.f64 = (f64)tanh((double)value->as.f64); return OK;
+        default: return ERR_TANH_VALUE_NOT_FLOAT;
+      }
+    case UNARY_OP_RELU:
+      switch (value->dtype) {
+        case F16: value->as.f16 = value->as.f16 > 0 ? value->as.f16 : 0; return OK;
+        case F32: value->as.f32 = value->as.f32 > 0 ? value->as.f32 : 0; return OK;
+        case F64: value->as.f64 = value->as.f64 > 0 ? value->as.f64 : 0; return OK;
+        default: return ERR_RELU_VALUE_NOT_FLOAT;
+      }
+    case UNARY_OP_NEGATE: return negateValue(value);
+    case UNARY_OP_EXP: return expValue(value);
+    case UNARY_OP_LOG: return logValue(value);
+    case UNARY_OP_ABS: return absValue(value);
+    default: return ERR_NO_OP;
+  }
+}
+
+static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+  TensorArg inputArg = {0};
+  Result result = materializeTensorOnContext(ctx, t, true, &inputArg);
+  if (result != OK) {
+    return result;
   }
 
-  *dest = (Tensor){.context = ctx,
-                   .dtype = t->dtype,
-                   .size = t->size,
-                   .isView = false,
-                   .isContigous = true,
-                   .shape = {.dims = allocate(ctx->memory, t->shape.numOfDims * sizeof(dim_t)),
-                             .numOfDims = t->shape.numOfDims,
-                             .multipliers = t->shape.multipliers},
-                   .values = allocate(ctx->memory, getBytesForDtype(workingTensor->dtype) *
-                                                       workingTensor->size)};
+  Tensor *input = inputArg.tensor;
+  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
 
-  memcpy(dest->shape.dims, t->shape.dims, t->shape.numOfDims * sizeof(dim_t));
-  memcpy(dest->shape.multipliers, t->shape.multipliers, t->shape.numOfDims * sizeof(multiplier_t));
+  for (tensor_size_t i = 0; i < input->size; i++) {
+    Value value;
+    VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
-  for (size_t i = 0; i < workingTensor->size; i++) {
-    Value v;
-    VALUE_GET_FROM_ARR(workingTensor->values, i, &v, workingTensor->dtype);
-
-    Result result = absValue(&v);
+    result = applyUnaryCpuValue(&value, opType, param);
     if (result != OK) {
+      FreeTensor(ctx, output);
+      releaseTensorArg(ctx, &inputArg);
       return result;
     }
 
-    VALUE_SET(dest->values, i, v);
+    VALUE_SET(output->values, i, value);
   }
 
-  if (!t->isContigous) {
-    FreeTensor(ctx, workingTensor);
-  }
+  *dest = *output;
+  freeAlloc(ctx->memory, output);
+  releaseTensorArg(ctx, &inputArg);
 
   return OK;
+}
+
+static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+  TensorArg inputArg = {0};
+  Result result = materializeTensorOnContext(ctx, t, true, &inputArg);
+  if (result != OK) {
+    return result;
+  }
+
+  Tensor *input = inputArg.tensor;
+  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
+
+  result = runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size,
+                          param);
+  if (result != OK) {
+    FreeTensor(ctx, output);
+    releaseTensorArg(ctx, &inputArg);
+    return result;
+  }
+
+  *dest = *output;
+  freeAlloc(ctx->memory, output);
+  releaseTensorArg(ctx, &inputArg);
+
+  return OK;
+}
+
+static Result dispatchUnaryOp(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+  switch (getUnaryDispatchDevice(ctx)) {
+    case CUDA: return unaryOpCuda(ctx, t, dest, opType, param);
+    case CPU:
+    default: return unaryOpCpu(ctx, t, dest, opType, param);
+  }
+}
+
+Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest) {
+  Result result = validatePowTensor(t);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_POW, power);
+}
+
+Result Tanh(Context *ctx, Tensor *t, Tensor *dest) {
+  Result result = validateFloatUnaryTensor(t, ERR_TANH_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_TANH, 0.0f);
+}
+
+Result Relu(Context *ctx, Tensor *t, Tensor *dest) {
+  Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_RELU, 0.0f);
+}
+
+Result Negate(Context *ctx, Tensor *t, Tensor *dest) {
+  Result result = validateNegateTensor(t);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_NEGATE, 0.0f);
+}
+
+Result Exp(Context *ctx, Tensor *t, Tensor *dest) {
+  Result result = validateFloatUnaryTensor(t, ERR_EXP_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_EXP, 0.0f);
+}
+
+Result Log(Context *ctx, Tensor *t, Tensor *dest) {
+  Result result = validateFloatUnaryTensor(t, ERR_LOG_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_LOG, 0.0f);
+}
+
+Result Abs(Context *ctx, Tensor *t, Tensor *dest) {
+  Result result = validateAbsTensor(t);
+  if (result != OK) {
+    return result;
+  }
+
+  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_ABS, 0.0f);
 }

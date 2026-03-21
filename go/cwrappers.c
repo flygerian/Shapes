@@ -33,6 +33,8 @@ Result copyTensorValuesToHost(Tensor *t, void *dest, size_t size) {
   return copyBetweenContexts(t->context, NULL, t->values, dest, size);
 }
 
+Result wrap_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) { return CopyShape(t, destDims, numDims); }
+
 Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = GetTensorAt(ctx, source, index, dest);
@@ -443,6 +445,18 @@ Result wrap_MaxPool2d(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 
   return r;
 }
 
+Result wrap_MaxPool2dWithIndices(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
+                                 Tensor **out, Tensor **indices) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *argmax = allocate(ctx->memory, sizeof(Tensor));
+  dim_t kernelDims[2] = {kernelH, kernelW};
+  Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
+  Result r = MaxPool2dWithIndices(ctx, x, kernel, stride, dest, argmax);
+  *out = dest;
+  *indices = argmax;
+  return r;
+}
+
 Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t kernelH,
                               dim_t kernelW, u8 stride, Tensor **dX) {
   Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
@@ -450,6 +464,14 @@ Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t ke
   Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
 
   Result r = MaxPool2dBackward(ctx, x, gradOut, kernel, stride, dx);
+  *dX = dx;
+  return r;
+}
+
+Result wrap_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices,
+                                         Tensor **dX) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  Result r = MaxPool2dBackwardWithIndices(ctx, x, gradOut, indices, dx);
   *dX = dx;
   return r;
 }

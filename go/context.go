@@ -22,6 +22,7 @@ type Context interface {
 
 	Epoch(epoch int, options ...subContextOption) EpochContext
 	Forward(options ...subContextOption) SubContext
+	BackwardDisabled(options ...subContextOption) SubContext
 	Backward(options ...subContextOption) SubContext
 	NoGrad(options ...subContextOption) SubContext
 	Fused(options ...subContextOption) SubContext
@@ -70,6 +71,7 @@ type EpochContext interface {
 type StepContext interface {
 	SubContext
 	SetStepLoss(loss float64)
+	Fused(options ...subContextOption) SubContext
 }
 
 type shapesCtx struct {
@@ -106,9 +108,9 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 	}
 
 	if ctx.arenaSize != 0 {
-		ctx.cCtx = C.CreateContext(C.size_t(ctx.arenaSize), 1, C.bool(false))
+		ctx.cCtx = C.CreateContext(C.size_t(ctx.arenaSize), 1, C.bool(ctx.withCuda))
 	} else {
-		ctx.cCtx = C.CreateContext(1024*1024*64, 1, C.bool(false))
+		ctx.cCtx = C.CreateContext(1024*1024*64, 1, C.bool(ctx.withCuda))
 	}
 
 	return ctx
@@ -163,6 +165,7 @@ type mainContext struct {
 	freeList          []Tensor // root only: C tensor pointers queued for FreeIntermediates
 	persistentTensors []Tensor
 	arenaSize         int
+	withCuda          bool
 }
 
 // Finish releases the C context resources.
@@ -171,6 +174,10 @@ type mainContext struct {
 // into the freeList for later sweeping.
 func (c *mainContext) Finish() {
 	if c.cCtx != nil && c.cCtx.memory != nil {
+		if result := C.Flush(c.cCtx); result != C.OK {
+			panic("shapes: " + resultString(uint32(result)))
+		}
+
 		for _, p := range c.handles {
 			if p != nil {
 				c.Free(p)
@@ -309,10 +316,17 @@ func (c *mainContext) Epoch(currentEpoch int, options ...subContextOption) Epoch
 	return epoch(c, currentEpoch, options...)
 }
 
-// Forward returns a context intended for forward-pass fused operations.
-// This is an alias for Fused.
+// Forward returns a context intended for forward-pass composite operations.
+// This is an alias for BackwardDisabled.
 func (c *mainContext) Forward(options ...subContextOption) SubContext {
-	return fused(c, options...)
+	return backwardDisabled(c, options...)
+}
+
+// BackwardDisabled returns a new Context that shares the same C context and memory
+// but turns off backward passes for any ops used in that context.
+// Meant for compound operations where the caller provides a custom backward pass.
+func (c *mainContext) BackwardDisabled(options ...subContextOption) SubContext {
+	return backwardDisabled(c, options...)
 }
 
 // Backward returns a context intended for backward-pass computation.
@@ -322,8 +336,7 @@ func (c *mainContext) Backward(options ...subContextOption) SubContext {
 }
 
 // Fused returns a new Context that shares the same C context and memory
-// but turns of backward passes for any ops used in that context.
-// Meant for doing compund operations where the caller might want to specify the backward pass manually
+// and marks Finish as an execution boundary that should flush queued device work.
 func (c *mainContext) Fused(options ...subContextOption) SubContext {
 	return fused(c, options...)
 }
@@ -459,6 +472,7 @@ type subContext struct {
 	locals []Tensor // this ctx: tensors created through this ctx
 
 	subContextType SubContextType
+	fused          bool
 	op             OpType
 
 	inputs      []Tensor
@@ -472,20 +486,66 @@ func (sc *subContext) Mark(t Tensor) {
 	sc.parent.Mark(t)
 }
 
+func (sc *subContext) hasFusedAncestor() bool {
+	for parent := sc.parent; parent != nil; {
+		sub, ok := parent.(*subContext)
+		if !ok {
+			return false
+		}
+		if sub.fused {
+			return true
+		}
+		parent = sub.parent
+	}
+
+	return false
+}
+
+func (sc *subContext) shouldFlushOnFinish() bool {
+	if sc.fused {
+		return true
+	}
+
+	return !sc.hasFusedAncestor()
+}
+
 func (sc *subContext) Finish(options ...subContextOption) {
+	start := time.Now()
 	applySubContextOptions(sc, options...)
+	logFinish := func(phase string, phaseStart time.Time) {
+		if value := os.Getenv("SHAPES_LOG_CONTEXT_FINISH"); value != "" && value != "0" {
+			fmt.Fprintf(os.Stderr,
+				"[contextFinishPhase] type=%d fused=%t flush=%t phase=%s locals=%d ms=%.3f\n",
+				sc.subContextType, sc.fused, sc.shouldFlushOnFinish(), phase, len(sc.locals),
+				float64(time.Since(phaseStart))/float64(time.Millisecond))
+		}
+	}
 
 	if sc.gradEnabled {
+		phaseStart := time.Now()
 		if sc.result != nil {
 			sc.prepareResultForBackwardPass()
 		} else if sc.backward != nil || len(sc.inputs) > 0 || len(sc.hiddenState) > 0 || sc.op != OpNone {
 			panic("Preparing for backward pass requires a result tensor")
 		}
+		logFinish("prepare_backward", phaseStart)
 	}
 
+	if sc.shouldFlushOnFinish() {
+		phaseStart := time.Now()
+		if result := C.Flush((*C.Context)(sc.UnsafePtr())); result != C.OK {
+			panic("shapes: " + resultString(uint32(result)))
+		}
+		logFinish("flush", phaseStart)
+	}
+
+	phaseStart := time.Now()
 	sc.cleanup()
+	logFinish("cleanup", phaseStart)
 	if sc.sweepAfterFinish {
+		phaseStart = time.Now()
 		sc.parent.Sweep()
+		logFinish("sweep", phaseStart)
 	}
 
 	mainCtx := sc.main()
@@ -501,6 +561,12 @@ func (sc *subContext) Finish(options ...subContextOption) {
 			close(sc.training.stats.TrainingDone)
 			pprof.StopCPUProfile()
 		})
+	}
+
+	if value := os.Getenv("SHAPES_LOG_CONTEXT_FINISH"); value != "" && value != "0" {
+		fmt.Fprintf(os.Stderr, "[contextFinish] type=%d fused=%t flush=%t locals=%d ms=%.3f\n",
+			sc.subContextType, sc.fused, sc.shouldFlushOnFinish(), len(sc.locals),
+			float64(time.Since(start))/float64(time.Millisecond))
 	}
 }
 
@@ -543,10 +609,17 @@ func (c *subContext) Step(options ...subContextOption) StepContext {
 	return step(c, options...)
 }
 
-// Forward returns a context intended for forward-pass fused operations.
-// This is an alias for Fused.
+// Forward returns a context intended for forward-pass composite operations.
+// This is an alias for BackwardDisabled.
 func (c *subContext) Forward(options ...subContextOption) SubContext {
-	return fused(c, options...)
+	return backwardDisabled(c, options...)
+}
+
+// BackwardDisabled returns a new Context that shares the same C context and memory
+// but turns off backward passes for any ops used in that context.
+// Meant for compound operations where the caller provides a custom backward pass.
+func (c *subContext) BackwardDisabled(options ...subContextOption) SubContext {
+	return backwardDisabled(c, options...)
 }
 
 // Backward returns a context intended for backward-pass computation.
@@ -556,8 +629,7 @@ func (c *subContext) Backward(options ...subContextOption) SubContext {
 }
 
 // Fused returns a new Context that shares the same C context and memory
-// but turns of backward passes for any ops used in that context.
-// Meant for doing compund operations where the caller might want to specify the backward pass manually
+// and marks Finish as an execution boundary that should flush queued device work.
 func (c *subContext) Fused(options ...subContextOption) SubContext {
 	return fused(c, options...)
 }
@@ -819,11 +891,30 @@ func step(c Context, options ...subContextOption) StepContext {
 	return stepCtx.(StepContext)
 }
 
+// BackwardDisabled returns a new Context that shares the same C context and memory
+// but turns off backward passes for any ops used in that context.
+// Meant for compound operations where the caller might want to specify the backward pass manually.
+func backwardDisabled(c Context, options ...subContextOption) SubContext {
+	return derive(c, SubContextTypeForward, true, false, options...)
+}
+
 // Fused returns a new Context that shares the same C context and memory
-// but turns of backward passes for any ops used in that context.
-// Meant for doing compund operations where the caller might want to specify the backward pass manually
+// and marks Finish as an execution boundary that should flush queued device work.
 func fused(c Context, options ...subContextOption) SubContext {
-	return derive(c, SubContextTypeFused, true, false, options...)
+	subContextType := SubContextTypeFused
+	sweepAfterFinish := false
+	persistant := false
+	if parent, ok := c.(*subContext); ok {
+		subContextType = parent.subContextType
+		sweepAfterFinish = parent.sweepAfterFinish
+		persistant = parent.persistant
+	}
+
+	sc := derive(c, subContextType, c.GradEnabled(), c.BackwardEnabled(), options...)
+	sc.(*subContext).fused = true
+	sc.(*subContext).sweepAfterFinish = sweepAfterFinish
+	sc.(*subContext).persistant = persistant
+	return sc
 }
 
 // NoGraph() returns a new Context that shares the same C context and memory

@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include <string.h>
-#include <cuda_runtime_api.h>
 #include "../shapes.h"
 #include "common.h"
 #include "result/result.h"
@@ -33,6 +32,24 @@ char *GetItem(Context *ctx, Tensor *t) {
   return valueStr;
 }
 
+Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (numDims == NULL) {
+    return ERR_NULL_PTR;
+  }
+
+  *numDims = t->shape.numOfDims;
+  if (destDims == NULL || t->shape.numOfDims == 0) {
+    return OK;
+  }
+
+  memcpy(destDims, t->shape.dims, sizeof(dim_t) * t->shape.numOfDims);
+  return OK;
+}
+
 
 tensor_size_t calculateNumValuesAndMultipliers(Dim shape, multiplier_t *multipliers) {
   u64 numberOfValues = 1;
@@ -62,14 +79,18 @@ Result clearTensorValues(Tensor *t) {
     return OK;
   }
 
-  cudaMemset(t->values, 0, valueBytes);
-  return OK;
+  void *zeroValues = allocate(t->context->memory, valueBytes);
+  memset(zeroValues, 0, valueBytes);
+  Result result = copyBetweenContexts(NULL, t->context, zeroValues, t->values, valueBytes);
+  freeAlloc(t->context->memory, zeroValues);
+  return result;
 }
 
 Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   tensor_size_t size = calculateNumValuesAndMultipliers(shape, shape.multipliers);
 
   *dest = (Tensor){.context = ctx,
+                   .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                    .dtype = dtype,
                    .values = allocateOnCtx(ctx, size * getBytesForDtype(dtype)),
                    .size = size,
@@ -163,6 +184,43 @@ void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {
   }
 }
 
+Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (result == NULL) {
+    return ERR_NULL_PTR;
+  }
+
+  if (!t->isView && idx >= t->size) {
+    return ERR_OUT_OF_BOUNDS;
+  }
+
+  result->dtype = t->dtype;
+  size_t valueBytes = getBytesForDtype(t->dtype);
+  return copyBetweenContexts(NULL, NULL, (char *)t->values + idx * valueBytes, &result->as,
+                             valueBytes);
+}
+
+Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value) {
+  if (isInvalidTensor(t)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (t->dtype != value.dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (!t->isView && idx >= t->size) {
+    return ERR_OUT_OF_BOUNDS;
+  }
+
+  size_t valueBytes = getBytesForDtype(t->dtype);
+  return copyBetweenContexts(NULL, NULL, &value.as, (char *)t->values + idx * valueBytes,
+                             valueBytes);
+}
+
 Tensor *copyToContiguous(Context *ctx, Tensor *source) {
   Tensor *copy = t_Zeros(ctx, source->shape, source->dtype);
 
@@ -173,7 +231,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
     Value val;
     GetAt(source, idx, &val);
-    VALUE_SET(copy->values, i, val);
+    writeTensorValueAtFlatIndex(copy, i, val);
 
     for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
       indices[d]++;

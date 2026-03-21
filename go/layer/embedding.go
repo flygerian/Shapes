@@ -3,6 +3,7 @@ package layer
 import shapes "github.com/flygerian/shapes"
 
 type embedding struct {
+	ctx       shapes.Context
 	c         shapes.Tensor // embedding matrix [vocabSize, embDim]
 	vocabSize int
 	embDim    int
@@ -21,5 +22,5 @@ func (e *embedding) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 // shape [vocabSize, embDim].
 func Embedding(ctx shapes.Context, vocabSize int, embDim int) *embedding {
 	c := shapes.FloatRandom(ctx, shapes.Shape{uint(vocabSize), uint(embDim)})
-	return &embedding{c: c, vocabSize: vocabSize, embDim: embDim}
+	return &embedding{ctx: ctx, c: c, vocabSize: vocabSize, embDim: embDim}
 }

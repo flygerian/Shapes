@@ -59,7 +59,16 @@ target_include_directories(shapes_memory PUBLIC ${CMAKE_SOURCE_DIR})
 add_library(shapes_core
     common.c
     context.c
+    cuda/access.cu
+    cuda/binary_op.cu
+    cuda/accumulate.cu
+    cuda/cross_entropy.cu
     cuda/gemm.cu
+    cuda/im2col.cu
+    cuda/optimizer.cu
+    cuda/pool.cu
+    cuda/reduction.cu
+    cuda/unary.cu
     layer/dense.c
     layer/batch_norm.c
     layer/im2col.c
@@ -84,8 +93,7 @@ add_library(shapes_core
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
-target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} m)
-target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart m)
+target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
 
 # Main executable
 add_executable(shapes

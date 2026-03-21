@@ -448,6 +448,26 @@ func TestCastF32Widening(t *testing.T) {
 	}
 }
 
+func TestCastCudaF32ToI64(t *testing.T) {
+	ctx := New(context.Background(), WithCuda())
+	defer ctx.Finish()
+
+	src := FromFloat32(ctx, Shape{3}, []float32{0.0, 7.9, -2.1})
+	result := src.I64(ctx)
+
+	if result.Dtype() != DtypeI64 {
+		t.Fatalf("expected dtype I64, got %s", result.Dtype())
+	}
+
+	expected := []int64{0, 7, -2}
+	for i, want := range expected {
+		got := result.Get(ctx, uint32(i)).Item().(int64)
+		if got != want {
+			t.Errorf("I64[%d] = %d, want %d", i, got, want)
+		}
+	}
+}
+
 // --- Value preservation across casts ---
 
 func TestCastI8ToF32ValuePreservation(t *testing.T) {

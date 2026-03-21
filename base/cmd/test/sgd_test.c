@@ -128,19 +128,25 @@ static void test_sgd_size_mismatch(void) {
   freeMemory(mem);
 }
 
-static void test_sgd_requires_contiguous_tensors(void) {
+static void test_sgd_materializes_non_contiguous_tensors(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor p = create1DTensor(&ctx, 2, F32);
   Tensor g = create1DTensor(&ctx, 2, F32);
   p.isContigous = false;
+  ((f32 *)p.values)[0] = 1.0f;
+  ((f32 *)p.values)[1] = 2.0f;
+  ((f32 *)g.values)[0] = 0.5f;
+  ((f32 *)g.values)[1] = 1.0f;
 
   Tensor *params[] = {&p};
   Tensor *grads[] = {&g};
 
   Result r = Sgd(&ctx, params, grads, 1, 0.01f);
-  ASSERT_EQ(r, ERR_SGD_PARAMS_HAVE_TO_BE_CONTIGOUS, "non-contiguous tensors should be rejected");
+  ASSERT_EQ(r, OK, "non-contiguous tensors should be materialized");
+  ASSERT(fabsf(((f32 *)p.values)[0] - 0.995f) < 1e-6f, "p[0] should be updated after materialization");
+  ASSERT(fabsf(((f32 *)p.values)[1] - 1.99f) < 1e-6f, "p[1] should be updated after materialization");
 
   freeMemory(mem);
 }
@@ -167,6 +173,6 @@ void run_sgd_tests(void) {
   test_sgd_invalid_learning_rate();
   test_sgd_dtype_mismatch();
   test_sgd_size_mismatch();
-  test_sgd_requires_contiguous_tensors();
+  test_sgd_materializes_non_contiguous_tensors();
   test_sgd_requires_float_tensors();
 }

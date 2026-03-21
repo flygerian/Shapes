@@ -3277,9 +3277,512 @@ static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *va
                   .shape = (Dim){.dims = dims, .numOfDims = numOfDims, .multipliers = multipliers}};
 }
 
-static void test_gemm_gpu_dispatch_basic(void) {
+static bool hasCudaDevice(void) {
   int deviceCount = 0;
-  if (cudaGetDeviceCount(&deviceCount) != cudaSuccess || deviceCount < 1) {
+  return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
+}
+
+static Tensor *createHostF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, const float *values,
+                                   tensor_size_t size) {
+  Tensor *tensor = T_Zeros(ctx, (Dim){.dims = dims, .numOfDims = numOfDims});
+  memcpy(tensor->values, values, sizeof(float) * size);
+  return tensor;
+}
+
+static Tensor *createHostI32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, const i32 *values,
+                                   tensor_size_t size) {
+  Tensor *tensor = t_Zeros(ctx, (Dim){.dims = dims, .numOfDims = numOfDims}, I32);
+  memcpy(tensor->values, values, sizeof(i32) * size);
+  return tensor;
+}
+
+static void assertF32TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const float *expected,
+                                        tensor_size_t size, const char *label) {
+  Context cpuCtx = {.memory = srcCtx->memory};
+  Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
+  ASSERT_EQ(moveResult, OK, label);
+
+  float *values = tensor->values;
+  for (tensor_size_t i = 0; i < size; i++) {
+    ASSERT_EQ(values[i], expected[i], label);
+  }
+}
+
+static void assertI64TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const i64 *expected,
+                                        tensor_size_t size, const char *label) {
+  Context cpuCtx = {.memory = srcCtx->memory};
+  Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
+  ASSERT_EQ(moveResult, OK, label);
+
+  i64 *values = tensor->values;
+  for (tensor_size_t i = 0; i < size; i++) {
+    ASSERT_EQ(values[i], expected[i], label);
+  }
+}
+
+static void test_assign_value_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+
+  dim_t dims[] = {2, 2};
+  Tensor *tensor = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  dim_t idx[] = {1, 0};
+  Value value = {.dtype = F32, .as.f32 = 77.0f};
+  Value result;
+
+  Result res = AssignValueAt(&ctx, tensor, (Dim){.dims = idx, .numOfDims = 2}, value);
+  ASSERT_EQ(res, OK, "CUDA AssignValueAt should succeed");
+
+  res = GetAt(tensor, (Dim){.dims = idx, .numOfDims = 2}, &result);
+  ASSERT_EQ(res, OK, "GetAt should read from CUDA tensor");
+  ASSERT_EQ(result.as.f32, 77.0f, "CUDA tensor element should round-trip through GetAt");
+
+  DestroyContext(&ctx);
+}
+
+static void test_get_tensor_at_gpu_scalar_result_lives_on_ctx(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+
+  dim_t dims[] = {3};
+  Tensor *tensor = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  for (dim_t i = 0; i < 3; i++) {
+    dim_t idx[] = {i};
+    Result assignResult = AssignValueAt(&ctx, tensor, (Dim){.dims = idx, .numOfDims = 1},
+                                        (Value){.dtype = F32, .as.f32 = (float)(i + 1)});
+    ASSERT_EQ(assignResult, OK, "AssignValueAt should populate CUDA tensor");
+  }
+
+  Tensor scalar;
+  Result res = GetTensorAt(&ctx, tensor, 1, &scalar);
+  ASSERT_EQ(res, OK, "GetTensorAt should succeed on CUDA tensors");
+  ASSERT(scalar.context == &ctx, "Scalar result should stay on the requested CUDA context");
+  ASSERT_EQ(scalar.shape.numOfDims, 0, "Selecting from a 1D tensor should produce a scalar");
+
+  Value value;
+  res = GetScalar(&scalar, &value);
+  ASSERT_EQ(res, OK, "GetScalar should read CUDA scalar tensors");
+  ASSERT_EQ(value.as.f32, 2.0f, "CUDA scalar result should match selected element");
+
+  DestroyContext(&ctx);
+}
+
+static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float aValues[] = {1, 2, 3, 4, 5, 6};
+  float bValues[] = {10, 20, 30, 40, 50, 60};
+  float expected[] = {11, 22, 33, 44, 55, 66};
+
+  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  Tensor dest;
+
+  Result res = Add(&ctx, a, b, &dest);
+  ASSERT_EQ(res, OK, "CUDA Add should succeed with CPU inputs");
+  ASSERT(dest.context == &ctx, "CUDA Add result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Add result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_subtract_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float aValues[] = {10, 20, 30, 40, 50, 60};
+  float bValues[] = {1, 2, 3, 4, 5, 6};
+  float expected[] = {9, 18, 27, 36, 45, 54};
+
+  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  Tensor dest;
+
+  Result res = Subtract(&ctx, a, b, &dest);
+  ASSERT_EQ(res, OK, "CUDA Subtract should succeed");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Subtract result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_multiply_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float aValues[] = {1, 2, 3, 4, 5, 6};
+  float bValues[] = {2, 2, 2, 3, 3, 3};
+  float expected[] = {2, 4, 6, 12, 15, 18};
+
+  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  Tensor dest;
+
+  Result res = Multiply(&ctx, a, b, &dest);
+  ASSERT_EQ(res, OK, "CUDA Multiply should succeed");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Multiply result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_add_gpu_dispatch_non_contiguous_input(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dimsA[] = {2, 3};
+  dim_t dimsB[] = {3, 2};
+  float aValues[] = {1, 2, 3, 4, 5, 6};
+  float bValues[] = {10, 20, 30, 40, 50, 60};
+  float expected[] = {11, 32, 53, 24, 45, 66};
+
+  Tensor *a = createHostF32Tensor(&hostCtx, dimsA, 2, aValues, 6);
+  Tensor *b = createHostF32Tensor(&hostCtx, dimsB, 2, bValues, 6);
+  Tensor bTransposed;
+  Tensor dest;
+
+  Result res = Transpose(&hostCtx, b, &bTransposed, (dim_t)0, (dim_t)1);
+  ASSERT_EQ(res, OK, "Transpose for CUDA Add test should succeed");
+  ASSERT(!bTransposed.isContigous, "Transposed input should be non-contiguous");
+
+  res = Add(&ctx, a, &bTransposed, &dest);
+  ASSERT_EQ(res, OK, "CUDA Add should materialize non-contiguous inputs");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6,
+                              "CUDA Add with non-contiguous input should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_add_gpu_dispatch_broadcast_falls_back_to_cpu(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dimsA[] = {2, 3};
+  dim_t dimsB[] = {1, 3};
+  float aValues[] = {1, 2, 3, 4, 5, 6};
+  float bValues[] = {10, 20, 30};
+  float expected[] = {11, 22, 33, 14, 25, 36};
+
+  Tensor *a = createHostF32Tensor(&hostCtx, dimsA, 2, aValues, 6);
+  Tensor *b = createHostF32Tensor(&hostCtx, dimsB, 2, bValues, 3);
+  Tensor dest = {0};
+
+  Result res = Add(&ctx, a, b, &dest);
+  ASSERT_EQ(res, OK, "CUDA Add should allow broadcast via CPU fallback");
+  ASSERT(dest.context == &ctx, "Broadcast fallback result should be moved back onto CUDA context");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6,
+                              "Broadcast fallback result should match expected values");
+
+  DestroyContext(&ctx);
+}
+
+static void test_add_in_place_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float aValues[] = {1, 2, 3, 4, 5, 6};
+  float bValues[] = {10, 20, 30, 40, 50, 60};
+  float expected[] = {11, 22, 33, 44, 55, 66};
+
+  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+
+  Result res = MoveTensors(&ctx, 2, a, b);
+  ASSERT_EQ(res, OK, "MoveTensors should move inputs onto CUDA");
+
+  res = AddInPlace(&ctx, a, b);
+  ASSERT_EQ(res, OK, "CUDA AddInPlace should succeed");
+  assertF32TensorMatchesOnCpu(&ctx, a, expected, 6, "CUDA AddInPlace result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_sum_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float values[] = {1, 2, 3, 4, 5, 6};
+  float expected[] = {5, 7, 9};
+
+  Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  Tensor dest;
+
+  Result res = Sum(&ctx, t, &dest, 0);
+  ASSERT_EQ(res, OK, "CUDA Sum should succeed");
+  ASSERT(dest.context == &ctx, "CUDA Sum result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 3, "CUDA Sum result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_mean_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float values[] = {1, 2, 3, 4, 5, 6};
+  float expected[] = {3.5f};
+
+  Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  Tensor dest;
+
+  Result res = Mean(&ctx, t, &dest);
+  ASSERT_EQ(res, OK, "CUDA Mean should succeed");
+  ASSERT(dest.context == &ctx, "CUDA Mean result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 1, "CUDA Mean result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_argmax_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2, 3};
+  float values[] = {1, 5, 3, 4, 2, 6};
+  i64 expected[] = {1, 0, 1};
+
+  Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  Tensor dest;
+
+  Result res = ArgMax(&ctx, t, &dest, 0);
+  ASSERT_EQ(res, OK, "CUDA ArgMax should succeed");
+  ASSERT(dest.context == &ctx, "CUDA ArgMax result should live on the CUDA context");
+  assertI64TensorMatchesOnCpu(&ctx, &dest, expected, 3, "CUDA ArgMax result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_index_accumulate_1d_basic(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t destDims[] = {3, 2};
+  dim_t indexDims[] = {2};
+  dim_t srcDims[] = {2, 2};
+  i32 indicesValues[] = {1, 0};
+  float srcValues[] = {10, 20, 30, 40};
+  float expected[] = {30, 40, 10, 20, 0, 0};
+
+  Tensor *dest = T_Float(&ctx, (Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
+  Tensor *indices = createHostI32Tensor(&ctx, indexDims, 1, indicesValues, 2);
+  Tensor *srcGrad = createHostF32Tensor(&ctx, srcDims, 2, srcValues, 4);
+
+  Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
+  ASSERT_EQ(res, OK, "IndexAccumulate1d should succeed on CPU");
+
+  float *values = dest->values;
+  for (tensor_size_t i = 0; i < 6; i++) {
+    ASSERT_EQ(values[i], expected[i], "IndexAccumulate1d CPU result should match");
+  }
+
+  freeMemory(mem);
+}
+
+static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t destDims[] = {3, 2};
+  dim_t indexDims[] = {2};
+  dim_t srcDims[] = {2, 2};
+  i32 indicesValues[] = {1, 0};
+  float srcValues[] = {10, 20, 30, 40};
+  float expected[] = {30, 40, 10, 20, 0, 0};
+
+  Tensor *dest = T_Float(&ctx, (Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
+  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 2);
+  Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
+
+  Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
+  ASSERT_EQ(res, OK, "CUDA IndexAccumulate1d should succeed");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6, "CUDA IndexAccumulate1d result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_index_accumulate_1d_gpu_requires_dest_on_ctx(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t destDims[] = {2, 2};
+  dim_t indexDims[] = {1};
+  dim_t srcDims[] = {1, 2};
+  i32 indicesValues[] = {0};
+  float srcValues[] = {10, 20};
+
+  Tensor *dest = T_Float(&hostCtx, (Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
+  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 1);
+  Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 2);
+
+  Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
+  ASSERT_EQ(res, ERR_NO_OP, "CUDA IndexAccumulate1d should reject CPU destination tensors");
+
+  DestroyContext(&ctx);
+}
+
+static void test_index_with_tensor_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t sourceDims[] = {3, 2};
+  dim_t indexDims[] = {2};
+  float sourceValues[] = {1, 2, 3, 4, 5, 6};
+  i32 indexValues[] = {0, 2};
+  float expected[] = {1, 2, 5, 6};
+
+  Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 2, sourceValues, 6);
+  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
+  Tensor dest;
+
+  Result res = IndexWithTensor(&ctx, source, indices, &dest);
+  ASSERT_EQ(res, OK, "CUDA IndexWithTensor should succeed with CPU inputs");
+  ASSERT(dest.context == &ctx, "CUDA IndexWithTensor result should live on CUDA");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 4, "CUDA IndexWithTensor result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t sourceDims[] = {2, 3, 2};
+  dim_t indexDims[] = {2};
+  float sourceValues[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  i32 rowValues[] = {0, 1};
+  i32 colValues[] = {2, 0};
+  float expected[] = {5, 6, 7, 8};
+
+  Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 3, sourceValues, 12);
+  Tensor *rowIndices = createHostI32Tensor(&hostCtx, indexDims, 1, rowValues, 2);
+  Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
+  Tensor dest;
+
+  Result res = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &dest);
+  ASSERT_EQ(res, OK, "CUDA IndexWithTensor2d should succeed with CPU inputs");
+  ASSERT(dest.context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 4, "CUDA IndexWithTensor2d result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t targetDims[] = {2, 2};
+  dim_t addDims[] = {1, 2};
+  float targetValues[] = {1, 2, 3, 4};
+  float addValues[] = {5, 6};
+  float expected[] = {1, 2, 3, 4, 5, 6};
+
+  Tensor *target = createHostF32Tensor(&hostCtx, targetDims, 2, targetValues, 4);
+  Tensor *toAdd = createHostF32Tensor(&hostCtx, addDims, 2, addValues, 2);
+  Tensor *tensors[] = {toAdd};
+  Tensor dest;
+
+  Result res = Concat(&ctx, target, 0, tensors, 1, &dest);
+  ASSERT_EQ(res, OK, "CUDA Concat should succeed with CPU inputs");
+  ASSERT(dest.context == &ctx, "CUDA Concat result should live on CUDA");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Concat result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_one_hot_gpu_dispatch_materializes_cpu_indices(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t indexDims[] = {3};
+  i32 indexValues[] = {2, 0, 1};
+  float expected[] = {0, 0, 1, 1, 0, 0, 0, 1, 0};
+
+  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 3);
+  Tensor *oneHot = T_OneHot(&ctx, indices, 3);
+
+  ASSERT_NOT_NULL(oneHot, "CUDA OneHot should return a tensor");
+  ASSERT(oneHot->context == &ctx, "CUDA OneHot result should live on CUDA");
+  ASSERT_EQ(oneHot->shape.numOfDims, 2, "CUDA OneHot should append a class dimension");
+  ASSERT_EQ(oneHot->shape.dims[0], 3, "CUDA OneHot should preserve the input length");
+  ASSERT_EQ(oneHot->shape.dims[1], 3, "CUDA OneHot class dimension should match numClasses");
+  assertF32TensorMatchesOnCpu(&ctx, oneHot, expected, 9, "CUDA OneHot result should match");
+
+  DestroyContext(&ctx);
+}
+
+static void test_gemm_gpu_dispatch_basic(void) {
+  if (!hasCudaDevice()) {
     return;
   }
 
@@ -3290,6 +3793,7 @@ static void test_gemm_gpu_dispatch_basic(void) {
   float c[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
   runGemm(&ctx, F32, CblasNoTrans, CblasNoTrans, 2, 4, 3, a, 3, b, 4, false, c, 4);
+  ASSERT_EQ(Flush(&ctx), OK, "GPU GEMM flush should succeed");
 
   ASSERT_EQ((int)c[0], 74, "GPU GEMM [0,0] should be 74");
   ASSERT_EQ((int)c[1], 80, "GPU GEMM [0,1] should be 80");
@@ -3304,8 +3808,7 @@ static void test_gemm_gpu_dispatch_basic(void) {
 }
 
 static void test_gemm_gpu_dispatch_f64(void) {
-  int deviceCount = 0;
-  if (cudaGetDeviceCount(&deviceCount) != cudaSuccess || deviceCount < 1) {
+  if (!hasCudaDevice()) {
     return;
   }
 
@@ -3316,6 +3819,7 @@ static void test_gemm_gpu_dispatch_f64(void) {
   double c[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
   runGemm(&ctx, F64, CblasNoTrans, CblasNoTrans, 2, 4, 3, a, 3, b, 4, false, c, 4);
+  ASSERT_EQ(Flush(&ctx), OK, "GPU F64 GEMM flush should succeed");
 
   ASSERT_EQ((int)c[0], 74, "GPU F64 GEMM [0,0] should be 74");
   ASSERT_EQ((int)c[1], 80, "GPU F64 GEMM [0,1] should be 80");
@@ -5104,6 +5608,27 @@ void run_tensor_tests(void) {
   test_clone_slice();
   test_clone_transposed();
   test_clone_null_tensor();
+  // CUDA binary op tests
+  test_assign_value_gpu_dispatch_basic();
+  test_get_tensor_at_gpu_scalar_result_lives_on_ctx();
+  test_add_gpu_dispatch_materializes_cpu_inputs();
+  test_subtract_gpu_dispatch_basic();
+  test_multiply_gpu_dispatch_basic();
+  test_add_gpu_dispatch_non_contiguous_input();
+  test_add_gpu_dispatch_broadcast_falls_back_to_cpu();
+  test_add_in_place_gpu_dispatch_basic();
+  // CUDA reduction tests
+  test_sum_gpu_dispatch_basic();
+  test_mean_gpu_dispatch_basic();
+  test_argmax_gpu_dispatch_basic();
+  // Accumulate tests
+  test_index_accumulate_1d_basic();
+  test_index_accumulate_1d_gpu_dispatch_basic();
+  test_index_accumulate_1d_gpu_requires_dest_on_ctx();
+  test_index_with_tensor_gpu_dispatch_basic();
+  test_index_with_tensor_2d_gpu_dispatch_basic();
+  test_concat_gpu_dispatch_materializes_cpu_inputs();
+  test_one_hot_gpu_dispatch_materializes_cpu_indices();
   // MatMul tests
   test_gemm_gpu_dispatch_basic();
   test_gemm_gpu_dispatch_f64();

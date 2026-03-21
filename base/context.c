@@ -17,14 +17,34 @@ static DeviceType getDeviceTypeForContext(Context *ctx) {
   return ctx->device->type;
 }
 
+static DeviceType getDeviceTypeForPointer(const void *ptr) {
+  if (ptr == NULL) {
+    return CPU;
+  }
+
+  struct cudaPointerAttributes attributes;
+  cudaError_t result = cudaPointerGetAttributes(&attributes, ptr);
+  if (result != cudaSuccess) {
+    cudaGetLastError();
+    return CPU;
+  }
+
+#if CUDART_VERSION >= 10000
+  return attributes.type == cudaMemoryTypeDevice ? CUDA : CPU;
+#else
+  return attributes.memoryType == cudaMemoryTypeDevice ? CUDA : CPU;
+#endif
+}
+
 Result copyBetweenContexts(Context *restrict srcCtx, Context *restrict destCtx,
                            void *restrict srcPtr, void *restrict destPtr, size_t size) {
   if (srcPtr == NULL || destPtr == NULL) {
     return ERR_NULL_PTR;
   }
 
-  DeviceType srcType = getDeviceTypeForContext(srcCtx);
-  DeviceType destType = getDeviceTypeForContext(destCtx);
+  DeviceType srcType = srcCtx != NULL ? getDeviceTypeForContext(srcCtx) : getDeviceTypeForPointer(srcPtr);
+  DeviceType destType =
+      destCtx != NULL ? getDeviceTypeForContext(destCtx) : getDeviceTypeForPointer(destPtr);
 
   if (srcType == CPU && destType == CPU) {
     memcpy(destPtr, srcPtr, size);
@@ -142,6 +162,24 @@ void FreeContext(Context *ctx) {
   }
 
   DestroyContext(ctx);
+}
+
+Result Flush(Context *ctx) {
+  if (ctx == NULL || ctx->device == NULL) {
+    return OK;
+  }
+
+  switch (ctx->device->type) {
+    case CPU: return OK;
+    case CUDA: {
+      cudaError_t syncResult = cudaDeviceSynchronize();
+      if (syncResult != cudaSuccess) {
+        return ERR_NO_OP;
+      }
+      return OK;
+    }
+    default: return OK;
+  }
 }
 
 Result MoveTensors(Context *destCtx, u8 numTensors, ...) {

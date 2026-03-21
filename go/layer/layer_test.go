@@ -22,7 +22,7 @@ func TestSequentialPassesOriginalInputToFirstLayer(t *testing.T) {
 
 	x := shapes.Float(ctx, shapes.Shape{2, 3}, 1.0)
 	first := &captureLayer{}
-	seq := Sequential{Layers: []HasForward{first}}
+	seq := NewSequential(ctx, first)
 
 	out := seq.Forward(ctx, x)
 

@@ -54,6 +54,23 @@ typedef enum {
   OP_LESS_OR_EQUAL
 } OpType;
 
+typedef enum {
+  UNARY_OP_POW,
+  UNARY_OP_TANH,
+  UNARY_OP_RELU,
+  UNARY_OP_NEGATE,
+  UNARY_OP_EXP,
+  UNARY_OP_LOG,
+  UNARY_OP_ABS
+} UnaryOpType;
+
+typedef enum {
+  REDUCTION_OP_SUM,
+  REDUCTION_OP_MEAN,
+  REDUCTION_OP_MAX,
+  REDUCTION_OP_ARGMAX
+} ReductionOpType;
+
 typedef enum { CPU, CUDA } DeviceType;
 
 typedef struct {
@@ -89,6 +106,7 @@ typedef struct Context {
 
 typedef struct {
   Context *context;
+  Memory *metadataMemory;
   void *values;
   Range *boundary;
   tensor_size_t size;

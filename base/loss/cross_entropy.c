@@ -1,9 +1,14 @@
 #include "shapes.h"
 
+#include "loss/cross_entropy.h"
 #include "../memory.h"
 #include "tensor/tensor_internal.h"
 #include "tensor/value.h"
 #include <math.h>
+
+static bool isCudaContext(Context *ctx) {
+  return ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA;
+}
 
 Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor *loss,
                            Tensor *probs) {
@@ -57,6 +62,26 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
 
   res = initTensorLike(ctx, probs, logitsContig, logitsContig->dtype);
   if (res != OK) {
+    goto cleanup;
+  }
+
+  if (isCudaContext(ctx)) {
+    Value zero = {.dtype = logitsContig->dtype};
+    if (logitsContig->dtype == F64) {
+      zero.as.f64 = 0.0;
+    } else {
+      zero.as.f32 = 0.0f;
+    }
+
+    *loss = singleValueTensor(ctx, zero);
+    if (loss->values == NULL) {
+      res = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
+
+    res =
+        runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values,
+                                   rows, classCount, probs->values, loss->values);
     goto cleanup;
   }
 
@@ -201,6 +226,13 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
 
   res = initTensorLike(ctx, dLogits, pContig, pContig->dtype);
   if (res != OK) {
+    goto cleanup;
+  }
+
+  if (isCudaContext(ctx)) {
+    res = runCudaCrossEntropyBackward(ctx, pContig->dtype, yContig->values, pContig->values,
+                                      gContig->values, rows, classCount, scalarGradOut,
+                                      dLogits->values);
     goto cleanup;
   }
 

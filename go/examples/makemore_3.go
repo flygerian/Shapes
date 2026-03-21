@@ -96,7 +96,7 @@ func MakeMore_3() {
 	bn2 := layer.BatchNorm(shapesCtx, 100)
 	sgd := optimizer.SGD(shapesCtx, 0.001)
 
-	crossEnthropy := loss_fns.CrossEntropy()
+	crossEnthropy := loss_fns.CrossEntropy(shapesCtx)
 
 	forward := func(ctx shapes.EpochContext, xBatch shapes.Tensor) shapes.Tensor {
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, -1, 90))
@@ -133,7 +133,7 @@ func MakeMore_3() {
 		yOneHot := shapes.OneHot(epochCtx, yBatch, 27)
 		logits := forward(epochCtx, emb)
 
-		lossValue := crossEnthropy(epochCtx, yOneHot, logits)
+		lossValue := crossEnthropy(yOneHot, logits)
 
 		lossScalar := lossValue.Get(epochCtx, 0).Item().(float32)
 
