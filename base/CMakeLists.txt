@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-project(shapes C)
+project(shapes C CUDA)
+set(CMAKE_CUDA_ARCHITECTURES 86)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -25,14 +26,13 @@ set_source_files_properties(base/tensor/binary_op.c
   PROPERTIES COMPILE_FLAGS "-S -o /tmp/binary_op.s"
 )
 
-add_compile_options(-O3 -march=native  -c)
+add_compile_options(-O3 -march=native -c)
 # Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
-  add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
+  add_compile_options($<$<COMPILE_LANGUAGE:C>:-fsanitize=address> $<$<COMPILE_LANGUAGE:C>:-fno-omit-frame-pointer> $<$<COMPILE_LANGUAGE:C>:-g>)
   add_link_options(-fsanitize=address)
 endif()
-
 # OpenBLAS location changed from older installs; clear stale cache so configure
 # always resolves against the current in-repo install path.
 unset(OPENBLAS_LIB CACHE)
@@ -44,6 +44,8 @@ find_library(OPENBLAS_LIB
 if(NOT OPENBLAS_LIB)
   message(FATAL_ERROR "OpenBLAS not found in ${CMAKE_SOURCE_DIR}/build/openblas/lib. Run 'make init'.")
 endif()
+
+find_package(CUDAToolkit REQUIRED)
 
 include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 
@@ -76,9 +78,12 @@ add_library(shapes_core
     tensor/unary.c
     tensor/cast.c
     tensor/accumulate.c
+    tensor/gemm.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
+
 target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} m)
+target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart m)
 
 # Main executable
 add_executable(shapes
@@ -98,6 +103,11 @@ add_executable(shapes_test
     cmd/test/layer_test.c
 )
 target_link_libraries(shapes_test shapes_core)
+
+add_executable(gemm_bench
+  cmd/cuda/gemm_bench.cu
+)
+target_link_libraries(gemm_bench CUDA::cudart -lcublas)
 
 # Enable CTest
 enable_testing()

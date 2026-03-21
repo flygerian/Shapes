@@ -2,7 +2,8 @@
 #define shapes_tensor_internal_h
 
 #include "../shapes.h"
-#include "common.h"
+#include "cblas.h"
+#include "../common.h"
 #include "value.h"
 #include <stddef.h>
 
@@ -53,5 +54,7 @@ Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
 Result freeTensorBuffers(Context *ctx, Tensor *t);
-
+void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n,
+                    int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
+                    int ldc);
 #endif

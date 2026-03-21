@@ -1,9 +1,13 @@
 #include "../../shapes.h"
+#include "cblas.h"
 #include "common.h"
+#include <stddef.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <termios.h>
 #include "memory.h"
+#include "tensor/tensor_internal.h"
 #include "tensor/value.h"
 
 void showcase(Context *ctx) {
@@ -248,38 +252,51 @@ void tensorExp(Context ctx) {
   GetAt(&d, DIM_ZERO, &dL_df);
 }
 
+double now_ms() {
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  return t.tv_sec * 1000.0 + t.tv_nsec / 1e6;
+}
+
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  Memory *mem = initializeMemory();
+  Memory *mem = initializeArena((size_t) 1024 * 1024 * 4096, 1);
   Context ctx = {.memory = mem};
 
-  dim_t shape[1] = {1};
-  Dim tDim = {.dims = shape, .numOfDims = 1};
+  int M = 4096, N = 4096, K = 4096;
 
-  Tensor *x1 = T_Float(&ctx, tDim, 2.0);
-  Tensor *x2 = T_Float(&ctx, tDim, 0.0);
+  f32 *h_A = (f32 *) allocate(ctx.memory, (size_t) M * K * sizeof(f32));
+  f32 *h_B = (f32 *) allocate(ctx.memory, (size_t) K * N * sizeof(f32));
+  f32 *h_C = (f32 *) allocate(ctx.memory, (size_t) M * N * sizeof(f32));
 
-  Tensor *w1 = T_Float(&ctx, tDim, -3.0);
-  Tensor *w2 = T_Float(&ctx, tDim, 1.0);
+  for (int i = 0; i < M * K; i++) {
+    h_A[i] = (float)rand() / RAND_MAX;
+  }
 
-  Tensor *b = T_Float(&ctx, tDim, 6.8813735870195432);
+  for (int i = 0; i < K * N; i++) {
+    h_B[i] = (float)rand() / RAND_MAX;
+  }
 
-  Tensor x1w1;
-  Multiply(&ctx, x1, w1, &x1w1);
+  float alpha = 1.0f, beta = 0.0f;
 
-  Tensor x2w2;
-  Multiply(&ctx, x2, w2, &x2w2);
+  double start = now_ms();
+  for (int i = 0; i < 10; i++) {
+    runGemm(&ctx, F32, CblasNoTrans, CblasNoTrans, M, N, K, h_A, M, h_B, K, false, h_C,
+          M);
+  }
+  double elapsed = now_ms() - start;
 
-  Tensor x1w1x2w2;
-  Add(&ctx, &x1w1, &x2w2, &x1w1x2w2);
+  printf("OpenBLAS: %.2f ms/iter\n", elapsed / 10);
 
-  Tensor n;
-  Add(&ctx, &x1w1x2w2, b, &n);
+  // CPU comparison with a naive loop would be unfair, but you can compare
+  // against your existing cblas_sgemm timing on the same size
 
-  Tensor o;
-
-  freeMemory(ctx.memory);
+  // freeAlloc(ctx.memory, h_A);
+  // freeAlloc(ctx.memory, h_B);
+  // freeAlloc(ctx.memory, h_C);
+  //
+  // freeMemory(ctx.memory);
   return 0;
 }

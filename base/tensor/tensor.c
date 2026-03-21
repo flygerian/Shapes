@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "../shapes.h"
+#include "cblas.h"
 #include "common.h"
 #include "tensor_internal.h"
 #include "value.h"

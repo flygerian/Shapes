@@ -41,6 +41,18 @@ typedef struct {
 
 typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL } Dtype;
 
+typedef enum {
+  OP_ADD,
+  OP_SUBTRACT,
+  OP_MULTIPLY,
+  OP_GREATER,
+  OP_GREATER_OR_EQUAL,
+  OP_LESS,
+  OP_LESS_OR_EQUAL
+} OpType;
+
+typedef enum {CPU, CUDA} DeviceType;
+
 typedef struct {
   Dtype dtype;
   union {
@@ -79,19 +91,15 @@ typedef struct {
   Tensor *v;
 } AdamData;
 
+typedef struct {
+ DeviceType type;
+ char *id;
+} Device;
+
 typedef struct Context {
   Memory *memory;
+  Device *device;
 } Context;
-
-typedef enum {
-  OP_ADD,
-  OP_SUBTRACT,
-  OP_MULTIPLY,
-  OP_GREATER,
-  OP_GREATER_OR_EQUAL,
-  OP_LESS,
-  OP_LESS_OR_EQUAL
-} OpType;
 
 size_t getBytesForDtype(Dtype type);
 

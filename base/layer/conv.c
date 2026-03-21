@@ -14,19 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void runGemm(Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n,
-                    int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
-                    int ldc) {
-  if (dtype == F64) {
-    cblas_dgemm(CblasRowMajor, transA, transB, m, n, k, 1.0, (const double *)a, lda,
-                (const double *)b, ldb, accumulate ? 1.0 : 0.0, (double *)c, ldc);
-    return;
-  }
-
-  cblas_sgemm(CblasRowMajor, transA, transB, m, n, k, 1.0f, (const float *)a, lda, (const float *)b,
-              ldb, accumulate ? 1.0f : 0.0f, (float *)c, ldc);
-}
-
 static int clampBlasThreadCount(int threadCount) {
   int maxThreads = openblas_get_num_procs();
   if (maxThreads < 1) {
@@ -150,7 +137,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
 
     colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
-    runGemm(t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
+    runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
   } else {
@@ -158,7 +145,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
 
     colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
-    runGemm(t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
+    runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
   }
@@ -307,10 +294,10 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       goto cleanup;
     }
 
-    runGemm(F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
+    runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
             kS, false, dWValues, kS);
 
-    runGemm(F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
+    runGemm(ctx, F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
             kS, false, dColBuffer, kS);
 
     col2imAccumulateF64(dInput, dColBuffer, kH, kW, stride);
@@ -332,10 +319,10 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       goto cleanup;
     }
 
-    runGemm(F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
+    runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBuffer->values,
             kS, false, dWValues, kS);
 
-    runGemm(F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
+    runGemm(ctx, F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues,
             kS, false, dColBuffer, kS);
 
     col2imAccumulateF32(dInput, dColBuffer, kH, kW, stride);

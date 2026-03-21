@@ -620,8 +620,8 @@ static void test_conv2d_backward_f32_single_channel(void) {
   Tensor x = create4DTensor(&ctx, 1, 1, 3, 3, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor dX;
-  Tensor dKernels;
+  Tensor dX = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor dKernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
   for (int i = 0; i < 9; i++) {
@@ -638,6 +638,9 @@ static void test_conv2d_backward_f32_single_channel(void) {
   for (int i = 0; i < 4; i++) {
     gVals[i] = 1.0f;
   }
+
+  memset(dX.values, 0, dX.size * sizeof(f32));
+  memset(dKernels.values, 0, dKernels.size * sizeof(f32));
 
   void *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
   Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 1);
@@ -668,8 +671,8 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   Tensor x = create4DTensor(&ctx, 1, 1, 3, 3, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor dX;
-  Tensor dKernels;
+  Tensor dX = create4DTensor(&ctx, 1, 1, 3, 3, F32);
+  Tensor dKernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
   for (int i = 0; i < 9; i++) {
@@ -686,6 +689,9 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   for (int i = 0; i < 4; i++) {
     gVals[i] = 1.0f;
   }
+
+  memset(dX.values, 0, dX.size * sizeof(f32));
+  memset(dKernels.values, 0, dKernels.size * sizeof(f32));
 
   Tensor *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
   memset(colBuffer->values, 0, colBuffer->size * sizeof(f32));
@@ -714,8 +720,8 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   Tensor x = create4DTensor(&ctx, 1, 1, 5, 5, F32);
   Tensor kernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
   Tensor gradOut = create4DTensor(&ctx, 1, 1, 2, 2, F32);
-  Tensor dX;
-  Tensor dKernels;
+  Tensor dX = create4DTensor(&ctx, 1, 1, 5, 5, F32);
+  Tensor dKernels = create4DTensor(&ctx, 1, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
   for (int i = 0; i < 25; i++) {
@@ -733,6 +739,9 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   gVals[1] = 2.0f;
   gVals[2] = 3.0f;
   gVals[3] = 4.0f;
+
+  memset(dX.values, 0, dX.size * sizeof(f32));
+  memset(dKernels.values, 0, dKernels.size * sizeof(f32));
 
   void *colBuffer = im2colF32(&ctx, &x, 2, 2, 2);
   Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 2);
@@ -762,8 +771,8 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   Tensor x = create4DTensor(&ctx, 2, 1, 3, 3, F32);
   Tensor kernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
   Tensor gradOut = create4DTensor(&ctx, 2, 2, 2, 2, F32);
-  Tensor dX;
-  Tensor dKernels;
+  Tensor dX = create4DTensor(&ctx, 2, 1, 3, 3, F32);
+  Tensor dKernels = create4DTensor(&ctx, 2, 1, 2, 2, F32);
 
   f32 *xVals = x.values;
   for (int i = 0; i < 18; i++) {
@@ -786,6 +795,9 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   for (int i = 0; i < 16; i++) {
     gVals[i] = grads[i];
   }
+
+  memset(dX.values, 0, dX.size * sizeof(f32));
+  memset(dKernels.values, 0, dKernels.size * sizeof(f32));
 
   void *colBuffer = im2colF32(&ctx, &x, 2, 2, 1);
   Result r = Conv2dBackward(&ctx, &x, &dX, &kernels, &dKernels, &gradOut, colBuffer, 1);
