@@ -106,9 +106,9 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 	}
 
 	if ctx.arenaSize != 0 {
-		ctx.cCtx = C.createContext(C.size_t(ctx.arenaSize), 1, C.bool(false))
+		ctx.cCtx = C.createContext(C.size_t(ctx.arenaSize), 1, C.bool(true))
 	} else {
-		ctx.cCtx = C.createContext(1024*1024*64, 1, C.bool(false))
+		ctx.cCtx = C.createContext(1024*1024*64, 1, C.bool(true))
 	}
 
 	return ctx
