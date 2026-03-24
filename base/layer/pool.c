@@ -18,21 +18,7 @@ static Result clearPoolTarget(Context *ctx, Tensor *target) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  size_t valueBytes = target->size * getBytesForDtype(target->dtype);
-  if (ctx->device == NULL || ctx->device->type == CPU) {
-    memset(target->values, 0, valueBytes);
-    return OK;
-  }
-
-  void *zeroValues = allocate(ctx->memory, valueBytes);
-  if (zeroValues == NULL) {
-    return ERR_OUT_OF_MEMORY;
-  }
-
-  memset(zeroValues, 0, valueBytes);
-  Result result = copyBetweenContexts(NULL, ctx, zeroValues, target->values, valueBytes);
-  freeAlloc(ctx->memory, zeroValues);
-  return result;
+  return clearTensorValues(target);
 }
 
 static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest,

@@ -122,16 +122,11 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
 }
 
 void SetValues(Tensor *t, Value value) {
-  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
   if (t->context != NULL && t->context->device != NULL && t->context->device->type == CUDA) {
-    void *hostValues = allocate(t->context->memory, valueBytes);
-    for (tensor_size_t i = 0; i < t->size; i++) {
-      VALUE_SET(hostValues, i, value);
+    Result result = runCudaFillTensor(t->context, t->dtype, t->values, t->size, value);
+    if (result == OK) {
+      return;
     }
-
-    copyBetweenContexts(NULL, t->context, hostValues, t->values, valueBytes);
-    freeAlloc(t->context->memory, hostValues);
-    return;
   }
 
   for (tensor_size_t i = 0; i < t->size; i++) {
@@ -207,17 +202,15 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
   initTensor(ctx, t, shape, F32);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    f32 *hostValues = allocate(ctx->memory, bytesRequired);
-    for (tensor_size_t i = 0; i < n; i++) {
-      hostValues[i] = start + (f32)i * step;
+    Result result = runCudaArange(ctx, start, step, t->values, n);
+    if (result == OK) {
+      return t;
     }
-    copyBetweenContexts(NULL, ctx, hostValues, t->values, bytesRequired);
-    freeAlloc(ctx->memory, hostValues);
-  } else {
-    f32 *values = (f32 *)t->values;
-    for (tensor_size_t i = 0; i < n; i++) {
-      values[i] = start + (f32)i * step;
-    }
+  }
+
+  f32 *values = (f32 *)t->values;
+  for (tensor_size_t i = 0; i < n; i++) {
+    values[i] = start + (f32)i * step;
   }
 
   return t;
@@ -251,6 +244,17 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   Tensor *out = allocate(ctx->memory, sizeof(Tensor));
   initTensor(ctx, out, outShape, F32);
   clearTensorValues(out);
+
+  if (ctx->device != NULL && ctx->device->type == CUDA) {
+    Result result =
+        runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);
+    releaseTensorArg(ctx, &sourceArg);
+    if (result != OK) {
+      FreeTensor(ctx, out);
+      return NULL;
+    }
+    return out;
+  }
 
   // Set one-hot values
   // For each element in indices, set the corresponding position to 1.0

@@ -560,7 +560,6 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	applySubContextOptions(sc, options...)
 
 	if sc.subContextType == SubContextTypeEpoch {
-		fmt.Printf("Ending epoch...%d", sc.CurrentEpochNum())
 	}
 
 	if sc.subContextType == SubContextTypeTraining {

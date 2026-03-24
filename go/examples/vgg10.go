@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/flygerian/shapes"
 	"github.com/flygerian/shapes/activation"
@@ -50,13 +49,6 @@ func min(a, b int) int {
 func shouldLogTrainStep() bool {
 	value := os.Getenv("SHAPES_LOG_TRAIN_STEP")
 	return value != "" && value != "0"
-}
-
-func logTrainStep(label string, start time.Time) {
-	if !shouldLogTrainStep() {
-		return
-	}
-	fmt.Fprintf(os.Stderr, "[trainStep] phase=%s ms=%.3f\n", label, float64(time.Since(start))/float64(time.Millisecond))
 }
 
 func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
@@ -202,13 +194,13 @@ func linearBlock(ctx shapes.Context, numLabels int) *layer.Sequential {
 	)
 }
 
-func makeBatchIndexTensor(ctx shapes.Context, indices []int) shapes.Tensor {
-	batchIndices := make([]float32, len(indices))
+func makeIndexTensor(ctx shapes.Context, indices []int) shapes.Tensor {
+	batchIndices := make([]int64, len(indices))
 	for i, idx := range indices {
-		batchIndices[i] = float32(idx)
+		batchIndices[i] = int64(idx)
 	}
 
-	return shapes.FromFloat32(ctx, shapes.Shape{uint(len(indices))}, batchIndices).I64(ctx)
+	return shapes.FromInt64(ctx, shapes.Shape{uint(len(indices))}, batchIndices)
 }
 
 func modelForward(
@@ -233,24 +225,19 @@ func computeAndSetValidationMetrics(
 	totalValidationLoss := 0.0
 	totalCorrect := 0
 	totalSeen := 0
+	valOrder := shapes.Arange(epochCtx, float32(XVal.Shape()[0])).I64(epochCtx)
 
 	for batchStart := 0; batchStart < int(XVal.Shape()[0]); batchStart += hyperParams.batchSize {
 		batchEnd := min(batchStart+hyperParams.batchSize, int(XVal.Shape()[0]))
 		testCtx := epochCtx.Test()
-
-		valIndices := make([]int, batchEnd-batchStart)
-		for i := range valIndices {
-			valIndices[i] = batchStart + i
-		}
-
-		valIx := makeBatchIndexTensor(testCtx, valIndices)
+		valIx := valOrder.Slice(testCtx, shapes.Range{uint(batchStart), uint(batchEnd)})
 		valBatch := XVal.Get(testCtx, valIx)
 		valLogits := modelForward(testCtx, model, valBatch.F32(testCtx))
 		valYBatch := YVal.Get(testCtx, valIx)
 		valYOneHot := shapes.OneHot(testCtx, valYBatch, uint(len(labels))).Squeeze(testCtx)
 		valLoss := crossEnthropy(valYOneHot, valLogits)
 		valLossScalar := valLoss.Get(testCtx, 0).Item().(float32)
-		totalValidationLoss += float64(valLossScalar) * float64(len(valIndices))
+		totalValidationLoss += float64(valLossScalar) * float64(batchEnd-batchStart)
 
 		predictions := valLogits.ArgMax(testCtx, 1)
 		actualLabels := valYBatch.Squeeze(testCtx)
@@ -263,7 +250,7 @@ func computeAndSetValidationMetrics(
 				totalCorrect++
 			}
 		}
-		totalSeen += len(valIndices)
+		totalSeen += batchEnd - batchStart
 
 		testCtx.Finish()
 	}
@@ -281,7 +268,7 @@ func runTraining(
 	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
 	X shapes.Tensor,
 	Y shapes.Tensor,
-	optimizerStep func(cg shapes.ComputationGraph),
+	optimizerStep func(ctx shapes.Context, cg shapes.ComputationGraph),
 	model *layer.Sequential,
 	XVal, YVal shapes.Tensor,
 	labels []string,
@@ -293,12 +280,12 @@ func runTraining(
 		perm := rand.Perm(trainSize)
 		epochLoss := 0.0
 		epochCtx := trainingCtx.Epoch(epochNum + 1)
+		permTensor := makeIndexTensor(epochCtx, perm)
 
 		for batchStart := 0; batchStart < trainSize; batchStart += hyperParams.batchSize {
 			batchEnd := min(batchStart+hyperParams.batchSize, trainSize)
-			stepCtx := epochCtx.Fused().(shapes.EpochContext)
-
-			ix := makeBatchIndexTensor(stepCtx, perm[batchStart:batchEnd])
+			stepCtx := epochCtx.Fused().(shapes.EpochContext).Step()
+			ix := permTensor.Slice(stepCtx, shapes.Range{uint(batchStart), uint(batchEnd)})
 			batch := X.Get(stepCtx, ix)
 			logits := modelForward(stepCtx, model, batch.F32(stepCtx))
 
@@ -307,23 +294,17 @@ func runTraining(
 			loss := crossEnthropy(yOneHot, logits)
 
 			graph := loss.Backward(stepCtx)
-			optimizerStep(graph)
+			optimizerStep(stepCtx, graph)
 			optimizer.ZeroGrad(stepCtx, graph)
 
-			phaseStart := time.Now()
-			lossScalar := loss.Get(stepCtx, 0).Item().(float32)
-			logTrainStep("loss_item", phaseStart)
-			epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
-			phaseStart = time.Now()
 			if stepCtx.CurrentStep()%100 == 0 {
+				lossScalar := loss.Get(stepCtx, 0).Item().(float32)
+				epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
 				fmt.Printf("Loss: %v, Step: %d \n", lossScalar, stepCtx.CurrentStep())
 				go stepCtx.SetStepLoss(float64(lossScalar))
 			}
-			logTrainStep("set_step_loss", phaseStart)
 
-			phaseStart = time.Now()
 			stepCtx.Finish()
-			logTrainStep("step_finish", phaseStart)
 		}
 
 		epochCtx.SetLoss(epochLoss / float64(trainSize))
@@ -409,7 +390,7 @@ func Vgg_cifar10() {
 	X := shapes.Stack(cudaCtx, 0, trainImgs...)
 	Y := shapes.Stack(cudaCtx, 0, trainLabels...)
 
-	optimerStep := optimizer.SGD(cudaCtx, hyperParams.learningRate)
+	optimerStep := optimizer.SGD(hyperParams.learningRate)
 	crossEnthropy := loss_fns.CrossEntropy(cudaCtx)
 
 	model := layer.NewSequential(

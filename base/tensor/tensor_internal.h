@@ -121,6 +121,10 @@ Result runCudaSliceAccumulate(Context *ctx, Dtype dtype, void *dest, tensor_size
                               tensor_size_t srcSize);
 Result runCudaCast(Context *ctx, Dtype sourceDtype, const void *src, Dtype targetDtype, void *dest,
                    tensor_size_t n);
+Result runCudaFillTensor(Context *ctx, Dtype dtype, void *dest, tensor_size_t n, Value value);
+Result runCudaArange(Context *ctx, f32 start, f32 step, void *dest, tensor_size_t n);
+Result runCudaOneHot(Context *ctx, Dtype indexDtype, const void *indices, tensor_size_t n,
+                     dim_t numClasses, void *dest);
 Result runCudaIndexSelect1d(Context *ctx, Dtype dtype, const void *src, const void *indices,
                             Dtype indexDtype, void *dest, tensor_size_t numIndices,
                             tensor_size_t sliceSize);
