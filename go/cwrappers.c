@@ -397,19 +397,24 @@ Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor 
   return r;
 }
 
-Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out, Tensor **destColBuffer) {
+Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
+                   Tensor *kernels, Tensor *bias, bool withBias, Tensor *x, Tensor **out,
+                   Tensor **destColBuffer) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Tensor *colBuffer = allocate(ctx->memory, sizeof(Tensor));
 
-  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, x, dest, colBuffer);
+  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, bias, withBias, x, dest,
+                    colBuffer);
   *out = dest;
   *destColBuffer = colBuffer;
   return r;
 }
 
 Result wrap_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
-  Result r = Conv2dBackward(ctx, input, dInput, kernels, dKernels, outputGrad, colBuffer, stride);
+                           Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
+                           bool withBias, u8 stride) {
+  Result r = Conv2dBackward(ctx, input, dInput, kernels, dKernels, outputGrad, colBuffer, dBias,
+                            withBias, stride);
   return r;
 }
 

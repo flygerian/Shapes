@@ -4,47 +4,6 @@
 #include "../common.h"
 #include <string.h>
 
-static Result materializeTensorForGather(Context *ctx, Tensor *src, bool requireContiguous,
-                                         TensorArg *arg) {
-  if (arg == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  arg->tensor = NULL;
-  arg->ownsTensor = false;
-
-  if (src == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  Tensor *working = src;
-  if (requireContiguous && !src->isContigous) {
-    Context *materializeCtx = src->context != NULL ? src->context : ctx;
-    working = copyToContiguous(materializeCtx, src);
-    arg->ownsTensor = true;
-  }
-
-  arg->tensor = working;
-  return OK;
-}
-
-static Result materializeTensorOnCpu(Context *ctx, Tensor *src, TensorArg *arg) {
-  Context *hostCtx = allocate(ctx->memory, sizeof(Context));
-  *hostCtx = (Context){.memory = ctx->memory};
-  return materializeTensorOnContext(hostCtx, src, true, arg);
-}
-
-static void releaseGatherTensorArg(Context *ctx, TensorArg *arg) {
-  if (arg == NULL || !arg->ownsTensor || arg->tensor == NULL) {
-    return;
-  }
-
-  Context *freeCtx = arg->tensor->context != NULL ? arg->tensor->context : ctx;
-  FreeTensor(freeCtx, arg->tensor);
-  arg->tensor = NULL;
-  arg->ownsTensor = false;
-}
-
 static bool isOutOfBounds(Tensor *t, Dim dim) {
   for (u8 i = 0; i < dim.numOfDims; i++) {
     if (dim.dims[i] >= t->shape.dims[i]) {
@@ -92,8 +51,7 @@ Result GetAt(Tensor *t, Dim dim, Value *result) {
 
 Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest) {
   TensorArg sourceArg = {0};
-  TensorArg indicesCpuArg = {0};
-  TensorArg indicesCtxArg = {0};
+  TensorArg indicesArg = {0};
   Result result = OK;
 
   if (isInvalidTensor(source)) {
@@ -112,24 +70,24 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     return ERR_ONLY_INT_TYPE_ALLOWED;
   }
 
-  result = materializeTensorForGather(ctx, source, true, &sourceArg);
+  result = materializeTensorOnContext(ctx, source, true, &sourceArg);
   if (result != OK) {
     return result;
   }
 
-  result = materializeTensorOnCpu(ctx, indices, &indicesCpuArg);
+  result = materializeTensorOnContext(ctx, indices, true, &indicesArg);
   if (result != OK) {
-    releaseGatherTensorArg(ctx, &sourceArg);
+    releaseTensorArg(ctx, &sourceArg);
     return result;
   }
 
   Tensor *workingSource = sourceArg.tensor;
-  Tensor *workingIndicesCpu = indicesCpuArg.tensor;
+  Tensor *workingIndices = indicesArg.tensor;
   dim_t firstDim = workingSource->shape.dims[0];
 
-  for (u64 i = 0; i < workingIndicesCpu->size; i++) {
+  for (u64 i = 0; i < workingIndices->size; i++) {
     Value idxVal;
-    result = readTensorValueAtFlatIndex(workingIndicesCpu, i, &idxVal);
+    result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
     if (result != OK) {
       goto cleanup_index;
     }
@@ -146,7 +104,7 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     }
   }
 
-  u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndicesCpu->shape.numOfDims;
+  u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndices->shape.numOfDims;
   dim_t *newDims = NULL;
   multiplier_t *newMultipliers = NULL;
   if (newNumDims > 0) {
@@ -154,12 +112,12 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
   }
 
-  for (u8 i = 0; i < workingIndicesCpu->shape.numOfDims; i++) {
-    newDims[i] = workingIndicesCpu->shape.dims[i];
+  for (u8 i = 0; i < workingIndices->shape.numOfDims; i++) {
+    newDims[i] = workingIndices->shape.dims[i];
   }
 
   for (u8 i = 0; i < workingSource->shape.numOfDims - 1; i++) {
-    newDims[workingIndicesCpu->shape.numOfDims + i] = workingSource->shape.dims[i + 1];
+    newDims[workingIndices->shape.numOfDims + i] = workingSource->shape.dims[i + 1];
   }
 
   calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims},
@@ -176,25 +134,18 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     goto cleanup_index;
   }
 
-  if (ctx->device != NULL && ctx->device->type == CUDA && workingSource->context != NULL &&
-      workingSource->context->device != NULL && workingSource->context->device->type == CUDA) {
-    result = materializeTensorOnContext(ctx, indices, true, &indicesCtxArg);
-    if (result != OK) {
-      goto cleanup_index;
-    }
-
-    result =
-        runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
-                             indicesCtxArg.tensor->values, indicesCtxArg.tensor->dtype, dest->values,
-                             indicesCtxArg.tensor->size, sliceSize);
+  if (ctx->device != NULL && ctx->device->type == CUDA) {
+    result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
+                                  workingIndices->values, workingIndices->dtype, dest->values,
+                                  workingIndices->size, sliceSize);
     goto cleanup_index;
   }
 
   tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
-  for (u64 i = 0; i < workingIndicesCpu->size; i++) {
+  for (u64 i = 0; i < workingIndices->size; i++) {
     Value idxVal;
-    result = readTensorValueAtFlatIndex(workingIndicesCpu, i, &idxVal);
+    result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
     if (result != OK) {
       goto cleanup_index;
     }
@@ -226,19 +177,16 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   result = OK;
 
 cleanup_index:
-  releaseTensorArg(ctx, &indicesCtxArg);
-  releaseTensorArg(ctx, &indicesCpuArg);
-  releaseGatherTensorArg(ctx, &sourceArg);
+  releaseTensorArg(ctx, &indicesArg);
+  releaseTensorArg(ctx, &sourceArg);
   return result;
 }
 
 Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices,
                          Tensor *dest) {
   TensorArg sourceArg = {0};
-  TensorArg rowCpuArg = {0};
-  TensorArg colCpuArg = {0};
-  TensorArg rowCtxArg = {0};
-  TensorArg colCtxArg = {0};
+  TensorArg rowArg = {0};
+  TensorArg colArg = {0};
   Result result = OK;
 
   if (isInvalidTensor(source)) {
@@ -265,37 +213,37 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
     return ERR_DIM_MISMATCH;
   }
 
-  result = materializeTensorForGather(ctx, source, true, &sourceArg);
+  result = materializeTensorOnContext(ctx, source, true, &sourceArg);
   if (result != OK) {
     return result;
   }
 
-  result = materializeTensorOnCpu(ctx, rowIndices, &rowCpuArg);
+  result = materializeTensorOnContext(ctx, rowIndices, true, &rowArg);
   if (result != OK) {
-    releaseGatherTensorArg(ctx, &sourceArg);
+    releaseTensorArg(ctx, &sourceArg);
     return result;
   }
 
-  result = materializeTensorOnCpu(ctx, colIndices, &colCpuArg);
+  result = materializeTensorOnContext(ctx, colIndices, true, &colArg);
   if (result != OK) {
-    releaseTensorArg(ctx, &rowCpuArg);
-    releaseGatherTensorArg(ctx, &sourceArg);
+    releaseTensorArg(ctx, &rowArg);
+    releaseTensorArg(ctx, &sourceArg);
     return result;
   }
 
   Tensor *workingSource = sourceArg.tensor;
-  Tensor *workingRowsCpu = rowCpuArg.tensor;
-  Tensor *workingColsCpu = colCpuArg.tensor;
+  Tensor *workingRows = rowArg.tensor;
+  Tensor *workingCols = colArg.tensor;
   dim_t numRows = workingSource->shape.dims[0];
   dim_t numCols = workingSource->shape.dims[1];
 
-  for (u64 i = 0; i < workingRowsCpu->size; i++) {
+  for (u64 i = 0; i < workingRows->size; i++) {
     Value rowVal, colVal;
-    result = readTensorValueAtFlatIndex(workingRowsCpu, i, &rowVal);
+    result = readTensorValueAtFlatIndex(workingRows, i, &rowVal);
     if (result != OK) {
       goto cleanup_index_2d;
     }
-    result = readTensorValueAtFlatIndex(workingColsCpu, i, &colVal);
+    result = readTensorValueAtFlatIndex(workingCols, i, &colVal);
     if (result != OK) {
       goto cleanup_index_2d;
     }
@@ -317,7 +265,7 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
     }
   }
 
-  u8 newNumDims = workingRowsCpu->shape.numOfDims + workingSource->shape.numOfDims - 2;
+  u8 newNumDims = workingRows->shape.numOfDims + workingSource->shape.numOfDims - 2;
   dim_t *newDims = NULL;
   multiplier_t *newMultipliers = NULL;
   if (newNumDims > 0) {
@@ -325,12 +273,12 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
     newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
   }
 
-  for (u8 i = 0; i < workingRowsCpu->shape.numOfDims; i++) {
-    newDims[i] = workingRowsCpu->shape.dims[i];
+  for (u8 i = 0; i < workingRows->shape.numOfDims; i++) {
+    newDims[i] = workingRows->shape.dims[i];
   }
 
   for (u8 i = 0; i < workingSource->shape.numOfDims - 2; i++) {
-    newDims[workingRowsCpu->shape.numOfDims + i] = workingSource->shape.dims[i + 2];
+    newDims[workingRows->shape.numOfDims + i] = workingSource->shape.dims[i + 2];
   }
 
   calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims},
@@ -347,34 +295,23 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
     goto cleanup_index_2d;
   }
 
-  if (ctx->device != NULL && ctx->device->type == CUDA && workingSource->context != NULL &&
-      workingSource->context->device != NULL && workingSource->context->device->type == CUDA) {
-    result = materializeTensorOnContext(ctx, rowIndices, true, &rowCtxArg);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-    result = materializeTensorOnContext(ctx, colIndices, true, &colCtxArg);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-
+  if (ctx->device != NULL && ctx->device->type == CUDA) {
     result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values,
-                                  workingSource->shape.dims[1], rowCtxArg.tensor->values,
-                                  rowCtxArg.tensor->dtype, colCtxArg.tensor->values,
-                                  colCtxArg.tensor->dtype, dest->values, rowCtxArg.tensor->size,
-                                  sliceSize);
+                                  workingSource->shape.dims[1], workingRows->values,
+                                  workingRows->dtype, workingCols->values, workingCols->dtype,
+                                  dest->values, workingRows->size, sliceSize);
     goto cleanup_index_2d;
   }
 
   tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
-  for (u64 i = 0; i < workingRowsCpu->size; i++) {
+  for (u64 i = 0; i < workingRows->size; i++) {
     Value rowVal, colVal;
-    result = readTensorValueAtFlatIndex(workingRowsCpu, i, &rowVal);
+    result = readTensorValueAtFlatIndex(workingRows, i, &rowVal);
     if (result != OK) {
       goto cleanup_index_2d;
     }
-    result = readTensorValueAtFlatIndex(workingColsCpu, i, &colVal);
+    result = readTensorValueAtFlatIndex(workingCols, i, &colVal);
     if (result != OK) {
       goto cleanup_index_2d;
     }
@@ -412,11 +349,9 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   result = OK;
 
 cleanup_index_2d:
-  releaseTensorArg(ctx, &colCtxArg);
-  releaseTensorArg(ctx, &rowCtxArg);
-  releaseTensorArg(ctx, &colCpuArg);
-  releaseTensorArg(ctx, &rowCpuArg);
-  releaseGatherTensorArg(ctx, &sourceArg);
+  releaseTensorArg(ctx, &colArg);
+  releaseTensorArg(ctx, &rowArg);
+  releaseTensorArg(ctx, &sourceArg);
   return result;
 }
 
@@ -427,6 +362,10 @@ Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
 
   if (source->shape.numOfDims == 0) {
     return ERR_DIM_MISMATCH;
+  }
+
+  if (!isSameContext(source->context, ctx)) {
+    return ERR_NO_OP;
   }
 
   if (index >= source->shape.dims[0]) {

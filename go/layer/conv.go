@@ -21,6 +21,7 @@ type conv struct {
 type convMetadata struct {
 	stride    uint8
 	colBuffer shapes.Tensor
+	withBias  bool
 }
 
 func Conv2d(
@@ -53,10 +54,11 @@ func Conv2d(
 	bias := shapes.Float(ctx, shapes.Shape{1, 1, 1, uint(outChannels)}, 0)
 
 	state := conv{
-		ctx:         ctx,
-		kernelShape: kernel,
-		inChannels:  inChannels,
-		outChannels: outChannels,
+		ctx:           ctx,
+		kernelShape:   kernel,
+		inChannels:    inChannels,
+		outChannels:   outChannels,
+		isBiasApplied: true,
 
 		kernels: kernels,
 		stride:  stride,
@@ -81,14 +83,12 @@ func (c *conv) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 		shapes.WithOpType(shapes.OpConv),
 	)
 
-	out, colBuffer := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride)
-
-	out = out.Plus(forwardCtx, c.bias)
+	out, colBuffer := shapes.Conv2d(forwardCtx, x, c.kernels, c.bias, c.isBiasApplied, c.stride)
 
 	forwardCtx.Finish(
 		shapes.WithResult(out),
 		shapes.WithBackward(convBackward),
-		shapes.WithMetadata(convMetadata{stride: c.stride, colBuffer: colBuffer}),
+		shapes.WithMetadata(convMetadata{stride: c.stride, colBuffer: colBuffer, withBias: c.isBiasApplied}),
 	)
 
 	return out
@@ -105,19 +105,10 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	meta := out.Metadata().(convMetadata)
 
 	dOutput := out.Grad() // (B, oH, oW, C)
-	outputShape := dOutput.Shape()
-	B := outputShape[0]
-	oh := outputShape[1]
-	ow := outputShape[2]
-	C := outputShape[3]
+	var dBias shapes.Tensor
+	if meta.withBias {
+		dBias = bias.Grad().(shapes.Tensor)
+	}
 
-	dBias := dOutput.
-		Reshape(backwardCtx, int(B), int(oh*ow), int(C)).
-		Sum(backwardCtx, 1).
-		Sum(backwardCtx, 0).
-		Squeeze(backwardCtx)
-
-	bias.Grad().Accumulate(backwardCtx, dBias)
-
-	shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.colBuffer, meta.stride)
+	shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.colBuffer, dBias, meta.withBias, meta.stride)
 }

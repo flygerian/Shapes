@@ -13,10 +13,10 @@ import (
 )
 
 type TrainingStatsRenderer struct {
-	ctx shapes.MainContext
+	ctx shapes.SubContext
 }
 
-func (r *TrainingStatsRenderer) SetTrainingContext(ctx shapes.MainContext) {
+func (r *TrainingStatsRenderer) SetTrainingContext(ctx shapes.SubContext) {
 	r.ctx = ctx
 
 	go r.launchTrainingDashboard()
@@ -164,7 +164,7 @@ func (r *TrainingStatsRenderer) launchTrainingDashboard() {
 			render(true)
 			return
 		case <-ticker.C:
-			if stats.Epoch >= stats.NumEpochs {
+			if stats.Epoch > stats.NumEpochs {
 				render(true)
 				return
 			}
@@ -185,11 +185,21 @@ func trainingHeader(stats *shapes.TrainingStats) string {
 	if len(stats.StepLossHistoryX) == 0 {
 		return header
 	}
+
+	stepInEpoch := 0
 	if stats.NumSteps > 0 {
-		stepInEpoch := ((stats.Step - 1) % stats.NumSteps) + 1
-		return fmt.Sprintf("%s | Step %d/%d Loss %.6f", header, stepInEpoch, stats.NumSteps, stats.StepLoss)
+		stepInEpoch = ((stats.Step - 1) % stats.NumSteps) + 1
+		header = fmt.Sprintf("%s | Step %d/%d Loss %.6f", header, stepInEpoch, stats.NumSteps, stats.StepLoss)
 	}
-	return fmt.Sprintf("%s | Step %d Loss %.6f", header, stats.Step, stats.StepLoss)
+
+	if stepInEpoch > 0 {
+		epochDuration := time.Since(stats.EpochStart)
+		avgStepDuration := epochDuration.Milliseconds() / int64(stepInEpoch)
+
+		header = fmt.Sprintf("%s | Avg Step Duration: %d ms", header, avgStepDuration)
+	}
+
+	return header
 }
 
 func terminalArea() Area {

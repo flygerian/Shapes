@@ -3833,6 +3833,25 @@ static void test_gemm_gpu_dispatch_f64(void) {
   DestroyContext(&ctx);
 }
 
+static void test_cuda_allocator_reuses_freed_blocks(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+
+  void *first = allocateOnCtx(&ctx, 1024);
+  ASSERT_NOT_NULL(first, "CUDA allocator should allocate device memory");
+  freeOnCtx(&ctx, first);
+
+  void *second = allocateOnCtx(&ctx, 1024);
+  ASSERT_NOT_NULL(second, "CUDA allocator should reuse cached device memory");
+  ASSERT_EQ(first, second, "CUDA allocator should reuse a matching freed block");
+
+  freeOnCtx(&ctx, second);
+  DestroyContext(&ctx);
+}
+
 static void test_matmul_2d_basic(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -5632,6 +5651,7 @@ void run_tensor_tests(void) {
   // MatMul tests
   test_gemm_gpu_dispatch_basic();
   test_gemm_gpu_dispatch_f64();
+  test_cuda_allocator_reuses_freed_blocks();
   test_matmul_2d_basic();
   test_matmul_2d_non_square();
   test_matmul_3d_batch();

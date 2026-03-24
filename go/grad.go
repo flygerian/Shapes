@@ -215,12 +215,7 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 		panic("shapes: cannot call Backward on a tensor with no computation graph")
 	}
 
-	backwardCtx := ctx
-	if t.ctx != nil {
-		backwardCtx = t.ctx
-	}
-
-	noGraphCtx := backwardCtx.NoGraph()
+	noGraphCtx := ctx.NoGraph()
 	defer noGraphCtx.Finish()
 	// Seed the output gradient with ones.
 	onesShape := t.Shape()
@@ -245,9 +240,9 @@ func (t *tensor) Backward(ctx Context) ComputationGraph {
 		if n.computation.backward == nil {
 			continue
 		}
-		backwardCtx.Mark(n)
+		ctx.Mark(n)
 		if node.Grad() != nil {
-			backwardCtx.Mark(node.Grad().(Tensor))
+			ctx.Mark(node.Grad().(Tensor))
 		}
 	}
 

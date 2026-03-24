@@ -33,10 +33,10 @@ type trainingParams struct {
 
 func getTrainingParams() trainingParams {
 	return trainingParams{
-		batchSize:    32,
+		batchSize:    64,
 		learningRate: 1e-2,
 		inputShape:   shapes.Shape{32, 32, 3},
-		epochs:       10,
+		epochs:       2,
 	}
 }
 
@@ -275,7 +275,7 @@ func computeAndSetValidationMetrics(
 }
 
 func runTraining(
-	trainingCtx shapes.MainContext,
+	trainingCtx shapes.SubContext,
 	trainSize int,
 	hyperParams trainingParams,
 	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
@@ -296,7 +296,7 @@ func runTraining(
 
 		for batchStart := 0; batchStart < trainSize; batchStart += hyperParams.batchSize {
 			batchEnd := min(batchStart+hyperParams.batchSize, trainSize)
-			stepCtx := epochCtx.Step().Fused().(shapes.StepContext)
+			stepCtx := epochCtx.Fused().(shapes.EpochContext)
 
 			ix := makeBatchIndexTensor(stepCtx, perm[batchStart:batchEnd])
 			batch := X.Get(stepCtx, ix)
@@ -315,10 +315,11 @@ func runTraining(
 			logTrainStep("loss_item", phaseStart)
 			epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
 			phaseStart = time.Now()
-			stepCtx.SetStepLoss(float64(lossScalar))
+			if stepCtx.CurrentStep()%100 == 0 {
+				fmt.Printf("Loss: %v, Step: %d \n", lossScalar, stepCtx.CurrentStep())
+				go stepCtx.SetStepLoss(float64(lossScalar))
+			}
 			logTrainStep("set_step_loss", phaseStart)
-
-			// fmt.Printf("Loss: %v\n", lossScalar)
 
 			phaseStart = time.Now()
 			stepCtx.Finish()
@@ -334,7 +335,7 @@ func runTraining(
 func Vgg_cifar10() {
 	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
 	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
-	defer cpuCtx.Finish()
+	// defer cpuCtx.Finish()
 
 	train, _, test, labels := getDataSet(cpuCtx)
 	hyperParams := getTrainingParams()
@@ -405,8 +406,8 @@ func Vgg_cifar10() {
 	XVal := shapes.Stack(cpuCtx, 0, valImgs...)
 	YVal := shapes.Stack(cpuCtx, 0, valLabels...)
 
-	X := shapes.Stack(cpuCtx, 0, trainImgs...)
-	Y := shapes.Stack(cpuCtx, 0, trainLabels...)
+	X := shapes.Stack(cudaCtx, 0, trainImgs...)
+	Y := shapes.Stack(cudaCtx, 0, trainLabels...)
 
 	optimerStep := optimizer.SGD(cudaCtx, hyperParams.learningRate)
 	crossEnthropy := loss_fns.CrossEntropy(cudaCtx)
@@ -422,7 +423,7 @@ func Vgg_cifar10() {
 	trainingCtx := cudaCtx.Training(
 		hyperParams.epochs,
 		shapes.WithNumSteps(stepsPerEpoch),
-		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
+		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
 
 	runTraining(

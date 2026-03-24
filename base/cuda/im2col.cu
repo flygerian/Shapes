@@ -2,6 +2,62 @@
 #include <cuda_runtime.h>
 #include <stddef.h>
 
+__global__ static void im2colNhwcF32Kernel3x3(const f32 *input, dim_t batch, dim_t inChannels,
+                                              dim_t h, dim_t w, u8 stride, dim_t outH, dim_t outW,
+                                              f32 *colBuffer) {
+  dim_t outX = (dim_t)blockIdx.x;
+  dim_t outY = (dim_t)blockIdx.y;
+  dim_t batchIdx = (dim_t)blockIdx.z;
+  dim_t channel = (dim_t)blockIdx.x * 0 + (dim_t)threadIdx.x;
+  size_t patchSize = (size_t)inChannels * 9;
+  size_t rowBase = (((size_t)batchIdx * outH + outY) * outW + outX) * patchSize;
+  dim_t inY = outY * stride;
+  dim_t inX = outX * stride;
+  size_t inputBase = ((((size_t)batchIdx * h + inY) * w) + inX) * inChannels;
+  size_t rowStride = (size_t)w * inChannels;
+
+  for (dim_t c = channel; c < inChannels; c += (dim_t)blockDim.x) {
+    const f32 *topLeft = input + inputBase + c;
+    const f32 *midLeft = topLeft + rowStride;
+    const f32 *botLeft = midLeft + rowStride;
+    f32 *dest = colBuffer + rowBase + (size_t)c * 9;
+
+    dest[0] = topLeft[0];
+    dest[1] = topLeft[inChannels];
+    dest[2] = topLeft[(size_t)2 * inChannels];
+    dest[3] = midLeft[0];
+    dest[4] = midLeft[inChannels];
+    dest[5] = midLeft[(size_t)2 * inChannels];
+    dest[6] = botLeft[0];
+    dest[7] = botLeft[inChannels];
+    dest[8] = botLeft[(size_t)2 * inChannels];
+  }
+}
+
+template <typename T>
+__global__ static void im2colNhwcKernel(const T *input, dim_t batch, dim_t inChannels, dim_t h,
+                                        dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH,
+                                        dim_t outW, T *colBuffer) {
+  dim_t outX = (dim_t)blockIdx.x;
+  dim_t outY = (dim_t)blockIdx.y;
+  dim_t batchIdx = (dim_t)blockIdx.z;
+  dim_t kernelArea = kH * kW;
+  size_t patchSize = (size_t)inChannels * kernelArea;
+  size_t rowBase = (((size_t)batchIdx * outH + outY) * outW + outX) * patchSize;
+  dim_t inY = outY * stride;
+  dim_t inX = outX * stride;
+  size_t inputBase = ((((size_t)batchIdx * h + inY) * w) + inX) * inChannels;
+
+  for (size_t patchIdx = (size_t)threadIdx.x; patchIdx < patchSize; patchIdx += blockDim.x) {
+    dim_t channel = (dim_t)(patchIdx / kernelArea);
+    dim_t kernelOffset = (dim_t)(patchIdx % kernelArea);
+    dim_t kernelY = kernelOffset / kW;
+    dim_t kernelX = kernelOffset % kW;
+    size_t inputIdx = inputBase + (((size_t)kernelY * w + kernelX) * inChannels) + channel;
+    colBuffer[rowBase + patchIdx] = input[inputIdx];
+  }
+}
+
 template <typename T>
 __global__ static void im2colKernel(const T *input, dim_t batch, dim_t inChannels, dim_t h, dim_t w,
                                     dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW,
@@ -67,11 +123,18 @@ static Result launchIm2colKernel(const void *input, dim_t batch, dim_t inChannel
                                  dim_t kH, dim_t kW, u8 stride, void *colBuffer) {
   dim_t outH = (h - kH) / stride + 1;
   dim_t outW = (w - kW) / stride + 1;
-  size_t total = (size_t)batch * outH * outW * inChannels * kH * kW;
+  dim3 grid((unsigned int)outW, (unsigned int)outH, (unsigned int)batch);
   int threadsPerBlock = 256;
-  int blocks = (int)((total + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
-  im2colKernel<<<blocks, threadsPerBlock>>>((const T *)input, batch, inChannels, h, w, kH, kW,
-                                            stride, outH, outW, (T *)colBuffer);
+  size_t patchSize = (size_t)inChannels * kH * kW;
+  if (patchSize < (size_t)threadsPerBlock) {
+    threadsPerBlock = (int)patchSize;
+  }
+  if (threadsPerBlock < 32) {
+    threadsPerBlock = 32;
+  }
+
+  im2colNhwcKernel<<<grid, threadsPerBlock>>>((const T *)input, batch, inChannels, h, w, kH, kW,
+                                              stride, outH, outW, (T *)colBuffer);
 
   cudaError_t launchError = cudaGetLastError();
   if (launchError != cudaSuccess) {
@@ -108,7 +171,30 @@ extern "C" Result runCudaIm2col(Context *ctx, Dtype dtype, const void *input, di
   }
 
   switch (dtype) {
-    case F32: return launchIm2colKernel<f32>(input, batch, inChannels, h, w, kH, kW, stride, colBuffer);
+    case F32: {
+      if (kH == 3 && kW == 3) {
+        dim_t outH = (h - kH) / stride + 1;
+        dim_t outW = (w - kW) / stride + 1;
+        int threadsPerBlock = 256;
+        if ((int)inChannels < threadsPerBlock) {
+          threadsPerBlock = (int)inChannels;
+        }
+        if (threadsPerBlock < 32) {
+          threadsPerBlock = 32;
+        }
+
+        dim3 grid((unsigned int)outW, (unsigned int)outH, (unsigned int)batch);
+        im2colNhwcF32Kernel3x3<<<grid, threadsPerBlock>>>(
+            (const f32 *)input, batch, inChannels, h, w, stride, outH, outW, (f32 *)colBuffer);
+
+        cudaError_t launchError = cudaGetLastError();
+        if (launchError != cudaSuccess) {
+          return ERR_NO_OP;
+        }
+        return OK;
+      }
+      return launchIm2colKernel<f32>(input, batch, inChannels, h, w, kH, kW, stride, colBuffer);
+    }
     case F64: return launchIm2colKernel<f64>(input, batch, inChannels, h, w, kH, kW, stride, colBuffer);
     default: return ERR_DTYPE_MISMATCH;
   }

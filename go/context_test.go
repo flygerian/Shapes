@@ -351,3 +351,47 @@ func TestWithNumStepsSetsTrainingStats(t *testing.T) {
 		t.Fatalf("NumSteps = %d, want 42", got)
 	}
 }
+
+func TestSweepNilsFreedTensorAndDropsHandle(t *testing.T) {
+	ctx := New(stdctx.Background()).(*mainContext)
+	defer ctx.Finish()
+
+	ten := Float(ctx, Shape{2}, 1)
+	if got := ctx.NumTrackTensors(); got != 1 {
+		t.Fatalf("tracked tensors before sweep = %d, want 1", got)
+	}
+
+	ctx.Mark(ten)
+	ctx.Sweep()
+
+	if ten.(*tensor).cTensor != nil {
+		t.Fatal("Sweep should nil the freed tensor handle")
+	}
+	if got := ctx.NumTrackTensors(); got != 0 {
+		t.Fatalf("tracked tensors after sweep = %d, want 0", got)
+	}
+}
+
+func TestSweepNilsAliasHandlesForSameCTensor(t *testing.T) {
+	ctx := New(stdctx.Background()).(*mainContext)
+	defer ctx.Finish()
+
+	baseTensor := Float(ctx, Shape{2}, 1)
+	alias := Track(ctx, baseTensor.UnsafeCTensor())
+	if got := ctx.NumTrackTensors(); got != 2 {
+		t.Fatalf("tracked tensors before sweep = %d, want 2", got)
+	}
+
+	ctx.Mark(baseTensor)
+	ctx.Sweep()
+
+	if baseTensor.(*tensor).cTensor != nil {
+		t.Fatal("Sweep should nil the original freed tensor handle")
+	}
+	if alias.cTensor != nil {
+		t.Fatal("Sweep should nil alias handles that point at the same freed C tensor")
+	}
+	if got := ctx.NumTrackTensors(); got != 0 {
+		t.Fatalf("tracked tensors after sweep = %d, want 0", got)
+	}
+}

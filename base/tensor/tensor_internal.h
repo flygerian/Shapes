@@ -119,6 +119,8 @@ Result runCudaSliceAccumulate(Context *ctx, Dtype dtype, void *dest, tensor_size
                               const multiplier_t *destMultipliers, const Range *ranges,
                               const void *srcGrad, const dim_t *srcDims, tensor_size_t srcNumDims,
                               tensor_size_t srcSize);
+Result runCudaCast(Context *ctx, Dtype sourceDtype, const void *src, Dtype targetDtype, void *dest,
+                   tensor_size_t n);
 Result runCudaIndexSelect1d(Context *ctx, Dtype dtype, const void *src, const void *indices,
                             Dtype indexDtype, void *dest, tensor_size_t numIndices,
                             tensor_size_t sliceSize);

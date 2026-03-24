@@ -31,6 +31,18 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -O3 -march=native -c -x cu -c /home/olabode/repos/Shapes/base/cuda/cast.cu -o CMakeFiles/shapes_core.dir/cuda/cast.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/cast.cu",
+  "output": "CMakeFiles/shapes_core.dir/cuda/cast.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -O3 -march=native -c -x cu -c /home/olabode/repos/Shapes/base/cuda/conv_bias.cu -o CMakeFiles/shapes_core.dir/cuda/conv_bias.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/conv_bias.cu",
+  "output": "CMakeFiles/shapes_core.dir/cuda/conv_bias.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -O3 -march=native -c -x cu -c /home/olabode/repos/Shapes/base/cuda/accumulate.cu -o CMakeFiles/shapes_core.dir/cuda/accumulate.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/accumulate.cu",
   "output": "CMakeFiles/shapes_core.dir/cuda/accumulate.cu.o"

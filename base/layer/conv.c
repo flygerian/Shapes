@@ -65,12 +65,93 @@ static void logOpTiming(Context *ctx, const char *opName, const char *phase, dou
           opTimingNowMs() - startMs);
 }
 
+Result runCudaConvBiasAdd(Context *ctx, Dtype dtype, void *output, const void *bias,
+                          tensor_size_t numValues, dim_t channels);
+Result runCudaConvBiasBackward(Context *ctx, Dtype dtype, const void *outputGrad, void *dBias,
+                               tensor_size_t numValues, dim_t channels);
+
+static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
+  if (output == NULL || bias == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  dim_t channels = output->shape.dims[3];
+  tensor_size_t numValues = output->size;
+
+  if (output->dtype == F64) {
+    f64 *outValues = output->values;
+    f64 *biasValues = bias->values;
+    for (tensor_size_t i = 0; i < numValues; i++) {
+      outValues[i] += biasValues[i % channels];
+    }
+    return OK;
+  }
+
+  f32 *outValues = output->values;
+  f32 *biasValues = bias->values;
+  for (tensor_size_t i = 0; i < numValues; i++) {
+    outValues[i] += biasValues[i % channels];
+  }
+  return OK;
+}
+
+static Result addConvBias(Context *ctx, Tensor *output, Tensor *bias) {
+  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
+    return runCudaConvBiasAdd(ctx, output->dtype, output->values, bias->values, output->size,
+                              output->shape.dims[3]);
+  }
+
+  return addConvBiasCpu(output, bias);
+}
+
+static Result accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
+  if (outputGrad == NULL || dBias == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  dim_t channels = outputGrad->shape.dims[3];
+  tensor_size_t numValues = outputGrad->size;
+
+  if (outputGrad->dtype == F64) {
+    f64 *gradValues = outputGrad->values;
+    f64 *biasGradValues = dBias->values;
+    for (dim_t c = 0; c < channels; c++) {
+      biasGradValues[c] = 0.0;
+    }
+    for (tensor_size_t i = 0; i < numValues; i++) {
+      biasGradValues[i % channels] += gradValues[i];
+    }
+    return OK;
+  }
+
+  f32 *gradValues = outputGrad->values;
+  f32 *biasGradValues = dBias->values;
+  for (dim_t c = 0; c < channels; c++) {
+    biasGradValues[c] = 0.0f;
+  }
+  for (tensor_size_t i = 0; i < numValues; i++) {
+    biasGradValues[i % channels] += gradValues[i];
+  }
+  return OK;
+}
+
+static Result accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
+    return runCudaConvBiasBackward(ctx, outputGrad->dtype, outputGrad->values, dBias->values,
+                                   outputGrad->size, outputGrad->shape.dims[3]);
+  }
+
+  return accumulateConvBiasGradCpu(outputGrad, dBias);
+}
+
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
-              Tensor *t, Tensor *dest, Tensor *colBufferDest) {
+              Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
   TensorArg inputArg = {0};
   TensorArg kernelArg = {0};
+  TensorArg biasArg = {0};
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
+  Tensor *biasContig = bias;
   Tensor gemmOutput;
   Tensor permutedOutput;
   bool gemmOutputInitialized = false;
@@ -134,6 +215,26 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     goto cleanup;
   }
 
+  if (withBias) {
+    if (bias == NULL) {
+      result = ERR_NULL_TENSOR_PROVIDED;
+      goto cleanup;
+    }
+    if (bias->dtype != t->dtype) {
+      result = ERR_DTYPE_MISMATCH;
+      goto cleanup;
+    }
+    if (bias->shape.numOfDims != 4 || bias->shape.dims == NULL) {
+      result = ERR_DIM_MISMATCH;
+      goto cleanup;
+    }
+    if (bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 ||
+        bias->shape.dims[3] != outChannels) {
+      result = ERR_DIM_MISMATCH;
+      goto cleanup;
+    }
+  }
+
   dim_t kernelHeight = kernels->shape.dims[2];
   dim_t kernelWidth = kernels->shape.dims[3];
   dim_t batch = t->shape.dims[0];
@@ -182,8 +283,15 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   if (result != OK) {
     goto cleanup;
   }
+  if (withBias) {
+    result = materializeTensorOnContext(ctx, bias, true, &biasArg);
+    if (result != OK) {
+      goto cleanup;
+    }
+  }
   inputContig = inputArg.tensor;
   kernelContig = kernelArg.tensor;
+  biasContig = biasArg.tensor;
   logOpTiming(ctx, "Conv2d", "materialize", phaseStartMs);
 
   tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
@@ -255,6 +363,23 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     freeAlloc(ctx->memory, colBuffer);
   }
 
+  if (withBias) {
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    result = addConvBias(ctx, &gemmOutput, biasContig);
+    if (result != OK) {
+      goto cleanup;
+    }
+    result = syncForOpTiming(ctx);
+    if (result != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2d", "bias_add", phaseStartMs);
+  }
+
   *dest = gemmOutput;
   gemmOutputInitialized = false;
 
@@ -264,6 +389,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
 cleanup:
   releaseTensorArg(ctx, &inputArg);
   releaseTensorArg(ctx, &kernelArg);
+  releaseTensorArg(ctx, &biasArg);
   if (permutedOutputInitialized) {
     freeTensorBuffers(ctx, &permutedOutput);
   }
@@ -275,19 +401,22 @@ cleanup:
 }
 
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                      Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
+                      Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
+                      bool withBias, u8 stride) {
   TensorArg inputArg = {0};
   TensorArg kernelArg = {0};
   TensorArg outputGradArg = {0};
   TensorArg colBufferArg = {0};
   TensorArg dInputArg = {0};
   TensorArg dKernelArg = {0};
+  TensorArg dBiasArg = {0};
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
   Tensor *colBufferContig = colBuffer;
   Tensor *dInputWork = dInput;
   Tensor *dKernelWork = dKernels;
+  Tensor *dBiasWork = dBias;
   void *dColBuffer = NULL;
   bool outGradNhwcInitialized = false;
   bool outputGradPermutedCopied = false;
@@ -346,6 +475,21 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
       outputGrad->shape.dims[2] != outW || outputGrad->shape.dims[3] != outChannels) {
     return ERR_DIM_MISMATCH;
   }
+  if (withBias) {
+    if (isInvalidTensor(dBias)) {
+      return ERR_NULL_TENSOR_PROVIDED;
+    }
+    if (dBias->dtype != input->dtype) {
+      return ERR_DTYPE_MISMATCH;
+    }
+    if (dBias->shape.numOfDims != 4 || dBias->shape.dims == NULL) {
+      return ERR_DIM_MISMATCH;
+    }
+    if (dBias->shape.dims[0] != 1 || dBias->shape.dims[1] != 1 || dBias->shape.dims[2] != 1 ||
+        dBias->shape.dims[3] != outChannels) {
+      return ERR_DIM_MISMATCH;
+    }
+  }
 
   res = syncForOpTiming(ctx);
   if (res != OK) {
@@ -376,12 +520,19 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   if (res != OK) {
     goto cleanup;
   }
+  if (withBias) {
+    res = materializeTensorOnContext(ctx, dBias, true, &dBiasArg);
+    if (res != OK) {
+      goto cleanup;
+    }
+  }
   inputContig = inputArg.tensor;
   kernelContig = kernelArg.tensor;
   outputGradContig = outputGradArg.tensor;
   colBufferContig = colBufferArg.tensor;
   dInputWork = dInputArg.tensor;
   dKernelWork = dKernelArg.tensor;
+  dBiasWork = dBiasArg.tensor;
   logOpTiming(ctx, "Conv2dBackward", "materialize", phaseStartMs);
 
   res = syncForOpTiming(ctx);
@@ -396,6 +547,12 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   res = clearTensorValues(dKernelWork);
   if (res != OK) {
     goto cleanup;
+  }
+  if (withBias) {
+    res = clearTensorValues(dBiasWork);
+    if (res != OK) {
+      goto cleanup;
+    }
   }
   logOpTiming(ctx, "Conv2dBackward", "clear_grads", phaseStartMs);
 
@@ -524,6 +681,23 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     logOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
   }
 
+  if (withBias) {
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    res = accumulateConvBiasGrad(ctx, outputGradContig, dBiasWork);
+    if (res != OK) {
+      goto cleanup;
+    }
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "bias_grad", phaseStartMs);
+  }
+
   if (dInputWork != dInput) {
     res = syncForOpTiming(ctx);
     if (res != OK) {
@@ -551,6 +725,19 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     }
     logOpTiming(ctx, "Conv2dBackward", "copy_dk_back", phaseStartMs);
   }
+  if (withBias && dBiasWork != dBias) {
+    res = syncForOpTiming(ctx);
+    if (res != OK) {
+      goto cleanup;
+    }
+    phaseStartMs = opTimingNowMs();
+    size_t dBiasBytes = dBiasWork->size * getBytesForDtype(dBiasWork->dtype);
+    res = copyBetweenContexts(ctx, dBias->context, dBiasWork->values, dBias->values, dBiasBytes);
+    if (res != OK) {
+      goto cleanup;
+    }
+    logOpTiming(ctx, "Conv2dBackward", "copy_dbias_back", phaseStartMs);
+  }
 
   res = OK;
   logOpTiming(ctx, "Conv2dBackward", "total", totalStartMs);
@@ -562,6 +749,7 @@ cleanup:
   releaseTensorArg(ctx, &colBufferArg);
   releaseTensorArg(ctx, &dInputArg);
   releaseTensorArg(ctx, &dKernelArg);
+  releaseTensorArg(ctx, &dBiasArg);
 
   if (outputGradPermutedCopied && outputGradContig != NULL) {
     FreeTensor(ctx, outputGradContig);

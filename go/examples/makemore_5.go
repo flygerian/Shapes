@@ -14,7 +14,6 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss_fns"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/visual"
 )
 
 func MakeMore_5() {
@@ -118,7 +117,7 @@ func MakeMore_5() {
 
 	trainingCtx := shapesCtx.Training(
 		numEpochs,
-		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
+		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
 
 	for i := range numEpochs {

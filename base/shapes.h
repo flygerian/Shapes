@@ -95,9 +95,10 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
 Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                          Tensor *dX, Tensor *dGamma, Tensor *dBeta);
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
-              Tensor *t, Tensor *dest, Tensor *colBuffer);
+              Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBuffer);
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                      Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride);
+                      Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
+                      bool withBias, u8 stride);
 Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
                        Tensor *kernels, Dim kernel, Tensor *t, Tensor *dest);
 Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride,
@@ -143,5 +144,6 @@ void SetValues(Tensor *t, Value value);
 // Tensor destruction
 Result FreeTensor(Context *ctx, Tensor *t);
 Result FreeViewTensor(Context *ctx, Tensor *t);
+Result FreeTensors(Context *ctx, Tensor **tensors, int numTensors);
 
 #endif

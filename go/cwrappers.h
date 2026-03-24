@@ -79,9 +79,11 @@ Result wrap_BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, T
                                      f32 epsilon, Tensor **out, Tensor **mean, Tensor **variance);
 Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                               Tensor **dX, Tensor **dGamma, Tensor **dBeta);
-Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out, Tensor **destColBuffer);
+Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
+                   Tensor *bias, bool withBias, Tensor *x, Tensor **out, Tensor **destColBuffer);
 Result wrap_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride);
+                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
+                       bool withBias, u8 stride);
 Result wrap_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
                             Tensor *kernels, dim_t kernelH, dim_t kernelW, Tensor *x,
                             Tensor **out);

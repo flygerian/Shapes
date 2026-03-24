@@ -9,6 +9,109 @@
 #include <string.h>
 #include <time.h>
 
+static size_t roundCudaAllocationSize(size_t size) {
+  const size_t alignment = 256;
+  if (size == 0) {
+    return alignment;
+  }
+
+  size_t remainder = size % alignment;
+  if (remainder == 0) {
+    return size;
+  }
+
+  return size + (alignment - remainder);
+}
+
+static void pushCudaBlock(CudaCachedBlock **list, CudaCachedBlock *block) {
+  if (list == NULL || block == NULL) {
+    return;
+  }
+
+  block->next = *list;
+  *list = block;
+}
+
+static CudaCachedBlock *detachCudaBlockByPtr(CudaCachedBlock **list, void *ptr) {
+  if (list == NULL || ptr == NULL) {
+    return NULL;
+  }
+
+  CudaCachedBlock *previous = NULL;
+  CudaCachedBlock *current = *list;
+  while (current != NULL) {
+    if (current->ptr == ptr) {
+      if (previous == NULL) {
+        *list = current->next;
+      } else {
+        previous->next = current->next;
+      }
+      current->next = NULL;
+      return current;
+    }
+    previous = current;
+    current = current->next;
+  }
+
+  return NULL;
+}
+
+static CudaCachedBlock *detachReusableCudaBlock(CudaCachedBlock **list, size_t size) {
+  if (list == NULL) {
+    return NULL;
+  }
+
+  CudaCachedBlock *best = NULL;
+  CudaCachedBlock *bestPrevious = NULL;
+  CudaCachedBlock *previous = NULL;
+  CudaCachedBlock *current = *list;
+  while (current != NULL) {
+    if (current->size >= size && (best == NULL || current->size < best->size)) {
+      best = current;
+      bestPrevious = previous;
+      if (current->size == size) {
+        break;
+      }
+    }
+    previous = current;
+    current = current->next;
+  }
+
+  if (best == NULL) {
+    return NULL;
+  }
+
+  if (bestPrevious == NULL) {
+    *list = best->next;
+  } else {
+    bestPrevious->next = best->next;
+  }
+  best->next = NULL;
+  return best;
+}
+
+static CudaCachedBlock *createCudaBlock(Context *ctx, void *ptr, size_t size) {
+  if (ctx == NULL || ptr == NULL) {
+    return NULL;
+  }
+
+  CudaCachedBlock *block = allocate(ctx->memory, sizeof(CudaCachedBlock));
+  if (block == NULL) {
+    return NULL;
+  }
+
+  *block = (CudaCachedBlock){.ptr = ptr, .size = size, .next = NULL};
+  return block;
+}
+
+static void releaseCudaBlocks(CudaCachedBlock *block) {
+  while (block != NULL) {
+    CudaCachedBlock *next = block->next;
+    cudaFree(block->ptr);
+    block = next;
+  }
+}
+
 static DeviceType getDeviceTypeForContext(Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
     return CPU;
@@ -82,11 +185,27 @@ void *allocateOnCtx(Context *ctx, size_t size) {
   switch (ctx->device->type) {
     case CPU: return allocate(ctx->memory, size);
     case CUDA: {
+      size_t roundedSize = roundCudaAllocationSize(size);
+      CudaCachedBlock *reusedBlock = detachReusableCudaBlock(&ctx->device->cachedBlocks, roundedSize);
+
+      if (reusedBlock != NULL) {
+        pushCudaBlock(&ctx->device->activeBlocks, reusedBlock);
+        return reusedBlock->ptr;
+      }
+
       void *locationOnDestCtx = NULL;
-      cudaError_t cudaResult = cudaMalloc(&locationOnDestCtx, size);
+      cudaError_t cudaResult = cudaMalloc(&locationOnDestCtx, roundedSize);
       if (cudaResult != cudaSuccess) {
         return NULL;
       }
+
+      CudaCachedBlock *newBlock = createCudaBlock(ctx, locationOnDestCtx, roundedSize);
+      if (newBlock == NULL) {
+        cudaFree(locationOnDestCtx);
+        return NULL;
+      }
+
+      pushCudaBlock(&ctx->device->activeBlocks, newBlock);
       return locationOnDestCtx;
     }
   }
@@ -106,7 +225,16 @@ void freeOnCtx(Context *ctx, void *ptr) {
 
   switch (ctx->device->type) {
     case CPU: freeAlloc(ctx->memory, ptr); return;
-    case CUDA: cudaFree(ptr); return;
+    case CUDA: {
+      CudaCachedBlock *block = detachCudaBlockByPtr(&ctx->device->activeBlocks, ptr);
+      if (block != NULL) {
+        pushCudaBlock(&ctx->device->cachedBlocks, block);
+        return;
+      }
+
+      cudaFree(ptr);
+      return;
+    }
   }
 }
 
@@ -130,8 +258,8 @@ Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda) 
 
       if (handleResult == CUBLAS_STATUS_SUCCESS) {
         Device *device = allocate(memory, sizeof(Device));
-        device->id = "cuda:0";
-        device->type = CUDA;
+        *device = (Device){
+            .id = "cuda:0", .type = CUDA, .activeBlocks = NULL, .cachedBlocks = NULL};
         ctx.handle = handle;
         ctx.device = device;
       }
@@ -150,6 +278,10 @@ Context *CreateContext(size_t arenaSize, size_t minBlockSize, bool withCuda) {
 
 void DestroyContext(Context *ctx) {
   if (ctx->device != NULL && ctx->device->type == CUDA) {
+    releaseCudaBlocks(ctx->device->activeBlocks);
+    releaseCudaBlocks(ctx->device->cachedBlocks);
+    ctx->device->activeBlocks = NULL;
+    ctx->device->cachedBlocks = NULL;
     cublasDestroy(ctx->handle);
   }
 

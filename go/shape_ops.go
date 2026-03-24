@@ -149,9 +149,11 @@ func (t *tensor) Transpose(ctx Context, dims ...uint) Tensor {
 		}
 		d0 = ndims - 2
 		d1 = ndims - 1
+
 	case 2:
 		d0 = dims[0]
 		d1 = dims[1]
+
 	default:
 		panic("shapes: transpose expects 0 or 2 dimension args")
 	}

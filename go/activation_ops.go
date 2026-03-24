@@ -10,31 +10,6 @@ func Tanh(ctx Context, t Tensor) Tensor {
 	return t.Tanh(ctx)
 }
 
-func floatMaskForTensor(ctx Context, t Tensor) Tensor {
-	var maskData []float32
-	switch values := t.Values().(type) {
-	case []float32:
-		maskData = make([]float32, len(values))
-		for i, v := range values {
-			if v > 0 {
-				maskData[i] = 1.0
-			}
-		}
-	case []float64:
-		maskData = make([]float32, len(values))
-		for i, v := range values {
-			if v > 0 {
-				maskData[i] = 1.0
-			}
-		}
-	default:
-		panic("shapes: relu requires float tensor")
-	}
-
-	mask := FromFloat32(ctx, t.Shape(), maskData)
-	return castMaskToTensorDtype(ctx, mask, t.Dtype())
-}
-
 func castMaskToTensorDtype(ctx Context, mask Tensor, dtype Dtype) Tensor {
 	switch dtype {
 	case DtypeF16:
@@ -57,7 +32,8 @@ func reluBackward(ctx Context, node ComputationGraphNode) {
 	input := node.Inputs()[0]
 	output := node.(Tensor)
 
-	typedMask := floatMaskForTensor(backwardCtx, output)
+	mask := output.Bool(backwardCtx)
+	typedMask := castMaskToTensorDtype(backwardCtx, mask, output.Dtype())
 	gradInput := node.Grad().Times(backwardCtx, typedMask)
 
 	input.Grad().Accumulate(backwardCtx, gradInput)

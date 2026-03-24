@@ -61,6 +61,8 @@ add_library(shapes_core
     context.c
     cuda/access.cu
     cuda/binary_op.cu
+    cuda/cast.cu
+    cuda/conv_bias.cu
     cuda/accumulate.cu
     cuda/cross_entropy.cu
     cuda/gemm.cu

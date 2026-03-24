@@ -113,7 +113,7 @@ static bool isCastSafe(Dtype source, Dtype target) {
     return true;
   }
   if (source == BOOL) {
-    return false;
+    return true;
   }
 
   int srcFamily = dtypeFamily(source);
@@ -158,24 +158,26 @@ static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target
   return OK;
 }
 
-static Result castOnCudaViaCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
-  Context hostCtx = {.memory = ctx->memory};
-  Tensor cpuDest;
-
-  Result result = castOnCpu(&hostCtx, source, &cpuDest, target);
+static Result castOnCuda(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
+  TensorArg sourceArg = {0};
+  Result result = materializeTensorOnContext(ctx, source, true, &sourceArg);
   if (result != OK) {
     return result;
   }
 
-  result = initTensorLike(ctx, dest, &cpuDest, target);
+  Tensor *src = sourceArg.tensor;
+  result = initTensorLike(ctx, dest, src, target);
   if (result != OK) {
-    FreeTensor(&hostCtx, &cpuDest);
+    releaseTensorArg(ctx, &sourceArg);
     return result;
   }
 
-  size_t valueBytes = cpuDest.size * getBytesForDtype(target);
-  result = copyBetweenContexts(cpuDest.context, ctx, cpuDest.values, dest->values, valueBytes);
-  FreeTensor(&hostCtx, &cpuDest);
+  result = runCudaCast(ctx, src->dtype, src->values, target, dest->values, src->size);
+  if (result != OK) {
+    FreeTensor(ctx, dest);
+  }
+
+  releaseTensorArg(ctx, &sourceArg);
   return result;
 }
 
@@ -216,7 +218,7 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
 
   switch (deviceType) {
     case CPU: return castOnCpu(ctx, source, dest, target);
-    case CUDA: return castOnCudaViaCpu(ctx, source, dest, target);
+    case CUDA: return castOnCuda(ctx, source, dest, target);
   }
 
   return ERR_NO_OP;

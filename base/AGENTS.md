@@ -186,6 +186,14 @@ Result MyOp(Context *ctx, Tensor *t, Tensor *dest) {
 - Use designated initializers for struct literals:
   `(Dim){.dims = dims, .numOfDims = 2}`, `(Value){.dtype = U8, .as.u8 = 5}`
 
+### Context Rules For Ops
+- Every tensor op executes in the `Context *ctx` passed into that op. The op must not pick a different execution context internally.
+- Materialize operands into the target context with `materializeTensorOnContext(ctx, ...)`. This applies to all real tensor operands used by the op.
+- Do not create temporary fallback contexts, including stack-local CPU shims or arena-allocated synthetic contexts, to run part of an op elsewhere.
+- Backend dispatch is based only on the passed-in `ctx`. If that backend cannot implement the op, return `ERR_NO_OP`.
+- Do not hide CPU fallback work inside CUDA ops or CUDA fallback work inside CPU ops. The Go layer is responsible for turning `ERR_NO_OP` into a panic.
+- Cross-context view creation is disallowed. If a view op such as `GetTensorAt` would need to materialize a temporary base tensor in another context, fail instead of returning a view with unclear ownership/lifetime semantics.
+
 ### Macros for Type-Generic Operations
 The `value.h` header provides macros that switch on `Dtype` to handle all numeric types:
 - `VALUE_SET(arr, idx, v)` -- write a Value to a typed array

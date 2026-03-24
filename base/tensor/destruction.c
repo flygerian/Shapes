@@ -1,8 +1,9 @@
 #include "common.h"
 #include "result/result.h"
+#include "shapes.h"
 #include "tensor_internal.h"
 #include "../memory.h"
-#include <stdio.h>
+#include <sched.h>
 
 static Memory *getTensorMetadataMemory(Context *ctx, Tensor *t) {
   if (t != NULL && t->metadataMemory != NULL) {
@@ -14,6 +15,36 @@ static Memory *getTensorMetadataMemory(Context *ctx, Tensor *t) {
   }
 
   return NULL;
+}
+
+Result FreeTensors(Context *ctx, Tensor **tensors, int numTensors) {
+  if (tensors == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  for (int i=0; i<numTensors; i++) {
+    Tensor *t = tensors[i];
+
+    if (t == NULL) {
+      return ERR_NULL_TENSOR_PROVIDED;
+    }
+    
+    if (t->isView) {
+      Result res = FreeViewTensor(ctx, t);
+      if (res != OK) {
+        return res;
+      }
+
+      continue;
+    }
+
+    Result res = FreeTensor(ctx, t);
+    if (res != OK) {
+      return res;
+    }
+  }
+
+  return OK;
 }
 
 Result FreeViewTensor(Context *ctx, Tensor *t) {

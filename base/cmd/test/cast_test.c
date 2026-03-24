@@ -286,6 +286,30 @@ static void test_cast_f32_to_bool(void) {
   freeMemory(mem);
 }
 
+static void test_cast_bool_to_f32(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {3};
+  Dim shape = {.dims = dims, .numOfDims = 1};
+  Tensor *src = T_Int(&ctx, shape, 0);
+  src->dtype = BOOL;
+  src->values = allocate(mem, getBytesForDtype(BOOL) * src->size);
+  ((bool *)src->values)[0] = false;
+  ((bool *)src->values)[1] = true;
+  ((bool *)src->values)[2] = true;
+
+  Tensor dest;
+  Result r = Cast(&ctx, src, &dest, F32);
+  ASSERT_EQ(r, OK, "Cast BOOL -> F32 should return OK");
+  ASSERT_EQ(dest.dtype, F32, "Cast BOOL -> F32 dest dtype should be F32");
+  ASSERT_EQ(((f32 *)dest.values)[0], 0.0f, "Cast BOOL false -> F32 should be 0");
+  ASSERT_EQ(((f32 *)dest.values)[1], 1.0f, "Cast BOOL true -> F32 should be 1");
+  ASSERT_EQ(((f32 *)dest.values)[2], 1.0f, "Cast BOOL true -> F32 should be 1");
+
+  freeMemory(mem);
+}
+
 static void test_cast_same_dtype_clones(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -527,7 +551,7 @@ static void test_cast_same_dtype_cuda_clone(void) {
   DestroyContext(&ctx);
 }
 
-static void test_cast_cuda_dtype_change_via_cpu_fallback(void) {
+static void test_cast_cuda_dtype_change(void) {
   if (!hasCudaDevice()) {
     return;
   }
@@ -540,15 +564,15 @@ static void test_cast_cuda_dtype_change_via_cpu_fallback(void) {
   Tensor dest;
 
   Result r = Cast(&ctx, src, &dest, F64);
-  ASSERT_EQ(r, OK, "CUDA Cast should support dtype-changing casts via CPU fallback");
+  ASSERT_EQ(r, OK, "CUDA Cast should support dtype-changing casts");
   ASSERT(dest.context == &ctx, "CUDA Cast dtype-changing result should live on CUDA");
 
   for (dim_t i = 0; i < 2; i++) {
     dim_t idx[] = {i};
     Value value;
     Result getResult = GetAt(&dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
-    ASSERT_EQ(getResult, OK, "GetAt should read CUDA fallback cast results");
-    ASSERT_EQ(value.as.f64, 1.0, "CUDA fallback cast should preserve each element");
+    ASSERT_EQ(getResult, OK, "GetAt should read CUDA cast results");
+    ASSERT_EQ(value.as.f64, 1.0, "CUDA cast should preserve each element");
   }
 
   DestroyContext(&ctx);
@@ -575,7 +599,7 @@ static void test_cast_cuda_f32_to_i64(void) {
   Tensor dest;
 
   Result r = Cast(&ctx, src, &dest, I64);
-  ASSERT_EQ(r, OK, "CUDA Cast should support F32 -> I64 via CPU fallback");
+  ASSERT_EQ(r, OK, "CUDA Cast should support F32 -> I64");
   ASSERT(dest.context == &ctx, "CUDA F32 -> I64 Cast result should live on CUDA");
 
   i64 expected[] = {0, 7, -2};
@@ -585,6 +609,38 @@ static void test_cast_cuda_f32_to_i64(void) {
     Result getResult = GetAt(&dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
     ASSERT_EQ(getResult, OK, "GetAt should read CUDA F32 -> I64 cast results");
     ASSERT_EQ(value.as.i64, expected[i], "CUDA F32 -> I64 cast should preserve converted value");
+  }
+
+  DestroyContext(&ctx);
+}
+
+static void test_cast_cuda_bool_to_f32(void) {
+  if (!hasCudaDevice()) {
+    return;
+  }
+
+  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = ctx.memory};
+
+  dim_t dims[] = {2};
+  Tensor *src = T_Int(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  src->dtype = BOOL;
+  src->values = allocate(hostCtx.memory, getBytesForDtype(BOOL) * src->size);
+  ((bool *)src->values)[0] = false;
+  ((bool *)src->values)[1] = true;
+
+  Tensor dest;
+  Result r = Cast(&ctx, src, &dest, F32);
+  ASSERT_EQ(r, OK, "CUDA Cast should support BOOL -> F32");
+  ASSERT(dest.context == &ctx, "CUDA BOOL -> F32 Cast result should live on CUDA");
+
+  f32 expected[] = {0.0f, 1.0f};
+  for (dim_t i = 0; i < 2; i++) {
+    dim_t idx[] = {i};
+    Value value;
+    Result getResult = GetAt(&dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
+    ASSERT_EQ(getResult, OK, "GetAt should read CUDA BOOL -> F32 cast results");
+    ASSERT_EQ(value.as.f32, expected[i], "CUDA BOOL -> F32 cast should preserve converted value");
   }
 
   DestroyContext(&ctx);
@@ -604,6 +660,7 @@ void run_cast_tests(void) {
   test_cast_i8_to_bool();
   test_cast_u8_to_bool();
   test_cast_f32_to_bool();
+  test_cast_bool_to_f32();
   test_cast_same_dtype_clones();
   test_cast_preserves_2d_shape();
   test_cast_same_dtype_cuda_clone();
@@ -619,7 +676,8 @@ void run_cast_tests(void) {
   test_cast_i8_to_u8_sign_mismatch();
   test_cast_u16_to_i16_sign_mismatch();
   test_cast_u8_to_f32_sign_mismatch();
-  test_cast_cuda_dtype_change_via_cpu_fallback();
+  test_cast_cuda_dtype_change();
   test_cast_cuda_f32_to_i64();
+  test_cast_cuda_bool_to_f32();
   test_cast_null_tensor();
 }

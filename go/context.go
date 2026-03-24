@@ -33,6 +33,10 @@ type Context interface {
 	BackwardEnabled() bool
 	IsTraining() bool
 
+	Training(numEpochs int, options ...subContextOption) SubContext
+	Inference() SubContext
+	TrainingStats() *TrainingStats
+
 	UnsafeMemory() unsafe.Pointer
 	UnsafePtr() unsafe.Pointer
 
@@ -47,9 +51,6 @@ type MainContext interface {
 	Context
 
 	Finish()
-	Training(numEpochs int, options ...mainContextOption) MainContext
-	Inference() MainContext
-	TrainingStats() *TrainingStats
 }
 
 type SubContext interface {
@@ -59,19 +60,21 @@ type SubContext interface {
 
 type EpochContext interface {
 	SubContext
-	Step(options ...subContextOption) StepContext
+	Step(options ...subContextOption) EpochContext
 	SampleTensor(key string, t Tensor)
 	CurrentEpochNum() int
 	SetLoss(loss float64)
 	SetValidationLoss(loss float64)
 	SetTestLoss(loss float64)
 	SetAccuracy(accuracy float64)
+
+	SetStepLoss(loss float64)
+	CurrentStep() int
+	Fused(options ...subContextOption) SubContext
 }
 
 type StepContext interface {
 	SubContext
-	SetStepLoss(loss float64)
-	Fused(options ...subContextOption) SubContext
 }
 
 type shapesCtx struct {
@@ -118,6 +121,7 @@ func New(parent stdctx.Context, opts ...mainContextOption) MainContext {
 
 type TrainingStats struct {
 	Epoch                  int
+	EpochStart             time.Time
 	Step                   int
 	NumEpochs              int
 	NumSteps               int
@@ -152,7 +156,7 @@ type trainingState struct {
 }
 
 type TrainingStatsRenderer interface {
-	SetTrainingContext(trainingCtx MainContext)
+	SetTrainingContext(trainingCtx SubContext)
 }
 
 // mainContext wraps both Go's context.mainContext and the C mainContext struct.
@@ -179,7 +183,7 @@ func (c *mainContext) Finish() {
 		}
 
 		for _, p := range c.handles {
-			if p != nil {
+			if p != nil && p.(*tensor).cTensor != nil {
 				c.Free(p)
 			}
 		}
@@ -227,78 +231,10 @@ func (c *mainContext) NoGrad(options ...subContextOption) SubContext {
 	return noGrad(c, options...)
 }
 
-func (c *mainContext) initTrainingStats(numEpochs int) {
-	c.training = &trainingState{
-		stats: &TrainingStats{
-			NumEpochs:              numEpochs,
-			NumSteps:               0,
-			Epoch:                  0,
-			Step:                   0,
-			Loss:                   0,
-			StepLoss:               0,
-			TestLoss:               0,
-			ValidationLoss:         0,
-			Accuracy:               0,
-			MemorySampleHistoryX:   make([]int, 0),
-			UsedBlocksHistory:      make([]int, 0),
-			LossHistoryX:           make([]int, 0),
-			LossHistory:            make([]int, 0),
-			StepLossHistoryX:       make([]int, 0),
-			StepLossHistory:        make([]int, 0),
-			TestLossHistoryX:       make([]int, 0),
-			TestLossHistory:        make([]int, 0),
-			ValidationLossHistoryX: make([]int, 0),
-			ValidationLossHistory:  make([]int, 0),
-			AccuracyHistoryX:       make([]int, 0),
-			AccuracyHistory:        make([]int, 0),
-			Version:                0,
-			TrainingDone:           make(chan bool),
-			SampleTensors:          make(map[string]Tensor),
-		},
-	}
-}
-
-func (c *mainContext) Training(numEpochs int, options ...mainContextOption) MainContext {
-	c.initTrainingStats(numEpochs)
-	c.isTraining = true
-	applyMainContextOptions(c, options...)
-
-	f, err := os.Create("profile.prof")
-	if err != nil {
-		msg := fmt.Sprintf("Could not open profile file: %v", err)
-		panic(msg)
-	}
-
-	err = pprof.StartCPUProfile(f)
-	if err != nil {
-		_ = f.Close()
-		return c
-	}
-
-	go startMemoryTicker(c)
-
-	return c
-}
-
-func (c *mainContext) Inference() MainContext {
-	c.isTraining = false
-	return c
-}
-
-func (c *mainContext) sampleMemory(sampleCount int) {
-	if c.training == nil || c.training.stats == nil {
-		return
-	}
-	if c.cCtx == nil || c.cCtx.memory == nil {
-		return
-	}
-
-	usedBlocks := c.NumAllocatedBlocks()
-	c.training.mu.Lock()
-	c.training.stats.MemorySampleHistoryX = append(c.training.stats.MemorySampleHistoryX, sampleCount)
-	c.training.stats.UsedBlocksHistory = append(c.training.stats.UsedBlocksHistory, usedBlocks)
-	c.training.stats.Version++
-	c.training.mu.Unlock()
+func (c *mainContext) Inference() SubContext {
+	subCtx := derive(c, SubContextTypeInference, c.gradEnabled, c.backwardEnabled)
+	subCtx.main().isTraining = false
+	return subCtx
 }
 
 func (c *mainContext) TrainingStats() *TrainingStats {
@@ -372,10 +308,6 @@ func (c *mainContext) Track(t Tensor) {
 	}
 }
 
-func (c *mainContext) PrintMemoryFragmentationChart() {
-	C.printMemoryFragmentationChart((*C.Memory)(c.UnsafeMemory()))
-}
-
 func (c *mainContext) NumTrackTensors() int {
 	return len(c.handles)
 }
@@ -395,45 +327,153 @@ func (c *mainContext) Mark(t Tensor) {
 }
 
 func (ctx *mainContext) Sweep() {
-	cCtx := (*C.Context)(ctx.UnsafePtr())
 	if len(ctx.freeList) == 0 {
 		return
 	}
 
-	// Deduplicate to prevent double-free; nil cTensor after freeing.
+	// Deduplicate to prevent double-free and remember every freed C tensor so
+	// all Go wrappers pointing at it can be invalidated afterward.
 	seen := make(map[unsafe.Pointer]bool, len(ctx.freeList))
+	freed := make(map[unsafe.Pointer]struct{}, len(ctx.freeList))
+	dedupFreeList := make([]*C.Tensor, 0)
+
 	for _, t := range ctx.freeList {
+		if t == nil || t.(*tensor).cTensor == nil {
+			continue
+		}
+
 		p := unsafe.Pointer(t.(*tensor).cTensor)
 		if seen[p] {
 			continue
 		}
 
 		seen[p] = true
-		ct := (*C.Tensor)(p)
+		freed[p] = struct{}{}
+		dedupFreeList = append(dedupFreeList, t.(*tensor).cTensor)
+	}
 
-		if ct == nil {
+	if len(dedupFreeList) > 0 {
+		C.FreeTensors((*C.Context)(ctx.UnsafePtr()), &dedupFreeList[0], C.int(len(dedupFreeList)))
+	}
+
+	for _, t := range ctx.freeList {
+		if t == nil || t.(*tensor).cTensor == nil {
 			continue
 		}
 
-		if ct.isView {
-			C.FreeViewTensor(cCtx, ct)
-		} else {
-			C.FreeTensor(cCtx, ct)
+		if _, ok := freed[unsafe.Pointer(t.(*tensor).cTensor)]; ok {
+			t.(*tensor).cTensor = nil
 		}
-
-		t.(*tensor).cTensor = nil
 	}
 
 	ctx.freeList = ctx.freeList[:0]
 
-	// Compact root.handles: remove entries whose cTensor has been nilled.
+	// Compact root.handles: drop anything swept here, including alias wrappers
+	// that were not present in freeList but still point at a freed C tensor.
 	live := ctx.handles[:0]
 	for _, t := range ctx.handles {
+		if t == nil {
+			continue
+		}
+
+		if t.(*tensor).cTensor != nil {
+			if _, ok := freed[unsafe.Pointer(t.(*tensor).cTensor)]; ok {
+				t.(*tensor).cTensor = nil
+			}
+		}
+
 		if t.(*tensor).cTensor != nil {
 			live = append(live, t)
 		}
 	}
 	ctx.handles = live
+}
+
+func (c *mainContext) initTrainingStats(numEpochs int) {
+	c.training = &trainingState{
+		stats: &TrainingStats{
+			NumEpochs:              numEpochs,
+			NumSteps:               0,
+			Epoch:                  0,
+			Step:                   0,
+			Loss:                   0,
+			StepLoss:               0,
+			TestLoss:               0,
+			ValidationLoss:         0,
+			Accuracy:               0,
+			MemorySampleHistoryX:   make([]int, 0),
+			UsedBlocksHistory:      make([]int, 0),
+			LossHistoryX:           make([]int, 0),
+			LossHistory:            make([]int, 0),
+			StepLossHistoryX:       make([]int, 0),
+			StepLossHistory:        make([]int, 0),
+			TestLossHistoryX:       make([]int, 0),
+			TestLossHistory:        make([]int, 0),
+			ValidationLossHistoryX: make([]int, 0),
+			ValidationLossHistory:  make([]int, 0),
+			AccuracyHistoryX:       make([]int, 0),
+			AccuracyHistory:        make([]int, 0),
+			Version:                0,
+			TrainingDone:           make(chan bool),
+			SampleTensors:          make(map[string]Tensor),
+		},
+	}
+}
+
+func (c *mainContext) sampleMemory(sampleCount int) {
+	if c.training == nil || c.training.stats == nil {
+		return
+	}
+	if c.main().cCtx == nil || c.main().cCtx.memory == nil {
+		return
+	}
+
+	usedBlocks := c.NumAllocatedBlocks()
+	c.training.mu.Lock()
+	c.training.stats.MemorySampleHistoryX = append(c.training.stats.MemorySampleHistoryX, sampleCount)
+	c.training.stats.UsedBlocksHistory = append(c.training.stats.UsedBlocksHistory, usedBlocks)
+	c.training.stats.Version++
+	c.training.mu.Unlock()
+}
+
+func (c *mainContext) Training(numEpochs int, options ...subContextOption) SubContext {
+
+	c.initTrainingStats(numEpochs)
+	c.isTraining = true
+
+	trainingCtx := derive(c, SubContextTypeTraining, true, true, options...)
+
+	f, err := os.Create("profile.prof")
+	if err != nil {
+		msg := fmt.Sprintf("Could not open profile file: %v", err)
+		panic(msg)
+	}
+
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		msg := fmt.Sprintf("Could not start CPU profile: %v", err)
+		panic(msg)
+		_ = f.Close()
+		return trainingCtx
+	}
+
+	go startMemoryTicker(trainingCtx.(*subContext))
+
+	return trainingCtx
+}
+
+func (ctx *subContext) SetAccuracy(accuracy float64) {
+	if ctx.training == nil {
+		panic("Cannot set accuracy in a non training context")
+	}
+
+	ctx.training.mu.Lock()
+	defer ctx.training.mu.Unlock()
+
+	ctx.training.stats.Accuracy = accuracy
+	ctx.training.stats.AccuracyHistoryX = append(ctx.training.stats.AccuracyHistoryX, ctx.training.stats.Epoch)
+	ctx.training.stats.AccuracyHistory = append(ctx.training.stats.AccuracyHistory, int(accuracy*100))
+	ctx.training.stats.Version++
 }
 
 func (c *mainContext) BackwardEnabled() bool {
@@ -458,8 +498,9 @@ type SubContextType int
 
 const (
 	SubContextTypeEpoch SubContextType = iota
-	SubContextTypeStep
 	SubContextTypeForward
+	SubContextTypeTraining
+	SubContextTypeInference
 	SubContextTypeFused
 	SubContextTypeNoGrad
 	SubContextTypeNoGraph
@@ -502,50 +543,48 @@ func (sc *subContext) hasFusedAncestor() bool {
 }
 
 func (sc *subContext) shouldFlushOnFinish() bool {
-	if sc.fused {
+	hasFusedAncestor := sc.hasFusedAncestor()
+	if sc.fused && !hasFusedAncestor {
 		return true
 	}
 
-	return !sc.hasFusedAncestor()
+	if hasFusedAncestor {
+		return false
+	}
+
+	return true
 }
 
 func (sc *subContext) Finish(options ...subContextOption) {
 	start := time.Now()
 	applySubContextOptions(sc, options...)
-	logFinish := func(phase string, phaseStart time.Time) {
-		if value := os.Getenv("SHAPES_LOG_CONTEXT_FINISH"); value != "" && value != "0" {
-			fmt.Fprintf(os.Stderr,
-				"[contextFinishPhase] type=%d fused=%t flush=%t phase=%s locals=%d ms=%.3f\n",
-				sc.subContextType, sc.fused, sc.shouldFlushOnFinish(), phase, len(sc.locals),
-				float64(time.Since(phaseStart))/float64(time.Millisecond))
-		}
+
+	if sc.subContextType == SubContextTypeEpoch {
+		fmt.Printf("Ending epoch...%d", sc.CurrentEpochNum())
+	}
+
+	if sc.subContextType == SubContextTypeTraining {
+		fmt.Printf("Stopping cpu profile...")
+		pprof.StopCPUProfile()
 	}
 
 	if sc.gradEnabled {
-		phaseStart := time.Now()
 		if sc.result != nil {
 			sc.prepareResultForBackwardPass()
 		} else if sc.backward != nil || len(sc.inputs) > 0 || len(sc.hiddenState) > 0 || sc.op != OpNone {
 			panic("Preparing for backward pass requires a result tensor")
 		}
-		logFinish("prepare_backward", phaseStart)
 	}
 
 	if sc.shouldFlushOnFinish() {
-		phaseStart := time.Now()
 		if result := C.Flush((*C.Context)(sc.UnsafePtr())); result != C.OK {
 			panic("shapes: " + resultString(uint32(result)))
 		}
-		logFinish("flush", phaseStart)
 	}
 
-	phaseStart := time.Now()
 	sc.cleanup()
-	logFinish("cleanup", phaseStart)
 	if sc.sweepAfterFinish {
-		phaseStart = time.Now()
 		sc.parent.Sweep()
-		logFinish("sweep", phaseStart)
 	}
 
 	mainCtx := sc.main()
@@ -555,11 +594,10 @@ func (sc *subContext) Finish(options ...subContextOption) {
 	// Signal training completion exactly once at the end of the final epoch context.
 	// Closing the channel broadcasts completion to all listeners without risking a blocked send.
 	if sc.sweepAfterFinish && sc.training != nil && sc.training.stats != nil &&
-		sc.training.stats.Epoch == sc.training.stats.NumEpochs {
+		sc.training.stats.Epoch > sc.training.stats.NumEpochs {
 		sc.training.doneOnce.Do(func() {
 			sc.main().isTraining = false
 			close(sc.training.stats.TrainingDone)
-			pprof.StopCPUProfile()
 		})
 	}
 
@@ -579,6 +617,7 @@ func (sc *subContext) cleanup() {
 	for _, t := range sc.locals {
 		// Some context may not produce a result so it's worth checking if the result is present
 		if sc.result != nil && (t.(*tensor).cTensor == sc.result.(*tensor).cTensor || t.(*tensor).cTensor == sc.result.Computation().grad.(*tensor).cTensor) {
+			sc.main().Track(t)
 			continue
 		}
 
@@ -605,7 +644,7 @@ func (c *subContext) Epoch(currentEpoch int, options ...subContextOption) EpochC
 	return epoch(c, currentEpoch, options...)
 }
 
-func (c *subContext) Step(options ...subContextOption) StepContext {
+func (c *subContext) Step(options ...subContextOption) EpochContext {
 	return step(c, options...)
 }
 
@@ -647,9 +686,8 @@ func (c *subContext) Test(options ...subContextOption) SubContext {
 }
 
 func (sc *subContext) Track(t Tensor) {
-	sc.parent.Track(t)
+	// sc.main().Track(t)
 	sc.locals = append(sc.locals, t)
-
 }
 
 // NewComputationGraphNode attaches a computation graph node to result.
@@ -725,8 +763,8 @@ func (ctx *subContext) SetStepLoss(loss float64) {
 	if ctx.training == nil {
 		panic("Cannot set step loss in a non training context")
 	}
-	if ctx.subContextType != SubContextTypeStep {
-		panic("Step loss can only be set on a step context")
+	if ctx.subContextType != SubContextTypeEpoch {
+		panic("Step loss can only be set on an Epoch context")
 	}
 
 	ctx.training.mu.Lock()
@@ -736,6 +774,18 @@ func (ctx *subContext) SetStepLoss(loss float64) {
 	ctx.training.stats.StepLossHistoryX = append(ctx.training.stats.StepLossHistoryX, ctx.training.stats.Step)
 	ctx.training.stats.StepLossHistory = append(ctx.training.stats.StepLossHistory, int(loss*1000))
 	ctx.training.stats.Version++
+}
+
+func (ctx *subContext) CurrentStep() int {
+
+	if ctx.training == nil {
+		panic("Cannot set step loss in a non training context")
+	}
+	if ctx.subContextType != SubContextTypeEpoch {
+		panic("Step loss can only be set on an epoch context")
+	}
+
+	return ctx.training.stats.Step
 }
 
 func (ctx *subContext) SetValidationLoss(loss float64) {
@@ -766,18 +816,24 @@ func (ctx *subContext) SetTestLoss(loss float64) {
 	ctx.training.stats.Version++
 }
 
-func (ctx *subContext) SetAccuracy(accuracy float64) {
-	if ctx.training == nil {
-		panic("Cannot set accuracy in a non training context")
-	}
+func (c *subContext) initTrainingStats(numEpochs int) {
+	c.main().initTrainingStats(numEpochs)
+}
 
-	ctx.training.mu.Lock()
-	defer ctx.training.mu.Unlock()
+func (c *subContext) sampleMemory(sampleCount int) {
+	c.main().sampleMemory(sampleCount)
+}
 
-	ctx.training.stats.Accuracy = accuracy
-	ctx.training.stats.AccuracyHistoryX = append(ctx.training.stats.AccuracyHistoryX, ctx.training.stats.Epoch)
-	ctx.training.stats.AccuracyHistory = append(ctx.training.stats.AccuracyHistory, int(accuracy*100))
-	ctx.training.stats.Version++
+func (c *subContext) Training(numEpochs int, options ...subContextOption) SubContext {
+	return c.main().Training(numEpochs, options...)
+}
+
+func (c *subContext) TrainingStats() *TrainingStats {
+	return c.main().TrainingStats()
+}
+
+func (c *subContext) Inference() SubContext {
+	return c.main().Inference()
 }
 
 func (ctx *subContext) main() *mainContext {
@@ -800,19 +856,22 @@ func applyMainContextOptions(sc *mainContext, options ...mainContextOption) {
 
 // derive creates a new derived context sharing the same C context and root.
 // Fresh locals slice; handles and intermediates are root-owned.
-func derive(ctx Context, subContextType SubContextType, gradEnabled, backwardEnabled bool, options ...subContextOption) SubContext {
+func derive(ctx Context, subContextType SubContextType, gradEnabled bool, backwardEnabled bool, options ...subContextOption) SubContext {
 	var training *trainingState
+	var fused bool
 	switch parent := ctx.(type) {
 	case *mainContext:
 		training = parent.training
 	case *subContext:
 		training = parent.training
+		fused = parent.fused
 	}
 
 	sc := &subContext{
 		parent:         ctx,
 		locals:         make([]Tensor, 0),
 		subContextType: subContextType,
+		fused:          fused,
 		shapesCtx: shapesCtx{
 			backwardEnabled: backwardEnabled,
 			gradEnabled:     gradEnabled,
@@ -850,7 +909,7 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 		panic("Cannot create an epoch context from another epoch context")
 	}
 
-	if mc, ok := c.(*mainContext); ok {
+	if mc, ok := c.(*subContext); ok {
 		if mc.training == nil || mc.training.stats == nil {
 			panic("Can only call epoch on a training context")
 		}
@@ -863,6 +922,8 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 
 		mc.training.mu.Lock()
 		mc.training.stats.Epoch = epochNum
+		mc.training.stats.EpochStart = time.Now()
+		mc.training.stats.Step = 0
 		mc.training.mu.Unlock()
 	} else {
 		panic("You can only call Epoch() in the main context")
@@ -873,7 +934,7 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 	return sc.(EpochContext)
 }
 
-func step(c Context, options ...subContextOption) StepContext {
+func step(c Context, options ...subContextOption) EpochContext {
 	sc, ok := c.(*subContext)
 	if !ok || sc.subContextType != SubContextTypeEpoch {
 		panic("You can only call Step() on an epoch context")
@@ -886,9 +947,9 @@ func step(c Context, options ...subContextOption) StepContext {
 	sc.training.stats.Step++
 	sc.training.mu.Unlock()
 
-	stepCtx := derive(c, SubContextTypeStep, c.GradEnabled(), c.BackwardEnabled(), options...)
+	stepCtx := derive(c, SubContextTypeEpoch, c.GradEnabled(), c.BackwardEnabled(), options...)
 	stepCtx.(*subContext).sweepAfterFinish = true
-	return stepCtx.(StepContext)
+	return stepCtx.(EpochContext)
 }
 
 // BackwardDisabled returns a new Context that shares the same C context and memory
@@ -929,7 +990,7 @@ func test(c Context, options ...subContextOption) SubContext {
 	return derive(c, SubContextTypeTest, false, false, options...)
 }
 
-func startMemoryTicker(c *mainContext) {
+func startMemoryTicker(c *subContext) {
 	if c.training == nil || c.training.stats == nil {
 		return
 	}

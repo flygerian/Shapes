@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <string.h>
+#include <cuda_runtime_api.h>
 #include "../shapes.h"
 #include "common.h"
 #include "result/result.h"
@@ -79,11 +80,12 @@ Result clearTensorValues(Tensor *t) {
     return OK;
   }
 
-  void *zeroValues = allocate(t->context->memory, valueBytes);
-  memset(zeroValues, 0, valueBytes);
-  Result result = copyBetweenContexts(NULL, t->context, zeroValues, t->values, valueBytes);
-  freeAlloc(t->context->memory, zeroValues);
-  return result;
+  cudaError_t clearResult = cudaMemset(t->values, 0, valueBytes);
+  if (clearResult != cudaSuccess) {
+    return ERR_NO_OP;
+  }
+
+  return OK;
 }
 
 Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {

@@ -93,9 +93,17 @@ typedef struct {
   } as;
 } Value;
 
+typedef struct CudaCachedBlock {
+  void *ptr;
+  size_t size;
+  struct CudaCachedBlock *next;
+} CudaCachedBlock;
+
 typedef struct {
   DeviceType type;
   char *id;
+  CudaCachedBlock *activeBlocks;
+  CudaCachedBlock *cachedBlocks;
 } Device;
 
 typedef struct Context {
