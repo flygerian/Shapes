@@ -9,8 +9,7 @@ __device__ static dim_t loadGatherIndex(const IndexType *indices, size_t idx) {
 
 template <typename ValueType, typename IndexType>
 __global__ static void indexSelect1dKernel(const ValueType *src, const IndexType *indices,
-                                           ValueType *dest, size_t numIndices,
-                                           size_t sliceSize) {
+                                           ValueType *dest, size_t numIndices, size_t sliceSize) {
   size_t flatIdx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   size_t total = numIndices * sliceSize;
   if (flatIdx >= total) {
@@ -85,18 +84,29 @@ static Result dispatchIndexSelect1dByValueDtype(Dtype valueDtype, const void *sr
                                                 const void *indices, void *dest,
                                                 size_t numIndices, size_t sliceSize) {
   switch (valueDtype) {
-    case BOOL: return launchIndexSelect1d<bool, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case U8: return launchIndexSelect1d<u8, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case U16: return launchIndexSelect1d<u16, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case U32: return launchIndexSelect1d<u32, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case U64: return launchIndexSelect1d<u64, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case I8: return launchIndexSelect1d<i8, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case I16: return launchIndexSelect1d<i16, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case I32: return launchIndexSelect1d<i32, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case I64: return launchIndexSelect1d<i64, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case BOOL:
+      return launchIndexSelect1d<bool, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case U8:
+      return launchIndexSelect1d<u8, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case U16:
+      return launchIndexSelect1d<u16, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case U32:
+      return launchIndexSelect1d<u32, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case U64:
+      return launchIndexSelect1d<u64, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case I8:
+      return launchIndexSelect1d<i8, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case I16:
+      return launchIndexSelect1d<i16, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case I32:
+      return launchIndexSelect1d<i32, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case I64:
+      return launchIndexSelect1d<i64, IndexType>(src, indices, dest, numIndices, sliceSize);
     case F16:
-    case F32: return launchIndexSelect1d<f32, IndexType>(src, indices, dest, numIndices, sliceSize);
-    case F64: return launchIndexSelect1d<f64, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case F32:
+      return launchIndexSelect1d<f32, IndexType>(src, indices, dest, numIndices, sliceSize);
+    case F64:
+      return launchIndexSelect1d<f64, IndexType>(src, indices, dest, numIndices, sliceSize);
     default: return ERR_DTYPE_MISMATCH;
   }
 }
@@ -104,8 +114,8 @@ static Result dispatchIndexSelect1dByValueDtype(Dtype valueDtype, const void *sr
 template <typename RowIndexType, typename ColIndexType>
 static Result dispatchIndexSelect2dByValueDtype(Dtype valueDtype, const void *src,
                                                 size_t sourceDim1, const void *rowIndices,
-                                                const void *colIndices, void *dest,
-                                                size_t numIndices, size_t sliceSize) {
+                                                const void *colIndices, void *dest, size_t numIndices,
+                                                size_t sliceSize) {
   switch (valueDtype) {
     case BOOL:
       return launchIndexSelect2d<bool, RowIndexType, ColIndexType>(src, sourceDim1, rowIndices,
@@ -164,14 +174,30 @@ extern "C" Result runCudaIndexSelect1d(Context *ctx, Dtype dtype, const void *sr
   }
 
   switch (indexDtype) {
-    case U8: return dispatchIndexSelect1dByValueDtype<u8>(dtype, src, indices, dest, numIndices, sliceSize);
-    case U16: return dispatchIndexSelect1dByValueDtype<u16>(dtype, src, indices, dest, numIndices, sliceSize);
-    case U32: return dispatchIndexSelect1dByValueDtype<u32>(dtype, src, indices, dest, numIndices, sliceSize);
-    case U64: return dispatchIndexSelect1dByValueDtype<u64>(dtype, src, indices, dest, numIndices, sliceSize);
-    case I8: return dispatchIndexSelect1dByValueDtype<i8>(dtype, src, indices, dest, numIndices, sliceSize);
-    case I16: return dispatchIndexSelect1dByValueDtype<i16>(dtype, src, indices, dest, numIndices, sliceSize);
-    case I32: return dispatchIndexSelect1dByValueDtype<i32>(dtype, src, indices, dest, numIndices, sliceSize);
-    case I64: return dispatchIndexSelect1dByValueDtype<i64>(dtype, src, indices, dest, numIndices, sliceSize);
+    case U8:
+      return dispatchIndexSelect1dByValueDtype<u8>(dtype, src, indices, dest, numIndices,
+                                                   sliceSize);
+    case U16:
+      return dispatchIndexSelect1dByValueDtype<u16>(dtype, src, indices, dest, numIndices,
+                                                    sliceSize);
+    case U32:
+      return dispatchIndexSelect1dByValueDtype<u32>(dtype, src, indices, dest, numIndices,
+                                                    sliceSize);
+    case U64:
+      return dispatchIndexSelect1dByValueDtype<u64>(dtype, src, indices, dest, numIndices,
+                                                    sliceSize);
+    case I8:
+      return dispatchIndexSelect1dByValueDtype<i8>(dtype, src, indices, dest, numIndices,
+                                                   sliceSize);
+    case I16:
+      return dispatchIndexSelect1dByValueDtype<i16>(dtype, src, indices, dest, numIndices,
+                                                    sliceSize);
+    case I32:
+      return dispatchIndexSelect1dByValueDtype<i32>(dtype, src, indices, dest, numIndices,
+                                                    sliceSize);
+    case I64:
+      return dispatchIndexSelect1dByValueDtype<i64>(dtype, src, indices, dest, numIndices,
+                                                    sliceSize);
     default: return ERR_DTYPE_MISMATCH;
   }
 }
@@ -185,231 +211,54 @@ extern "C" Result runCudaIndexSelect2d(Context *ctx, Dtype dtype, const void *sr
     return ERR_NO_OP;
   }
 
+#define DISPATCH_COL_CASES(RowType)                                                                \
+  switch (colIndexDtype) {                                                                         \
+    case U8:                                                                                       \
+      return dispatchIndexSelect2dByValueDtype<RowType, u8>(dtype, src, sourceDim1, rowIndices,   \
+                                                            colIndices, dest, numIndices,          \
+                                                            sliceSize);                            \
+    case U16:                                                                                      \
+      return dispatchIndexSelect2dByValueDtype<RowType, u16>(dtype, src, sourceDim1, rowIndices,  \
+                                                             colIndices, dest, numIndices,         \
+                                                             sliceSize);                           \
+    case U32:                                                                                      \
+      return dispatchIndexSelect2dByValueDtype<RowType, u32>(dtype, src, sourceDim1, rowIndices,  \
+                                                             colIndices, dest, numIndices,         \
+                                                             sliceSize);                           \
+    case U64:                                                                                      \
+      return dispatchIndexSelect2dByValueDtype<RowType, u64>(dtype, src, sourceDim1, rowIndices,  \
+                                                             colIndices, dest, numIndices,         \
+                                                             sliceSize);                           \
+    case I8:                                                                                       \
+      return dispatchIndexSelect2dByValueDtype<RowType, i8>(dtype, src, sourceDim1, rowIndices,   \
+                                                            colIndices, dest, numIndices,          \
+                                                            sliceSize);                            \
+    case I16:                                                                                      \
+      return dispatchIndexSelect2dByValueDtype<RowType, i16>(dtype, src, sourceDim1, rowIndices,  \
+                                                             colIndices, dest, numIndices,         \
+                                                             sliceSize);                           \
+    case I32:                                                                                      \
+      return dispatchIndexSelect2dByValueDtype<RowType, i32>(dtype, src, sourceDim1, rowIndices,  \
+                                                             colIndices, dest, numIndices,         \
+                                                             sliceSize);                           \
+    case I64:                                                                                      \
+      return dispatchIndexSelect2dByValueDtype<RowType, i64>(dtype, src, sourceDim1, rowIndices,  \
+                                                             colIndices, dest, numIndices,         \
+                                                             sliceSize);                           \
+    default: return ERR_DTYPE_MISMATCH;                                                            \
+  }
+
   switch (rowIndexDtype) {
-    case U8:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<u8, u8>(dtype, src, sourceDim1, rowIndices,
-                                                           colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<u8, u16>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<u8, u32>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<u8, u64>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<u8, i8>(dtype, src, sourceDim1, rowIndices,
-                                                           colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<u8, i16>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<u8, i32>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<u8, i64>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case U16:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<u16, u8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<u16, u16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<u16, u32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<u16, u64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<u16, i8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<u16, i16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<u16, i32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<u16, i64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case U32:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<u32, u8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<u32, u16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<u32, u32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<u32, u64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<u32, i8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<u32, i16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<u32, i32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<u32, i64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case U64:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<u64, u8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<u64, u16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<u64, u32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<u64, u64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<u64, i8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<u64, i16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<u64, i32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<u64, i64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case I8:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<i8, u8>(dtype, src, sourceDim1, rowIndices,
-                                                           colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<i8, u16>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<i8, u32>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<i8, u64>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<i8, i8>(dtype, src, sourceDim1, rowIndices,
-                                                           colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<i8, i16>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<i8, i32>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<i8, i64>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case I16:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<i16, u8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<i16, u16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<i16, u32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<i16, u64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<i16, i8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<i16, i16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<i16, i32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<i16, i64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case I32:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<i32, u8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<i32, u16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<i32, u32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<i32, u64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<i32, i8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<i32, i16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<i32, i32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<i32, i64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
-    case I64:
-      switch (colIndexDtype) {
-        case U8:
-          return dispatchIndexSelect2dByValueDtype<i64, u8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case U16:
-          return dispatchIndexSelect2dByValueDtype<i64, u16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U32:
-          return dispatchIndexSelect2dByValueDtype<i64, u32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case U64:
-          return dispatchIndexSelect2dByValueDtype<i64, u64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I8:
-          return dispatchIndexSelect2dByValueDtype<i64, i8>(dtype, src, sourceDim1, rowIndices,
-                                                            colIndices, dest, numIndices, sliceSize);
-        case I16:
-          return dispatchIndexSelect2dByValueDtype<i64, i16>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I32:
-          return dispatchIndexSelect2dByValueDtype<i64, i32>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        case I64:
-          return dispatchIndexSelect2dByValueDtype<i64, i64>(dtype, src, sourceDim1, rowIndices,
-                                                             colIndices, dest, numIndices, sliceSize);
-        default: return ERR_DTYPE_MISMATCH;
-      }
+    case U8: DISPATCH_COL_CASES(u8);
+    case U16: DISPATCH_COL_CASES(u16);
+    case U32: DISPATCH_COL_CASES(u32);
+    case U64: DISPATCH_COL_CASES(u64);
+    case I8: DISPATCH_COL_CASES(i8);
+    case I16: DISPATCH_COL_CASES(i16);
+    case I32: DISPATCH_COL_CASES(i32);
+    case I64: DISPATCH_COL_CASES(i64);
     default: return ERR_DTYPE_MISMATCH;
   }
+
+#undef DISPATCH_COL_CASES
 }

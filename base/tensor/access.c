@@ -83,26 +83,7 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
 
   Tensor *workingSource = sourceArg.tensor;
   Tensor *workingIndices = indicesArg.tensor;
-  dim_t firstDim = workingSource->shape.dims[0];
-
-  for (u64 i = 0; i < workingIndices->size; i++) {
-    Value idxVal;
-    result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
-    if (result != OK) {
-      goto cleanup_index;
-    }
-
-    dim_t idx = 0;
-    result = indexValueToDim(idxVal, &idx);
-    if (result != OK) {
-      goto cleanup_index;
-    }
-
-    if (idx >= firstDim) {
-      result = ERR_OUT_OF_BOUNDS;
-      goto cleanup_index;
-    }
-  }
+  bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
   u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndices->shape.numOfDims;
   dim_t *newDims = NULL;
@@ -134,7 +115,7 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     goto cleanup_index;
   }
 
-  if (ctx->device != NULL && ctx->device->type == CUDA) {
+  if (isCudaCtx) {
     result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
                                   workingIndices->values, workingIndices->dtype, dest->values,
                                   workingIndices->size, sliceSize);
@@ -234,36 +215,7 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   Tensor *workingSource = sourceArg.tensor;
   Tensor *workingRows = rowArg.tensor;
   Tensor *workingCols = colArg.tensor;
-  dim_t numRows = workingSource->shape.dims[0];
-  dim_t numCols = workingSource->shape.dims[1];
-
-  for (u64 i = 0; i < workingRows->size; i++) {
-    Value rowVal, colVal;
-    result = readTensorValueAtFlatIndex(workingRows, i, &rowVal);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-    result = readTensorValueAtFlatIndex(workingCols, i, &colVal);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-
-    dim_t rowIdx = 0;
-    dim_t colIdx = 0;
-    result = indexValueToDim(rowVal, &rowIdx);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-    result = indexValueToDim(colVal, &colIdx);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-
-    if (rowIdx >= numRows || colIdx >= numCols) {
-      result = ERR_OUT_OF_BOUNDS;
-      goto cleanup_index_2d;
-    }
-  }
+  bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
   u8 newNumDims = workingRows->shape.numOfDims + workingSource->shape.numOfDims - 2;
   dim_t *newDims = NULL;
@@ -295,7 +247,7 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
     goto cleanup_index_2d;
   }
 
-  if (ctx->device != NULL && ctx->device->type == CUDA) {
+  if (isCudaCtx) {
     result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values,
                                   workingSource->shape.dims[1], workingRows->values,
                                   workingRows->dtype, workingCols->values, workingCols->dtype,

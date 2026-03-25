@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/flygerian/shapes"
@@ -15,12 +16,27 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss_fns"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/visual"
 )
 
 type imageLabelPair struct {
 	label     uint8
 	imageData shapes.Tensor
+}
+
+type dataset struct {
+	Xtrain []shapes.Tensor
+	Ytrain []shapes.Tensor
+
+	Xtest []shapes.Tensor
+	Ytest []shapes.Tensor
+}
+
+type datasetRaw struct {
+	Xtrain [][]float32
+	Ytrain []int8
+
+	Xtest [][]float32
+	Ytest []int8
 }
 
 type trainingParams struct {
@@ -51,21 +67,22 @@ func shouldLogTrainStep() bool {
 	return value != "" && value != "0"
 }
 
-func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
-	imageTensors := make([]imageLabelPair, 0)
+func getImagesAndlabels(ctx shapes.Context, reader io.Reader) ([][]float32, []int8) {
+	var images [][]float32
+	var labels []int8
 
 	idx := 0
 	for {
 
 		label := make([]byte, 1)
-		image := make([]byte, 3072)
+		imageData := make([]byte, 3072)
 
 		_, err := io.ReadFull(reader, label)
 		if err != nil {
 			break
 		}
 
-		_, err = io.ReadFull(reader, image)
+		_, err = io.ReadFull(reader, imageData)
 		if err != nil {
 			break
 		}
@@ -76,23 +93,22 @@ func getTensors(ctx shapes.Context, reader io.Reader) []imageLabelPair {
 			for x := range 32 {
 				pixelIdx := y*32 + x
 				base := pixelIdx * 3
-				imageNHWC[base+0] = float32(image[pixelIdx]) / 255.0
-				imageNHWC[base+1] = float32(image[channelPlane+pixelIdx]) / 255.0
-				imageNHWC[base+2] = float32(image[2*channelPlane+pixelIdx]) / 255.0
+				imageNHWC[base+0] = float32(imageData[pixelIdx]) / 255.0
+				imageNHWC[base+1] = float32(imageData[channelPlane+pixelIdx]) / 255.0
+				imageNHWC[base+2] = float32(imageData[2*channelPlane+pixelIdx]) / 255.0
 			}
 		}
 
-		imageTensors = append(imageTensors, imageLabelPair{
-			label:     label[0],
-			imageData: shapes.FromFloat32(ctx, shapes.Shape{32, 32, 3}, imageNHWC),
-		})
+		images = append(images, imageNHWC)
+		labels = append(labels, int8(label[0]))
+
 		idx++
 	}
 
-	return imageTensors
+	return images, labels
 }
 
-func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []imageLabelPair, []string) {
+func getDataSet(ctx shapes.Context) (datasetRaw, []string) {
 	batchFiles, err := filepath.Glob("examples/datasets/cifar-10-binary/cifar-10-batches-bin/data_batch_*.bin")
 	if err != nil {
 		err := fmt.Errorf("could not list cifar_10 batch files: %w", err)
@@ -102,21 +118,23 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []image
 		panic("could not find cifar_10 batch files")
 	}
 
-	labelsFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/batches.meta.txt")
+	labelsDataFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/batches.meta.txt")
 	if err != nil {
 		err := fmt.Errorf("Could not open laberls files")
 		panic(err)
 	}
-	defer labelsFile.Close()
+	defer labelsDataFile.Close()
 
-	testFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/test_batch.bin")
+	testBatchFile, err := os.Open("examples/datasets/cifar-10-binary/cifar-10-batches-bin/test_batch.bin")
 	if err != nil {
 		err := fmt.Errorf("Could not open laberls files")
 		panic(err)
 	}
-	defer testFile.Close()
+	defer testBatchFile.Close()
 
-	allTrain := make([]imageLabelPair, 0)
+	Xs := make([][]float32, 0)
+	Ys := make([]int8, 0)
+
 	for _, batchPath := range batchFiles[:2] {
 		batchFile, err := os.Open(batchPath)
 		if err != nil {
@@ -124,33 +142,79 @@ func getDataSet(ctx shapes.Context) ([]imageLabelPair, []imageLabelPair, []image
 			panic(err)
 		}
 
-		allTrain = append(allTrain, getTensors(ctx, batchFile)...)
+		imagesinBatchFile, labelsInBatchFile := getImagesAndlabels(ctx, batchFile)
+		Xs = append(Xs, imagesinBatchFile...)
+		Ys = append(Ys, labelsInBatchFile...)
 
 		if err := batchFile.Close(); err != nil {
 			err := fmt.Errorf("could not close cifar_10 file %q: %w", batchPath, err)
 			panic(err)
 		}
 	}
-	test := getTensors(ctx, testFile)
 
-	// 80/20 train/validation split
-	trainSize := int(float64(len(allTrain)) * 0.8)
-	train := allTrain[:trainSize]
-	validation := allTrain[trainSize:]
+	testImages, testLabels := getImagesAndlabels(ctx, testBatchFile)
 
-	scanner := bufio.NewScanner(labelsFile)
-
-	labels := make([]string, 0)
+	scanner := bufio.NewScanner(labelsDataFile)
+	labelData := make([]string, 0)
 	for scanner.Scan() {
 		text := scanner.Text()
 
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
-		labels = append(labels, text)
+
+		labelData = append(labelData, text)
 	}
 
-	return train, validation, test, labels
+	ds := datasetRaw{Xtrain: Xs, Ytrain: Ys, Xtest: testImages, Ytest: testLabels}
+	return ds, labelData
+}
+
+func shuffleAndBatchDataSet(ctx shapes.Context, dsRaw datasetRaw, params trainingParams) dataset {
+	// Shuffle train and test
+	fmt.Printf("Shuffling dataset...\n")
+	shuffledDs := dsRaw
+
+	ctx = ctx.BackwardDisabled()
+
+	rand.Shuffle(len(shuffledDs.Xtrain), func(i, j int) {
+		shuffledDs.Xtrain[i], shuffledDs.Xtrain[j] = shuffledDs.Xtrain[i], shuffledDs.Xtrain[j]
+		shuffledDs.Ytrain[i], shuffledDs.Ytrain[j] = shuffledDs.Ytrain[i], shuffledDs.Ytrain[j]
+	})
+
+	fmt.Printf("Chunking dataset...\n")
+	XtrainChunked, YtrainChunked := slices.Chunk(shuffledDs.Xtrain, params.batchSize), slices.Chunk(shuffledDs.Ytrain, params.batchSize)
+	_, _ = slices.Chunk(shuffledDs.Xtest, params.batchSize), slices.Chunk(shuffledDs.Ytest, params.batchSize)
+
+	Xtrain := make([]shapes.Tensor, 0)
+	Ytrain := make([]shapes.Tensor, 0)
+
+	Xtest := make([]shapes.Tensor, 0)
+	Ytest := make([]shapes.Tensor, 0)
+
+	fmt.Printf("Building batches... Xtrain\n")
+	for chunk := range XtrainChunked {
+		Xtrain = append(Xtrain, shapes.FromFloat32(ctx, shapes.Shape{uint(len(chunk)), 32, 32, 3}, slices.Concat(chunk...)))
+	}
+
+	fmt.Printf("Building batches... Ytrain\n")
+	for chunk := range YtrainChunked {
+		Ytrain = append(Ytrain, shapes.FromInt8(ctx, chunk))
+	}
+
+	// fmt.Printf("Building batches... Xtest\n")
+	// for chunk := range XtestChunked {
+	// 	Xtest = append(Xtest, shapes.Stack(ctx, 0, chunk...))
+	// }
+	//
+	// fmt.Printf("Building batches... Ytest\n")
+	// for chunk := range YtestChunked {
+	// 	Ytest = append(Ytest, shapes.Stack(ctx, 0, chunk...))
+	// }
+
+	fmt.Printf("Train batches: %d, Test batches %d\n", len(Xtrain), len(Xtest))
+
+	return dataset{Xtrain: Xtrain, Ytrain: Ytrain, Xtest: Xtest, Ytest: Ytest}
 }
 
 // Model
@@ -192,15 +256,6 @@ func linearBlock(ctx shapes.Context, numLabels int) *layer.Sequential {
 		activation.Relu(),
 		layer.Dense(ctx, 256, numLabels),
 	)
-}
-
-func makeIndexTensor(ctx shapes.Context, indices []int) shapes.Tensor {
-	batchIndices := make([]int64, len(indices))
-	for i, idx := range indices {
-		batchIndices[i] = int64(idx)
-	}
-
-	return shapes.FromInt64(ctx, shapes.Shape{uint(len(indices))}, batchIndices)
 }
 
 func modelForward(
@@ -263,33 +318,32 @@ func computeAndSetValidationMetrics(
 
 func runTraining(
 	trainingCtx shapes.SubContext,
-	trainSize int,
-	hyperParams trainingParams,
-	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
-	X shapes.Tensor,
-	Y shapes.Tensor,
-	optimizerStep func(ctx shapes.Context, cg shapes.ComputationGraph),
 	model *layer.Sequential,
-	XVal, YVal shapes.Tensor,
+	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
+	optimizerStep func(ctx shapes.Context, cg shapes.ComputationGraph),
+	hyperParams trainingParams,
+
+	ds dataset,
 	labels []string,
 ) {
 
 	defer trainingCtx.Finish()
 
 	for epochNum := range hyperParams.epochs {
-		perm := rand.Perm(trainSize)
-		epochLoss := 0.0
+		totalEpochLoss := 0.0
 		epochCtx := trainingCtx.Epoch(epochNum + 1)
-		permTensor := makeIndexTensor(epochCtx, perm)
 
-		for batchStart := 0; batchStart < trainSize; batchStart += hyperParams.batchSize {
-			batchEnd := min(batchStart+hyperParams.batchSize, trainSize)
+		for batchNum := range len(ds.Xtrain) {
 			stepCtx := epochCtx.Fused().(shapes.EpochContext).Step()
-			ix := permTensor.Slice(stepCtx, shapes.Range{uint(batchStart), uint(batchEnd)})
-			batch := X.Get(stepCtx, ix)
-			logits := modelForward(stepCtx, model, batch.F32(stepCtx))
 
-			yBatch := Y.Get(stepCtx, ix)
+			if stepCtx.CurrentStep() > 10 {
+			}
+
+			Xbatch := ds.Xtrain[batchNum]
+
+			logits := modelForward(stepCtx, model, Xbatch)
+
+			yBatch := ds.Ytrain[batchNum]
 			yOneHot := shapes.OneHot(stepCtx, yBatch, uint(len(labels))).Squeeze(stepCtx)
 			loss := crossEnthropy(yOneHot, logits)
 
@@ -299,15 +353,15 @@ func runTraining(
 
 			if stepCtx.CurrentStep()%100 == 0 {
 				lossScalar := loss.Get(stepCtx, 0).Item().(float32)
-				epochLoss += float64(lossScalar) * float64(batchEnd-batchStart)
+				totalEpochLoss += float64(lossScalar)
 				fmt.Printf("Loss: %v, Step: %d \n", lossScalar, stepCtx.CurrentStep())
-				go stepCtx.SetStepLoss(float64(lossScalar))
+				stepCtx.SetStepLoss(float64(lossScalar))
 			}
 
 			stepCtx.Finish()
 		}
 
-		epochCtx.SetLoss(epochLoss / float64(trainSize))
+		epochCtx.SetLoss(totalEpochLoss / (float64(hyperParams.epochs) / 100))
 		epochCtx.Finish()
 		// computeAndSetValidationMetrics(epochCtx, hyperParams, XVal, YVal, labels, model, crossEnthropy)
 	}
@@ -318,77 +372,47 @@ func Vgg_cifar10() {
 	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
 	// defer cpuCtx.Finish()
 
-	train, _, test, labels := getDataSet(cpuCtx)
+	datasetRaw, labelData := getDataSet(cpuCtx)
 	hyperParams := getTrainingParams()
+	ds := shuffleAndBatchDataSet(cudaCtx, datasetRaw, hyperParams)
 
-	fmt.Printf("There are %d training images\n", len(train))
-	fmt.Printf("There are %d test images\n", len(test))
+	// imageArtefacts := make([]visual.Artefact, 0)
+	// rows := make([]visual.Artefact, 0)
 
-	imageArtefacts := make([]visual.Artefact, 0)
-	rows := make([]visual.Artefact, 0)
-
-	for idx, ilp := range train {
-		img := visual.Flex(
-			visual.FlexOptions{
-				Children: []visual.Artefact{
-					visual.Image(visual.ImageOptions{
-						Tensor:   ilp.imageData,
-						Context:  cpuCtx,
-						MaxWidth: 32,
-					}),
-					visual.Text(labels[ilp.label]),
-				},
-			},
-		)
-
-		imageArtefacts = append(imageArtefacts, img)
-
-		if idx%1 == 0 {
-			rows = append(
-				rows,
-				visual.Flex(visual.FlexOptions{
-					Direction: visual.DirectionRow,
-					Children:  imageArtefacts,
-				}),
-			)
-			imageArtefacts = make([]visual.Artefact, 0)
-		}
-	}
-
-	_ = visual.Flex(visual.FlexOptions{
-		Direction: visual.DirectionColumn,
-		Children:  rows[5:10],
-	})
+	// for idx, ilp := range dataset.Xtrain {
+	// 	img := visual.Flex(
+	// 		visual.FlexOptions{
+	// 			Children: []visual.Artefact{
+	// 				visual.Image(visual.ImageOptions{
+	// 					Tensor:   ilp.imageData,
+	// 					Context:  cpuCtx,
+	// 					MaxWidth: 32,
+	// 				}),
+	// 				visual.Text(labels[ilp.label]),
+	// 			},
+	// 		},
+	// 	)
+	//
+	// 	imageArtefacts = append(imageArtefacts, img)
+	//
+	// 	if idx%1 == 0 {
+	// 		rows = append(
+	// 			rows,
+	// 			visual.Flex(visual.FlexOptions{
+	// 				Direction: visual.DirectionRow,
+	// 				Children:  imageArtefacts,
+	// 			}),
+	// 		)
+	// 		imageArtefacts = make([]visual.Artefact, 0)
+	// 	}
+	// }
+	//
+	// _ = visual.Flex(visual.FlexOptions{
+	// 	Direction: visual.DirectionColumn,
+	// 	Children:  rows[5:10],
+	// })
 
 	// visual.RenderAt(os.Stdout, flex, visual.Point{}, visual.Area{Width: 40, Height: 80})
-
-	trainImgs := make([]shapes.Tensor, 0)
-	trainLabels := make([]shapes.Tensor, 0)
-	for i, pair := range train {
-		if pair.imageData == nil {
-			err := fmt.Sprintf("Imagedata %d is nil", i)
-			panic(err)
-		}
-		trainImgs = append(trainImgs, pair.imageData)
-		trainLabels = append(trainLabels, shapes.UInt8(cpuCtx, shapes.Shape{1}, uint8(pair.label)))
-	}
-
-	valImgs := make([]shapes.Tensor, 0)
-	valLabels := make([]shapes.Tensor, 0)
-	for i, pair := range test {
-		if pair.imageData == nil {
-			err := fmt.Sprintf("Test imagedata %d is nil", i)
-			panic(err)
-		}
-		valImgs = append(valImgs, pair.imageData)
-		valLabels = append(valLabels, shapes.UInt8(cpuCtx, shapes.Shape{1}, uint8(pair.label)))
-	}
-
-	XVal := shapes.Stack(cpuCtx, 0, valImgs...)
-	YVal := shapes.Stack(cpuCtx, 0, valLabels...)
-
-	X := shapes.Stack(cudaCtx, 0, trainImgs...)
-	Y := shapes.Stack(cudaCtx, 0, trainLabels...)
 
 	optimerStep := optimizer.SGD(hyperParams.learningRate)
 	crossEnthropy := loss_fns.CrossEntropy(cudaCtx)
@@ -396,28 +420,26 @@ func Vgg_cifar10() {
 	model := layer.NewSequential(
 		cudaCtx,
 		convBlock(cudaCtx),
-		linearBlock(cudaCtx, len(labels)),
+		linearBlock(cudaCtx, len(labelData)),
 	)
-	fmt.Printf("Training start...\n")
-	stepsPerEpoch := (len(train) + hyperParams.batchSize - 1) / hyperParams.batchSize
+
+	fmt.Printf("\nTraining start...\n")
 
 	trainingCtx := cudaCtx.Training(
 		hyperParams.epochs,
-		shapes.WithNumSteps(stepsPerEpoch),
+		shapes.WithNumSteps(len(ds.Xtrain)),
 		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
 
 	runTraining(
 		trainingCtx,
-		len(train),
-		hyperParams,
-		crossEnthropy,
-		X, Y,
-		optimerStep,
 		model,
-		XVal,
-		YVal,
-		labels,
+		crossEnthropy,
+		optimerStep,
+		hyperParams,
+
+		ds,
+		labelData,
 	)
 
 }

@@ -77,29 +77,11 @@ static void insertFreeBlock(Memory *memory, blockheader *header) {
     return;
   }
 
-  size_t current = memory->freeHeadOffset;
-  size_t prev = INVALID_OFFSET;
-
-  while (current != INVALID_OFFSET) {
-    if (current > offset) {
-      break;
-    }
-    prev = current;
-    current = HEADER_AT(memory, current)->nextFreeOffset;
-  }
-
-  header->prevFreeOffset = prev;
-  header->nextFreeOffset = current;
-
-  if (prev != INVALID_OFFSET) {
-    HEADER_AT(memory, prev)->nextFreeOffset = offset;
-  } else {
-    memory->freeHeadOffset = offset;
-  }
-
-  if (current != INVALID_OFFSET) {
-    HEADER_AT(memory, current)->prevFreeOffset = offset;
-  }
+  size_t currentHeadOffset = memory->freeHeadOffset;
+  blockheader *currentHead = HEADER_AT(memory, currentHeadOffset);
+  header->nextFreeOffset = currentHeadOffset;
+  currentHead->prevFreeOffset = offset;
+  memory->freeHeadOffset = offset;
 }
 
 

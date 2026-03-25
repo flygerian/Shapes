@@ -17,37 +17,7 @@ static Memory *getTensorMetadataMemory(Context *ctx, Tensor *t) {
   return NULL;
 }
 
-Result FreeTensors(Context *ctx, Tensor **tensors, int numTensors) {
-  if (tensors == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  for (int i=0; i<numTensors; i++) {
-    Tensor *t = tensors[i];
-
-    if (t == NULL) {
-      return ERR_NULL_TENSOR_PROVIDED;
-    }
-    
-    if (t->isView) {
-      Result res = FreeViewTensor(ctx, t);
-      if (res != OK) {
-        return res;
-      }
-
-      continue;
-    }
-
-    Result res = FreeTensor(ctx, t);
-    if (res != OK) {
-      return res;
-    }
-  }
-
-  return OK;
-}
-
-Result FreeViewTensor(Context *ctx, Tensor *t) {
+static Result freeViewTensorInternal(Context *ctx, Tensor *t) {
   if (t == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -68,7 +38,7 @@ Result FreeViewTensor(Context *ctx, Tensor *t) {
   return OK;
 }
 
-Result FreeTensor(Context *ctx, Tensor *t) {
+static Result freeTensorInternal(Context *ctx, Tensor *t) {
   if (t == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -93,6 +63,44 @@ Result FreeTensor(Context *ctx, Tensor *t) {
 
   freeAlloc(metadataMemory, t);
   return OK;
+}
+
+Result FreeTensors(Context *ctx, Tensor **tensors, int numTensors) {
+  if (tensors == NULL) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  for (int i = 0; i < numTensors; i++) {
+    Tensor *t = tensors[i];
+
+    if (t == NULL) {
+      return ERR_NULL_TENSOR_PROVIDED;
+    }
+
+    if (t->isView) {
+      Result res = freeViewTensorInternal(ctx, t);
+      if (res != OK) {
+        return res;
+      }
+
+      continue;
+    }
+
+    Result res = freeTensorInternal(ctx, t);
+    if (res != OK) {
+      return res;
+    }
+  }
+
+  return OK;
+}
+
+Result FreeViewTensor(Context *ctx, Tensor *t) {
+  return freeViewTensorInternal(ctx, t);
+}
+
+Result FreeTensor(Context *ctx, Tensor *t) {
+  return freeTensorInternal(ctx, t);
 }
 
 Result freeTensorBuffers(Context *ctx, Tensor *t) {
