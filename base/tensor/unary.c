@@ -5,6 +5,7 @@
 #include "tensor_internal.h"
 #include "unary.h"
 #include "value.h"
+#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -85,6 +86,73 @@ static DeviceType getUnaryDispatchDevice(Context *ctx) {
   }
 
   return ctx->device->type;
+}
+
+static const char *unaryDeviceTypeName(DeviceType type) {
+  switch (type) {
+    case CPU: return "CPU";
+    case CUDA: return "CUDA";
+    default: return "UNKNOWN";
+  }
+}
+
+static const char *unaryContextDeviceName(Context *ctx) {
+  if (ctx == NULL || ctx->device == NULL) {
+    return "CPU(default)";
+  }
+
+  return unaryDeviceTypeName(ctx->device->type);
+}
+
+static const char *unaryDtypeName(Dtype dtype) {
+  switch (dtype) {
+    case F16: return "F16";
+    case F32: return "F32";
+    case F64: return "F64";
+    case U8: return "U8";
+    case U16: return "U16";
+    case U32: return "U32";
+    case U64: return "U64";
+    case I8: return "I8";
+    case I16: return "I16";
+    case I32: return "I32";
+    case I64: return "I64";
+    case BOOL: return "BOOL";
+    default: return "UNKNOWN";
+  }
+}
+
+static const char *unaryResultName(Result result) {
+  switch (result) {
+    case OK: return "OK";
+    case ERR_NO_OP: return "ERR_NO_OP";
+    case ERR_NULL_TENSOR_PROVIDED: return "ERR_NULL_TENSOR_PROVIDED";
+    case ERR_RELU_VALUE_NOT_FLOAT: return "ERR_RELU_VALUE_NOT_FLOAT";
+    default: return "UNKNOWN_RESULT";
+  }
+}
+
+static bool shouldLogRelu(void) {
+  const char *value = getenv("SHAPES_LOG_RELU");
+  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+static void logReluTensorState(const char *phase, Context *ctx, Tensor *t, Result result) {
+  if (!shouldLogRelu()) {
+    return;
+  }
+
+  Context *tensorCtx = t != NULL ? t->context : NULL;
+  const char *dtypeName = t != NULL ? unaryDtypeName(t->dtype) : "NULL";
+  unsigned long long size = t != NULL ? (unsigned long long)t->size : 0ULL;
+  int contiguous = t != NULL && t->isContigous ? 1 : 0;
+
+  fprintf(stderr,
+          "[Relu] phase=%s ctx=%p ctxDevice=%s tensorCtx=%p tensorDevice=%s dtype=%s "
+          "size=%llu contiguous=%d result=%s(%d)\n",
+          phase, (void *)ctx, unaryContextDeviceName(ctx), (void *)tensorCtx,
+          unaryContextDeviceName(tensorCtx), dtypeName, size, contiguous, unaryResultName(result),
+          (int)result);
 }
 
 static Result validateUnaryOpTensor(Tensor *t) {
@@ -188,6 +256,14 @@ static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
 static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
   TensorArg inputArg = {0};
   Result result = materializeTensorOnContext(ctx, t, true, &inputArg);
+  if (opType == UNARY_OP_RELU && shouldLogRelu()) {
+    fprintf(stderr,
+            "[Relu] phase=materialize backend=CPU inputCtx=%p inputDevice=%s ownsTensor=%d "
+            "result=%s(%d)\n",
+            (void *)(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
+            unaryContextDeviceName(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
+            inputArg.ownsTensor ? 1 : 0, unaryResultName(result), (int)result);
+  }
   if (result != OK) {
     return result;
   }
@@ -219,6 +295,14 @@ static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opTy
 static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
   TensorArg inputArg = {0};
   Result result = materializeTensorOnContext(ctx, t, true, &inputArg);
+  if (opType == UNARY_OP_RELU && shouldLogRelu()) {
+    fprintf(stderr,
+            "[Relu] phase=materialize backend=CUDA inputCtx=%p inputDevice=%s ownsTensor=%d "
+            "result=%s(%d)\n",
+            (void *)(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
+            unaryContextDeviceName(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
+            inputArg.ownsTensor ? 1 : 0, unaryResultName(result), (int)result);
+  }
   if (result != OK) {
     return result;
   }
@@ -228,6 +312,9 @@ static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opT
 
   result = runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size,
                           param);
+  if (opType == UNARY_OP_RELU) {
+    logReluTensorState("cuda_kernel", ctx, input, result);
+  }
   if (result != OK) {
     FreeTensor(ctx, output);
     releaseTensorArg(ctx, &inputArg);
@@ -242,6 +329,11 @@ static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opT
 }
 
 static Result dispatchUnaryOp(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+  if (opType == UNARY_OP_RELU && shouldLogRelu()) {
+    fprintf(stderr, "[Relu] phase=dispatch device=%s\n",
+            unaryDeviceTypeName(getUnaryDispatchDevice(ctx)));
+  }
+
   switch (getUnaryDispatchDevice(ctx)) {
     case CUDA: return unaryOpCuda(ctx, t, dest, opType, param);
     case CPU:
@@ -268,12 +360,20 @@ Result Tanh(Context *ctx, Tensor *t, Tensor *dest) {
 }
 
 Result Relu(Context *ctx, Tensor *t, Tensor *dest) {
+  logReluTensorState("entry", ctx, t, OK);
+
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
   if (result != OK) {
+    logReluTensorState("validate", ctx, t, result);
     return result;
   }
 
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_RELU, 0.0f);
+  result = dispatchUnaryOp(ctx, t, dest, UNARY_OP_RELU, 0.0f);
+  if (shouldLogRelu()) {
+    fprintf(stderr, "[Relu] phase=return result=%s(%d)\n", unaryResultName(result), (int)result);
+  }
+
+  return result;
 }
 
 Result Negate(Context *ctx, Tensor *t, Tensor *dest) {

@@ -48,10 +48,10 @@ type trainingParams struct {
 
 func getTrainingParams() trainingParams {
 	return trainingParams{
-		batchSize:    64,
+		batchSize:    16,
 		learningRate: 1e-2,
 		inputShape:   shapes.Shape{32, 32, 3},
-		epochs:       2,
+		epochs:       14,
 	}
 }
 
@@ -319,7 +319,7 @@ func computeAndSetValidationMetrics(
 func runTraining(
 	trainingCtx shapes.SubContext,
 	model *layer.Sequential,
-	crossEnthropy func(yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
+	crossEnthropy func(ctx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor,
 	optimizerStep func(ctx shapes.Context, cg shapes.ComputationGraph),
 	hyperParams trainingParams,
 
@@ -345,7 +345,7 @@ func runTraining(
 
 			yBatch := ds.Ytrain[batchNum]
 			yOneHot := shapes.OneHot(stepCtx, yBatch, uint(len(labels))).Squeeze(stepCtx)
-			loss := crossEnthropy(yOneHot, logits)
+			loss := crossEnthropy(stepCtx, yOneHot, logits)
 
 			graph := loss.Backward(stepCtx)
 			optimizerStep(stepCtx, graph)
@@ -415,7 +415,7 @@ func Vgg_cifar10() {
 	// visual.RenderAt(os.Stdout, flex, visual.Point{}, visual.Area{Width: 40, Height: 80})
 
 	optimerStep := optimizer.SGD(hyperParams.learningRate)
-	crossEnthropy := loss_fns.CrossEntropy(cudaCtx)
+	crossEnthropy := loss_fns.CrossEntropy()
 
 	model := layer.NewSequential(
 		cudaCtx,

@@ -2,6 +2,26 @@
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static bool shouldLogCudaRelu(void) {
+  const char *value = getenv("SHAPES_LOG_RELU");
+  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+static void logCudaReluError(const char *phase, cudaError_t error, size_t n, int blocks,
+                             int threadsPerBlock) {
+  if (!shouldLogCudaRelu()) {
+    return;
+  }
+
+  fprintf(stderr,
+          "[Relu][CUDA] phase=%s n=%llu blocks=%d threads=%d cudaError=%s detail=%s code=%d\n",
+          phase, (unsigned long long)n, blocks, threadsPerBlock, cudaGetErrorName(error),
+          cudaGetErrorString(error), (int)error);
+}
 
 template <typename T>
 __device__ static T applyUnaryOp(T value, UnaryOpType opType, float param) {
@@ -40,11 +60,23 @@ static Result launchUnaryOpKernel(const void *src, void *dest, size_t n, UnaryOp
                                   float param) {
   int threadsPerBlock = 256;
   int blocks = (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
+  cudaError_t pendingError = cudaPeekAtLastError();
+  if (opType == UNARY_OP_RELU && pendingError != cudaSuccess) {
+    logCudaReluError("prelaunch_pending_error", pendingError, n, blocks, threadsPerBlock);
+  }
+
   unaryOpKernel<<<blocks, threadsPerBlock>>>((const T *)src, (T *)dest, n, opType, param);
 
   cudaError_t launchError = cudaGetLastError();
   if (launchError != cudaSuccess) {
+    if (opType == UNARY_OP_RELU) {
+      logCudaReluError("launch_error", launchError, n, blocks, threadsPerBlock);
+    }
     return ERR_NO_OP;
+  }
+
+  if (opType == UNARY_OP_RELU && shouldLogCudaRelu()) {
+    logCudaReluError("launch_ok", launchError, n, blocks, threadsPerBlock);
   }
 
   return OK;

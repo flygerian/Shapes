@@ -581,7 +581,6 @@ func (sc *subContext) Finish(options ...subContextOption) {
 			panic("shapes: " + resultString(uint32(result)))
 		}
 	}
-
 	sc.cleanup()
 	if sc.sweepAfterFinish {
 		sc.parent.Sweep()
@@ -900,7 +899,6 @@ func epoch(c Context, epochNum int, options ...subContextOption) EpochContext {
 	if epochNum < 1 {
 		panic("Epoch number cannot be less than 1")
 	}
-
 	if !c.GradEnabled() || !c.BackwardEnabled() {
 		panic("Cannot create epoch context when gradients or backward are disabled")
 	}

@@ -94,7 +94,7 @@ func MakeMore_5() {
 	bn2 := layer.BatchNorm(shapesCtx, 100)
 	optimizerStep := optimizer.Adam(shapesCtx, optimizer.WithLearningRate(0.0001))
 
-	crossEnthropy := loss_fns.CrossEntropy(shapesCtx)
+	crossEnthropy := loss_fns.CrossEntropy()
 
 	forward := func(ctx shapes.EpochContext, xBatch shapes.Tensor) shapes.Tensor {
 		h := l1.Forward(ctx, xBatch.Reshape(ctx, int(xBatch.Shape()[0]), -1))
@@ -131,7 +131,7 @@ func MakeMore_5() {
 		yOneHot := shapes.OneHot(epochCtx, yBatch, 27)
 		logits := forward(epochCtx, emb)
 
-		lossValue := crossEnthropy(yOneHot, logits)
+		lossValue := crossEnthropy(epochCtx, yOneHot, logits)
 
 		lossScalar := lossValue.Get(epochCtx, 0).Item().(float32)
 
