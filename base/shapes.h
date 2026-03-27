@@ -64,6 +64,8 @@ Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
 Result Exp(Context *ctx, Tensor *t, Tensor *dest);
 Result Tanh(Context *ctx, Tensor *t, Tensor *dest);
 Result Relu(Context *ctx, Tensor *t, Tensor *dest);
+Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
+Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
 Result Negate(Context *ctx, Tensor *t, Tensor *dest);
 Result Log(Context *ctx, Tensor *t, Tensor *dest);
 Result Abs(Context *ctx, Tensor *t, Tensor *dest);

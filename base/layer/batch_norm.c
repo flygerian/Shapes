@@ -80,6 +80,10 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     f64 *varianceAcrossBatch = variance->values;
 
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * numFeatures);
+    if (invStd == NULL) {
+      res = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
 
     // Initialize per-feature accumulators.
     for (tensor_size_t j = 0; j < numFeatures; j++) {
@@ -132,6 +136,10 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     f32 *meanAcrossBatch = mean->values;
     f32 *varianceAcrossBatch = variance->values;
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * numFeatures);
+    if (invStd == NULL) {
+      res = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
 
     // Initialize per-feature accumulators.
     for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
@@ -263,6 +271,26 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHat = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHatXHat = allocate(ctx->memory, sizeof(f64) * n);
+    if (mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL ||
+        sumDXHatXHat == NULL) {
+      if (sumDXHatXHat != NULL) {
+        freeAlloc(ctx->memory, sumDXHatXHat);
+      }
+      if (sumDXHat != NULL) {
+        freeAlloc(ctx->memory, sumDXHat);
+      }
+      if (invStd != NULL) {
+        freeAlloc(ctx->memory, invStd);
+      }
+      if (var != NULL) {
+        freeAlloc(ctx->memory, var);
+      }
+      if (mean != NULL) {
+        freeAlloc(ctx->memory, mean);
+      }
+      res = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
 
     // Recompute batch stats used by batch norm (matching forward training path).
     for (tensor_size_t j = 0; j < n; j++) {
@@ -353,6 +381,26 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHat = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHatXHat = allocate(ctx->memory, sizeof(f32) * n);
+    if (mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL ||
+        sumDXHatXHat == NULL) {
+      if (sumDXHatXHat != NULL) {
+        freeAlloc(ctx->memory, sumDXHatXHat);
+      }
+      if (sumDXHat != NULL) {
+        freeAlloc(ctx->memory, sumDXHat);
+      }
+      if (invStd != NULL) {
+        freeAlloc(ctx->memory, invStd);
+      }
+      if (var != NULL) {
+        freeAlloc(ctx->memory, var);
+      }
+      if (mean != NULL) {
+        freeAlloc(ctx->memory, mean);
+      }
+      res = ERR_OUT_OF_MEMORY;
+      goto cleanup;
+    }
 
     // Recompute batch stats used by batch norm (matching forward training path).
     for (tensor_size_t j = 0; j < n; j++) {

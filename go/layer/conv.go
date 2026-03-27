@@ -104,6 +104,8 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	bias := hidden[1]
 	meta := out.Metadata().(convMetadata)
 
+	ctx.Mark(meta.colBuffer)
+
 	dOutput := out.Grad() // (B, oH, oW, C)
 	var dBias shapes.Tensor
 	if meta.withBias {

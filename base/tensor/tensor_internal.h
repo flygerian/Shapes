@@ -18,11 +18,18 @@ typedef struct {
   bool ownsTensor;
 } TensorArg;
 
+static inline Result ensureAllocated(const void *ptr) {
+  return ptr != NULL ? OK : ERR_OUT_OF_MEMORY;
+}
+
 static inline Tensor singleValueTensor(Context *ctx, Value value) {
   size_t valueBytes = getBytesForDtype(value.dtype);
   void *values = allocateOnCtx(ctx, valueBytes);
   if (values != NULL) {
-    copyBetweenContexts(NULL, ctx, &value.as, values, valueBytes);
+    if (copyBetweenContexts(NULL, ctx, &value.as, values, valueBytes) != OK) {
+      freeOnCtx(ctx, values);
+      values = NULL;
+    }
   }
 
   return (Tensor){.context = ctx,
@@ -102,6 +109,10 @@ Result runCudaBinaryOp(Context *ctx, Dtype dtype, OpType opType, const void *a, 
                        void *dest, tensor_size_t n);
 Result runCudaUnaryOp(Context *ctx, Dtype dtype, UnaryOpType opType, const void *src, void *dest,
                       tensor_size_t n, f32 param);
+Result runCudaReluBackward(Context *ctx, Dtype dtype, const void *output, const void *gradOut,
+                           void *dest, tensor_size_t n);
+Result runCudaReluBackwardAccumulate(Context *ctx, Dtype dtype, const void *output,
+                                     const void *gradOut, void *dest, tensor_size_t n);
 Result runCudaReduceDim(Context *ctx, Dtype inputDtype, Dtype outputDtype, ReductionOpType opType,
                         const void *src, void *dest, tensor_size_t numBeforeDim,
                         tensor_size_t numAfterDim, dim_t reduce);

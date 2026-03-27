@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "result/result.h"
 #include "shapes.h"
+#include "tensor/tensor_internal.h"
 #include <cuda_runtime_api.h>
 #include <driver_types.h>
 #include <stdarg.h>
@@ -187,7 +188,6 @@ void *allocateOnCtx(Context *ctx, size_t size) {
     case CUDA: {
       size_t roundedSize = roundCudaAllocationSize(size);
       CudaCachedBlock *reusedBlock = detachReusableCudaBlock(&ctx->device->cachedBlocks, roundedSize);
-
       if (reusedBlock != NULL) {
         pushCudaBlock(&ctx->device->activeBlocks, reusedBlock);
         return reusedBlock->ptr;

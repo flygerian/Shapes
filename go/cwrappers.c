@@ -222,6 +222,17 @@ Result wrap_Relu(Context *ctx, Tensor *t, Tensor **out) {
   return r;
 }
 
+Result wrap_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = ReluBackward(ctx, output, gradOut, dest);
+  *out = dest;
+  return r;
+}
+
+Result wrap_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+  return ReluBackwardAccumulate(ctx, output, gradOut, dest);
+}
+
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = Negate(ctx, t, dest);

@@ -95,6 +95,10 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   Tensor *sentinel = batchSizeA >= batchSizeB ? opA : opB;
   Dim newDim = (Dim){.dims = allocate(ctx->memory, sizeof(dim_t) * sentinel->shape.numOfDims),
                      .numOfDims = sentinel->shape.numOfDims};
+  r = ensureAllocated(newDim.dims);
+  if (r != OK) {
+    goto cleanup;
+  }
   r = getDimsBefore(ctx, sentinel, batchDimIdx, &newDim);
   if (r != OK)
     goto cleanup;
@@ -103,7 +107,19 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   newDim.dims[newDim.numOfDims - 1] = n;
 
   newDim.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * newDim.numOfDims);
+  r = ensureAllocated(newDim.multipliers);
+  if (r != OK) {
+    freeAlloc(ctx->memory, newDim.dims);
+    goto cleanup;
+  }
   tensor_size_t size = calculateNumValuesAndMultipliers(newDim, newDim.multipliers);
+  void *values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * size);
+  r = ensureAllocated(values);
+  if (r != OK) {
+    freeAlloc(ctx->memory, newDim.multipliers);
+    freeAlloc(ctx->memory, newDim.dims);
+    goto cleanup;
+  }
 
   *result = (Tensor){.context = ctx,
                      .metadataMemory = ctx != NULL ? ctx->memory : NULL,
@@ -112,7 +128,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .isView = false,
                      .shape = newDim,
                      .size = size,
-                     .values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * size)};
+                     .values = values};
 
   size_t elemSize = getBytesForDtype(opA->dtype);
   for (tensor_size_t i = 0; i < batchSize; i++) {
@@ -174,11 +190,32 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   Tensor *opB = bArg.tensor;
 
   dim_t *resDims = allocate(ctx->memory, sizeof(dim_t));
+  Result allocRes = ensureAllocated(resDims);
+  if (allocRes != OK) {
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    return allocRes;
+  }
   resDims[0] = 1;
   multiplier_t *resMult = allocate(ctx->memory, sizeof(multiplier_t));
+  allocRes = ensureAllocated(resMult);
+  if (allocRes != OK) {
+    freeAlloc(ctx->memory, resDims);
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    return allocRes;
+  }
   resMult[0] = 1;
 
   void *resVal = allocateOnCtx(ctx, getBytesForDtype(a->dtype));
+  allocRes = ensureAllocated(resVal);
+  if (allocRes != OK) {
+    freeAlloc(ctx->memory, resMult);
+    freeAlloc(ctx->memory, resDims);
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    return allocRes;
+  }
 
   BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
 

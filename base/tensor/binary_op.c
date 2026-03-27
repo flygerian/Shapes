@@ -505,6 +505,12 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
   }
 
   Tensor *output = t_Zeros(ctx, outputShape, outputDtype);
+  if (output == NULL) {
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return ERR_OUT_OF_MEMORY;
+  }
 
   if (areTensorsSameShape(opA, opB)) {
     res = straightBinop(opA, opB, output, opType);
@@ -576,6 +582,12 @@ static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destinati
   }
 
   Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
+  if (output == NULL) {
+    releaseTensorArg(ctx, &aArg);
+    releaseTensorArg(ctx, &bArg);
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return ERR_OUT_OF_MEMORY;
+  }
   res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
                         output->size);
   if (res == OK) {
@@ -807,6 +819,10 @@ Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *dest
   // Pow writes into dest by assigning a newly allocated tensor payload. Allocate only the
   // container struct here so we don't leak a preallocated payload on overwrite.
   Tensor *denom_inv = allocate(ctx->memory, sizeof(Tensor));
+  Result allocRes = ensureAllocated(denom_inv);
+  if (allocRes != OK) {
+    return allocRes;
+  }
   Result res = Pow(ctx, denominator, -1.0f, denom_inv);
   if (res != OK) {
     freeAlloc(ctx->memory, denom_inv);

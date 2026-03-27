@@ -65,6 +65,8 @@ func maxPoolBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	meta := out.Metadata().(maxPoolMetadata)
 	dX := shapes.MaxPool2dBackwardWithIndices(backwardCtx, x, out.Grad().(shapes.Tensor), meta.indices)
 	x.Grad().Accumulate(backwardCtx, dX)
+
+	backwardCtx.Mark(meta.indices)
 }
 
 func AdaptiveAvgPool(ctx shapes.Context, outputSize shapes.Shape) *adaptiveAvgPool {

@@ -32,6 +32,9 @@ static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype
   }
 
   Value *sum = allocate(m, sizeof(Value));
+  if (sum == NULL) {
+    return NULL;
+  }
   *sum = VALUE(dtype, 0);
   for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
     VALUE_BINOP(*sum, *sum, sums[y], +);
@@ -114,10 +117,24 @@ static Result initReducedTensor(Context *ctx, Tensor *source, Tensor *dest, dim_
   Dim shape = {.numOfDims = source->shape.numOfDims,
                .dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
                .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
+  Result allocRes = ensureAllocated(shape.dims);
+  if (allocRes != OK) {
+    return allocRes;
+  }
+  allocRes = ensureAllocated(shape.multipliers);
+  if (allocRes != OK) {
+    freeAlloc(ctx->memory, shape.dims);
+    return allocRes;
+  }
   memcpy(shape.dims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
   shape.dims[dim] = 1;
   calculateNumValuesAndMultipliers(shape, shape.multipliers);
-  return initTensor(ctx, dest, shape, outputDtype);
+  Result initRes = initTensor(ctx, dest, shape, outputDtype);
+  if (initRes != OK) {
+    freeAlloc(ctx->memory, shape.multipliers);
+    freeAlloc(ctx->memory, shape.dims);
+  }
+  return initRes;
 }
 
 static Result materializeReductionInput(Context *ctx, Tensor *t, TensorArg *arg) {
@@ -185,6 +202,10 @@ static Result meanCpu(Context *ctx, Tensor *t, Tensor *dest) {
 
   Value *tensorSum = contigousSum(ctx->memory, inputArg.tensor->values, inputArg.tensor->size,
                                   inputArg.tensor->dtype);
+  if (tensorSum == NULL) {
+    releaseTensorArg(ctx, &inputArg);
+    return ERR_OUT_OF_MEMORY;
+  }
   Value size = VALUE(inputArg.tensor->dtype, inputArg.tensor->size);
   Value mean = VALUE(inputArg.tensor->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
@@ -261,6 +282,10 @@ static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
 
   Value *tensorSum = contigousSum(ctx->memory, inputArg.tensor->values, inputArg.tensor->size,
                                   inputArg.tensor->dtype);
+  if (tensorSum == NULL) {
+    releaseTensorArg(ctx, &inputArg);
+    return ERR_OUT_OF_MEMORY;
+  }
   f64 mean = 0.0;
   switch (inputArg.tensor->dtype) {
     case F16: mean = (f64)tensorSum->as.f16 / (f64)inputArg.tensor->size; break;

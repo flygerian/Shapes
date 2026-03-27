@@ -91,6 +91,15 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
     newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+    result = ensureAllocated(newDims);
+    if (result != OK) {
+      goto cleanup_index;
+    }
+    result = ensureAllocated(newMultipliers);
+    if (result != OK) {
+      freeAlloc(ctx->memory, newDims);
+      goto cleanup_index;
+    }
   }
 
   for (u8 i = 0; i < workingIndices->shape.numOfDims; i++) {
@@ -112,6 +121,12 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers};
   result = initTensor(ctx, dest, destShape, workingSource->dtype);
   if (result != OK) {
+    if (newMultipliers != NULL) {
+      freeAlloc(ctx->memory, newMultipliers);
+    }
+    if (newDims != NULL) {
+      freeAlloc(ctx->memory, newDims);
+    }
     goto cleanup_index;
   }
 
@@ -223,6 +238,15 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
     newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+    result = ensureAllocated(newDims);
+    if (result != OK) {
+      goto cleanup_index_2d;
+    }
+    result = ensureAllocated(newMultipliers);
+    if (result != OK) {
+      freeAlloc(ctx->memory, newDims);
+      goto cleanup_index_2d;
+    }
   }
 
   for (u8 i = 0; i < workingRows->shape.numOfDims; i++) {
@@ -244,6 +268,12 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers};
   result = initTensor(ctx, dest, destShape, workingSource->dtype);
   if (result != OK) {
+    if (newMultipliers != NULL) {
+      freeAlloc(ctx->memory, newMultipliers);
+    }
+    if (newDims != NULL) {
+      freeAlloc(ctx->memory, newDims);
+    }
     goto cleanup_index_2d;
   }
 
@@ -345,17 +375,29 @@ Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
     }
     scalar.dtype = source->dtype;
     *dest = singleValueTensor(ctx, scalar);
+    if (dest->values == NULL) {
+      return ERR_OUT_OF_MEMORY;
+    }
     return OK;
   }
 
   // Allocate new dims and copy source dims[1:]
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  Result allocRes = ensureAllocated(newDims);
+  if (allocRes != OK) {
+    return allocRes;
+  }
   for (u8 i = 0; i < newNumDims; i++) {
     newDims[i] = source->shape.dims[i + 1];
   }
 
   // Copy source multipliers[1:] — do NOT recompute; preserves transposed strides.
   multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+  allocRes = ensureAllocated(newMultipliers);
+  if (allocRes != OK) {
+    freeAlloc(ctx->memory, newDims);
+    return allocRes;
+  }
   for (u8 i = 0; i < newNumDims; i++) {
     newMultipliers[i] = source->shape.multipliers[i + 1];
   }
@@ -364,6 +406,12 @@ Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
   Range *boundary = NULL;
   if (source->isView && source->boundary) {
     boundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    allocRes = ensureAllocated(boundary);
+    if (allocRes != OK) {
+      freeAlloc(ctx->memory, newMultipliers);
+      freeAlloc(ctx->memory, newDims);
+      return allocRes;
+    }
     for (u8 i = 0; i < newNumDims; i++) {
       boundary[i] = source->boundary[i + 1];
     }

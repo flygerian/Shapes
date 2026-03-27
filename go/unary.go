@@ -66,7 +66,7 @@ func (t *tensor) Relu(ctx Context) Tensor {
 	}
 	out := track(ctx, &tensor{cTensor: dest})
 	if ctx.BackwardEnabled() {
-		toComputationGraphNode(out, OpRelu, reluBackward, []Tensor{t}, []Tensor{}, nil)
+		toComputationGraphNode(out, OpRelu, ReluBackward, []Tensor{t}, []Tensor{}, nil)
 	}
 	return out
 }

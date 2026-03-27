@@ -133,6 +133,7 @@ void *findAvailableSpace(Memory *memory, size_t size) {
 
 void *allocate(Memory *memory, size_t size) {
   if (size == 0) {
+    fprintf(stderr, "allocating 0 returining null");
     return NULL;
   }
 
@@ -155,6 +156,7 @@ void *allocate(Memory *memory, size_t size) {
   }
 
   // Arena is full and no free block matched.
+  fprintf(stderr, "no enough blocks retruning null");
   return NULL;
 }
 

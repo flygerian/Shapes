@@ -123,6 +123,7 @@ type TrainingStats struct {
 	Epoch                  int
 	EpochStart             time.Time
 	Step                   int
+	StepStart              time.Time
 	NumEpochs              int
 	NumSteps               int
 	Loss                   float64
@@ -616,7 +617,7 @@ func (sc *subContext) cleanup() {
 	for _, t := range sc.locals {
 		// Some context may not produce a result so it's worth checking if the result is present
 		if sc.result != nil && (t.(*tensor).cTensor == sc.result.(*tensor).cTensor || t.(*tensor).cTensor == sc.result.Computation().grad.(*tensor).cTensor) {
-			sc.main().Track(t)
+			sc.parent.Track(t)
 			continue
 		}
 
@@ -943,6 +944,7 @@ func step(c Context, options ...subContextOption) EpochContext {
 
 	sc.training.mu.Lock()
 	sc.training.stats.Step++
+	sc.training.stats.StepStart = time.Now()
 	sc.training.mu.Unlock()
 
 	stepCtx := derive(c, SubContextTypeEpoch, c.GradEnabled(), c.BackwardEnabled(), options...)

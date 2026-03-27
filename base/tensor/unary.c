@@ -128,6 +128,7 @@ static const char *unaryResultName(Result result) {
     case ERR_NO_OP: return "ERR_NO_OP";
     case ERR_NULL_TENSOR_PROVIDED: return "ERR_NULL_TENSOR_PROVIDED";
     case ERR_RELU_VALUE_NOT_FLOAT: return "ERR_RELU_VALUE_NOT_FLOAT";
+    case ERR_OUT_OF_MEMORY: return " ERR_OUT_OF_MEMORY";
     default: return "UNKNOWN_RESULT";
   }
 }
@@ -270,6 +271,10 @@ static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opTy
 
   Tensor *input = inputArg.tensor;
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
+  if (output == NULL) {
+    releaseTensorArg(ctx, &inputArg);
+    return ERR_OUT_OF_MEMORY;
+  }
 
   for (tensor_size_t i = 0; i < input->size; i++) {
     Value value;
@@ -309,6 +314,10 @@ static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opT
 
   Tensor *input = inputArg.tensor;
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
+  if (output == NULL) {
+    releaseTensorArg(ctx, &inputArg);
+    return ERR_OUT_OF_MEMORY;
+  }
 
   result = runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size,
                           param);
@@ -374,6 +383,176 @@ Result Relu(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   return result;
+}
+
+Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+  Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  result = validateFloatUnaryTensor(gradOut, ERR_RELU_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  if (output->dtype != gradOut->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (output->size != gradOut->size || output->shape.numOfDims != gradOut->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  for (u8 i = 0; i < output->shape.numOfDims; i++) {
+    if (output->shape.dims[i] != gradOut->shape.dims[i]) {
+      return ERR_DIM_MISMATCH;
+    }
+  }
+
+  TensorArg outputArg = {0};
+  TensorArg gradArg = {0};
+  result = materializeTensorOnContext(ctx, output, true, &outputArg);
+  if (result != OK) {
+    return result;
+  }
+
+  result = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
+  if (result != OK) {
+    releaseTensorArg(ctx, &outputArg);
+    return result;
+  }
+
+  Tensor *outputWork = outputArg.tensor;
+  Tensor *gradWork = gradArg.tensor;
+
+  Tensor *dInput = t_Zeros(ctx, outputWork->shape, outputWork->dtype);
+  if (dInput == NULL) {
+    releaseTensorArg(ctx, &outputArg);
+    releaseTensorArg(ctx, &gradArg);
+    return ERR_OUT_OF_MEMORY;
+  }
+
+  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
+    result =
+        runCudaReluBackward(ctx, outputWork->dtype, outputWork->values, gradWork->values,
+                            dInput->values, outputWork->size);
+    if (result != OK) {
+      FreeTensor(ctx, dInput);
+      releaseTensorArg(ctx, &outputArg);
+      releaseTensorArg(ctx, &gradArg);
+      return result;
+    }
+  } else if (outputWork->dtype == F64) {
+    f64 *outputValues = outputWork->values;
+    f64 *gradValues = gradWork->values;
+    f64 *destValues = dInput->values;
+    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+      destValues[i] = outputValues[i] > 0.0 ? gradValues[i] : 0.0;
+    }
+  } else {
+    f32 *outputValues = outputWork->values;
+    f32 *gradValues = gradWork->values;
+    f32 *destValues = dInput->values;
+    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+      destValues[i] = outputValues[i] > 0.0f ? gradValues[i] : 0.0f;
+    }
+  }
+
+  *dest = *dInput;
+  freeAlloc(ctx->memory, dInput);
+  releaseTensorArg(ctx, &outputArg);
+  releaseTensorArg(ctx, &gradArg);
+  return OK;
+}
+
+Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+  Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  result = validateFloatUnaryTensor(gradOut, ERR_RELU_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  result = validateFloatUnaryTensor(dest, ERR_RELU_VALUE_NOT_FLOAT);
+  if (result != OK) {
+    return result;
+  }
+
+  if (output->dtype != gradOut->dtype || output->dtype != dest->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (output->size != gradOut->size || output->size != dest->size ||
+      output->shape.numOfDims != gradOut->shape.numOfDims ||
+      output->shape.numOfDims != dest->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  for (u8 i = 0; i < output->shape.numOfDims; i++) {
+    if (output->shape.dims[i] != gradOut->shape.dims[i] ||
+        output->shape.dims[i] != dest->shape.dims[i]) {
+      return ERR_DIM_MISMATCH;
+    }
+  }
+
+  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA &&
+      (!dest->isContigous || dest->isView)) {
+    return ERR_NO_OP;
+  }
+
+  TensorArg outputArg = {0};
+  TensorArg gradArg = {0};
+  result = materializeTensorOnContext(ctx, output, true, &outputArg);
+  if (result != OK) {
+    return result;
+  }
+
+  result = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
+  if (result != OK) {
+    releaseTensorArg(ctx, &outputArg);
+    return result;
+  }
+
+  Tensor *outputWork = outputArg.tensor;
+  Tensor *gradWork = gradArg.tensor;
+
+  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
+    result = runCudaReluBackwardAccumulate(ctx, outputWork->dtype, outputWork->values,
+                                           gradWork->values, dest->values, outputWork->size);
+    releaseTensorArg(ctx, &outputArg);
+    releaseTensorArg(ctx, &gradArg);
+    return result;
+  }
+
+  if (!dest->isContigous || dest->isView) {
+    releaseTensorArg(ctx, &outputArg);
+    releaseTensorArg(ctx, &gradArg);
+    return ERR_NO_OP;
+  }
+
+  if (outputWork->dtype == F64) {
+    f64 *outputValues = outputWork->values;
+    f64 *gradValues = gradWork->values;
+    f64 *destValues = dest->values;
+    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+      destValues[i] += outputValues[i] > 0.0 ? gradValues[i] : 0.0;
+    }
+  } else {
+    f32 *outputValues = outputWork->values;
+    f32 *gradValues = gradWork->values;
+    f32 *destValues = dest->values;
+    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+      destValues[i] += outputValues[i] > 0.0f ? gradValues[i] : 0.0f;
+    }
+  }
+
+  releaseTensorArg(ctx, &outputArg);
+  releaseTensorArg(ctx, &gradArg);
+  return OK;
 }
 
 Result Negate(Context *ctx, Tensor *t, Tensor *dest) {

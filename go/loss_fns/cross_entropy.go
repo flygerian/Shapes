@@ -46,4 +46,6 @@ func crossEntropyBackward(c shapes.Context, node shapes.ComputationGraphNode) {
 	gradLogits := shapes.CrossEntropyBackward(ctx, yGround, probs, node.Grad().(shapes.Tensor))
 	reducedLogits := shapes.ReduceBroadcast(ctx, logits, gradLogits.(shapes.GradTensor))
 	logits.Grad().Accumulate(ctx, reducedLogits)
+
+	ctx.Mark(probs)
 }

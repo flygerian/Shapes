@@ -13,7 +13,16 @@ static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor 
                                              Dtype dtype) {
   u8 numDims = x->shape.numOfDims;
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
+  Result allocRes = ensureAllocated(dims);
+  if (allocRes != OK) {
+    return allocRes;
+  }
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
+  allocRes = ensureAllocated(multipliers);
+  if (allocRes != OK) {
+    freeAlloc(ctx->memory, dims);
+    return allocRes;
+  }
 
   for (u8 i = 0; i < numDims; i++) {
     dims[i] = x->shape.dims[i];
@@ -23,7 +32,12 @@ static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor 
   Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
   calculateNumValuesAndMultipliers(shape, multipliers);
 
-  return initTensor(ctx, dest, shape, dtype);
+  Result initRes = initTensor(ctx, dest, shape, dtype);
+  if (initRes != OK) {
+    freeAlloc(ctx->memory, multipliers);
+    freeAlloc(ctx->memory, dims);
+  }
+  return initRes;
 }
 
 static bool shouldLogOpTiming(void) {
@@ -318,6 +332,10 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   }
 
   dim_t *grad2dDims = allocate(ctx->memory, sizeof(dim_t) * 2);
+  res = ensureAllocated(grad2dDims);
+  if (res != OK) {
+    goto cleanup;
+  }
   grad2dDims[0] = rows;
   grad2dDims[1] = outputSize;
   Tensor grad2dView = {0};

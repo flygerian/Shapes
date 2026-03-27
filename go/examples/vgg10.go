@@ -48,10 +48,10 @@ type trainingParams struct {
 
 func getTrainingParams() trainingParams {
 	return trainingParams{
-		batchSize:    16,
+		batchSize:    128,
 		learningRate: 1e-2,
 		inputShape:   shapes.Shape{32, 32, 3},
-		epochs:       14,
+		epochs:       8,
 	}
 }
 
@@ -135,7 +135,7 @@ func getDataSet(ctx shapes.Context) (datasetRaw, []string) {
 	Xs := make([][]float32, 0)
 	Ys := make([]int8, 0)
 
-	for _, batchPath := range batchFiles[:2] {
+	for _, batchPath := range batchFiles {
 		batchFile, err := os.Open(batchPath)
 		if err != nil {
 			err := fmt.Errorf("could not open cifar_10 file %q: %w", batchPath, err)
@@ -332,9 +332,10 @@ func runTraining(
 	for epochNum := range hyperParams.epochs {
 		totalEpochLoss := 0.0
 		epochCtx := trainingCtx.Epoch(epochNum + 1)
+		// epochStart := time.Now()
 
 		for batchNum := range len(ds.Xtrain) {
-			stepCtx := epochCtx.Fused().(shapes.EpochContext).Step()
+			stepCtx := epochCtx.(shapes.EpochContext).Step()
 
 			if stepCtx.CurrentStep() > 10 {
 			}
@@ -351,10 +352,14 @@ func runTraining(
 			optimizerStep(stepCtx, graph)
 			optimizer.ZeroGrad(stepCtx, graph)
 
-			if stepCtx.CurrentStep()%100 == 0 {
+			if stepCtx.CurrentStep()%300 == 0 {
 				lossScalar := loss.Get(stepCtx, 0).Item().(float32)
 				totalEpochLoss += float64(lossScalar)
-				fmt.Printf("Loss: %v, Step: %d \n", lossScalar, stepCtx.CurrentStep())
+				// epochDuration := time.Since(epochStart)
+				// avgStepDuration := epochDuration.Milliseconds() / int64(stepCtx.CurrentStep())
+
+				// header := fmt.Sprintf("Avg Step Duration: %d ms", avgStepDuration)
+				// fmt.Printf("Loss: %v, Step: %d | %s \n", lossScalar, stepCtx.CurrentStep(), header)
 				stepCtx.SetStepLoss(float64(lossScalar))
 			}
 
@@ -369,12 +374,12 @@ func runTraining(
 
 func Vgg_cifar10() {
 	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
-	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
+	// cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
 	// defer cpuCtx.Finish()
 
 	datasetRaw, labelData := getDataSet(cpuCtx)
 	hyperParams := getTrainingParams()
-	ds := shuffleAndBatchDataSet(cudaCtx, datasetRaw, hyperParams)
+	ds := shuffleAndBatchDataSet(cpuCtx, datasetRaw, hyperParams)
 
 	// imageArtefacts := make([]visual.Artefact, 0)
 	// rows := make([]visual.Artefact, 0)
@@ -418,14 +423,14 @@ func Vgg_cifar10() {
 	crossEnthropy := loss_fns.CrossEntropy()
 
 	model := layer.NewSequential(
-		cudaCtx,
-		convBlock(cudaCtx),
-		linearBlock(cudaCtx, len(labelData)),
+		cpuCtx,
+		convBlock(cpuCtx),
+		linearBlock(cpuCtx, len(labelData)),
 	)
 
 	fmt.Printf("\nTraining start...\n")
 
-	trainingCtx := cudaCtx.Training(
+	trainingCtx := cpuCtx.Training(
 		hyperParams.epochs,
 		shapes.WithNumSteps(len(ds.Xtrain)),
 		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),

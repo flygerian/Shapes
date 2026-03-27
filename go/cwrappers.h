@@ -46,6 +46,8 @@ Result wrap_Pow(Context *ctx, Tensor *t, f32 power, Tensor **out);
 Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Tanh(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Relu(Context *ctx, Tensor *t, Tensor **out);
+Result wrap_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor **out);
+Result wrap_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 Result wrap_Log(Context *ctx, Tensor *t, Tensor **out);

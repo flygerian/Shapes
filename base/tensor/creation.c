@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <string.h>
 
-
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
   Dim tShape = (Dim){.numOfDims = shape.numOfDims};
 
@@ -18,20 +17,42 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
     tShape.multipliers = NULL;
 
     Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-    initTensor(ctx, t, tShape, type);
-    clearTensorValues(t);
+    if (t == NULL) {
+      return NULL;
+    }
+    if (initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK) {
+      freeAlloc(ctx->memory, t);
+      return NULL;
+    }
 
     return t;
   }
 
   tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
+  if (tShape.dims == NULL) {
+    return NULL;
+  }
   tShape.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * tShape.numOfDims);
+  if (tShape.multipliers == NULL) {
+    freeAlloc(ctx->memory, tShape.dims);
+    return NULL;
+  }
 
   memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
   tensor_size_t size = calculateNumValuesAndMultipliers(tShape, tShape.multipliers);
+  (void)size;
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-  initTensor(ctx, t, tShape, type);
-  clearTensorValues(t);
+  if (t == NULL) {
+    freeAlloc(ctx->memory, tShape.multipliers);
+    freeAlloc(ctx->memory, tShape.dims);
+    return NULL;
+  }
+  if (initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK) {
+    freeAlloc(ctx->memory, t);
+    freeAlloc(ctx->memory, tShape.multipliers);
+    freeAlloc(ctx->memory, tShape.dims);
+    return NULL;
+  }
 
   return t;
 }
@@ -48,21 +69,52 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
   Tensor *source = t;
   if (!t->isContigous) {
     source = copyToContiguous(ctx, t);
+    if (source == NULL) {
+      return ERR_OUT_OF_MEMORY;
+    }
   }
 
   size_t valueBytes = getBytesForDtype(source->dtype) * source->size;
   void *newValues = allocateOnCtx(ctx, valueBytes);
+  Result allocRes = ensureAllocated(newValues);
+  if (allocRes != OK) {
+    if (!t->isContigous) {
+      FreeTensor(ctx, source);
+    }
+    return allocRes;
+  }
   Result valueCopyRes =
       copyBetweenContexts(source->context, ctx, source->values, newValues, valueBytes);
   if (valueCopyRes != OK) {
+    freeOnCtx(ctx, newValues);
+    if (!t->isContigous) {
+      FreeTensor(ctx, source);
+    }
     return valueCopyRes;
   }
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  allocRes = ensureAllocated(newDims);
+  if (allocRes != OK) {
+    freeOnCtx(ctx, newValues);
+    if (!t->isContigous) {
+      FreeTensor(ctx, source);
+    }
+    return allocRes;
+  }
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
 
   multiplier_t *newMultipliers =
       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  allocRes = ensureAllocated(newMultipliers);
+  if (allocRes != OK) {
+    freeAlloc(ctx->memory, newDims);
+    freeOnCtx(ctx, newValues);
+    if (!t->isContigous) {
+      FreeTensor(ctx, source);
+    }
+    return allocRes;
+  }
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
   *dest = (Tensor){.context = ctx,
@@ -76,6 +128,9 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
                    .shape = {.dims = newDims,
                              .numOfDims = source->shape.numOfDims,
                              .multipliers = newMultipliers}};
+  if (!t->isContigous) {
+    FreeTensor(ctx, source);
+  }
   return OK;
 }
 
@@ -99,6 +154,9 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
   Tensor *srcContigous;
   if (!src->isContigous) {
     srcContigous = copyToContiguous(ctx, src);
+    if (srcContigous == NULL) {
+      return ERR_OUT_OF_MEMORY;
+    }
   } else {
     srcContigous = src;
   }
@@ -190,7 +248,14 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
 
   // Create 1D shape
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
+  if (dims == NULL) {
+    return NULL;
+  }
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
+  if (multipliers == NULL) {
+    freeAlloc(ctx->memory, dims);
+    return NULL;
+  }
   *dims = (dim_t)n;
   *multipliers = 1;
 
@@ -198,8 +263,17 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
 
   // Allocate and fill values
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-  size_t bytesRequired = n * sizeof(f32);
-  initTensor(ctx, t, shape, F32);
+  if (t == NULL) {
+    freeAlloc(ctx->memory, multipliers);
+    freeAlloc(ctx->memory, dims);
+    return NULL;
+  }
+  if (initTensor(ctx, t, shape, F32) != OK) {
+    freeAlloc(ctx->memory, t);
+    freeAlloc(ctx->memory, multipliers);
+    freeAlloc(ctx->memory, dims);
+    return NULL;
+  }
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result = runCudaArange(ctx, start, step, t->values, n);
@@ -230,7 +304,16 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   // Build output shape: input shape + [numClasses]
   u8 outNumDims = source->shape.numOfDims + 1;
   dim_t *outDims = allocate(ctx->memory, sizeof(dim_t) * outNumDims);
+  if (outDims == NULL) {
+    releaseTensorArg(ctx, &sourceArg);
+    return NULL;
+  }
   multiplier_t *outMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * outNumDims);
+  if (outMultipliers == NULL) {
+    freeAlloc(ctx->memory, outDims);
+    releaseTensorArg(ctx, &sourceArg);
+    return NULL;
+  }
 
   for (u8 i = 0; i < source->shape.numOfDims; i++) {
     outDims[i] = source->shape.dims[i];
@@ -239,11 +322,23 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
 
   Dim outShape = {.dims = outDims, .numOfDims = outNumDims, .multipliers = outMultipliers};
   tensor_size_t outSize = calculateNumValuesAndMultipliers(outShape, outMultipliers);
+  (void)outSize;
 
   // Create output tensor filled with zeros
   Tensor *out = allocate(ctx->memory, sizeof(Tensor));
-  initTensor(ctx, out, outShape, F32);
-  clearTensorValues(out);
+  if (out == NULL) {
+    freeAlloc(ctx->memory, outMultipliers);
+    freeAlloc(ctx->memory, outDims);
+    releaseTensorArg(ctx, &sourceArg);
+    return NULL;
+  }
+  if (initTensor(ctx, out, outShape, F32) != OK || clearTensorValues(out) != OK) {
+    freeAlloc(ctx->memory, out);
+    freeAlloc(ctx->memory, outMultipliers);
+    freeAlloc(ctx->memory, outDims);
+    releaseTensorArg(ctx, &sourceArg);
+    return NULL;
+  }
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result =
