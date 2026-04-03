@@ -1,8 +1,10 @@
 #include "common.h"
 #include "im2col.h"
+#include "result/result.h"
 #include "tensor/tensor_internal.h"
 #include <stddef.h>
 #include <string.h>
+#include <stdlib.h>
 
 Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride) {
   dim_t batch = t->shape.dims[0];
@@ -14,23 +16,18 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
-  size_t dtypeByteSize = getBytesForDtype(t->dtype);
 
   dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth,
                             numInputChannels * kernelSize};
   Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
   Tensor *colBuffer = t_Zeros(ctx, colBufferShape, F32);
-  if (colBuffer == NULL || colBuffer->values == NULL) {
-    return NULL;
-  }
+  PANIC_IF((colBuffer == NULL || colBuffer->values == NULL), ALLOCATION_FAILED);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     Result result = runCudaIm2col(ctx, t->dtype, t->values, batch, numInputChannels, height, width,
                                   kernelHeight, kernelWidth, stride, colBuffer->values);
-    if (result != OK) {
-      FreeTensor(ctx, colBuffer);
-      return NULL;
-    }
+    PANIC_IF(result != OK, result);
+
     return colBuffer;
   }
 
@@ -80,17 +77,12 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
                             numInputChannels * kernelSize};
   Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
   Tensor *colBuffer = t_Zeros(ctx, colBufferShape, F64);
-  if (colBuffer == NULL || colBuffer->values == NULL) {
-    return NULL;
-  }
+  PANIC_IF((colBuffer == NULL || colBuffer->values == NULL), ALLOCATION_FAILED);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     Result result = runCudaIm2col(ctx, t->dtype, t->values, batch, numInputChannels, height, width,
                                   kernelHeight, kernelWidth, stride, colBuffer->values);
-    if (result != OK) {
-      FreeTensor(ctx, colBuffer);
-      return NULL;
-    }
+    PANIC_IF(result != OK, result);
     return colBuffer;
   }
 
@@ -124,7 +116,7 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   return colBuffer;
 }
 
-Result col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
+void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
                            u8 stride) {
   dim_t batch = dInput->shape.dims[0];
   dim_t height = dInput->shape.dims[1];
@@ -135,9 +127,10 @@ Result col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, 
 
   if (dInput->context != NULL && dInput->context->device != NULL &&
       dInput->context->device->type == CUDA) {
-    return runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
+    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
                                    numInputChannels, height, width, kernelHeight, kernelWidth,
                                    stride);
+    PANIC_IF(res != OK, res);
   }
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
@@ -167,11 +160,9 @@ Result col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, 
       }
     }
   }
-
-  return OK;
 }
 
-Result col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
+void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
                            u8 stride) {
   dim_t batch = dInput->shape.dims[0];
   dim_t height = dInput->shape.dims[1];
@@ -182,9 +173,10 @@ Result col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, 
 
   if (dInput->context != NULL && dInput->context->device != NULL &&
       dInput->context->device->type == CUDA) {
-    return runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
+    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
                                    numInputChannels, height, width, kernelHeight, kernelWidth,
                                    stride);
+    PANIC_IF(res != OK, res);
   }
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
@@ -214,6 +206,4 @@ Result col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, 
       }
     }
   }
-
-  return OK;
 }

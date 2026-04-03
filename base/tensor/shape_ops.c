@@ -3,11 +3,13 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor_internal.h"
 #include "../memory.h"
+#include <stdlib.h>
 
 Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
   Range *ranges = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
@@ -552,94 +554,49 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
 Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensorsToAdd,
               Tensor *dest) {
-  TensorArg targetArg = {0};
-  TensorArg *tensorArgs = NULL;
+  Tensor **tensorsContig = NULL;
   Result result = OK;
 
-  if (isInvalidTensor(target)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+  PANIC_IF(isInvalidTensor(target), ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(target->shape.numOfDims < 1, ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS); 
+  PANIC_IF(targetDim > target->shape.numOfDims - 1, ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS); 
 
-  if (target->shape.numOfDims < 1) {
-    return ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS;
-  }
+  Tensor *workingTarget = materializeTensorOnContext(ctx, target);
 
-  if (targetDim > target->shape.numOfDims - 1) {
-    return ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS;
-  }
-
-  result = materializeTensorOnContext(ctx, target, true, &targetArg);
-  if (result != OK) {
-    return result;
-  }
-
-  Tensor *workingTarget = targetArg.tensor;
   tensor_size_t numElementsBeforeTargetDim;
   result = calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
-  if (result != OK) {
-    goto cleanup_concat;
-  }
+  PANIC_IF(result != OK, result); 
 
   tensor_size_t numElementsAfterTargetDim;
   result = calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
-  if (result != OK) {
-    goto cleanup_concat;
-  }
+  PANIC_IF(result != OK, result); 
 
   if (numTensorsToAdd > 0) {
-    tensorArgs = allocate(ctx->memory, sizeof(TensorArg) * numTensorsToAdd);
-    result = ensureAllocated(tensorArgs);
-    if (result != OK) {
-      goto cleanup_concat;
-    }
-    memset(tensorArgs, 0, sizeof(TensorArg) * numTensorsToAdd);
+    tensorsContig = (Tensor**) allocate(ctx->memory, sizeof(Tensor*) * numTensorsToAdd);
+    PANIC_IF(tensorsContig == NULL, ALLOCATION_FAILED);     
   }
 
   for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
-    Tensor *t = tensors[it];
+    Tensor *currentTensor = tensors[it];
 
-    if (isInvalidTensor(t)) {
-      result = ERR_CONCAT_TENSOR_IS_NULL;
-      goto cleanup_concat;
-    }
-
-    if (t->shape.numOfDims != workingTarget->shape.numOfDims) {
-      result = ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
-      goto cleanup_concat;
-    }
+    PANIC_IF(isInvalidTensor(currentTensor), ERR_CONCAT_TENSOR_IS_NULL); 
+    PANIC_IF(currentTensor->shape.numOfDims != workingTarget->shape.numOfDims, ERR_CONCAT_TENSORS_UNEQUAL_DIMS); 
+    PANIC_IF(currentTensor->dtype != workingTarget->dtype, ERR_CONCAT_TENSOR_NOT_SAME_DTYPE);
 
     for (dim_t id = 0; id < workingTarget->shape.numOfDims; id++) {
-      if (id != targetDim && workingTarget->shape.dims[id] != t->shape.dims[id]) {
-        result = ERR_CONCAT_TENSORS_UNEQUAL_DIMS;
-        goto cleanup_concat;
-      }
+      PANIC_IF(id != targetDim && workingTarget->shape.dims[id] != currentTensor->shape.dims[id], ERR_CONCAT_TENSORS_UNEQUAL_DIMS);
     }
 
-    if (t->dtype != workingTarget->dtype) {
-      result = ERR_CONCAT_TENSOR_NOT_SAME_DTYPE;
-      goto cleanup_concat;
-    }
-
-    if (!t->isContigous) {
-      result = ERR_CONCAT_TENSOR_NOT_CONTIGOUS;
-      goto cleanup_concat;
-    }
-
-    result = materializeTensorOnContext(ctx, t, true, &tensorArgs[it]);
-    if (result != OK) {
-      goto cleanup_concat;
-    }
+    tensorsContig[it] = materializeTensorOnContext(ctx, currentTensor);
   }
 
   dim_t *outputDims = allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
   result = ensureAllocated(outputDims);
-  if (result != OK) {
-    goto cleanup_concat;
-  }
+  PANIC_IF(result != OK, result);   
   dim_t dimsToAdd = 0;
 
   for (tensor_size_t ist = 0; ist < numTensorsToAdd; ist++) {
-    dimsToAdd += tensorArgs[ist].tensor->shape.dims[targetDim];
+    dimsToAdd += tensorsContig[ist]->shape.dims[targetDim];
   }
 
   for (dim_t io = 0; io < workingTarget->shape.numOfDims; io++) {
@@ -656,20 +613,12 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
 
   multiplier_t *multipliers =
       allocate(ctx->memory, sizeof(multiplier_t) * workingTarget->shape.numOfDims);
-  result = ensureAllocated(multipliers);
-  if (result != OK) {
-    freeAlloc(ctx->memory, outputDims);
-    goto cleanup_concat;
-  }
+
   calculateNumValuesAndMultipliers(outputShape, multipliers);
   outputShape.multipliers = multipliers;
 
   result = initTensor(ctx, dest, outputShape, workingTarget->dtype);
-  if (result != OK) {
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, outputDims);
-    goto cleanup_concat;
-  }
+  PANIC_IF (result != OK, result); 
 
   dim_t currDimSize = workingTarget->shape.dims[targetDim];
   dim_t newDimSize = outputShape.dims[targetDim];
@@ -683,13 +632,12 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
                                  (char *)workingTarget->values + srcSliceOffset * bytesPerElem,
                                  (char *)dest->values + destSliceOffset * bytesPerElem,
                                  currDimSize * numElementsAfterTargetDim * bytesPerElem);
-    if (result != OK) {
-      goto cleanup_concat;
-    }
+
+    PANIC_IF(result != OK, result); 
 
     dim_t dimOffset = currDimSize;
     for (dim_t ist = 0; ist < numTensorsToAdd; ist++) {
-      Tensor *curr = tensorArgs[ist].tensor;
+      Tensor *curr = tensorsContig[ist];
       dim_t currTargetDimSize = curr->shape.dims[targetDim];
       tensor_size_t currDestOffset = destSliceOffset + (dimOffset * numElementsAfterTargetDim);
       tensor_size_t currSrcOffset = inb * currTargetDimSize * numElementsAfterTargetDim;
@@ -697,10 +645,7 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
                                    (char *)curr->values + currSrcOffset * bytesPerElem,
                                    (char *)dest->values + currDestOffset * bytesPerElem,
                                    currTargetDimSize * numElementsAfterTargetDim * bytesPerElem);
-      if (result != OK) {
-        goto cleanup_concat;
-      }
-
+      PANIC_IF(result != OK, result); 
       dimOffset += currTargetDimSize;
     }
   }
@@ -708,11 +653,12 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
   result = OK;
 
 cleanup_concat:
-  if (tensorArgs != NULL) {
+  if (tensorsContig != NULL) {
     for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
-      releaseTensorArg(ctx, &tensorArgs[it]);
+      freeIfContingousCopy(ctx, tensorsContig[it]);
     }
   }
-  releaseTensorArg(ctx, &targetArg);
+
+  freeIfContingousCopy(ctx, target);
   return result;
 }

@@ -3,6 +3,7 @@
 #include "value.h"
 #include "../common.h"
 #include <string.h>
+#include <stdlib.h>
 
 static bool isOutOfBounds(Tensor *t, Dim dim) {
   for (u8 i = 0; i < dim.numOfDims; i++) {
@@ -70,19 +71,9 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     return ERR_ONLY_INT_TYPE_ALLOWED;
   }
 
-  result = materializeTensorOnContext(ctx, source, true, &sourceArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *workingSource = materializeTensorOnContext(ctx, source);
+  Tensor *workingIndices = materializeTensorOnContext(ctx, indices);
 
-  result = materializeTensorOnContext(ctx, indices, true, &indicesArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &sourceArg);
-    return result;
-  }
-
-  Tensor *workingSource = sourceArg.tensor;
-  Tensor *workingIndices = indicesArg.tensor;
   bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
   u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndices->shape.numOfDims;
@@ -180,56 +171,19 @@ cleanup_index:
 
 Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices,
                          Tensor *dest) {
-  TensorArg sourceArg = {0};
-  TensorArg rowArg = {0};
-  TensorArg colArg = {0};
   Result result = OK;
 
-  if (isInvalidTensor(source)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(isInvalidTensor(rowIndices), ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(isInvalidTensor(colIndices), ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(source->shape.numOfDims < 2, ERR_DIM_MISMATCH); 
+  PANIC_IF(isIntType(rowIndices) || isIntType(colIndices), ERR_ONLY_INT_TYPE_ALLOWED); 
+  PANIC_IF(rowIndices->size != colIndices->size, ERR_DIM_MISMATCH);
 
-  if (isInvalidTensor(rowIndices)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+  Tensor *workingSource = materializeTensorOnContext(ctx, source);
+  Tensor *workingRows = materializeTensorOnContext(ctx, rowIndices);
+  Tensor *workingCols = materializeTensorOnContext(ctx, colIndices);
 
-  if (isInvalidTensor(colIndices)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (source->shape.numOfDims < 2) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (isIntType(rowIndices) || isIntType(colIndices)) {
-    return ERR_ONLY_INT_TYPE_ALLOWED;
-  }
-
-  if (rowIndices->size != colIndices->size) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  result = materializeTensorOnContext(ctx, source, true, &sourceArg);
-  if (result != OK) {
-    return result;
-  }
-
-  result = materializeTensorOnContext(ctx, rowIndices, true, &rowArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &sourceArg);
-    return result;
-  }
-
-  result = materializeTensorOnContext(ctx, colIndices, true, &colArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &rowArg);
-    releaseTensorArg(ctx, &sourceArg);
-    return result;
-  }
-
-  Tensor *workingSource = sourceArg.tensor;
-  Tensor *workingRows = rowArg.tensor;
-  Tensor *workingCols = colArg.tensor;
   bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
   u8 newNumDims = workingRows->shape.numOfDims + workingSource->shape.numOfDims - 2;
@@ -238,15 +192,6 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
     newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
-    result = ensureAllocated(newDims);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-    result = ensureAllocated(newMultipliers);
-    if (result != OK) {
-      freeAlloc(ctx->memory, newDims);
-      goto cleanup_index_2d;
-    }
   }
 
   for (u8 i = 0; i < workingRows->shape.numOfDims; i++) {
@@ -267,22 +212,13 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
 
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers};
   result = initTensor(ctx, dest, destShape, workingSource->dtype);
-  if (result != OK) {
-    if (newMultipliers != NULL) {
-      freeAlloc(ctx->memory, newMultipliers);
-    }
-    if (newDims != NULL) {
-      freeAlloc(ctx->memory, newDims);
-    }
-    goto cleanup_index_2d;
-  }
-
+  PANIC_IF(result != OK, result); 
   if (isCudaCtx) {
     result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values,
                                   workingSource->shape.dims[1], workingRows->values,
                                   workingRows->dtype, workingCols->values, workingCols->dtype,
                                   dest->values, workingRows->size, sliceSize);
-    goto cleanup_index_2d;
+    PANIC_IF(result != OK, result);
   }
 
   tensor_size_t destOffset = 0;
@@ -290,28 +226,23 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   for (u64 i = 0; i < workingRows->size; i++) {
     Value rowVal, colVal;
     result = readTensorValueAtFlatIndex(workingRows, i, &rowVal);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
+    PANIC_IF(result != OK, result);
+
     result = readTensorValueAtFlatIndex(workingCols, i, &colVal);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
+    PANIC_IF(result != OK, result);
 
     dim_t rowIdx = 0;
     dim_t colIdx = 0;
     result = indexValueToDim(rowVal, &rowIdx);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
+    PANIC_IF(result != OK, result);
+
     result = indexValueToDim(colVal, &colIdx);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
+    PANIC_IF(result != OK, result);
 
     dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = rowIdx;
     srcCoords[1] = colIdx;
+
     for (u8 d = 2; d < workingSource->shape.numOfDims; d++) {
       srcCoords[d] = 0;
     }
@@ -321,19 +252,17 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
                                  (char *)workingSource->values + srcOffset * bytesPerElem,
                                  (char *)dest->values + destOffset * bytesPerElem,
                                  sliceSize * bytesPerElem);
-    if (result != OK) {
-      goto cleanup_index_2d;
-    }
-
+    PANIC_IF(result != OK, result); 
     destOffset += sliceSize;
   }
 
   result = OK;
 
 cleanup_index_2d:
-  releaseTensorArg(ctx, &colArg);
-  releaseTensorArg(ctx, &rowArg);
-  releaseTensorArg(ctx, &sourceArg);
+  freeIfContingousCopy(ctx, workingCols);
+  freeIfContingousCopy(ctx, workingRows);
+  freeIfContingousCopy(ctx, workingSource);
+
   return result;
 }
 

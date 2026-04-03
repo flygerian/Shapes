@@ -19,7 +19,7 @@ Result copyBetweenContexts(Context *srcCtx, Context *destCtx, void *srcPtr, void
                            size_t size);
 void *allocateOnCtx(Context *ctx, size_t size);
 void freeOnCtx(Context *ctx, void *ptr);
-Result MoveTensors(Context *destCtx, u8 numTensors, ...);
+void MoveTensors(Context *destCtx, u8 numTensors, ...);
 
 // Binary Ops
 Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);

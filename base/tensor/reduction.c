@@ -7,6 +7,7 @@
 #include "tensor_internal.h"
 #include "value.h"
 #include "../memory.h"
+#include <stdlib.h>
 
 static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype dtype) {
   tensor_size_t x = 0;
@@ -32,9 +33,8 @@ static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype
   }
 
   Value *sum = allocate(m, sizeof(Value));
-  if (sum == NULL) {
-    return NULL;
-  }
+  PANIC_IF(sum == NULL, ALLOCATION_FAILED);   
+
   *sum = VALUE(dtype, 0);
   for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
     VALUE_BINOP(*sum, *sum, sums[y], +);
@@ -137,9 +137,6 @@ static Result initReducedTensor(Context *ctx, Tensor *source, Tensor *dest, dim_
   return initRes;
 }
 
-static Result materializeReductionInput(Context *ctx, Tensor *t, TensorArg *arg) {
-  return materializeTensorOnContext(ctx, t, true, arg);
-}
 
 static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numBeforeDim,
                                        tensor_size_t *numAfterDim, dim_t *reduce) {
@@ -154,24 +151,20 @@ static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numB
 
 static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *workingTensor= materializeTensorOnContext(ctx, t);
 
-  Tensor *workingTensor = inputArg.tensor;
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, workingTensor);
     return result;
   }
 
   result = initReducedTensor(ctx, workingTensor, dest, dim, workingTensor->dtype);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, workingTensor);
     return result;
   }
 
@@ -189,57 +182,42 @@ static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, workingTensor);
   return OK;
 }
 
 static Result meanCpu(Context *ctx, Tensor *t, Tensor *dest) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Value *tensorSum = contigousSum(ctx->memory, inputArg.tensor->values, inputArg.tensor->size,
-                                  inputArg.tensor->dtype);
-  if (tensorSum == NULL) {
-    releaseTensorArg(ctx, &inputArg);
-    return ERR_OUT_OF_MEMORY;
-  }
-  Value size = VALUE(inputArg.tensor->dtype, inputArg.tensor->size);
-  Value mean = VALUE(inputArg.tensor->dtype, 0);
+  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size,
+                                  input->dtype);
+  Value size = VALUE(input->dtype, input->size);
+  Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
 
-  result = initScalarTensor(ctx, dest, inputArg.tensor->dtype);
+  Result result = initScalarTensor(ctx, dest, input->dtype);
   if (result == OK) {
     VALUE_SET(dest->values, 0, mean);
   }
 
   freeAlloc(ctx->memory, tensorSum);
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  Tensor *workingTensor = inputArg.tensor;
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
-    return result;
-  }
+
+  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   result = initReducedTensor(ctx, workingTensor, dest, dim, workingTensor->dtype);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, workingTensor);
     return result;
   }
 
@@ -269,38 +247,30 @@ static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, workingTensor);
   return OK;
 }
 
 static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *input = materializeTensorOnContext(ctx, t);  
 
-  Value *tensorSum = contigousSum(ctx->memory, inputArg.tensor->values, inputArg.tensor->size,
-                                  inputArg.tensor->dtype);
-  if (tensorSum == NULL) {
-    releaseTensorArg(ctx, &inputArg);
-    return ERR_OUT_OF_MEMORY;
-  }
+  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size,
+                                  input->dtype);
   f64 mean = 0.0;
-  switch (inputArg.tensor->dtype) {
-    case F16: mean = (f64)tensorSum->as.f16 / (f64)inputArg.tensor->size; break;
-    case F32: mean = (f64)tensorSum->as.f32 / (f64)inputArg.tensor->size; break;
-    case F64: mean = tensorSum->as.f64 / (f64)inputArg.tensor->size; break;
+  switch (input->dtype) {
+    case F16: mean = (f64)tensorSum->as.f16 / (f64)input->size; break;
+    case F32: mean = (f64)tensorSum->as.f32 / (f64)input->size; break;
+    case F64: mean = tensorSum->as.f64 / (f64)input->size; break;
     default: break;
   }
 
   f64 deviationSquaredSum = 0.0;
-  for (tensor_size_t i = 0; i < inputArg.tensor->size; i++) {
+  for (tensor_size_t i = 0; i < input->size; i++) {
     Value value;
-    VALUE_GET_FROM_ARR(inputArg.tensor->values, i, &value, inputArg.tensor->dtype);
+    VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
     f64 current = 0.0;
-    switch (inputArg.tensor->dtype) {
+    switch (input->dtype) {
       case F16: current = (f64)value.as.f16; break;
       case F32: current = (f64)value.as.f32; break;
       case F64: current = value.as.f64; break;
@@ -311,10 +281,10 @@ static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
     deviationSquaredSum += centered * centered;
   }
 
-  f64 std = sqrt(deviationSquaredSum / (f64)(inputArg.tensor->size - 1));
-  result = initScalarTensor(ctx, dest, inputArg.tensor->dtype);
+  f64 std = sqrt(deviationSquaredSum / (f64)(input->size - 1));
+  Result result = initScalarTensor(ctx, dest, input->dtype);
   if (result == OK) {
-    switch (inputArg.tensor->dtype) {
+    switch (input->dtype) {
       case F16: ((f16 *)dest->values)[0] = (f16)std; break;
       case F32: ((f32 *)dest->values)[0] = (f32)std; break;
       case F64: ((f64 *)dest->values)[0] = std; break;
@@ -323,30 +293,27 @@ static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   freeAlloc(ctx->memory, tensorSum);
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result maxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  Tensor *workingTensor = inputArg.tensor;
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+
+  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, workingTensor);
     return result;
   }
 
   result = initReducedTensor(ctx, workingTensor, dest, dim, workingTensor->dtype);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, workingTensor);
     return result;
   }
 
@@ -369,32 +336,21 @@ static Result maxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, workingTensor);
   return OK;
 }
 
 static Result argMaxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  Tensor *workingTensor = inputArg.tensor;
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
-    return result;
-  }
+  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   result = initReducedTensor(ctx, workingTensor, dest, dim, I64);
-  if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
-    return result;
-  }
+  PANIC_IF(result != OK, ALLOCATION_FAILED); 
 
   i64 *destValues = (i64 *)dest->values;
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
@@ -418,157 +374,135 @@ static Result argMaxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, workingTensor);
   return OK;
 }
 
 static Result sumCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(inputArg.tensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = initReducedTensor(ctx, inputArg.tensor, dest, dim, inputArg.tensor->dtype);
+  result = initReducedTensor(ctx, input, dest, dim, input->dtype);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = runCudaReduceDim(ctx, inputArg.tensor->dtype, inputArg.tensor->dtype, REDUCTION_OP_SUM,
-                            inputArg.tensor->values, dest->values, numBeforeDim, numAfterDim, reduce);
-  releaseTensorArg(ctx, &inputArg);
+  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_SUM,
+                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result meanCuda(Context *ctx, Tensor *t, Tensor *dest) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
+  Tensor *input = materializeTensorOnContext(ctx, t);
+
+  Result result = initScalarTensor(ctx, dest, input->dtype);
   if (result != OK) {
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = initScalarTensor(ctx, dest, inputArg.tensor->dtype);
-  if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
-    return result;
-  }
-
-  result = runCudaReduceAll(ctx, inputArg.tensor->dtype, REDUCTION_OP_MEAN, inputArg.tensor->values,
-                            dest->values, inputArg.tensor->size);
-  releaseTensorArg(ctx, &inputArg);
+  result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
+                            dest->values, input->size);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result meanDimCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor* input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(inputArg.tensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = initReducedTensor(ctx, inputArg.tensor, dest, dim, inputArg.tensor->dtype);
+  result = initReducedTensor(ctx, input, dest, dim, input->dtype);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = runCudaReduceDim(ctx, inputArg.tensor->dtype, inputArg.tensor->dtype, REDUCTION_OP_MEAN,
-                            inputArg.tensor->values, dest->values, numBeforeDim, numAfterDim, reduce);
-  releaseTensorArg(ctx, &inputArg);
+  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MEAN,
+                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result stdCuda(Context *ctx, Tensor *t, Tensor *dest) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
+  Tensor* input = materializeTensorOnContext(ctx, t);
+
+  Result result = initScalarTensor(ctx, dest, input->dtype);
   if (result != OK) {
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = initScalarTensor(ctx, dest, inputArg.tensor->dtype);
-  if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
-    return result;
-  }
-
-  result = runCudaStd(ctx, inputArg.tensor->dtype, inputArg.tensor->values, dest->values,
-                      inputArg.tensor->size);
-  releaseTensorArg(ctx, &inputArg);
+  result = runCudaStd(ctx, input->dtype, input->values, dest->values,
+                      input->size);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result maxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor* input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(inputArg.tensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = initReducedTensor(ctx, inputArg.tensor, dest, dim, inputArg.tensor->dtype);
+  result = initReducedTensor(ctx, input, dest, dim, input->dtype);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = runCudaReduceDim(ctx, inputArg.tensor->dtype, inputArg.tensor->dtype, REDUCTION_OP_MAX,
-                            inputArg.tensor->values, dest->values, numBeforeDim, numAfterDim, reduce);
-  releaseTensorArg(ctx, &inputArg);
+  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MAX,
+                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result argMaxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   TensorArg inputArg = {0};
-  Result result = materializeReductionInput(ctx, t, &inputArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor* input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  result = prepareReductionGeometry(inputArg.tensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+
+  Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = initReducedTensor(ctx, inputArg.tensor, dest, dim, I64);
+  result = initReducedTensor(ctx, input, dest, dim, I64);
   if (result != OK) {
-    releaseTensorArg(ctx, &inputArg);
+    freeIfContingousCopy(ctx, input);
     return result;
   }
 
-  result = runCudaReduceDim(ctx, inputArg.tensor->dtype, I64, REDUCTION_OP_ARGMAX,
-                            inputArg.tensor->values, dest->values, numBeforeDim, numAfterDim, reduce);
-  releaseTensorArg(ctx, &inputArg);
+  result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX,
+                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  freeIfContingousCopy(ctx, input);
   return result;
 }
 

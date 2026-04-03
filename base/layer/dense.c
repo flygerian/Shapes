@@ -1,3 +1,5 @@
+#include "common.h"
+#include "result/result.h"
 #include "shapes.h"
 
 #include "../memory.h"
@@ -49,14 +51,6 @@ static double opTimingNowMs(void) {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
   return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
-
-static Result syncForOpTiming(Context *ctx) {
-  if (!shouldLogOpTiming()) {
-    return OK;
-  }
-
-  return Flush(ctx);
 }
 
 static void logOpTiming(Context *ctx, const char *opName, const char *phase, double startMs) {
@@ -112,81 +106,43 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
 
   // BLAS expects dense row-major buffers. Views/slices from Go can be
   // non-contiguous, so we materialize contiguous copies when needed.
-  TensorArg xArg = {0};
-  TensorArg wArg = {0};
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
   if (shouldLogOpTiming()) {
     totalStartMs = opTimingNowMs();
   }
-  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
-  if (res != OK) {
-    return res;
-  }
-  res = materializeTensorOnContext(ctx, w, true, &wArg);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    return res;
-  }
-  Tensor *xContig = xArg.tensor;
-  Tensor *wContig = wArg.tensor;
+
+  Tensor *xContig = materializeTensorOnContext(ctx, x);  
+  Tensor *wContig = materializeTensorOnContext(ctx, w);
+
   logOpTiming(ctx, "DenseLinear", "materialize", totalStartMs);
 
   tensor_size_t rows = x->size / inputSize;
-  res = syncForOpTiming(ctx);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &wArg);
-    return res;
-  }
+
   phaseStartMs = opTimingNowMs();
-  res = initTensorLikeInputWithLastDim(ctx, dest, x, outputSize, x->dtype);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &wArg);
-    return res;
-  }
+
+  Result res = initTensorLikeInputWithLastDim(ctx, dest, x, outputSize, x->dtype);
+  PANIC_IF(res != OK, res);
   logOpTiming(ctx, "DenseLinear", "alloc_output", phaseStartMs);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
-  res = syncForOpTiming(ctx);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &wArg);
-    return res;
-  }
   phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
           xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, dest->values,
           (int)outputSize);
-  res = syncForOpTiming(ctx);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &wArg);
-    return res;
-  }
+
   logOpTiming(ctx, "DenseLinear", "gemm", phaseStartMs);
 
   if (withBias) {
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      releaseTensorArg(ctx, &xArg);
-      releaseTensorArg(ctx, &wArg);
-      return res;
-    }
     phaseStartMs = opTimingNowMs();
     res = AddInPlace(ctx, dest, b);
-    if (res != OK) {
-      releaseTensorArg(ctx, &xArg);
-      releaseTensorArg(ctx, &wArg);
-      return res;
-    }
+    PANIC_IF(res != OK, res);     
     logOpTiming(ctx, "DenseLinear", "bias_add", phaseStartMs);
   }
 
-  releaseTensorArg(ctx, &xArg);
-  releaseTensorArg(ctx, &wArg);
+  freeIfContingousCopy(ctx, xContig);
+  freeIfContingousCopy(ctx, wContig);
 
   logOpTiming(ctx, "DenseLinear", "total", totalStartMs);
 
@@ -198,167 +154,72 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   // Backward inputs/outputs:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize]
-  if (isInvalidTensor(x) || isInvalidTensor(w) || isInvalidTensor(gradOut)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+  PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || isInvalidTensor(gradOut),  ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(x->shape.numOfDims < 2 || gradOut->shape.numOfDims < 2 || w->shape.numOfDims != 2, ERR_MATMUL_MIN_2D);
+  PANIC_IF (x->dtype != gradOut->dtype || x->dtype != w->dtype, ERR_DTYPE_MISMATCH);
 
-  if (x->shape.numOfDims < 2 || gradOut->shape.numOfDims < 2 || w->shape.numOfDims != 2) {
-    return ERR_MATMUL_MIN_2D;
-  }
-
-  if (x->dtype != gradOut->dtype || x->dtype != w->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (x->dtype != F16 && x->dtype != F32 && x->dtype != F64) {
-    return ERR_DTYPE_MISMATCH;
-  }
+  PANIC_IF(x->dtype != F16 && x->dtype != F32 && x->dtype != F64, ERR_DTYPE_MISMATCH); 
 
   dim_t inputSize = x->shape.dims[x->shape.numOfDims - 1];
   dim_t outputSize = w->shape.dims[0];
-  if (w->shape.dims[1] != inputSize) {
-    return ERR_MATMUL_INNER_DIM_MISMATCH;
-  }
 
-  if (gradOut->shape.dims[gradOut->shape.numOfDims - 1] != outputSize) {
-    return ERR_DIM_MISMATCH;
-  }
-
+  PANIC_IF(w->shape.dims[1] != inputSize, ERR_MATMUL_INNER_DIM_MISMATCH); 
+  PANIC_IF(gradOut->shape.dims[gradOut->shape.numOfDims - 1] != outputSize, ERR_DIM_MISMATCH); 
   tensor_size_t rows = x->size / inputSize;
-  if (gradOut->size != rows * outputSize) {
-    return ERR_DIM_MISMATCH;
-  }
 
+  PANIC_IF(gradOut->size != rows * outputSize, ERR_DIM_MISMATCH); 
   // Same contiguous requirement as forward: BLAS kernels consume packed rows.
-  TensorArg xArg = {0};
-  TensorArg wArg = {0};
-  TensorArg gArg = {0};
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
   if (shouldLogOpTiming()) {
     totalStartMs = opTimingNowMs();
   }
-  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, w, true, &wArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, gradOut, true, &gArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  Tensor *xContig = xArg.tensor;
-  Tensor *wContig = wArg.tensor;
-  Tensor *gContig = gArg.tensor;
+
+  Tensor *xContig = materializeTensorOnContext(ctx, x);  
+  Tensor *wContig = materializeTensorOnContext(ctx, w);  
+  Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
+
   logOpTiming(ctx, "DenseBackward", "materialize", totalStartMs);
 
-  res = syncForOpTiming(ctx);
-  if (res != OK) {
-    goto cleanup;
-  }
   phaseStartMs = opTimingNowMs();
-  res = initTensorLikeInputWithLastDim(ctx, dX, x, inputSize, x->dtype);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = initTensorLikeInputWithLastDim(ctx, dW, w, inputSize, w->dtype);
-  if (res != OK) {
-    goto cleanup;
-  }
+  initTensorLikeInputWithLastDim(ctx, dX, x, inputSize, x->dtype);
+  initTensorLikeInputWithLastDim(ctx, dW, w, inputSize, w->dtype);
+
   logOpTiming(ctx, "DenseBackward", "alloc_outputs", phaseStartMs);
-  if (x->dtype == F64) {
-    // dX = gradOut * w
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    phaseStartMs = opTimingNowMs();
-    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
+
+  phaseStartMs = opTimingNowMs();
+  runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
             gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
             (int)inputSize);
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
+  
+  logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
 
-    // dW = gradOut^T * x
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    phaseStartMs = opTimingNowMs();
-    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
+  // dW = gradOut^T * x
+  phaseStartMs = opTimingNowMs();
+  runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
             gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
             (int)inputSize);
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
-  } else {
-    // dX = gradOut * w
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    phaseStartMs = opTimingNowMs();
-    runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
-            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
-            (int)inputSize);
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
-
-    // dW = gradOut^T * x
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    phaseStartMs = opTimingNowMs();
-    runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
-            (int)inputSize);
-    res = syncForOpTiming(ctx);
-    if (res != OK) {
-      goto cleanup;
-    }
-    logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
-  }
+  logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
 
   dim_t *grad2dDims = allocate(ctx->memory, sizeof(dim_t) * 2);
-  res = ensureAllocated(grad2dDims);
-  if (res != OK) {
-    goto cleanup;
-  }
   grad2dDims[0] = rows;
   grad2dDims[1] = outputSize;
+
   Tensor grad2dView = {0};
-  res = syncForOpTiming(ctx);
-  if (res != OK) {
-    goto cleanup;
-  }
+  
   phaseStartMs = opTimingNowMs();
-  res = Reshape(ctx, gContig, &grad2dView, (Dim){.dims = grad2dDims, .numOfDims = 2});
-  if (res != OK) {
-    goto cleanup;
-  }
+  Result res = Reshape(ctx, gContig, &grad2dView, (Dim){.dims = grad2dDims, .numOfDims = 2});
+  PANIC_IF(res != OK, res); 
 
   res = Sum(ctx, &grad2dView, dB, 0);
-  if (res != OK) {
-    goto cleanup;
-  }
+  PANIC_IF(res != OK, res);
+
   logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);
   logOpTiming(ctx, "DenseBackward", "total", totalStartMs);
 
 cleanup:
-  releaseTensorArg(ctx, &xArg);
-  releaseTensorArg(ctx, &wArg);
-  releaseTensorArg(ctx, &gArg);
+  freeIfContingousCopy(ctx, xContig);
+  freeIfContingousCopy(ctx, wContig);
+  freeIfContingousCopy(ctx, gContig);
   return res;
 }

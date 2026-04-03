@@ -123,6 +123,7 @@ typedef struct {
   Dtype dtype;
   bool isView;
   bool isContigous;
+  bool isContigousCopy;
 } Tensor;
 
 typedef struct {
@@ -132,6 +133,12 @@ typedef struct {
   Tensor *v;
 } AdamData;
 
+
 size_t getBytesForDtype(Dtype type);
 
+#define DIM_ZERO ((Dim){.dims = NULL, .numOfDims = 0})
+#define DIM1D(dimSize) ((Dim){.dims = (dim_t[]){dimSize}, .numOfDims = 1})
+#define DIM2D(dim0Size, dim1Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size}, .numOfDims = 2})
+#define DIM3D(dim0Size, dim1Size, dim2Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size}, .numOfDims = 3})
+#define DIM4D(dim0Size, dim1Size, dim2Size, dim3Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size, dim3Size}, .numOfDims = 4})
 #endif

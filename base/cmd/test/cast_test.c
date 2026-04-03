@@ -563,6 +563,8 @@ static void test_cast_cuda_dtype_change(void) {
   Tensor *src = T_Float(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
   Tensor dest;
 
+  MoveTensors(&ctx, 1, src);
+
   Result r = Cast(&ctx, src, &dest, F64);
   ASSERT_EQ(r, OK, "CUDA Cast should support dtype-changing casts");
   ASSERT(dest.context == &ctx, "CUDA Cast dtype-changing result should live on CUDA");
@@ -598,6 +600,7 @@ static void test_cast_cuda_f32_to_i64(void) {
   }
   Tensor dest;
 
+  MoveTensors(&ctx, 1, src);
   Result r = Cast(&ctx, src, &dest, I64);
   ASSERT_EQ(r, OK, "CUDA Cast should support F32 -> I64");
   ASSERT(dest.context == &ctx, "CUDA F32 -> I64 Cast result should live on CUDA");
@@ -629,6 +632,7 @@ static void test_cast_cuda_bool_to_f32(void) {
   ((bool *)src->values)[0] = false;
   ((bool *)src->values)[1] = true;
 
+  MoveTensors(&ctx, 1, src);
   Tensor dest;
   Result r = Cast(&ctx, src, &dest, F32);
   ASSERT_EQ(r, OK, "CUDA Cast should support BOOL -> F32");

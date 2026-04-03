@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "result/result.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -6,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 
 Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
@@ -132,10 +134,7 @@ void *findAvailableSpace(Memory *memory, size_t size) {
 }
 
 void *allocate(Memory *memory, size_t size) {
-  if (size == 0) {
-    fprintf(stderr, "allocating 0 returining null");
-    return NULL;
-  }
+  PANIC_IF(size == 0, ALLOCATING_ZERO); 
 
   void *reused = findAvailableSpace(memory, size);
   if (reused != NULL) {
@@ -155,9 +154,7 @@ void *allocate(Memory *memory, size_t size) {
     return header + 1;
   }
 
-  // Arena is full and no free block matched.
-  fprintf(stderr, "no enough blocks retruning null");
-  return NULL;
+  PANIC_IF(true, ALLOCATION_FAILED);
 }
 
 

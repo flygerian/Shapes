@@ -7,6 +7,7 @@
 #include <complex.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdlib.h>
 
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
   Dim tShape = (Dim){.numOfDims = shape.numOfDims};
@@ -17,43 +18,24 @@ Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
     tShape.multipliers = NULL;
 
     Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-    if (t == NULL) {
-      return NULL;
-    }
-    if (initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK) {
-      freeAlloc(ctx->memory, t);
-      return NULL;
-    }
-
+    PANIC_IF(t == NULL, ALLOCATION_FAILED);     
+    PANIC_IF(initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK, ALLOCATION_FAILED); 
     return t;
   }
 
   tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
-  if (tShape.dims == NULL) {
-    return NULL;
-  }
+  PANIC_IF (tShape.dims == NULL, ALLOCATION_FAILED);   
+
   tShape.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * tShape.numOfDims);
-  if (tShape.multipliers == NULL) {
-    freeAlloc(ctx->memory, tShape.dims);
-    return NULL;
-  }
+  PANIC_IF(tShape.multipliers == NULL, ALLOCATION_FAILED); 
 
   memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
   tensor_size_t size = calculateNumValuesAndMultipliers(tShape, tShape.multipliers);
   (void)size;
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-  if (t == NULL) {
-    freeAlloc(ctx->memory, tShape.multipliers);
-    freeAlloc(ctx->memory, tShape.dims);
-    return NULL;
-  }
-  if (initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK) {
-    freeAlloc(ctx->memory, t);
-    freeAlloc(ctx->memory, tShape.multipliers);
-    freeAlloc(ctx->memory, tShape.dims);
-    return NULL;
-  }
+  PANIC_IF(t == NULL, ALLOCATION_FAILED);   
 
+  PANIC_IF(initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK, ALLOCATION_FAILED);
   return t;
 }
 
@@ -295,25 +277,15 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     return NULL;
   }
 
-  TensorArg sourceArg = {0};
-  if (materializeTensorOnContext(ctx, indices, true, &sourceArg) != OK) {
-    return NULL;
-  }
+  Tensor *source = materializeTensorOnContext(ctx, indices);
 
-  Tensor *source = sourceArg.tensor;
   // Build output shape: input shape + [numClasses]
   u8 outNumDims = source->shape.numOfDims + 1;
   dim_t *outDims = allocate(ctx->memory, sizeof(dim_t) * outNumDims);
-  if (outDims == NULL) {
-    releaseTensorArg(ctx, &sourceArg);
-    return NULL;
-  }
+  PANIC_IF(outDims == NULL, ALLOCATION_FAILED);
+
   multiplier_t *outMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * outNumDims);
-  if (outMultipliers == NULL) {
-    freeAlloc(ctx->memory, outDims);
-    releaseTensorArg(ctx, &sourceArg);
-    return NULL;
-  }
+  PANIC_IF(outMultipliers == NULL, ALLOCATION_FAILED); 
 
   for (u8 i = 0; i < source->shape.numOfDims; i++) {
     outDims[i] = source->shape.dims[i];
@@ -326,24 +298,20 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
 
   // Create output tensor filled with zeros
   Tensor *out = allocate(ctx->memory, sizeof(Tensor));
-  if (out == NULL) {
-    freeAlloc(ctx->memory, outMultipliers);
-    freeAlloc(ctx->memory, outDims);
-    releaseTensorArg(ctx, &sourceArg);
-    return NULL;
-  }
+  PANIC_IF(out == NULL, ALLOCATION_FAILED);  
+
   if (initTensor(ctx, out, outShape, F32) != OK || clearTensorValues(out) != OK) {
     freeAlloc(ctx->memory, out);
     freeAlloc(ctx->memory, outMultipliers);
     freeAlloc(ctx->memory, outDims);
-    releaseTensorArg(ctx, &sourceArg);
+    freeIfContingousCopy(ctx, source);
     return NULL;
   }
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result =
         runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);
-    releaseTensorArg(ctx, &sourceArg);
+    freeIfContingousCopy(ctx, source);
     if (result != OK) {
       FreeTensor(ctx, out);
       return NULL;
@@ -358,7 +326,7 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     Value idxVal;
     Result readResult = readTensorValueAtFlatIndex(source, i, &idxVal);
     if (readResult != OK) {
-      releaseTensorArg(ctx, &sourceArg);
+      freeIfContingousCopy(ctx, source);
       FreeTensor(ctx, out);
       return NULL;
     }
@@ -385,13 +353,9 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     tensor_size_t outIdx = i * lastDimStride + (tensor_size_t)classIdx;
     Result writeResult =
         writeTensorValueAtFlatIndex(out, outIdx, (Value){.dtype = F32, .as.f32 = 1.0f});
-    if (writeResult != OK) {
-      releaseTensorArg(ctx, &sourceArg);
-      FreeTensor(ctx, out);
-      return NULL;
-    }
+    PANIC_IF(writeResult != OK, ERR_NO_OP);
   }
 
-  releaseTensorArg(ctx, &sourceArg);
+  freeIfContingousCopy(ctx, source);
   return out;
 }

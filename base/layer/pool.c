@@ -1,9 +1,9 @@
 #include "common.h"
 #include "layer/pool.h"
-#include "memory.h"
 #include "result/result.h"
 #include "tensor/tensor_internal.h"
 #include <string.h>
+#include <stdlib.h>
 
 static dim_t adaptivePoolStart(dim_t outIdx, dim_t inputSize, dim_t outputSize) {
   return (outIdx * inputSize) / outputSize;
@@ -57,25 +57,14 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
   dim_t outH = (h - kH) / stride + 1;
   dim_t outW = (w - kW) / stride + 1;
 
-  TensorArg xArg = {0};
-  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
-  if (res != OK) {
-    return res;
-  }
-  Tensor *xContig = xArg.tensor;
+  Tensor *xContig = materializeTensorOnContext(ctx, x);
 
-  res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    return res;
-  }
+  Result res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
+  PANIC_IF(res != OK, res);
 
   if (indices != NULL) {
     res = init4DTensor(ctx, indices, batch, outH, outW, channels, U64);
-    if (res != OK) {
-      releaseTensorArg(ctx, &xArg);
-      return res;
-    }
+    PANIC_IF(res != OK, res);
   }
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
@@ -86,7 +75,8 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
       res = runCudaMaxPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, kH, kW,
                              stride, dest->values);
     }
-    releaseTensorArg(ctx, &xArg);
+
+    freeIfContingousCopy(ctx, xContig);
     return res;
   }
 
@@ -158,7 +148,7 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
     }
   }
 
-  releaseTensorArg(ctx, &xArg);
+  freeIfContingousCopy(ctx, xContig);
   return OK;
 }
 
@@ -215,39 +205,20 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
     return ERR_DIM_MISMATCH;
   }
 
-  TensorArg xArg = {0};
-  TensorArg gradArg = {0};
-  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
-  if (res != OK) {
-    return res;
-  }
-  res = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    return res;
-  }
-  Tensor *xContig = xArg.tensor;
-  Tensor *gradContig = gradArg.tensor;
+  Tensor *xContig = materializeTensorOnContext(ctx, x);
+  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  res = initTensorLike(ctx, dX, x, x->dtype);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &gradArg);
-    return res;
-  }
+  Result res = initTensorLike(ctx, dX, x, x->dtype);
+  PANIC_IF(res != OK, res);
 
   res = clearPoolTarget(ctx, dX);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &gradArg);
-    return res;
-  }
+  PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaMaxPool2dBackward(ctx, x->dtype, xContig->values, gradContig->values, batch,
                                    channels, h, w, kH, kW, stride, dX->values);
-    releaseTensorArg(ctx, &xArg);
-    releaseTensorArg(ctx, &gradArg);
+    freeIfContingousCopy(ctx, xContig);
+    freeIfContingousCopy(ctx, xContig);
     return res;
   }
 
@@ -311,8 +282,8 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
     }
   }
 
-  releaseTensorArg(ctx, &xArg);
-  releaseTensorArg(ctx, &gradArg);
+  freeIfContingousCopy(ctx, xContig);
+  freeIfContingousCopy(ctx, gradContig);
   return OK;
 }
 
@@ -347,41 +318,21 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
     return ERR_DIM_MISMATCH;
   }
 
-  TensorArg gradArg = {0};
-  TensorArg indicesArg = {0};
-  Result res = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
-  if (res != OK) {
-    return res;
-  }
 
-  res = materializeTensorOnContext(ctx, indices, true, &indicesArg);
-  if (res != OK) {
-    releaseTensorArg(ctx, &gradArg);
-    return res;
-  }
+  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);  
+  Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
 
-  Tensor *gradContig = gradArg.tensor;
-  Tensor *indicesContig = indicesArg.tensor;
-
-  res = initTensorLike(ctx, dX, x, x->dtype);
-  if (res != OK) {
-    releaseTensorArg(ctx, &gradArg);
-    releaseTensorArg(ctx, &indicesArg);
-    return res;
-  }
+  Result res = initTensorLike(ctx, dX, x, x->dtype);
+  PANIC_IF(res != OK, res); 
 
   res = clearPoolTarget(ctx, dX);
-  if (res != OK) {
-    releaseTensorArg(ctx, &gradArg);
-    releaseTensorArg(ctx, &indicesArg);
-    return res;
-  }
+  PANIC_IF(res != OK, res); 
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaMaxPool2dBackwardWithIndices(ctx, x->dtype, gradContig->values,
                                               indicesContig->values, gradContig->size, dX->values);
-    releaseTensorArg(ctx, &gradArg);
-    releaseTensorArg(ctx, &indicesArg);
+    freeIfContingousCopy(ctx, gradContig);
+    freeIfContingousCopy(ctx, indicesContig);
     return res;
   }
 
@@ -401,8 +352,8 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
     }
   }
 
-  releaseTensorArg(ctx, &gradArg);
-  releaseTensorArg(ctx, &indicesArg);
+  freeIfContingousCopy(ctx, gradContig);
+  freeIfContingousCopy(ctx, indicesContig);
   return OK;
 }
 
@@ -428,23 +379,15 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
   dim_t w = x->shape.dims[2];
   dim_t channels = x->shape.dims[3];
 
-  TensorArg xArg = {0};
-  Result res = materializeTensorOnContext(ctx, x, true, &xArg);
-  if (res != OK) {
-    return res;
-  }
-  Tensor *xContig = xArg.tensor;
+  Tensor *xContig = materializeTensorOnContext(ctx, x);
 
-  res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
-  if (res != OK) {
-    releaseTensorArg(ctx, &xArg);
-    return res;
-  }
+  Result res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
+  PANIC_IF(res != OK, res); 
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaAdaptiveAvgPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, outH,
                                    outW, dest->values);
-    releaseTensorArg(ctx, &xArg);
+    freeIfContingousCopy(ctx, xContig);
     return res;
   }
 
@@ -500,7 +443,7 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
     }
   }
 
-  releaseTensorArg(ctx, &xArg);
+  freeIfContingousCopy(ctx, xContig);
   return OK;
 }
 
@@ -532,29 +475,18 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
     return ERR_DIM_MISMATCH;
   }
 
-  TensorArg gradArg = {0};
-  Result res = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
-  if (res != OK) {
-    return res;
-  }
-  Tensor *gradContig = gradArg.tensor;
+  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  res = initTensorLike(ctx, dX, x, x->dtype);
-  if (res != OK) {
-    releaseTensorArg(ctx, &gradArg);
-    return res;
-  }
+  Result res = initTensorLike(ctx, dX, x, x->dtype);
+  PANIC_IF(res != OK, res);
 
   res = clearPoolTarget(ctx, dX);
-  if (res != OK) {
-    releaseTensorArg(ctx, &gradArg);
-    return res;
-  }
+  PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaAdaptiveAvgPool2dBackward(ctx, x->dtype, gradContig->values, batch, channels, h,
                                            w, outH, outW, dX->values);
-    releaseTensorArg(ctx, &gradArg);
+    freeIfContingousCopy(ctx, gradContig);
     return res;
   }
 
@@ -606,6 +538,6 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
     }
   }
 
-  releaseTensorArg(ctx, &gradArg);
+  freeIfContingousCopy(ctx, gradContig);
   return OK;
 }

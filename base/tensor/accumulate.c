@@ -3,6 +3,7 @@
 #include "tensor/tensor_internal.h"
 #include "tensor/value.h"
 #include <stddef.h>
+#include <stdlib.h>
 
 static DeviceType getAccumulateDispatchDevice(Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
@@ -32,56 +33,38 @@ static Result validateAccumulateTensorArgs(Tensor *dest, Tensor *srcGrad) {
   return OK;
 }
 
-static Result indexValueToDim(Value *idxVal, Dtype dtype, dim_t *idx) {
+static dim_t indexValueToDim(Value *idxVal, Dtype dtype) {
   switch (dtype) {
-    case U8: *idx = idxVal->as.u8; return OK;
-    case U16: *idx = idxVal->as.u16; return OK;
-    case U32: *idx = idxVal->as.u32; return OK;
-    case U64: *idx = idxVal->as.u64; return OK;
-    case I8: *idx = (dim_t)idxVal->as.i8; return OK;
-    case I16: *idx = (dim_t)idxVal->as.i16; return OK;
-    case I32: *idx = (dim_t)idxVal->as.i32; return OK;
-    case I64: *idx = (dim_t)idxVal->as.i64; return OK;
-    default: return ERR_DTYPE_MISMATCH;
+    case U8: return idxVal->as.u8;;
+    case U16: return idxVal->as.u16;
+    case U32: return idxVal->as.u32; return OK;
+    case U64: return idxVal->as.u64; return OK;
+    case I8: return (dim_t)idxVal->as.i8; return OK;
+    case I16: return (dim_t)idxVal->as.i16; return OK;
+    case I32: return (dim_t)idxVal->as.i32; return OK;
+    case I64: return (dim_t)idxVal->as.i64; return OK;
   }
+
+  PANIC_IF(true, ERR_DTYPE_MISMATCH);
+  return -1;
 }
 
 static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
-  TensorArg indicesArg = {0};
-  TensorArg srcArg = {0};
-  Result result = materializeTensorOnContext(ctx, indices, true, &indicesArg);
-  if (result != OK) {
-    return result;
-  }
 
-  result = materializeTensorOnContext(ctx, srcGrad, true, &srcArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &indicesArg);
-    return result;
-  }
+  Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
+  Tensor *srcContig= materializeTensorOnContext(ctx, srcGrad);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 1; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
 
-  for (u64 i = 0; i < indicesArg.tensor->size; i++) {
+  for (u64 i = 0; i < indicesContig->size; i++) {
     Value idxVal;
-    VALUE_GET_FROM_ARR(indicesArg.tensor->values, i, &idxVal, indicesArg.tensor->dtype);
+    VALUE_GET_FROM_ARR(indicesContig->values, i, &idxVal, indicesContig->dtype);
 
-    dim_t idx = 0;
-    result = indexValueToDim(&idxVal, indicesArg.tensor->dtype, &idx);
-    if (result != OK) {
-      releaseTensorArg(ctx, &indicesArg);
-      releaseTensorArg(ctx, &srcArg);
-      return result;
-    }
-
-    if (idx >= dest->shape.dims[0]) {
-      releaseTensorArg(ctx, &indicesArg);
-      releaseTensorArg(ctx, &srcArg);
-      return ERR_OUT_OF_BOUNDS;
-    }
+    dim_t idx = indexValueToDim(&idxVal, indicesContig->dtype);
+    PANIC_IF(idx >= dest->shape.dims[0], ERR_OUT_OF_BOUNDS);
 
     dim_t destCoords[dest->shape.numOfDims];
     destCoords[0] = idx;
@@ -94,71 +77,38 @@ static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, 
     for (tensor_size_t j = 0; j < sliceSize; j++) {
       Value destValue, srcValue, resultValue;
       VALUE_GET_FROM_ARR(dest->values, destBase + j, &destValue, dest->dtype);
-      VALUE_GET_FROM_ARR(srcArg.tensor->values, srcBase + j, &srcValue, srcArg.tensor->dtype);
+      VALUE_GET_FROM_ARR(srcContig->values, srcBase + j, &srcValue, srcContig->dtype);
       VALUE_BINOP(resultValue, destValue, srcValue, +);
       VALUE_SET(dest->values, destBase + j, resultValue);
     }
   }
 
-  releaseTensorArg(ctx, &indicesArg);
-  releaseTensorArg(ctx, &srcArg);
+  freeIfContingousCopy(ctx, indicesContig);
+  freeIfContingousCopy(ctx, srcContig);
   return OK;
 }
 
 static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndices,
                                    Tensor *colIndices, Tensor *srcGrad) {
-  TensorArg rowArg = {0};
-  TensorArg colArg = {0};
-  TensorArg srcArg = {0};
-  Result result = materializeTensorOnContext(ctx, rowIndices, true, &rowArg);
-  if (result != OK) {
-    return result;
-  }
-  result = materializeTensorOnContext(ctx, colIndices, true, &colArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &rowArg);
-    return result;
-  }
-  result = materializeTensorOnContext(ctx, srcGrad, true, &srcArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &rowArg);
-    releaseTensorArg(ctx, &colArg);
-    return result;
-  }
+
+  Tensor *rowContig = materializeTensorOnContext(ctx, rowIndices);
+  Tensor *colContig = materializeTensorOnContext(ctx, colIndices);
+  Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 2; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
 
-  for (u64 i = 0; i < rowArg.tensor->size; i++) {
+  for (u64 i = 0; i < rowContig->size; i++) {
     Value rowValue, colValue;
-    VALUE_GET_FROM_ARR(rowArg.tensor->values, i, &rowValue, rowArg.tensor->dtype);
-    VALUE_GET_FROM_ARR(colArg.tensor->values, i, &colValue, colArg.tensor->dtype);
+    VALUE_GET_FROM_ARR(rowContig->values, i, &rowValue, rowContig->dtype);
+    VALUE_GET_FROM_ARR(colContig->values, i, &colValue, colContig->dtype);
 
-    dim_t row = 0;
-    dim_t col = 0;
-    result = indexValueToDim(&rowValue, rowArg.tensor->dtype, &row);
-    if (result != OK) {
-      releaseTensorArg(ctx, &rowArg);
-      releaseTensorArg(ctx, &colArg);
-      releaseTensorArg(ctx, &srcArg);
-      return result;
-    }
-    result = indexValueToDim(&colValue, colArg.tensor->dtype, &col);
-    if (result != OK) {
-      releaseTensorArg(ctx, &rowArg);
-      releaseTensorArg(ctx, &colArg);
-      releaseTensorArg(ctx, &srcArg);
-      return result;
-    }
+    dim_t row = indexValueToDim(&rowValue, rowContig->dtype);
+    dim_t col =  indexValueToDim(&colValue, colContig->dtype);
 
-    if (row >= dest->shape.dims[0] || col >= dest->shape.dims[1]) {
-      releaseTensorArg(ctx, &rowArg);
-      releaseTensorArg(ctx, &colArg);
-      releaseTensorArg(ctx, &srcArg);
-      return ERR_OUT_OF_BOUNDS;
-    }
+    PANIC_IF(row >= dest->shape.dims[0] || col >= dest->shape.dims[1], ERR_OUT_OF_BOUNDS);
 
     dim_t destCoords[dest->shape.numOfDims];
     destCoords[0] = row;
@@ -172,29 +122,25 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
     for (tensor_size_t j = 0; j < sliceSize; j++) {
       Value destValue, srcValue, resultValue;
       VALUE_GET_FROM_ARR(dest->values, destBase + j, &destValue, dest->dtype);
-      VALUE_GET_FROM_ARR(srcArg.tensor->values, srcBase + j, &srcValue, srcArg.tensor->dtype);
+      VALUE_GET_FROM_ARR(srcContig->values, srcBase + j, &srcValue, srcContig->dtype);
       VALUE_BINOP(resultValue, destValue, srcValue, +);
       VALUE_SET(dest->values, destBase + j, resultValue);
     }
   }
 
-  releaseTensorArg(ctx, &rowArg);
-  releaseTensorArg(ctx, &colArg);
-  releaseTensorArg(ctx, &srcArg);
+  freeIfContingousCopy(ctx, rowContig);
+  freeIfContingousCopy(ctx, colContig);
+  freeIfContingousCopy(ctx, srcContig);
   return OK;
 }
 
 static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
-  TensorArg srcArg = {0};
-  Result result = materializeTensorOnContext(ctx, srcGrad, true, &srcArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *srcGradContig = materializeTensorOnContext(ctx, srcGrad);
 
   u8 ndims = dest->shape.numOfDims;
   u8 lastDim = ndims - 1;
-  u64 innerCount = srcArg.tensor->shape.dims[lastDim];
-  u64 srcStep = srcArg.tensor->shape.multipliers[lastDim];
+  u64 innerCount = srcGradContig->shape.dims[lastDim];
+  u64 srcStep = srcGradContig->shape.multipliers[lastDim];
   u64 dstStep = dest->shape.multipliers[lastDim];
 
   dim_t srcCoords[ndims];
@@ -206,11 +152,11 @@ static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tens
 
   u64 outerCount = 1;
   for (u8 i = 0; i < lastDim; i++) {
-    outerCount *= srcArg.tensor->shape.dims[i];
+    outerCount *= srcGrad->shape.dims[i];
   }
 
   if (innerCount == 0 || outerCount == 0) {
-    releaseTensorArg(ctx, &srcArg);
+    freeIfContingousCopy(ctx, srcGradContig);
     return OK;
   }
 
@@ -218,15 +164,15 @@ static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tens
     srcCoords[lastDim] = 0;
     dstCoords[lastDim] = (dim_t)ranges[lastDim].start;
 
-    u64 srcBase = getContigousIdxFromCoord(srcArg.tensor, srcCoords);
+    u64 srcBase = getContigousIdxFromCoord(srcGradContig, srcCoords);
     u64 dstBase = getContigousIdxFromCoord(dest, dstCoords);
-    accumulateStridedByDtype(dest->dtype, dest->values, dstBase, dstStep, srcArg.tensor->values,
+    accumulateStridedByDtype(dest->dtype, dest->values, dstBase, dstStep, srcGradContig->values,
                              srcBase, srcStep, innerCount);
 
     for (i32 d = (i32)lastDim - 1; d >= 0; d--) {
       srcCoords[d]++;
       dstCoords[d]++;
-      if (srcCoords[d] < srcArg.tensor->shape.dims[d]) {
+      if (srcCoords[d] < srcGradContig->shape.dims[d]) {
         break;
       }
       srcCoords[d] = 0;
@@ -234,7 +180,7 @@ static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tens
     }
   }
 
-  releaseTensorArg(ctx, &srcArg);
+  freeIfContingousCopy(ctx, srcGradContig);
   return OK;
 }
 
@@ -243,30 +189,20 @@ static Result indexAccumulate1dCuda(Context *ctx, Tensor *dest, Tensor *indices,
     return ERR_NO_OP;
   }
 
-  TensorArg indicesArg = {0};
-  TensorArg srcArg = {0};
-  Result result = materializeTensorOnContext(ctx, indices, true, &indicesArg);
-  if (result != OK) {
-    return result;
-  }
-
-  result = materializeTensorOnContext(ctx, srcGrad, true, &srcArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &indicesArg);
-    return result;
-  }
+  Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
+  Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 1; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
 
-  result = runCudaIndexAccumulate1d(ctx, dest->dtype, dest->values, indicesArg.tensor->values,
-                                    indicesArg.tensor->dtype, srcArg.tensor->values,
-                                    indicesArg.tensor->size, sliceSize);
+  Result result = runCudaIndexAccumulate1d(ctx, dest->dtype, dest->values, indicesContig->values,
+                                    indicesContig->dtype, srcContig->values,
+                                    indicesContig->size, sliceSize);
 
-  releaseTensorArg(ctx, &indicesArg);
-  releaseTensorArg(ctx, &srcArg);
+  freeIfContingousCopy(ctx, indicesContig);
+  freeIfContingousCopy(ctx, srcContig);
   return result;
 }
 
@@ -276,38 +212,23 @@ static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndic
     return ERR_NO_OP;
   }
 
-  TensorArg rowArg = {0};
-  TensorArg colArg = {0};
-  TensorArg srcArg = {0};
-  Result result = materializeTensorOnContext(ctx, rowIndices, true, &rowArg);
-  if (result != OK) {
-    return result;
-  }
-  result = materializeTensorOnContext(ctx, colIndices, true, &colArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &rowArg);
-    return result;
-  }
-  result = materializeTensorOnContext(ctx, srcGrad, true, &srcArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &rowArg);
-    releaseTensorArg(ctx, &colArg);
-    return result;
-  }
+  Tensor *rowContig = materializeTensorOnContext(ctx, rowIndices);
+  Tensor *colConfig = materializeTensorOnContext(ctx, colIndices);
+  Tensor *srcGradContig = materializeTensorOnContext(ctx, srcGrad);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 2; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
 
-  result = runCudaIndexAccumulate2d(ctx, dest->dtype, dest->values, dest->shape.dims[1],
-                                    rowArg.tensor->values, rowArg.tensor->dtype, colArg.tensor->values,
-                                    colArg.tensor->dtype, srcArg.tensor->values, rowArg.tensor->size,
+  Result result = runCudaIndexAccumulate2d(ctx, dest->dtype, dest->values, dest->shape.dims[1],
+                                    rowContig->values, rowContig->dtype, colConfig->values,
+                                    colConfig->dtype, srcGradContig->values, rowContig->size,
                                     sliceSize);
 
-  releaseTensorArg(ctx, &rowArg);
-  releaseTensorArg(ctx, &colArg);
-  releaseTensorArg(ctx, &srcArg);
+  freeIfContingousCopy(ctx, rowContig);
+  freeIfContingousCopy(ctx, colConfig);
+  freeIfContingousCopy(ctx, srcGradContig);
   return result;
 }
 
@@ -316,18 +237,14 @@ static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, Range *ranges, Ten
     return ERR_NO_OP;
   }
 
-  TensorArg srcArg = {0};
-  Result result = materializeTensorOnContext(ctx, srcGrad, true, &srcArg);
-  if (result != OK) {
-    return result;
-  }
+  Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  result = runCudaSliceAccumulate(ctx, dest->dtype, dest->values, dest->shape.numOfDims,
-                                  dest->shape.multipliers, ranges, srcArg.tensor->values,
-                                  srcArg.tensor->shape.dims, srcArg.tensor->shape.numOfDims,
-                                  srcArg.tensor->size);
+  Result result = runCudaSliceAccumulate(ctx, dest->dtype, dest->values, dest->shape.numOfDims,
+                                  dest->shape.multipliers, ranges, srcContig->values,
+                                  srcContig->shape.dims, srcContig->shape.numOfDims,
+                                  srcContig->size);
 
-  releaseTensorArg(ctx, &srcArg);
+  freeIfContingousCopy(ctx, srcContig);
   return result;
 }
 

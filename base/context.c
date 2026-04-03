@@ -7,6 +7,7 @@
 #include <driver_types.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -314,10 +315,8 @@ Result Flush(Context *ctx) {
   }
 }
 
-Result MoveTensors(Context *destCtx, u8 numTensors, ...) {
-  if (destCtx == NULL) {
-    return ERR_COPY_CTX_DEVICE_IS_NULL;
-  }
+void MoveTensors(Context *destCtx, u8 numTensors, ...) {
+  PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
 
   Tensor *tensors[numTensors];
 
@@ -331,22 +330,19 @@ Result MoveTensors(Context *destCtx, u8 numTensors, ...) {
 
   for (u8 x = 0; x < numTensors; x++) {
     Tensor *t = tensors[x];
-    if (t == NULL || t->context == NULL) {
-      return ERR_NULL_TENSOR_PROVIDED;
-    }
+    PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 
     size_t valueBytes = t->size * getBytesForDtype(t->dtype);
     void *locationOnDest = allocateOnCtx(destCtx, valueBytes);
     Result copyResult =
         copyBetweenContexts(t->context, destCtx, t->values, locationOnDest, valueBytes);
-    if (copyResult != OK) {
-      return copyResult;
-    }
+
+    PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
 
     freeOnCtx(t->context, t->values);
     t->context = destCtx;
     t->values = locationOnDest;
   }
 
-  return OK;
 }

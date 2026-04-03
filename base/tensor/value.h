@@ -145,6 +145,5 @@
   } while (0)
 
 static dim_t idx_zero[] = {0};
-#define DIM_ZERO ((Dim){.dims = idx_zero, .numOfDims = 1})
 
 #endif

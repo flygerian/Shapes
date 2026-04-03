@@ -255,35 +255,19 @@ static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
 }
 
 static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
-  TensorArg inputArg = {0};
-  Result result = materializeTensorOnContext(ctx, t, true, &inputArg);
-  if (opType == UNARY_OP_RELU && shouldLogRelu()) {
-    fprintf(stderr,
-            "[Relu] phase=materialize backend=CPU inputCtx=%p inputDevice=%s ownsTensor=%d "
-            "result=%s(%d)\n",
-            (void *)(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
-            unaryContextDeviceName(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
-            inputArg.ownsTensor ? 1 : 0, unaryResultName(result), (int)result);
-  }
-  if (result != OK) {
-    return result;
-  }
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *input = inputArg.tensor;
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  if (output == NULL) {
-    releaseTensorArg(ctx, &inputArg);
-    return ERR_OUT_OF_MEMORY;
-  }
+  PANIC_IF(output == NULL, ALLOCATION_FAILED); 
 
   for (tensor_size_t i = 0; i < input->size; i++) {
     Value value;
     VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
-    result = applyUnaryCpuValue(&value, opType, param);
+    Result result = applyUnaryCpuValue(&value, opType, param);
     if (result != OK) {
       FreeTensor(ctx, output);
-      releaseTensorArg(ctx, &inputArg);
+      freeIfContingousCopy(ctx, input);
       return result;
     }
 
@@ -292,47 +276,29 @@ static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opTy
 
   *dest = *output;
   freeAlloc(ctx->memory, output);
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, input);
 
   return OK;
 }
 
 static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
-  TensorArg inputArg = {0};
-  Result result = materializeTensorOnContext(ctx, t, true, &inputArg);
-  if (opType == UNARY_OP_RELU && shouldLogRelu()) {
-    fprintf(stderr,
-            "[Relu] phase=materialize backend=CUDA inputCtx=%p inputDevice=%s ownsTensor=%d "
-            "result=%s(%d)\n",
-            (void *)(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
-            unaryContextDeviceName(inputArg.tensor != NULL ? inputArg.tensor->context : NULL),
-            inputArg.ownsTensor ? 1 : 0, unaryResultName(result), (int)result);
-  }
-  if (result != OK) {
-    return result;
-  }
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *input = inputArg.tensor;
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  if (output == NULL) {
-    releaseTensorArg(ctx, &inputArg);
-    return ERR_OUT_OF_MEMORY;
-  }
+  PANIC_IF(output == NULL, ERR_OUT_OF_MEMORY);
 
-  result = runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size,
+  Result result = runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size,
                           param);
+
   if (opType == UNARY_OP_RELU) {
     logReluTensorState("cuda_kernel", ctx, input, result);
   }
-  if (result != OK) {
-    FreeTensor(ctx, output);
-    releaseTensorArg(ctx, &inputArg);
-    return result;
-  }
+
+  PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   *dest = *output;
   freeAlloc(ctx->memory, output);
-  releaseTensorArg(ctx, &inputArg);
+  freeIfContingousCopy(ctx, input);
 
   return OK;
 }
@@ -410,39 +376,18 @@ Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest)
     }
   }
 
-  TensorArg outputArg = {0};
-  TensorArg gradArg = {0};
-  result = materializeTensorOnContext(ctx, output, true, &outputArg);
-  if (result != OK) {
-    return result;
-  }
-
-  result = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &outputArg);
-    return result;
-  }
-
-  Tensor *outputWork = outputArg.tensor;
-  Tensor *gradWork = gradArg.tensor;
+  Tensor *outputWork  = materializeTensorOnContext(ctx, output);
+  Tensor *gradWork = materializeTensorOnContext(ctx, gradOut);
 
   Tensor *dInput = t_Zeros(ctx, outputWork->shape, outputWork->dtype);
-  if (dInput == NULL) {
-    releaseTensorArg(ctx, &outputArg);
-    releaseTensorArg(ctx, &gradArg);
-    return ERR_OUT_OF_MEMORY;
-  }
+  PANIC_IF(dInput == NULL, ERR_OUT_OF_MEMORY);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     result =
         runCudaReluBackward(ctx, outputWork->dtype, outputWork->values, gradWork->values,
                             dInput->values, outputWork->size);
-    if (result != OK) {
-      FreeTensor(ctx, dInput);
-      releaseTensorArg(ctx, &outputArg);
-      releaseTensorArg(ctx, &gradArg);
-      return result;
-    }
+    PANIC_IF(result != OK, CUDA_OP_FAILED);
+
   } else if (outputWork->dtype == F64) {
     f64 *outputValues = outputWork->values;
     f64 *gradValues = gradWork->values;
@@ -461,8 +406,8 @@ Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest)
 
   *dest = *dInput;
   freeAlloc(ctx->memory, dInput);
-  releaseTensorArg(ctx, &outputArg);
-  releaseTensorArg(ctx, &gradArg);
+  freeIfContingousCopy(ctx, outputWork);
+  freeIfContingousCopy(ctx, gradWork);
   return OK;
 }
 
@@ -504,35 +449,17 @@ Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Ten
     return ERR_NO_OP;
   }
 
-  TensorArg outputArg = {0};
-  TensorArg gradArg = {0};
-  result = materializeTensorOnContext(ctx, output, true, &outputArg);
-  if (result != OK) {
-    return result;
-  }
-
-  result = materializeTensorOnContext(ctx, gradOut, true, &gradArg);
-  if (result != OK) {
-    releaseTensorArg(ctx, &outputArg);
-    return result;
-  }
-
-  Tensor *outputWork = outputArg.tensor;
-  Tensor *gradWork = gradArg.tensor;
+  Tensor *outputWork = materializeTensorOnContext(ctx, output);
+  Tensor *gradWork = materializeTensorOnContext(ctx, gradOut);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     result = runCudaReluBackwardAccumulate(ctx, outputWork->dtype, outputWork->values,
                                            gradWork->values, dest->values, outputWork->size);
-    releaseTensorArg(ctx, &outputArg);
-    releaseTensorArg(ctx, &gradArg);
+    PANIC_IF(result != OK, CUDA_OP_FAILED);
     return result;
   }
 
-  if (!dest->isContigous || dest->isView) {
-    releaseTensorArg(ctx, &outputArg);
-    releaseTensorArg(ctx, &gradArg);
-    return ERR_NO_OP;
-  }
+  PANIC_IF(!dest->isContigous || dest->isView, ERR_NO_OP);
 
   if (outputWork->dtype == F64) {
     f64 *outputValues = outputWork->values;
@@ -550,8 +477,8 @@ Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Ten
     }
   }
 
-  releaseTensorArg(ctx, &outputArg);
-  releaseTensorArg(ctx, &gradArg);
+  freeIfContingousCopy(ctx, outputWork);
+  freeIfContingousCopy(ctx, gradWork);
   return OK;
 }
 

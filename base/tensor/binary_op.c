@@ -4,9 +4,9 @@
 #include "shapes.h"
 #include "tensor_internal.h"
 #include "value.h"
-#include "unary.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #define STRAIGHT_CMP_LOOP(TYPE, op)                                                                \
   do {                                                                                             \
@@ -475,22 +475,9 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  TensorArg aArg = {0};
-  TensorArg bArg = {0};
-  Result res = materializeTensorOnContext(ctx, ops.a, true, &aArg);
-  if (res != OK) {
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return res;
-  }
-  res = materializeTensorOnContext(ctx, ops.b, true, &bArg);
-  if (res != OK) {
-    releaseTensorArg(ctx, &aArg);
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return res;
-  }
+  Tensor *opA = materializeTensorOnContext(ctx, ops.a);
+  Tensor *opB = materializeTensorOnContext(ctx, ops.b);
 
-  Tensor *opA = aArg.tensor;
-  Tensor *opB = bArg.tensor;
 
   Dim outputShape;
   if (opA->size > opB->size) {
@@ -505,34 +492,23 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
   }
 
   Tensor *output = t_Zeros(ctx, outputShape, outputDtype);
-  if (output == NULL) {
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return ERR_OUT_OF_MEMORY;
-  }
+  PANIC_IF(output == NULL, ALLOCATION_FAILED); 
 
+  Result res;
   if (areTensorsSameShape(opA, opB)) {
     res = straightBinop(opA, opB, output, opType);
   } else {
     res = broadcastBinop(outputShape, opA, opB, output, opType);
   }
 
-  if (res != OK) {
-    FreeTensor(ctx, output);
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return res;
-  }
+  PANIC_IF(res != OK, res); 
 
   *destination = *output;
   freeAlloc(ctx->memory, output);
 
-  releaseTensorArg(ctx, &aArg);
-  releaseTensorArg(ctx, &bArg);
+  freeIfContingousCopy(ctx, opB);
+  freeIfContingousCopy(ctx, opB);
   cleanupPaddedPair(ctx, a, b, &ops);
-
   return OK;
 }
 
@@ -558,37 +534,13 @@ static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destinati
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  TensorArg aArg = {0};
-  TensorArg bArg = {0};
-  Result res = materializeTensorOnContext(ctx, ops.a, true, &aArg);
-  if (res != OK) {
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return res;
-  }
-  res = materializeTensorOnContext(ctx, ops.b, true, &bArg);
-  if (res != OK) {
-    releaseTensorArg(ctx, &aArg);
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return res;
-  }
+  Tensor *opA = materializeTensorOnContext(ctx, ops.a);
+  Tensor *opB = materializeTensorOnContext(ctx, ops.b);
 
-  Tensor *opA = aArg.tensor;
-  Tensor *opB = bArg.tensor;
-  if (!areTensorsSameShape(opA, opB)) {
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return binaryOpViaCpuFallback(ctx, a, b, destination, opType);
-  }
+  PANIC_IF(!areTensorsSameShape(opA, opB), ERR_DIM_MISMATCH);
 
   Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
-  if (output == NULL) {
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    cleanupPaddedPair(ctx, a, b, &ops);
-    return ERR_OUT_OF_MEMORY;
-  }
-  res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
+  Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
                         output->size);
   if (res == OK) {
     *destination = *output;
@@ -597,8 +549,8 @@ static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destinati
     FreeTensor(ctx, output);
   }
 
-  releaseTensorArg(ctx, &aArg);
-  releaseTensorArg(ctx, &bArg);
+  freeIfContingousCopy(ctx, opA);
+  freeIfContingousCopy(ctx, opB);
   cleanupPaddedPair(ctx, a, b, &ops);
 
   return res;
@@ -613,7 +565,11 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
     return ERR_DIM_MISMATCH;
   }
 
-  switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
+  PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  
+  DeviceType deviceType = ctx->device == NULL ? CPU : ctx->device->type;
+
+  switch (deviceType) {
     case CUDA: return binaryOpCuda(ctx, a, b, destination, opType);
     case CPU:
     default: return binaryOpCpu(ctx, a, b, destination, opType);
@@ -641,19 +597,11 @@ static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType)
     paddedB = ops.b;
   }
 
-  TensorArg bArg = {0};
-  Result res = materializeTensorOnContext(ctx, opB, true, &bArg);
-  if (res != OK) {
-    if (paddedB != NULL) {
-      FreeViewTensor(ctx, paddedB);
-    }
-    return res;
-  }
-  opB = bArg.tensor;
+  opB = materializeTensorOnContext(ctx, opB);
 
   if (a->isContigous && opB->isContigous && areTensorsSameShape(a, opB)) {
-    res = straightInPlaceBinop(a, opB, opType);
-    releaseTensorArg(ctx, &bArg);
+    Result res = straightInPlaceBinop(a, opB, opType);
+    freeIfContingousCopy(ctx, opB);
     if (paddedB != NULL) {
       FreeViewTensor(ctx, paddedB);
     }
@@ -686,19 +634,13 @@ static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType)
       case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
       case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
       case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      default:
-        releaseTensorArg(ctx, &bArg);
-        if (paddedB != NULL) {
-          FreeViewTensor(ctx, paddedB);
-        }
-        return ERR_NOT_A_BINOP;
+      default: PANIC_IF(true, ERR_NOT_A_BINOP);
     }
 
     VALUE_SET(a->values, aStorageIdx, result);
   }
 
-  releaseTensorArg(ctx, &bArg);
-
+  freeIfContingousCopy(ctx, opB);
   if (paddedB != NULL) {
     FreeViewTensor(ctx, paddedB);
   }
@@ -727,27 +669,13 @@ static Result inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType
     paddedB = ops.b;
   }
 
-  TensorArg bArg = {0};
-  Result res = materializeTensorOnContext(ctx, opB, true, &bArg);
-  if (res != OK) {
-    if (paddedB != NULL) {
-      FreeViewTensor(ctx, paddedB);
-    }
-    return res;
-  }
-  opB = bArg.tensor;
+  opB = materializeTensorOnContext(ctx, opB);
 
-  if (!areTensorsSameShape(a, opB)) {
-    releaseTensorArg(ctx, &bArg);
-    if (paddedB != NULL) {
-      FreeViewTensor(ctx, paddedB);
-    }
-    return ERR_NO_OP;
-  }
+  PANIC_IF(!areTensorsSameShape(a, opB), ERR_DTYPE_MISMATCH);
 
-  res = runCudaBinaryOp(ctx, a->dtype, opType, a->values, opB->values, a->values, a->size);
+  Result res = runCudaBinaryOp(ctx, a->dtype, opType, a->values, opB->values, a->values, a->size);
 
-  releaseTensorArg(ctx, &bArg);
+  freeIfContingousCopy(ctx, opB);
   if (paddedB != NULL) {
     FreeViewTensor(ctx, paddedB);
   }
@@ -755,22 +683,6 @@ static Result inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType
   return res;
 }
 
-static Result inPlaceBinopViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  Context cpuCtx = {.memory = ctx->memory};
-  TensorArg aArg = {0};
-  Result res = materializeTensorOnContext(&cpuCtx, a, true, &aArg);
-  if (res != OK) {
-    return res;
-  }
-
-  res = inPlaceBinopCpu(&cpuCtx, aArg.tensor, b, opType);
-  if (res == OK) {
-    res = copyContiguousTensorIntoTensor(&cpuCtx, aArg.tensor, a);
-  }
-
-  releaseTensorArg(&cpuCtx, &aArg);
-  return res;
-}
 
 static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   if (a->dtype != b->dtype) {
@@ -783,9 +695,7 @@ static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:
-      if (!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims) {
-        return inPlaceBinopViaCpuFallback(ctx, a, b, opType);
-      }
+      PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims, ERR_DTYPE_MISMATCH);  
       return inPlaceBinopCuda(ctx, a, b, opType);
     case CPU:
     default: return inPlaceBinopCpu(ctx, a, b, opType);

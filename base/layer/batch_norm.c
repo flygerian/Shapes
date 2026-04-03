@@ -1,3 +1,4 @@
+#include "result/result.h"
 #include "shapes.h"
 
 #include "../memory.h"
@@ -32,31 +33,11 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     return ERR_DIM_MISMATCH;
   }
 
-  // Go may pass views/slices; normalize to contiguous buffers for tight loops.
-  TensorArg xArg = {0};
-  TensorArg gammaArg = {0};
-  TensorArg betaArg = {0};
-  Tensor *xContig = x2d;
-  Tensor *gammaContig = gamma;
-  Tensor *betaContig = beta;
+  Tensor* xContig = materializeTensorOnContext(ctx, x2d);
+  Tensor* gammaContig = materializeTensorOnContext(ctx, gamma);
+  Tensor* betaContig = materializeTensorOnContext(ctx, beta);
 
-  Result res = materializeTensorOnContext(ctx, x2d, true, &xArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, gamma, true, &gammaArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, beta, true, &betaArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  xContig = xArg.tensor;
-  gammaContig = gammaArg.tensor;
-  betaContig = betaArg.tensor;
-
-  res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
+  Result res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -187,9 +168,9 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
   }
 
 cleanup:
-  releaseTensorArg(ctx, &xArg);
-  releaseTensorArg(ctx, &gammaArg);
-  releaseTensorArg(ctx, &betaArg);
+  freeIfContingousCopy(ctx, xContig);
+  freeIfContingousCopy(ctx, gammaContig);
+  freeIfContingousCopy(ctx, betaContig);
   return res;
 }
 
@@ -221,30 +202,12 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
   }
 
   // Keep backward math on packed memory for predictable stride-1 access.
-  TensorArg xArg = {0};
-  TensorArg gradArg = {0};
-  TensorArg gammaArg = {0};
-  Tensor *xContig = x2d;
-  Tensor *gradContig = grad2d;
-  Tensor *gammaContig = gamma;
+  Tensor* xContig = materializeTensorOnContext(ctx, x2d);
+  Tensor *gradContig =  materializeTensorOnContext(ctx, grad2d);;
+  Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
 
-  Result res = materializeTensorOnContext(ctx, x2d, true, &xArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, grad2d, true, &gradArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, gamma, true, &gammaArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  xContig = xArg.tensor;
-  gradContig = gradArg.tensor;
-  gammaContig = gammaArg.tensor;
 
-  res = init2DTensor(ctx, dX, m, n, x2d->dtype);
+  Result res = init2DTensor(ctx, dX, m, n, x2d->dtype);
   if (res != OK) {
     goto cleanup;
   }
@@ -480,9 +443,9 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
   }
 
 cleanup:
-  releaseTensorArg(ctx, &xArg);
-  releaseTensorArg(ctx, &gradArg);
-  releaseTensorArg(ctx, &gammaArg);
+  freeIfContingousCopy(ctx, xContig);
+  freeIfContingousCopy(ctx, gammaContig);
+  freeIfContingousCopy(ctx, gradContig);
 
   return res;
 }

@@ -37,13 +37,6 @@ static void test_allocate_returns_non_null(void) {
   freeMemory(mem);
 }
 
-static void test_allocate_zero_returns_null(void) {
-  Memory *mem = initializeMemory();
-  void *ptr = allocate(mem, 0);
-  ASSERT_NULL(ptr, "allocate(0) should return NULL");
-  freeMemory(mem);
-}
-
 static void test_allocate_marks_block_allocated(void) {
   Memory *mem = initializeMemory();
   void *ptr = allocate(mem, 48);
@@ -398,21 +391,6 @@ static void test_allocate_skips_allocated_blocks(void) {
   freeMemory(mem);
 }
 
-static void test_returns_null_when_out_of_memory(void) {
-  Memory *mem = initializeArena(SCAN_TEST_ARENA_SIZE, 1);
-  size_t blockSize = 1024;
-  size_t capacity = mem->capacity / totalBlockSize(blockSize);
-
-  void **ptrs = malloc(capacity * sizeof(void *));
-  fillArena(mem, blockSize, ptrs, capacity);
-
-  void *shouldBeNull = allocate(mem, blockSize);
-  ASSERT_NULL(shouldBeNull, "allocate should return NULL when arena is full");
-
-  free(ptrs);
-  freeMemory(mem);
-}
-
 // ---------------------------------------------------------------------------
 // numFreeBlocks tracking
 // ---------------------------------------------------------------------------
@@ -511,7 +489,6 @@ void run_memory_tests(void) {
 
   // Allocation basics
   test_allocate_returns_non_null();
-  test_allocate_zero_returns_null();
   test_allocate_marks_block_allocated();
   test_allocate_multiple_blocks();
   test_allocate_data_integrity();
@@ -545,8 +522,6 @@ void run_memory_tests(void) {
   // Free-space scan
   test_allocate_reuses_first_free_block();
   test_allocate_skips_allocated_blocks();
-  test_returns_null_when_out_of_memory();
-
   // numFreeBlocks tracking
   test_num_free_blocks_starts_at_zero();
   test_num_free_blocks_unchanged_after_allocate();

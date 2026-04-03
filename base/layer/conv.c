@@ -66,115 +66,6 @@ typedef PendingCudaOpTiming CudaOpPhase;
 
 static PendingCudaOpTiming pendingCudaOpTimings[MAX_PENDING_CUDA_OP_TIMINGS] = {0};
 
-static bool shouldUseCudaEventTiming(Context *ctx) {
-  return shouldLogOpTiming() && ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA;
-}
-
-static void destroyPendingCudaOpTiming(PendingCudaOpTiming *timing) {
-  if (timing == NULL || !timing->active) {
-    return;
-  }
-
-  cudaEventDestroy(timing->start);
-  cudaEventDestroy(timing->end);
-  timing->active = false;
-}
-
-static void drainPendingCudaOpTimings(void) {
-  if (!shouldLogOpTiming()) {
-    return;
-  }
-
-  for (int i = 0; i < MAX_PENDING_CUDA_OP_TIMINGS; i++) {
-    PendingCudaOpTiming *timing = &pendingCudaOpTimings[i];
-    if (!timing->active) {
-      continue;
-    }
-
-    cudaError_t queryResult = cudaEventQuery(timing->end);
-    if (queryResult == cudaErrorNotReady) {
-      continue;
-    }
-
-    if (queryResult == cudaSuccess) {
-      float elapsedMs = 0.0f;
-      cudaEventElapsedTime(&elapsedMs, timing->start, timing->end);
-      fprintf(stderr, "[opTiming] op=%s device=%s phase=%s ms=%.3f\n", timing->opName,
-              timing->deviceName, timing->phase, (double)elapsedMs);
-    } else {
-      cudaGetLastError();
-    }
-
-    destroyPendingCudaOpTiming(timing);
-  }
-}
-
-static Result startCudaOpPhase(Context *ctx, const char *opName, const char *phase,
-                               CudaOpPhase *timing) {
-  if (timing == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  memset(timing, 0, sizeof(*timing));
-  if (!shouldUseCudaEventTiming(ctx)) {
-    return OK;
-  }
-
-  drainPendingCudaOpTimings();
-  timing->opName = opName;
-  timing->phase = phase;
-  timing->deviceName = opTimingDeviceName(ctx);
-  timing->active = true;
-
-  if (cudaEventCreate(&timing->start) != cudaSuccess ||
-      cudaEventCreate(&timing->end) != cudaSuccess) {
-    destroyPendingCudaOpTiming(timing);
-    return ERR_NO_OP;
-  }
-  if (cudaEventRecord(timing->start, 0) != cudaSuccess) {
-    destroyPendingCudaOpTiming(timing);
-    return ERR_NO_OP;
-  }
-
-  return OK;
-}
-
-static void abandonCudaOpPhase(CudaOpPhase *timing) {
-  destroyPendingCudaOpTiming(timing);
-}
-
-static Result finishCudaOpPhase(CudaOpPhase *timing) {
-  if (timing == NULL || !timing->active) {
-    return OK;
-  }
-
-  if (cudaEventRecord(timing->end, 0) != cudaSuccess) {
-    destroyPendingCudaOpTiming(timing);
-    return ERR_NO_OP;
-  }
-
-  for (int i = 0; i < MAX_PENDING_CUDA_OP_TIMINGS; i++) {
-    if (pendingCudaOpTimings[i].active) {
-      continue;
-    }
-
-    pendingCudaOpTimings[i] = *timing;
-    timing->active = false;
-    return OK;
-  }
-
-  if (cudaEventSynchronize(timing->end) == cudaSuccess) {
-    float elapsedMs = 0.0f;
-    cudaEventElapsedTime(&elapsedMs, timing->start, timing->end);
-    fprintf(stderr, "[opTiming] op=%s device=%s phase=%s ms=%.3f\n", timing->opName,
-            timing->deviceName, timing->phase, (double)elapsedMs);
-  } else {
-    cudaGetLastError();
-  }
-  destroyPendingCudaOpTiming(timing);
-  return OK;
-}
-
 static void logHostOpTiming(Context *ctx, const char *opName, const char *phase, double startMs) {
   if (!shouldLogOpTiming()) {
     return;
@@ -223,10 +114,8 @@ static Result addConvBias(Context *ctx, Tensor *output, Tensor *bias) {
   return addConvBiasCpu(output, bias);
 }
 
-static Result accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
-  if (ctx == NULL || outputGrad == NULL || dBias == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+  PANIC_IF(ctx == NULL || outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   dim_t channels = outputGrad->shape.dims[3];
   tensor_size_t rows = outputGrad->size / channels;
@@ -235,9 +124,8 @@ static Result accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tenso
   CudaOpPhase fillPhase = {0};
   CudaOpPhase gemmPhase = {0};
   void *ones = allocateOnCtx(ctx, oneBytes);
-  if (ones == NULL) {
-    return ERR_OUT_OF_MEMORY;
-  }
+
+  PANIC_IF(ones == NULL, ERR_OUT_OF_MEMORY);
 
   Value one = {.dtype = outputGrad->dtype};
   if (outputGrad->dtype == F64) {
@@ -246,60 +134,34 @@ static Result accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tenso
     one.as.f32 = 1.0f;
   }
 
-  if (shouldUseCudaEventTiming(ctx)) {
-    Result phaseRes = startCudaOpPhase(ctx, "Conv2dBackward", "bias_grad_fill", &fillPhase);
-    if (phaseRes != OK) {
-      freeOnCtx(ctx, ones);
-      return phaseRes;
-    }
-  } else if (shouldLogOpTiming()) {
+  if (shouldLogOpTiming()) {
     phaseStartMs = opTimingNowMs();
   }
+
   Result res = runCudaFillTensor(ctx, outputGrad->dtype, ones, rows, one);
-  if (res != OK) {
-    abandonCudaOpPhase(&fillPhase);
-    freeOnCtx(ctx, ones);
-    return res;
-  }
-  if (shouldUseCudaEventTiming(ctx)) {
-    Result phaseRes = finishCudaOpPhase(&fillPhase);
-    if (phaseRes != OK) {
-      freeOnCtx(ctx, ones);
-      return phaseRes;
-    }
-  } else if (shouldLogOpTiming()) {
+  PANIC_IF(res != OK, res);
+
+  if (shouldLogOpTiming()) {
     logHostOpTiming(ctx, "Conv2dBackward", "bias_grad_fill", phaseStartMs);
     phaseStartMs = opTimingNowMs();
   }
 
-  if (shouldUseCudaEventTiming(ctx)) {
-    Result phaseRes = startCudaOpPhase(ctx, "Conv2dBackward", "bias_grad_gemm", &gemmPhase);
-    if (phaseRes != OK) {
-      freeOnCtx(ctx, ones);
-      return phaseRes;
-    }
-  } else if (shouldLogOpTiming()) {
+  if (shouldLogOpTiming()) {
     phaseStartMs = opTimingNowMs();
   }
+
   runGemm(ctx, outputGrad->dtype, CblasNoTrans, CblasNoTrans, 1, (int)channels, (int)rows, ones,
           (int)rows, outputGrad->values, (int)channels, false, dBias->values, (int)channels);
-  if (shouldUseCudaEventTiming(ctx)) {
-    Result phaseRes = finishCudaOpPhase(&gemmPhase);
-    if (phaseRes != OK) {
-      freeOnCtx(ctx, ones);
-      return phaseRes;
-    }
-  } else if (shouldLogOpTiming()) {
+
+  if (shouldLogOpTiming()) {
     logHostOpTiming(ctx, "Conv2dBackward", "bias_grad_gemm", phaseStartMs);
   }
+
   freeOnCtx(ctx, ones);
-  return OK;
 }
 
-static Result accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
-  if (outputGrad == NULL || dBias == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
+  PANIC_IF(outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   dim_t channels = outputGrad->shape.dims[3];
   tensor_size_t numValues = outputGrad->size;
@@ -313,7 +175,7 @@ static Result accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
     for (tensor_size_t i = 0; i < numValues; i++) {
       biasGradValues[i % channels] += gradValues[i];
     }
-    return OK;
+    return;
   }
 
   f32 *gradValues = outputGrad->values;
@@ -324,10 +186,9 @@ static Result accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
   for (tensor_size_t i = 0; i < numValues; i++) {
     biasGradValues[i % channels] += gradValues[i];
   }
-  return OK;
 }
 
-static Result accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+static void accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     return accumulateConvBiasGradCuda(ctx, outputGrad, dBias);
   }
@@ -337,9 +198,6 @@ static Result accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *d
 
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
               Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
-  TensorArg inputArg = {0};
-  TensorArg kernelArg = {0};
-  TensorArg biasArg = {0};
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   Tensor *biasContig = bias;
@@ -354,78 +212,29 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   Result result;
 
   if (shouldLogOpTiming()) {
-    drainPendingCudaOpTimings();
     totalStartMs = opTimingNowMs();
   }
 
-  if (t == NULL || dest == NULL || ctx == NULL) {
-    result = ERR_NULL_TENSOR_PROVIDED;
-    goto cleanup;
-  }
+  PANIC_IF(t == NULL || dest == NULL || ctx == NULL, ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(stride == 0, ERR_CONV2D_KERNEL_STRIDE_ZERO);
+  PANIC_IF(isNotFloatType(t), ERR_CONV2D_KERNEL_NOT_FLOAT);
 
-  if (stride == 0) {
-    result = ERR_CONV2D_KERNEL_STRIDE_ZERO;
-    goto cleanup;
-  }
+  PANIC_IF(t->shape.numOfDims < 4, ERR_CONV2D_INVALID_NUM_TENSOR_DIM); 
+  PANIC_IF(inChannels < 1, ERR_CONV2D_IN_CHANNELS_ZERO);
 
-  if (isNotFloatType(t)) {
-    result = ERR_CONV2D_KERNEL_NOT_FLOAT;
-    goto cleanup;
-  }
+  PANIC_IF(outChannels < 1, ERR_CONV2D_OUT_CHANNELS_ZERO);
+  PANIC_IF(kernels == NULL, ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(kernels->shape.numOfDims < 2 || kernels->shape.dims == NULL, ERR_CONV2D_KERNEL_NOT_2D);
 
-  if (t->shape.numOfDims < 4) {
-    result = ERR_CONV2D_INVALID_NUM_TENSOR_DIM;
-    goto cleanup;
-  }
+  PANIC_IF(kernels->shape.numOfDims < 4, ERR_DIM_MISMATCH);
 
-  if (inChannels < 1) {
-    result = ERR_CONV2D_IN_CHANNELS_ZERO;
-    goto cleanup;
-  }
-
-  if (outChannels < 1) {
-    result = ERR_CONV2D_OUT_CHANNELS_ZERO;
-    goto cleanup;
-  }
-
-  if (kernels == NULL) {
-    result = ERR_NULL_TENSOR_PROVIDED;
-    goto cleanup;
-  }
-
-  if (kernels->shape.numOfDims < 2 || kernels->shape.dims == NULL) {
-    result = ERR_CONV2D_KERNEL_NOT_2D;
-    goto cleanup;
-  }
-
-  if (kernels->shape.numOfDims < 4) {
-    result = ERR_DIM_MISMATCH;
-    goto cleanup;
-  }
-
-  if (kernels->dtype != t->dtype) {
-    result = ERR_DTYPE_MISMATCH;
-    goto cleanup;
-  }
-
+  PANIC_IF (kernels->dtype != t->dtype, ERR_DTYPE_MISMATCH); 
   if (withBias) {
-    if (bias == NULL) {
-      result = ERR_NULL_TENSOR_PROVIDED;
-      goto cleanup;
-    }
-    if (bias->dtype != t->dtype) {
-      result = ERR_DTYPE_MISMATCH;
-      goto cleanup;
-    }
-    if (bias->shape.numOfDims != 4 || bias->shape.dims == NULL) {
-      result = ERR_DIM_MISMATCH;
-      goto cleanup;
-    }
-    if (bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 ||
-        bias->shape.dims[3] != outChannels) {
-      result = ERR_DIM_MISMATCH;
-      goto cleanup;
-    }
+    PANIC_IF (bias == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(bias->dtype != t->dtype, ERR_DTYPE_MISMATCH);
+    PANIC_IF(bias->shape.numOfDims != 4 || bias->shape.dims == NULL, ERR_DIM_MISMATCH);     
+    PANIC_IF(bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 ||
+        bias->shape.dims[3] != outChannels, ERR_DIM_MISMATCH);   
   }
 
   dim_t kernelHeight = kernels->shape.dims[2];
@@ -435,17 +244,11 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   dim_t width = t->shape.dims[2];
   dim_t numChannels = t->shape.dims[3];
 
-  if (kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight ||
-      width < kernelWidth) {
-    result = ERR_DIM_MISMATCH;
-    goto cleanup;
-  }
+  PANIC_IF (kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight ||
+      width < kernelWidth, ERR_DIM_MISMATCH);
 
-  if (kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels ||
-      kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth) {
-    result = ERR_DIM_MISMATCH;
-    goto cleanup;
-  }
+  PANIC_IF(kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels ||
+      kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth, ERR_DIM_MISMATCH);
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
@@ -453,30 +256,16 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   phaseStartMs = opTimingNowMs();
   result = init4DTensor(ctx, &gemmOutput, batch, outputChannelHeight, outputChannelWidth,
                         outChannels, t->dtype);
-  if (result != OK) {
-    goto cleanup;
-  }
+  PANIC_IF(result != OK, result);
   logHostOpTiming(ctx, "Conv2d", "alloc_gemm_output", phaseStartMs);
 
-  gemmOutputInitialized = true;
   phaseStartMs = opTimingNowMs();
-  result = materializeTensorOnContext(ctx, t, true, &inputArg);
-  if (result != OK) {
-    goto cleanup;
-  }
-  result = materializeTensorOnContext(ctx, kernels, true, &kernelArg);
-  if (result != OK) {
-    goto cleanup;
-  }
+  inputContig = materializeTensorOnContext(ctx, t);
+  kernelContig = materializeTensorOnContext(ctx, kernels);
   if (withBias) {
-    result = materializeTensorOnContext(ctx, bias, true, &biasArg);
-    if (result != OK) {
-      goto cleanup;
-    }
+    biasContig = materializeTensorOnContext(ctx, bias);
   }
-  inputContig = inputArg.tensor;
-  kernelContig = kernelArg.tensor;
-  biasContig = biasArg.tensor;
+
   logHostOpTiming(ctx, "Conv2d", "materialize", phaseStartMs);
 
   tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
@@ -488,93 +277,45 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   if (t->dtype == F64) {
     f64 *kernelValues = kernelContig->values;
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = startCudaOpPhase(ctx, "Conv2d", "im2col", &cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
-    }
-    colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
-    if (colBuffer == NULL) {
-      abandonCudaOpPhase(&cudaPhase);
-      result = ERR_OUT_OF_MEMORY;
-      goto cleanup;
-    }
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = finishCudaOpPhase(&cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
     }
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = startCudaOpPhase(ctx, "Conv2d", "gemm", &cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
+    PANIC_IF(colBuffer == NULL, ERR_OUT_OF_MEMORY);
+     
+    logHostOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
+    
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = finishCudaOpPhase(&cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
-    }
+
+    logHostOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
   } else {
     f32 *kernelValues = kernelContig->values;
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = startCudaOpPhase(ctx, "Conv2d", "im2col", &cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
-    }
-    colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
-    if (colBuffer == NULL) {
-      abandonCudaOpPhase(&cudaPhase);
-      result = ERR_OUT_OF_MEMORY;
-      goto cleanup;
-    }
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = finishCudaOpPhase(&cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
     }
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = startCudaOpPhase(ctx, "Conv2d", "gemm", &cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
+    logHostOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
+
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels,
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = finishCudaOpPhase(&cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
-    }
+
+    
+    logHostOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
+  
   }
 
   if (colBufferDest != NULL) {
@@ -583,27 +324,14 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   }
 
   if (withBias) {
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = startCudaOpPhase(ctx, "Conv2d", "bias_add", &cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     result = addConvBias(ctx, &gemmOutput, biasContig);
-    if (result != OK) {
-      abandonCudaOpPhase(&cudaPhase);
-      goto cleanup;
-    }
-    if (shouldUseCudaEventTiming(ctx)) {
-      result = finishCudaOpPhase(&cudaPhase);
-      if (result != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2d", "bias_add", phaseStartMs);
-    }
+    PANIC_IF(result != OK, result);
+
+    logHostOpTiming(ctx, "Conv2d", "bias_add", phaseStartMs);
   }
 
   *dest = gemmOutput;
@@ -613,9 +341,13 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   logHostOpTiming(ctx, "Conv2d", "total_host", totalStartMs);
 
 cleanup:
-  releaseTensorArg(ctx, &inputArg);
-  releaseTensorArg(ctx, &kernelArg);
-  releaseTensorArg(ctx, &biasArg);
+  freeIfContingousCopy(ctx, inputContig);
+  freeIfContingousCopy(ctx, kernelContig);
+
+  if (withBias) {
+    freeIfContingousCopy(ctx, biasContig);
+  }
+
   if (permutedOutputInitialized) {
     freeTensorBuffers(ctx, &permutedOutput);
   }
@@ -629,13 +361,6 @@ cleanup:
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
                       bool withBias, u8 stride) {
-  TensorArg inputArg = {0};
-  TensorArg kernelArg = {0};
-  TensorArg outputGradArg = {0};
-  TensorArg colBufferArg = {0};
-  TensorArg dInputArg = {0};
-  TensorArg dKernelArg = {0};
-  TensorArg dBiasArg = {0};
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
@@ -653,7 +378,6 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   Result res = OK;
 
   if (shouldLogOpTiming()) {
-    drainPendingCudaOpTimings();
     totalStartMs = opTimingNowMs();
   }
 
@@ -720,43 +444,15 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   }
 
   phaseStartMs = opTimingNowMs();
-  res = materializeTensorOnContext(ctx, input, true, &inputArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, kernels, true, &kernelArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, outputGrad, true, &outputGradArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, colBuffer, true, &colBufferArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, dInput, true, &dInputArg);
-  if (res != OK) {
-    goto cleanup;
-  }
-  res = materializeTensorOnContext(ctx, dKernels, true, &dKernelArg);
-  if (res != OK) {
-    goto cleanup;
-  }
+  inputContig = materializeTensorOnContext(ctx, input);
+  kernelContig = materializeTensorOnContext(ctx, kernels);
+  outputGradContig = materializeTensorOnContext(ctx, outputGrad);
+  colBufferContig = materializeTensorOnContext(ctx, colBuffer);
+  dInputWork = materializeTensorOnContext(ctx, dInput);
+  dKernelWork = materializeTensorOnContext(ctx, dKernels);
   if (withBias) {
-    res = materializeTensorOnContext(ctx, dBias, true, &dBiasArg);
-    if (res != OK) {
-      goto cleanup;
-    }
+    dBiasWork = materializeTensorOnContext(ctx, dBias);
   }
-  inputContig = inputArg.tensor;
-  kernelContig = kernelArg.tensor;
-  outputGradContig = outputGradArg.tensor;
-  colBufferContig = colBufferArg.tensor;
-  dInputWork = dInputArg.tensor;
-  dKernelWork = dKernelArg.tensor;
-  dBiasWork = dBiasArg.tensor;
   logHostOpTiming(ctx, "Conv2dBackward", "materialize", phaseStartMs);
 
   phaseStartMs = opTimingNowMs();
@@ -799,65 +495,30 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     }
     logHostOpTiming(ctx, "Conv2dBackward", "alloc_dcol_buffer", phaseStartMs);
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = startCudaOpPhase(ctx, "Conv2dBackward", "gemm_dk", &cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
             colBufferContig->values, kS, false, dWValues, kS);
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = finishCudaOpPhase(&cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
-    }
+    
+    logHostOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = startCudaOpPhase(ctx, "Conv2dBackward", "gemm_dcol", &cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     runGemm(ctx, F64, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out,
             wValues, kS, false, dColBuffer, kS);
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = finishCudaOpPhase(&cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2dBackward", "gemm_dcol", phaseStartMs);
-    }
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = startCudaOpPhase(ctx, "Conv2dBackward", "col2im", &cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    logHostOpTiming(ctx, "Conv2dBackward", "gemm_dcol", phaseStartMs);
+
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
-    res = col2imAccumulateF64(dInputWork, dColBuffer, kH, kW, stride);
-    if (res != OK) {
-      abandonCudaOpPhase(&cudaPhase);
-      goto cleanup;
-    }
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = finishCudaOpPhase(&cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
-    }
+
+    col2imAccumulateF64(dInputWork, dColBuffer, kH, kW, stride);
+    logHostOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
   } else {
     f32 *wValues = kernelContig->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
     f32 *dWValues = dKernelWork->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
@@ -878,73 +539,35 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     }
     logHostOpTiming(ctx, "Conv2dBackward", "alloc_dcol_buffer", phaseStartMs);
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = startCudaOpPhase(ctx, "Conv2dBackward", "gemm_dk", &cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
             colBufferContig->values, kS, false, dWValues, kS);
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = finishCudaOpPhase(&cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
-    }
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = startCudaOpPhase(ctx, "Conv2dBackward", "gemm_dcol", &cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    logHostOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
+
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
+
     runGemm(ctx, F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out,
             wValues, kS, false, dColBuffer, kS);
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = finishCudaOpPhase(&cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2dBackward", "gemm_dcol", phaseStartMs);
-    }
 
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = startCudaOpPhase(ctx, "Conv2dBackward", "col2im", &cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else if (shouldLogOpTiming()) {
+    logHostOpTiming(ctx, "Conv2dBackward", "gemm_dcol", phaseStartMs);
+
+    if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
-    res = col2imAccumulateF32(dInputWork, dColBuffer, kH, kW, stride);
-    if (res != OK) {
-      abandonCudaOpPhase(&cudaPhase);
-      goto cleanup;
-    }
-    if (shouldUseCudaEventTiming(ctx)) {
-      res = finishCudaOpPhase(&cudaPhase);
-      if (res != OK) {
-        goto cleanup;
-      }
-    } else {
-      logHostOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
-    }
+
+    col2imAccumulateF32(dInputWork, dColBuffer, kH, kW, stride);
+    logHostOpTiming(ctx, "Conv2dBackward", "col2im", phaseStartMs);
   }
 
   if (withBias) {
     phaseStartMs = opTimingNowMs();
-    res = accumulateConvBiasGrad(ctx, outputGradContig, dBiasWork);
-    if (res != OK) {
-      goto cleanup;
-    }
+    accumulateConvBiasGrad(ctx, outputGradContig, dBiasWork);
     logHostOpTiming(ctx, "Conv2dBackward", "bias_grad_host", phaseStartMs);
   }
 
@@ -982,17 +605,17 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   logHostOpTiming(ctx, "Conv2dBackward", "total_host", totalStartMs);
 
 cleanup:
-  releaseTensorArg(ctx, &inputArg);
-  releaseTensorArg(ctx, &kernelArg);
-  releaseTensorArg(ctx, &outputGradArg);
-  releaseTensorArg(ctx, &colBufferArg);
-  releaseTensorArg(ctx, &dInputArg);
-  releaseTensorArg(ctx, &dKernelArg);
-  releaseTensorArg(ctx, &dBiasArg);
+  freeIfContingousCopy(ctx, inputContig);
+  freeIfContingousCopy(ctx, kernelContig);
+  freeIfContingousCopy(ctx, outputGradContig);
+  freeIfContingousCopy(ctx, colBufferContig);
+  freeIfContingousCopy(ctx, dInputWork);
+  freeIfContingousCopy(ctx, dKernelWork);
 
-  if (outputGradPermutedCopied && outputGradContig != NULL) {
-    FreeTensor(ctx, outputGradContig);
+  if (withBias) {
+    freeIfContingousCopy(ctx, dBiasWork);
   }
+
   if (outGradNhwcInitialized) {
     freeTensorBuffers(ctx, &outGradNhwc);
   }

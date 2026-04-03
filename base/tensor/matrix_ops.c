@@ -1,7 +1,10 @@
+#include "common.h"
+#include "result/result.h"
 #include "tensor_internal.h"
 #include "blas.h"
 #include "../memory.h"
-#include "value.h"
+#include <sched.h>
+#include <stdlib.h>
 
 static bool areBatchDimsBroadcastable(Tensor *a, Tensor *b) {
   u8 maxDims = a->shape.numOfDims > b->shape.numOfDims ? a->shape.numOfDims : b->shape.numOfDims;
@@ -54,28 +57,8 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  TensorArg aArg = {0};
-  TensorArg bArg = {0};
-  Result r = materializeTensorOnContext(ctx, ops.a, true, &aArg);
-  if (r != OK) {
-    if (ops.a != a)
-      FreeViewTensor(ctx, ops.a);
-    if (ops.b != b)
-      FreeViewTensor(ctx, ops.b);
-    return r;
-  }
-  r = materializeTensorOnContext(ctx, ops.b, true, &bArg);
-  if (r != OK) {
-    releaseTensorArg(ctx, &aArg);
-    if (ops.a != a)
-      FreeViewTensor(ctx, ops.a);
-    if (ops.b != b)
-      FreeViewTensor(ctx, ops.b);
-    return r;
-  }
-
-  Tensor *opA = aArg.tensor;
-  Tensor *opB = bArg.tensor;
+  Tensor *opA = materializeTensorOnContext(ctx, ops.a);
+  Tensor *opB = materializeTensorOnContext(ctx, ops.b);
 
   dim_t m = opA->shape.dims[opA->shape.numOfDims - 2];
   dim_t k = opB->shape.dims[opB->shape.numOfDims - 2];
@@ -83,25 +66,31 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
 
   tensor_size_t batchSizeA, batchSizeB;
   dim_t batchDimIdx = opA->shape.numOfDims - 2;
-  r = calculateNumElementsBeforeDim(opA, batchDimIdx, &batchSizeA);
-  if (r != OK)
+  Result r = calculateNumElementsBeforeDim(opA, batchDimIdx, &batchSizeA);
+  if (r != OK) {
     goto cleanup;
+  }
+
   r = calculateNumElementsBeforeDim(opB, batchDimIdx, &batchSizeB);
-  if (r != OK)
+  if (r != OK) {
     goto cleanup;
+  }
 
   tensor_size_t batchSize = batchSizeA > batchSizeB ? batchSizeA : batchSizeB;
 
   Tensor *sentinel = batchSizeA >= batchSizeB ? opA : opB;
   Dim newDim = (Dim){.dims = allocate(ctx->memory, sizeof(dim_t) * sentinel->shape.numOfDims),
                      .numOfDims = sentinel->shape.numOfDims};
+
   r = ensureAllocated(newDim.dims);
   if (r != OK) {
     goto cleanup;
   }
+
   r = getDimsBefore(ctx, sentinel, batchDimIdx, &newDim);
-  if (r != OK)
+  if (r != OK) {
     goto cleanup;
+  }
 
   newDim.dims[newDim.numOfDims - 2] = m;
   newDim.dims[newDim.numOfDims - 1] = n;
@@ -143,13 +132,8 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   }
 
 cleanup:
-  releaseTensorArg(ctx, &aArg);
-  releaseTensorArg(ctx, &bArg);
-  if (ops.a != a)
-    FreeViewTensor(ctx, ops.a);
-  if (ops.b != b)
-    FreeViewTensor(ctx, ops.b);
-
+  freeIfContingousCopy(ctx, opA);
+  freeIfContingousCopy(ctx, opB);
   return r;
 }
 
@@ -174,48 +158,19 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     return ERR_DTYPE_MISMATCH;
   }
 
-  TensorArg aArg = {0};
-  TensorArg bArg = {0};
-  Result r = materializeTensorOnContext(ctx, a, true, &aArg);
-  if (r != OK) {
-    return r;
-  }
-  r = materializeTensorOnContext(ctx, b, true, &bArg);
-  if (r != OK) {
-    releaseTensorArg(ctx, &aArg);
-    return r;
-  }
-
-  Tensor *opA = aArg.tensor;
-  Tensor *opB = bArg.tensor;
+  Tensor *opA = materializeTensorOnContext(ctx, a);
+  Tensor *opB = materializeTensorOnContext(ctx, b);
 
   dim_t *resDims = allocate(ctx->memory, sizeof(dim_t));
-  Result allocRes = ensureAllocated(resDims);
-  if (allocRes != OK) {
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    return allocRes;
-  }
+  PANIC_IF(resDims == NULL, ALLOCATION_FAILED);   
   resDims[0] = 1;
+
   multiplier_t *resMult = allocate(ctx->memory, sizeof(multiplier_t));
-  allocRes = ensureAllocated(resMult);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, resDims);
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    return allocRes;
-  }
+  PANIC_IF(resMult == NULL, ALLOCATION_FAILED);
   resMult[0] = 1;
 
   void *resVal = allocateOnCtx(ctx, getBytesForDtype(a->dtype));
-  allocRes = ensureAllocated(resVal);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, resMult);
-    freeAlloc(ctx->memory, resDims);
-    releaseTensorArg(ctx, &aArg);
-    releaseTensorArg(ctx, &bArg);
-    return allocRes;
-  }
+  PANIC_IF(resVal == NULL, ALLOCATION_FAILED); 
 
   BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
 
@@ -229,8 +184,8 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .values = resVal,
                      .shape = (Dim){.dims = resDims, .numOfDims = 1, .multipliers = resMult}};
 
-  releaseTensorArg(ctx, &aArg);
-  releaseTensorArg(ctx, &bArg);
+  freeIfContingousCopy(ctx, opA);
+  freeIfContingousCopy(ctx, opB);
 
   return OK;
 }

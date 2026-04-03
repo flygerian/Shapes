@@ -3,7 +3,7 @@
 #include "shapes.h"
 #include "tensor/value.h"
 #include "tensor_internal.h"
-#include <string.h>
+#include <stdlib.h>
 
 // dtypeRank returns a numeric rank representing the width of a dtype.
 // Higher rank means wider type. Types within the same sign family
@@ -134,18 +134,9 @@ static bool isCastSafe(Dtype source, Dtype target) {
 }
 
 static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
-  TensorArg sourceArg = {0};
-  Result result = materializeTensorOnContext(ctx, source, true, &sourceArg);
-  if (result != OK) {
-    return result;
-  }
-
-  Tensor *src = sourceArg.tensor;
-  result = initTensorLike(ctx, dest, src, target);
-  if (result != OK) {
-    releaseTensorArg(ctx, &sourceArg);
-    return result;
-  }
+  Tensor *src  = materializeTensorOnContext(ctx, source);
+  Result result = initTensorLike(ctx, dest, source, target);
+  PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   for (tensor_size_t i = 0; i < src->size; i++) {
     Value v;
@@ -154,30 +145,19 @@ static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target
     VALUE_SET(dest->values, i, converted);
   }
 
-  releaseTensorArg(ctx, &sourceArg);
+  freeIfContingousCopy(ctx, src);
   return OK;
 }
 
 static Result castOnCuda(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
-  TensorArg sourceArg = {0};
-  Result result = materializeTensorOnContext(ctx, source, true, &sourceArg);
-  if (result != OK) {
-    return result;
-  }
-
-  Tensor *src = sourceArg.tensor;
-  result = initTensorLike(ctx, dest, src, target);
-  if (result != OK) {
-    releaseTensorArg(ctx, &sourceArg);
-    return result;
-  }
+  Tensor *src  = materializeTensorOnContext(ctx, source);
+  Result result = initTensorLike(ctx, dest, src, target);
+  PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   result = runCudaCast(ctx, src->dtype, src->values, target, dest->values, src->size);
-  if (result != OK) {
-    FreeTensor(ctx, dest);
-  }
+  PANIC_IF(result != OK, CUDA_OP_FAILED);
 
-  releaseTensorArg(ctx, &sourceArg);
+  freeIfContingousCopy(ctx, src);
   return result;
 }
 

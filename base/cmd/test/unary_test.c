@@ -292,32 +292,6 @@ static void test_relu_invalid_dtype(void) {
   freeMemory(mem);
 }
 
-static void test_pow_cuda_dispatch_materializes_cpu_inputs(void) {
-  if (!hasCudaDevice()) {
-    return;
-  }
-
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
-
-  dim_t dims[] = {3};
-  Tensor *t = t_Zeros(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, F32);
-  f32 *values = (f32 *)t->values;
-  values[0] = 2.0f;
-  values[1] = 3.0f;
-  values[2] = 4.0f;
-
-  Tensor result;
-  Result res = Pow(&ctx, t, 2.0f, &result);
-
-  f32 expected[] = {4.0f, 9.0f, 16.0f};
-  ASSERT_EQ(res, OK, "CUDA Pow should succeed");
-  ASSERT(result.context == &ctx, "CUDA Pow result should live on the CUDA context");
-  assertMovedF32Values(&ctx, &result, expected, 3, "CUDA Pow result should match");
-
-  DestroyContext(&ctx);
-}
-
 static void test_negate_cuda_dispatch_i32(void) {
   if (!hasCudaDevice()) {
     return;
@@ -333,6 +307,8 @@ static void test_negate_cuda_dispatch_i32(void) {
   values[1] = -2;
   values[2] = 0;
   values[3] = 7;
+
+  MoveTensors(&ctx, 1, t);
 
   Tensor result;
   Result res = Negate(&ctx, t, &result);
@@ -361,6 +337,5 @@ void run_unary_tests(void) {
   test_pow_invalid_dtype();
   test_relu_forward();
   test_relu_invalid_dtype();
-  test_pow_cuda_dispatch_materializes_cpu_inputs();
   test_negate_cuda_dispatch_i32();
 }

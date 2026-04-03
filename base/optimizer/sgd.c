@@ -1,9 +1,9 @@
 #include "common.h"
-#include "memory.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
 #include <stddef.h>
+#include <stdlib.h>
 
 Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
            f32 learningRate) {
@@ -39,25 +39,13 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
   for (size_t i = 0; i < numParameters; i++) {
     Tensor *p = parameters[i];
     Tensor *g = parameterGrads[i];
-    TensorArg pArg = {0};
-    TensorArg gArg = {0};
 
-    Result res = materializeTensorOnContext(ctx, p, true, &pArg);
-    if (res != OK) {
-      return res;
-    }
-
-    res = materializeTensorOnContext(ctx, g, true, &gArg);
-    if (res != OK) {
-      releaseTensorArg(ctx, &pArg);
-      return res;
-    }
-
-    Tensor *pWork = pArg.tensor;
-    Tensor *gWork = gArg.tensor;
+    Tensor *pWork = materializeTensorOnContext(ctx, p);
+    Tensor *gWork = materializeTensorOnContext(ctx, g);
 
     if (ctx->device != NULL && ctx->device->type == CUDA) {
-      res = runCudaSgd(ctx, pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
+      Result res = runCudaSgd(ctx, pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
+      PANIC_IF(res != OK, res);
     } else {
       if (p->dtype == F16) {
         f16 *parameterVals = pWork->values;
@@ -84,24 +72,8 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
       }
     }
 
-    if (res != OK) {
-      releaseTensorArg(ctx, &pArg);
-      releaseTensorArg(ctx, &gArg);
-      return res;
-    }
-
-    if (pArg.tensor != p) {
-      size_t valueBytes = pWork->size * getBytesForDtype(pWork->dtype);
-      res = copyBetweenContexts(ctx, p->context, pWork->values, p->values, valueBytes);
-      if (res != OK) {
-        releaseTensorArg(ctx, &pArg);
-        releaseTensorArg(ctx, &gArg);
-        return res;
-      }
-    }
-
-    releaseTensorArg(ctx, &pArg);
-    releaseTensorArg(ctx, &gArg);
+    freeIfContingousCopy(ctx, pWork);
+    freeIfContingousCopy(ctx, gWork);
   }
 
   return OK;

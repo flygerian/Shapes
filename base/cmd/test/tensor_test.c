@@ -3269,6 +3269,7 @@ static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *va
   memcpy(vals, values, sizeof(float) * size);
 
   return (Tensor){.dtype = F32,
+                  .context = ctx,
                   .size = size,
                   .isContigous = true,
                   .isView = false,
@@ -3378,8 +3379,8 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float aValues[] = {1, 2, 3, 4, 5, 6};
@@ -3390,12 +3391,14 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
   Tensor dest;
 
-  Result res = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(res, OK, "CUDA Add should succeed with CPU inputs");
-  ASSERT(dest.context == &ctx, "CUDA Add result should live on the CUDA context");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Add result should match");
+  MoveTensors(&cudaCtx, 2, a, b);
 
-  DestroyContext(&ctx);
+  Result res = Add(&cudaCtx, a, b, &dest);
+  ASSERT_EQ(res, OK, "CUDA Add should succeed with CPU inputs");
+  ASSERT(dest.context == &cudaCtx, "CUDA Add result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 6, "CUDA Add result should match");
+
+  DestroyContext(&cudaCtx);
 }
 
 static void test_subtract_gpu_dispatch_basic(void) {
@@ -3403,8 +3406,8 @@ static void test_subtract_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float aValues[] = {10, 20, 30, 40, 50, 60};
@@ -3415,11 +3418,13 @@ static void test_subtract_gpu_dispatch_basic(void) {
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
   Tensor dest;
 
-  Result res = Subtract(&ctx, a, b, &dest);
-  ASSERT_EQ(res, OK, "CUDA Subtract should succeed");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Subtract result should match");
+  MoveTensors(&cudaCtx, 2, a, b);
 
-  DestroyContext(&ctx);
+  Result res = Subtract(&cudaCtx, a, b, &dest);
+  ASSERT_EQ(res, OK, "CUDA Subtract should succeed");
+  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 6, "CUDA Subtract result should match");
+
+  DestroyContext(&cudaCtx);
 }
 
 static void test_multiply_gpu_dispatch_basic(void) {
@@ -3427,8 +3432,8 @@ static void test_multiply_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float aValues[] = {1, 2, 3, 4, 5, 6};
@@ -3438,70 +3443,14 @@ static void test_multiply_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
   Tensor dest;
+  
+  MoveTensors(&cudaCtx, 2, a, b);
 
-  Result res = Multiply(&ctx, a, b, &dest);
+  Result res = Multiply(&cudaCtx, a, b, &dest);
   ASSERT_EQ(res, OK, "CUDA Multiply should succeed");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Multiply result should match");
+  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 6, "CUDA Multiply result should match");
 
-  DestroyContext(&ctx);
-}
-
-static void test_add_gpu_dispatch_non_contiguous_input(void) {
-  if (!hasCudaDevice()) {
-    return;
-  }
-
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
-
-  dim_t dimsA[] = {2, 3};
-  dim_t dimsB[] = {3, 2};
-  float aValues[] = {1, 2, 3, 4, 5, 6};
-  float bValues[] = {10, 20, 30, 40, 50, 60};
-  float expected[] = {11, 32, 53, 24, 45, 66};
-
-  Tensor *a = createHostF32Tensor(&hostCtx, dimsA, 2, aValues, 6);
-  Tensor *b = createHostF32Tensor(&hostCtx, dimsB, 2, bValues, 6);
-  Tensor bTransposed;
-  Tensor dest;
-
-  Result res = Transpose(&hostCtx, b, &bTransposed, (dim_t)0, (dim_t)1);
-  ASSERT_EQ(res, OK, "Transpose for CUDA Add test should succeed");
-  ASSERT(!bTransposed.isContigous, "Transposed input should be non-contiguous");
-
-  res = Add(&ctx, a, &bTransposed, &dest);
-  ASSERT_EQ(res, OK, "CUDA Add should materialize non-contiguous inputs");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6,
-                              "CUDA Add with non-contiguous input should match");
-
-  DestroyContext(&ctx);
-}
-
-static void test_add_gpu_dispatch_broadcast_falls_back_to_cpu(void) {
-  if (!hasCudaDevice()) {
-    return;
-  }
-
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
-
-  dim_t dimsA[] = {2, 3};
-  dim_t dimsB[] = {1, 3};
-  float aValues[] = {1, 2, 3, 4, 5, 6};
-  float bValues[] = {10, 20, 30};
-  float expected[] = {11, 22, 33, 14, 25, 36};
-
-  Tensor *a = createHostF32Tensor(&hostCtx, dimsA, 2, aValues, 6);
-  Tensor *b = createHostF32Tensor(&hostCtx, dimsB, 2, bValues, 3);
-  Tensor dest = {0};
-
-  Result res = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(res, OK, "CUDA Add should allow broadcast via CPU fallback");
-  ASSERT(dest.context == &ctx, "Broadcast fallback result should be moved back onto CUDA context");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6,
-                              "Broadcast fallback result should match expected values");
-
-  DestroyContext(&ctx);
+  DestroyContext(&cudaCtx);
 }
 
 static void test_add_in_place_gpu_dispatch_basic(void) {
@@ -3509,8 +3458,8 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float aValues[] = {1, 2, 3, 4, 5, 6};
@@ -3520,14 +3469,13 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  Result res = MoveTensors(&ctx, 2, a, b);
-  ASSERT_EQ(res, OK, "MoveTensors should move inputs onto CUDA");
+  MoveTensors(&cudaCtx, 2, a, b);
 
-  res = AddInPlace(&ctx, a, b);
+  Result res = AddInPlace(&cudaCtx, a, b);
   ASSERT_EQ(res, OK, "CUDA AddInPlace should succeed");
-  assertF32TensorMatchesOnCpu(&ctx, a, expected, 6, "CUDA AddInPlace result should match");
+  assertF32TensorMatchesOnCpu(&cudaCtx, a, expected, 6, "CUDA AddInPlace result should match");
 
-  DestroyContext(&ctx);
+  DestroyContext(&cudaCtx);
 }
 
 static void test_sum_gpu_dispatch_basic(void) {
@@ -3535,22 +3483,23 @@ static void test_sum_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float values[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {5, 7, 9};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  MoveTensors(&cudaCtx, 1, t);
   Tensor dest;
 
-  Result res = Sum(&ctx, t, &dest, 0);
+  Result res = Sum(&cudaCtx, t, &dest, 0);
   ASSERT_EQ(res, OK, "CUDA Sum should succeed");
-  ASSERT(dest.context == &ctx, "CUDA Sum result should live on the CUDA context");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 3, "CUDA Sum result should match");
+  ASSERT(dest.context == &cudaCtx, "CUDA Sum result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 3, "CUDA Sum result should match");
 
-  DestroyContext(&ctx);
+  DestroyContext(&cudaCtx);
 }
 
 static void test_mean_gpu_dispatch_basic(void) {
@@ -3558,8 +3507,8 @@ static void test_mean_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float values[] = {1, 2, 3, 4, 5, 6};
@@ -3568,12 +3517,14 @@ static void test_mean_gpu_dispatch_basic(void) {
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
   Tensor dest;
 
-  Result res = Mean(&ctx, t, &dest);
-  ASSERT_EQ(res, OK, "CUDA Mean should succeed");
-  ASSERT(dest.context == &ctx, "CUDA Mean result should live on the CUDA context");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 1, "CUDA Mean result should match");
+  MoveTensors(&cudaCtx, 1, t);
 
-  DestroyContext(&ctx);
+  Result res = Mean(&cudaCtx, t, &dest);
+  ASSERT_EQ(res, OK, "CUDA Mean should succeed");
+  ASSERT(dest.context == &cudaCtx, "CUDA Mean result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 1, "CUDA Mean result should match");
+
+  DestroyContext(&cudaCtx);
 }
 
 static void test_argmax_gpu_dispatch_basic(void) {
@@ -3581,8 +3532,8 @@ static void test_argmax_gpu_dispatch_basic(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
+  Context hostCtx = {.memory = cudaCtx.memory};
 
   dim_t dims[] = {2, 3};
   float values[] = {1, 5, 3, 4, 2, 6};
@@ -3591,12 +3542,13 @@ static void test_argmax_gpu_dispatch_basic(void) {
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
   Tensor dest;
 
-  Result res = ArgMax(&ctx, t, &dest, 0);
+  MoveTensors(&cudaCtx, 1, t);
+  Result res = ArgMax(&cudaCtx, t, &dest, 0);
   ASSERT_EQ(res, OK, "CUDA ArgMax should succeed");
-  ASSERT(dest.context == &ctx, "CUDA ArgMax result should live on the CUDA context");
-  assertI64TensorMatchesOnCpu(&ctx, &dest, expected, 3, "CUDA ArgMax result should match");
+  ASSERT(dest.context == &cudaCtx, "CUDA ArgMax result should live on the CUDA context");
+  assertI64TensorMatchesOnCpu(&cudaCtx, &dest, expected, 3, "CUDA ArgMax result should match");
 
-  DestroyContext(&ctx);
+  DestroyContext(&cudaCtx);
 }
 
 static void test_index_accumulate_1d_basic(void) {
@@ -3644,6 +3596,7 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 2);
   Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
 
+  MoveTensors(&ctx, 2, indices, srcGrad);
   Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
   ASSERT_EQ(res, OK, "CUDA IndexAccumulate1d should succeed");
   assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6, "CUDA IndexAccumulate1d result should match");
@@ -3693,6 +3646,7 @@ static void test_index_with_tensor_gpu_dispatch_basic(void) {
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
   Tensor dest;
 
+  MoveTensors(&ctx, 2, source, indices);
   Result res = IndexWithTensor(&ctx, source, indices, &dest);
   ASSERT_EQ(res, OK, "CUDA IndexWithTensor should succeed with CPU inputs");
   ASSERT(dest.context == &ctx, "CUDA IndexWithTensor result should live on CUDA");
@@ -3721,6 +3675,7 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
   Tensor dest;
 
+  MoveTensors(&ctx, 3, rowIndices, colIndices, source);
   Result res = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &dest);
   ASSERT_EQ(res, OK, "CUDA IndexWithTensor2d should succeed with CPU inputs");
   ASSERT(dest.context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
@@ -3748,35 +3703,13 @@ static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *tensors[] = {toAdd};
   Tensor dest;
 
+
+  MoveTensors(&ctx, 2, target, toAdd);
+
   Result res = Concat(&ctx, target, 0, tensors, 1, &dest);
   ASSERT_EQ(res, OK, "CUDA Concat should succeed with CPU inputs");
   ASSERT(dest.context == &ctx, "CUDA Concat result should live on CUDA");
   assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Concat result should match");
-
-  DestroyContext(&ctx);
-}
-
-static void test_one_hot_gpu_dispatch_materializes_cpu_indices(void) {
-  if (!hasCudaDevice()) {
-    return;
-  }
-
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
-
-  dim_t indexDims[] = {3};
-  i32 indexValues[] = {2, 0, 1};
-  float expected[] = {0, 0, 1, 1, 0, 0, 0, 1, 0};
-
-  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 3);
-  Tensor *oneHot = T_OneHot(&ctx, indices, 3);
-
-  ASSERT_NOT_NULL(oneHot, "CUDA OneHot should return a tensor");
-  ASSERT(oneHot->context == &ctx, "CUDA OneHot result should live on CUDA");
-  ASSERT_EQ(oneHot->shape.numOfDims, 2, "CUDA OneHot should append a class dimension");
-  ASSERT_EQ(oneHot->shape.dims[0], 3, "CUDA OneHot should preserve the input length");
-  ASSERT_EQ(oneHot->shape.dims[1], 3, "CUDA OneHot class dimension should match numClasses");
-  assertF32TensorMatchesOnCpu(&ctx, oneHot, expected, 9, "CUDA OneHot result should match");
 
   DestroyContext(&ctx);
 }
@@ -4368,112 +4301,6 @@ static void test_index_with_tensor_2d_3d_source(void) {
   ASSERT_EQ(vals[5], 21.0f, "vals[5] should be 21");
   ASSERT_EQ(vals[6], 22.0f, "vals[6] should be 22");
   ASSERT_EQ(vals[7], 23.0f, "vals[7] should be 23");
-
-  freeMemory(mem);
-}
-
-static void test_index_with_tensor_2d_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {3, 4};
-  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  dim_t idxDims[] = {2};
-  Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
-
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, NULL, indices, indices, &result);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Should fail with null source");
-
-  r = IndexWithTensor2d(&ctx, source, NULL, indices, &result);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Should fail with null row indices");
-
-  r = IndexWithTensor2d(&ctx, source, indices, NULL, &result);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Should fail with null col indices");
-
-  freeMemory(mem);
-}
-
-static void test_index_with_tensor_2d_insufficient_dims(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  // 1D source should fail
-  dim_t dims[] = {4};
-  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
-  dim_t idxDims[] = {2};
-  Tensor *indices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
-
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, source, indices, indices, &result);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Should fail with 1D source");
-
-  freeMemory(mem);
-}
-
-static void test_index_with_tensor_2d_mismatched_indices(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {3, 4};
-  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  dim_t rowDims[] = {2};
-  dim_t colDims[] = {3};
-  Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = rowDims, .numOfDims = 1}, 0);
-  Tensor *colIndices = T_Int(&ctx, (Dim){.dims = colDims, .numOfDims = 1}, 0);
-
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Should fail with mismatched index sizes");
-
-  freeMemory(mem);
-}
-
-static void test_index_with_tensor_2d_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {3, 4};
-  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  dim_t idxDims[] = {2};
-  Tensor *rowIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
-  ((i8 *)rowIndices->values)[0] = 0;
-  ((i8 *)rowIndices->values)[1] = 5; // Out of bounds
-
-  Tensor *colIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
-  ((i8 *)colIndices->values)[0] = 0;
-  ((i8 *)colIndices->values)[1] = 0;
-
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
-  ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "Should fail with out of bounds row index");
-
-  // Reset and test column out of bounds
-  ((i8 *)rowIndices->values)[1] = 0;
-  ((i8 *)colIndices->values)[1] = 5; // Out of bounds
-
-  r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
-  ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "Should fail with out of bounds col index");
-
-  freeMemory(mem);
-}
-
-static void test_index_with_tensor_2d_non_int_indices(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {3, 4};
-  Tensor *source = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  dim_t idxDims[] = {2};
-  Tensor *floatIndices = T_Float(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0.0f);
-  Tensor *intIndices = T_Int(&ctx, (Dim){.dims = idxDims, .numOfDims = 1}, 0);
-
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, source, floatIndices, intIndices, &result);
-  ASSERT_EQ(r, ERR_ONLY_INT_TYPE_ALLOWED, "Should fail with float row indices");
-
-  r = IndexWithTensor2d(&ctx, source, intIndices, floatIndices, &result);
-  ASSERT_EQ(r, ERR_ONLY_INT_TYPE_ALLOWED, "Should fail with float col indices");
 
   freeMemory(mem);
 }
@@ -5248,167 +5075,6 @@ static void test_concat_data_correctness(void) {
   freeMemory(mem);
 }
 
-static void test_concat_null_target(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 1.0f);
-
-  Tensor invalid = {0};
-  invalid.isContigous = false; // Mark as invalid
-
-  Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
-  Result r = Concat(&ctx, &invalid, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Concat with null target should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_target_zero_dims(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  // Create a tensor with 0 dims by manually setting it up
-  dim_t targetDims[] = {2, 2};
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-  target->shape.numOfDims = 0; // Force to 0 dims
-
-  dim_t addDims[] = {2, 2};
-  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
-
-  Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS,
-            "Concat with 0-dim target should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_target_dim_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t targetDims[] = {2, 2};
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-
-  dim_t addDims[] = {2, 2};
-  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
-
-  Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 5, tensors, 1, &dest); // dim 5 is out of bounds
-  ASSERT_EQ(r, ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS, "Concat with out of bounds dim should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_null_tensor_in_array(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t targetDims[] = {2, 2};
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-
-  // Create an invalid tensor
-  Tensor invalid = {0};
-  invalid.isContigous = false;
-
-  Tensor *tensors[] = {&invalid};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_CONCAT_TENSOR_IS_NULL, "Concat with null tensor in array should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_unequal_num_dims(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t targetDims[] = {2, 2};
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-
-  dim_t addDims[] = {4}; // 1D tensor
-  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
-
-  Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_CONCAT_TENSORS_UNEQUAL_DIMS, "Concat with unequal dimensions should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_mismatched_non_target_dims(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t targetDims[] = {2, 3}; // 2 rows, 3 cols
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-
-  dim_t addDims[] = {2, 4}; // 2 rows, 4 cols - mismatched dim 1
-  Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
-
-  Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_CONCAT_TENSORS_UNEQUAL_DIMS,
-            "Concat with mismatched non-target dims should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_dtype_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t targetDims[] = {2, 2};
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-
-  dim_t addDims[] = {2, 2};
-  Tensor *toAdd = T_Int(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2); // Integer dtype
-
-  Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_CONCAT_TENSOR_NOT_SAME_DTYPE, "Concat with dtype mismatch should fail");
-
-  freeMemory(mem);
-}
-
-static void test_concat_non_contiguous_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t targetDims[] = {2, 2};
-  Tensor *target = T_Float(&ctx, (Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
-
-  // Create a transposed tensor (non-contiguous)
-  dim_t origDims[] = {2, 3};
-  Tensor *orig = T_Float(&ctx, (Dim){.dims = origDims, .numOfDims = 2}, 2.0f);
-  Tensor transposed;
-  Transpose(&ctx, orig, &transposed, (dim_t)0, (dim_t)1);
-  ASSERT(!transposed.isContigous, "transposed should not be contiguous");
-
-  Tensor *tensors[] = {&transposed};
-  Tensor dest;
-
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, ERR_CONCAT_TENSOR_NOT_CONTIGOUS, "Concat with non-contiguous tensor should fail");
-
-  freeMemory(mem);
-}
-
 static void test_concat_with_non_contiguous_target(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -5633,8 +5299,6 @@ void run_tensor_tests(void) {
   test_add_gpu_dispatch_materializes_cpu_inputs();
   test_subtract_gpu_dispatch_basic();
   test_multiply_gpu_dispatch_basic();
-  test_add_gpu_dispatch_non_contiguous_input();
-  test_add_gpu_dispatch_broadcast_falls_back_to_cpu();
   test_add_in_place_gpu_dispatch_basic();
   // CUDA reduction tests
   test_sum_gpu_dispatch_basic();
@@ -5647,7 +5311,6 @@ void run_tensor_tests(void) {
   test_index_with_tensor_gpu_dispatch_basic();
   test_index_with_tensor_2d_gpu_dispatch_basic();
   test_concat_gpu_dispatch_materializes_cpu_inputs();
-  test_one_hot_gpu_dispatch_materializes_cpu_indices();
   // MatMul tests
   test_gemm_gpu_dispatch_basic();
   test_gemm_gpu_dispatch_f64();
@@ -5681,11 +5344,6 @@ void run_tensor_tests(void) {
   // IndexWithTensor2d tests
   test_index_with_tensor_2d_basic();
   test_index_with_tensor_2d_3d_source();
-  test_index_with_tensor_2d_null_tensor();
-  test_index_with_tensor_2d_insufficient_dims();
-  test_index_with_tensor_2d_mismatched_indices();
-  test_index_with_tensor_2d_out_of_bounds();
-  test_index_with_tensor_2d_non_int_indices();
   // Mean tests
   test_mean_basic();
   test_mean_null_tensor();
@@ -5729,14 +5387,6 @@ void run_tensor_tests(void) {
   test_concat_1d_tensors();
   test_concat_3d_tensors();
   test_concat_data_correctness();
-  test_concat_null_target();
-  test_concat_target_zero_dims();
-  test_concat_target_dim_out_of_bounds();
-  test_concat_null_tensor_in_array();
-  test_concat_unequal_num_dims();
-  test_concat_mismatched_non_target_dims();
-  test_concat_dtype_mismatch();
-  test_concat_non_contiguous_tensor();
   test_concat_with_non_contiguous_target();
   test_concat_single_element_tensors();
   test_concat_no_additional_tensors();

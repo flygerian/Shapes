@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include <cuda_runtime_api.h>
@@ -7,6 +8,7 @@
 #include "tensor_internal.h"
 #include "value.h"
 #include "../memory.h"
+#include <stdlib.h>
 
 void PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
@@ -303,77 +305,34 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
     }
   }
 
+  copy->isContigousCopy = true;
+
   freeAlloc(ctx->memory, indices);
   return copy;
 }
 
-Result materializeTensorOnContext(Context *ctx, Tensor *src, bool requireContiguous,
-                                  TensorArg *arg) {
-  if (ctx == NULL || src == NULL || arg == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  arg->tensor = NULL;
-  arg->ownsTensor = false;
-
-  if (isSameContext(src->context, ctx) && (!requireContiguous || src->isContigous)) {
-    arg->tensor = src;
-    return OK;
-  }
+Tensor* materializeTensorOnContext(Context *ctx, Tensor *src) {
+  PANIC_IF(ctx == NULL || src == NULL, ERR_NULL_TENSOR_PROVIDED);
+  bool isNotSameContext = !isSameContext(ctx, src->context);
+  PANIC_IF(isNotSameContext, ERR_DIFFERENT_CTX_TENSORS_PASSED);
 
   Tensor *working = src;
-  bool ownsWorking = false;
-
-  if (requireContiguous && !src->isContigous) {
+  if (!src->isContigous) {
     Context *materializeCtx = src->context != NULL ? src->context : ctx;
     working = copyToContiguous(materializeCtx, src);
-    if (working == NULL) {
-      return ERR_OUT_OF_MEMORY;
-    }
-    ownsWorking = true;
+    PANIC_IF(working == NULL, ALLOCATION_FAILED);
   }
 
-  if (isSameContext(working->context, ctx)) {
-    arg->tensor = working;
-    arg->ownsTensor = ownsWorking;
-    return OK;
+  // Tensor **moved = MoveTensors(ctx, 1, working);
+  return working;
+}
+
+void freeIfContingousCopy(Context *ctx, Tensor* tensor) {
+  if (!tensor->isContigousCopy) {
+    return;
   }
 
-  Tensor *copy = allocate(ctx->memory, sizeof(Tensor));
-  Result allocRes = ensureAllocated(copy);
-  if (allocRes != OK) {
-    if (ownsWorking) {
-      FreeTensor(working->context != NULL ? working->context : ctx, working);
-    }
-    return allocRes;
-  }
-  Result initResult = initTensorLike(ctx, copy, working, working->dtype);
-  if (initResult != OK) {
-    freeAlloc(ctx->memory, copy);
-    if (ownsWorking) {
-      FreeTensor(working->context != NULL ? working->context : ctx, working);
-    }
-    return initResult;
-  }
-
-  size_t valueBytes = working->size * getBytesForDtype(working->dtype);
-  Result copyResult =
-      copyBetweenContexts(working->context, ctx, working->values, copy->values, valueBytes);
-  if (copyResult != OK) {
-    FreeTensor(ctx, copy);
-    if (ownsWorking) {
-      FreeTensor(working->context != NULL ? working->context : ctx, working);
-    }
-    return copyResult;
-  }
-
-  if (ownsWorking) {
-    FreeTensor(working->context != NULL ? working->context : ctx, working);
-  }
-
-  arg->tensor = copy;
-  arg->ownsTensor = true;
-  return OK;
+  FreeTensor(ctx, tensor);
 }
 
 void releaseTensorArg(Context *fallbackCtx, TensorArg *arg) {

@@ -4,6 +4,11 @@
 typedef enum {
   OK,
   ERR_NO_OP,
+  ALLOCATION_FAILED,
+  CUDA_OP_FAILED,
+  NULL_CONTEXT,
+  NO_DEVICE_ON_CONTEXT,
+  ALLOCATING_ZERO,
   ERR_DTYPE_MISMATCH,
   ERR_DIM_MISMATCH,
   ERR_OUT_OF_BOUNDS,
@@ -65,7 +70,18 @@ typedef enum {
   ERR_CONCAT_TENSOR_NOT_SAME_DTYPE,
   ERR_CONCAT_TENSORS_UNEQUAL_DIMS,
   ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS,
-  ERR_COPY_CTX_DEVICE_IS_NULL
+  ERR_COPY_CTX_DEVICE_IS_NULL,
+  ERR_DIFFERENT_CTX_TENSORS_PASSED,
+  NON_CONTIGOUS_MOVE_TENSOR
 } Result;
+
+#define PANIC_IF(cond, errCode) \
+    do { \
+        if ((cond)) { \
+            fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode); \
+            abort(); \
+        } \
+    } while (0)
+
 
 #endif

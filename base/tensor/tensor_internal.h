@@ -71,9 +71,9 @@ void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords);
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type);
 Tensor *copyToContiguous(Context *ctx, Tensor *source);
 bool isSameContext(Context *a, Context *b);
-Result materializeTensorOnContext(Context *ctx, Tensor *src, bool requireContiguous,
-                                  TensorArg *arg);
+Tensor* materializeTensorOnContext(Context *ctx, Tensor *src);
 void releaseTensorArg(Context *fallbackCtx, TensorArg *arg);
+void freeIfContingousCopy(Context *ctx, Tensor* tensor);
 Result clearTensorValues(Tensor *t);
 bool areBroadcastable(Tensor *a, Tensor *b);
 TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
