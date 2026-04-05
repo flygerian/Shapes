@@ -2,7 +2,6 @@
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "blas.h"
-#include "../memory.h"
 #include <sched.h>
 #include <stdlib.h>
 
@@ -101,14 +100,10 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
     freeAlloc(ctx->memory, newDim.dims);
     goto cleanup;
   }
-  tensor_size_t size = calculateNumValuesAndMultipliers(newDim, newDim.multipliers);
-  void *values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * size);
-  r = ensureAllocated(values);
-  if (r != OK) {
-    freeAlloc(ctx->memory, newDim.multipliers);
-    freeAlloc(ctx->memory, newDim.dims);
-    goto cleanup;
-  }
+
+  sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDim.dims, newDim.numOfDims);
+  void *values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * snm.size);
+  PANIC_IF(values == NULL, ALLOCATION_FAILED); 
 
   *result = (Tensor){.context = ctx,
                      .metadataMemory = ctx != NULL ? ctx->memory : NULL,
@@ -116,7 +111,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
                      .isContigous = true,
                      .isView = false,
                      .shape = newDim,
-                     .size = size,
+                     .size = snm.size,
                      .values = values};
 
   size_t elemSize = getBytesForDtype(opA->dtype);
@@ -162,7 +157,7 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   Tensor *opB = materializeTensorOnContext(ctx, b);
 
   dim_t *resDims = allocate(ctx->memory, sizeof(dim_t));
-  PANIC_IF(resDims == NULL, ALLOCATION_FAILED);   
+  PANIC_IF(resDims == NULL, ALLOCATION_FAILED);
   resDims[0] = 1;
 
   multiplier_t *resMult = allocate(ctx->memory, sizeof(multiplier_t));
@@ -170,7 +165,7 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   resMult[0] = 1;
 
   void *resVal = allocateOnCtx(ctx, getBytesForDtype(a->dtype));
-  PANIC_IF(resVal == NULL, ALLOCATION_FAILED); 
+  PANIC_IF(resVal == NULL, ALLOCATION_FAILED);
 
   BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
 

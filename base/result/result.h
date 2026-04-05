@@ -1,5 +1,6 @@
 #ifndef shapes_error_h
 #define shapes_error_h
+#include "stdlib.h"
 
 typedef enum {
   OK,
@@ -75,13 +76,13 @@ typedef enum {
   NON_CONTIGOUS_MOVE_TENSOR
 } Result;
 
-#define PANIC_IF(cond, errCode) \
-    do { \
-        if ((cond)) { \
-            fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode); \
-            abort(); \
-        } \
-    } while (0)
+#define PANIC_IF(cond, errCode)                                                                    \
+  do {                                                                                             \
+    if ((cond)) {                                                                                  \
+      fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                  \
+      abort();                                                                                     \
+    }                                                                                              \
+  } while (0)
 
 
 #endif

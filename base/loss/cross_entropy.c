@@ -97,7 +97,7 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
   tensor_size_t rows = logits->size / classCount;
 
   Tensor *yContig = materializeTensorOnContext(ctx, yGround);
-  Tensor *logitsContig =  materializeTensorOnContext(ctx, logits);
+  Tensor *logitsContig = materializeTensorOnContext(ctx, logits);
 
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
@@ -118,7 +118,7 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
   }
 
   Result res = initTensorLike(ctx, probs, logitsContig, logitsContig->dtype);
-  PANIC_IF(res != OK, res);  
+  PANIC_IF(res != OK, res);
   logHostOpTiming(ctx, "CrossEntropyForward", "init_probs", phaseStartMs);
 
   if (isCudaContext(ctx)) {
@@ -146,7 +146,7 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
     res =
         runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values,
                                    rows, classCount, probs->values, loss->values);
-    PANIC_IF(res != OK, res);     
+    PANIC_IF(res != OK, res);
 
     logHostOpTiming(ctx, "CrossEntropyForward", "cuda_forward", phaseStartMs);
     goto cleanup;
@@ -290,8 +290,8 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
 
   tensor_size_t rows = probs->size / classCount;
 
-  Tensor *yContig = materializeTensorOnContext(ctx, yGround);  
-  Tensor *pContig = materializeTensorOnContext(ctx, probs);  
+  Tensor *yContig = materializeTensorOnContext(ctx, yGround);
+  Tensor *pContig = materializeTensorOnContext(ctx, probs);
   Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
 
   Result res = initTensorLike(ctx, dLogits, pContig, pContig->dtype);

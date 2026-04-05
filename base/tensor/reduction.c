@@ -6,7 +6,6 @@
 #include "shapes.h"
 #include "tensor_internal.h"
 #include "value.h"
-#include "../memory.h"
 #include <stdlib.h>
 
 static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype dtype) {
@@ -33,7 +32,7 @@ static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype
   }
 
   Value *sum = allocate(m, sizeof(Value));
-  PANIC_IF(sum == NULL, ALLOCATION_FAILED);   
+  PANIC_IF(sum == NULL, ALLOCATION_FAILED);
 
   *sum = VALUE(dtype, 0);
   for (u8 y = 0; y < MAX_PARALLEL_SUMS; y++) {
@@ -107,28 +106,22 @@ static Result validateStdTensor(Tensor *t) {
   return OK;
 }
 
+// TODO: Remove this
 static Result initScalarTensor(Context *ctx, Tensor *dest, Dtype dtype) {
   Dim scalarShape = {.dims = NULL, .numOfDims = 0, .multipliers = NULL};
   return initTensor(ctx, dest, scalarShape, dtype);
 }
 
+// TODO: Remove this
 static Result initReducedTensor(Context *ctx, Tensor *source, Tensor *dest, dim_t dim,
                                 Dtype outputDtype) {
   Dim shape = {.numOfDims = source->shape.numOfDims,
-               .dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
-               .multipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
-  Result allocRes = ensureAllocated(shape.dims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-  allocRes = ensureAllocated(shape.multipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, shape.dims);
-    return allocRes;
-  }
+               .dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims)};
+
   memcpy(shape.dims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
   shape.dims[dim] = 1;
-  calculateNumValuesAndMultipliers(shape, shape.multipliers);
+  sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, shape.dims, shape.numOfDims);
+  shape.multipliers = snm.multipliers;
   Result initRes = initTensor(ctx, dest, shape, outputDtype);
   if (initRes != OK) {
     freeAlloc(ctx->memory, shape.multipliers);
@@ -151,12 +144,13 @@ static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numB
 
 static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   TensorArg inputArg = {0};
-  Tensor *workingTensor= materializeTensorOnContext(ctx, t);
+  Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result =
+      prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
     freeIfContingousCopy(ctx, workingTensor);
     return result;
@@ -189,8 +183,7 @@ static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 static Result meanCpu(Context *ctx, Tensor *t, Tensor *dest) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size,
-                                  input->dtype);
+  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
   Value size = VALUE(input->dtype, input->size);
   Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
@@ -212,7 +205,8 @@ static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
 
-  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result =
+      prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   result = initReducedTensor(ctx, workingTensor, dest, dim, workingTensor->dtype);
@@ -252,10 +246,9 @@ static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 }
 
 static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
-  Tensor *input = materializeTensorOnContext(ctx, t);  
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size,
-                                  input->dtype);
+  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
   f64 mean = 0.0;
   switch (input->dtype) {
     case F16: mean = (f64)tensorSum->as.f16 / (f64)input->size; break;
@@ -305,7 +298,8 @@ static Result maxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
 
-  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result =
+      prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   if (result != OK) {
     freeIfContingousCopy(ctx, workingTensor);
     return result;
@@ -346,11 +340,12 @@ static Result argMaxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
-  Result result = prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
+  Result result =
+      prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   result = initReducedTensor(ctx, workingTensor, dest, dim, I64);
-  PANIC_IF(result != OK, ALLOCATION_FAILED); 
+  PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   i64 *destValues = (i64 *)dest->values;
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
@@ -396,8 +391,8 @@ static Result sumCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     return result;
   }
 
-  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_SUM,
-                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_SUM, input->values,
+                            dest->values, numBeforeDim, numAfterDim, reduce);
   freeIfContingousCopy(ctx, input);
   return result;
 }
@@ -411,14 +406,14 @@ static Result meanCuda(Context *ctx, Tensor *t, Tensor *dest) {
     return result;
   }
 
-  result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
-                            dest->values, input->size);
+  result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values, dest->values,
+                            input->size);
   freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result meanDimCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  Tensor* input = materializeTensorOnContext(ctx, t);
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
@@ -435,14 +430,14 @@ static Result meanDimCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     return result;
   }
 
-  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MEAN,
-                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MEAN, input->values,
+                            dest->values, numBeforeDim, numAfterDim, reduce);
   freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result stdCuda(Context *ctx, Tensor *t, Tensor *dest) {
-  Tensor* input = materializeTensorOnContext(ctx, t);
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
   Result result = initScalarTensor(ctx, dest, input->dtype);
   if (result != OK) {
@@ -450,14 +445,13 @@ static Result stdCuda(Context *ctx, Tensor *t, Tensor *dest) {
     return result;
   }
 
-  result = runCudaStd(ctx, input->dtype, input->values, dest->values,
-                      input->size);
+  result = runCudaStd(ctx, input->dtype, input->values, dest->values, input->size);
   freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result maxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  Tensor* input = materializeTensorOnContext(ctx, t);
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
@@ -474,15 +468,15 @@ static Result maxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     return result;
   }
 
-  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MAX,
-                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MAX, input->values,
+                            dest->values, numBeforeDim, numAfterDim, reduce);
   freeIfContingousCopy(ctx, input);
   return result;
 }
 
 static Result argMaxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   TensorArg inputArg = {0};
-  Tensor* input = materializeTensorOnContext(ctx, t);
+  Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
@@ -500,8 +494,8 @@ static Result argMaxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     return result;
   }
 
-  result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX,
-                            input->values, dest->values, numBeforeDim, numAfterDim, reduce);
+  result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX, input->values,
+                            dest->values, numBeforeDim, numAfterDim, reduce);
   freeIfContingousCopy(ctx, input);
   return result;
 }
@@ -517,6 +511,54 @@ Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     case CPU:
     default: return sumCpu(ctx, t, dest, dim);
   }
+}
+
+Result ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad, Tensor *dest) {
+  Result result = validateReductionTensor(input);
+  if (result != OK) {
+    return result;
+  }
+
+  result = validateReductionTensor(grad);
+  if (result != OK) {
+    return result;
+  }
+
+  Tensor *current = grad;
+  i32 dimDiff = (i32)grad->shape.numOfDims - (i32)input->shape.numOfDims;
+  if (dimDiff < 0) {
+    return Clone(ctx, current, dest);
+  }
+
+  for (i32 i = 0; i < dimDiff; i++) {
+    Tensor summed = {0};
+    result = Sum(ctx, current, &summed, 0);
+    if (result != OK) {
+      return result;
+    }
+
+    Tensor squeezed = {0};
+    result = SqueezeDim(ctx, &summed, &squeezed, 0);
+    if (result != OK) {
+      return result;
+    }
+
+    current = &squeezed;
+  }
+
+  for (u8 d = 0; d < input->shape.numOfDims; d++) {
+    if (input->shape.dims[d] == 1 && current->shape.dims[d] > 1) {
+      Tensor summed = {0};
+      result = Sum(ctx, current, &summed, d);
+      if (result != OK) {
+        return result;
+      }
+
+      current = &summed;
+    }
+  }
+
+  return Clone(ctx, current, dest);
 }
 
 Result Mean(Context *ctx, Tensor *t, Tensor *dest) {

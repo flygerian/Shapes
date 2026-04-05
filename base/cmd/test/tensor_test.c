@@ -1,3 +1,4 @@
+#include "common.h"
 #include "test.h"
 #include "../../shapes.h"
 #include "../../tensor/tensor_internal.h"
@@ -62,6 +63,101 @@ static void test_int_creates_tensor_with_value(void) {
     }
   }
   ASSERT(all_match, "all tensor values should be 5");
+
+  freeMemory(mem);
+}
+
+static void test_make_random_tensor_respects_float_range_and_dtype(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *t = MakeRandomTensor(&ctx, SHAPE2D(3, 4), -2.5f, 4.0f, F32);
+
+  ASSERT_NOT_NULL(t, "MakeRandomTensor should allocate a tensor");
+  ASSERT_EQ(t->dtype, F32, "MakeRandomTensor should preserve the requested dtype");
+
+  f32 *values = (f32 *)t->values;
+  int allInRange = 1;
+  for (u32 i = 0; i < 12; i++) {
+    if (values[i] < -2.5f || values[i] > 4.0f) {
+      allInRange = 0;
+      break;
+    }
+  }
+
+  ASSERT(allInRange, "MakeRandomTensor should keep float values inside the requested range");
+
+  freeMemory(mem);
+}
+
+static void test_make_random_tensor_uses_constant_range_value(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *t = MakeRandomTensor(&ctx, SHAPE1D(8), 7.0f, 7.0f, I16);
+
+  ASSERT_NOT_NULL(t, "MakeRandomTensor should allocate a tensor for constant ranges");
+  ASSERT_EQ(t->dtype, I16, "MakeRandomTensor should support non-default dtypes");
+
+  i16 *values = (i16 *)t->values;
+  int allMatch = 1;
+  for (u32 i = 0; i < 8; i++) {
+    if (values[i] != 7) {
+      allMatch = 0;
+      break;
+    }
+  }
+
+  ASSERT(allMatch, "MakeRandomTensor should fill constant ranges with that exact value");
+
+  freeMemory(mem);
+}
+
+static void test_make_random_tensor_generates_varied_int_values(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *t = MakeRandomTensor(&ctx, SHAPE1D(128), 10.0f, 12.0f, U8);
+
+  ASSERT_NOT_NULL(t, "MakeRandomTensor should allocate an integer tensor");
+  ASSERT_EQ(t->dtype, U8, "MakeRandomTensor should preserve unsigned integer dtypes");
+
+  u8 *values = (u8 *)t->values;
+  int allInRange = 1;
+  int allSame = 1;
+  for (u32 i = 0; i < 128; i++) {
+    if (values[i] < 10 || values[i] > 12) {
+      allInRange = 0;
+      break;
+    }
+    if (values[i] != values[0]) {
+      allSame = 0;
+    }
+  }
+
+  ASSERT(allInRange, "MakeRandomTensor should keep integer values inside the requested range");
+  ASSERT(!allSame, "MakeRandomTensor should not collapse a non-constant range to one value");
+
+  freeMemory(mem);
+}
+
+static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  f32 values[] = {1.5f, -2.0f, 3.25f, 4.0f};
+
+  Tensor *tensor = MakeFromContigousArray(&ctx, SHAPE1D(1), values, 4, F32);
+  ASSERT_NOT_NULL(tensor, "MakeFromContigousArray should allocate a tensor");
+  ASSERT_EQ(tensor->dtype, F32, "MakeFromContigousArray should preserve dtype");
+  ASSERT_EQ(tensor->shape.numOfDims, 1, "MakeFromContigousArray should create a 1D tensor");
+  ASSERT_EQ(tensor->shape.dims[0], 4, "MakeFromContigousArray length should match numElements");
+
+  f32 *tensorValues = (f32 *)tensor->values;
+  ASSERT_EQ(tensorValues[0], 1.5f, "tensor[0] should match source array");
+  ASSERT_EQ(tensorValues[1], -2.0f, "tensor[1] should match source array");
+  ASSERT_EQ(tensorValues[2], 3.25f, "tensor[2] should match source array");
+  ASSERT_EQ(tensorValues[3], 4.0f, "tensor[3] should match source array");
 
   freeMemory(mem);
 }
@@ -2393,6 +2489,86 @@ static void test_sum_reduce_to_scalar_2d(void) {
   freeMemory(mem);
 }
 
+static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *input = T_Float(&ctx, SHAPE1D(3), 0.0f);
+  Tensor *grad = T_Float(&ctx, SHAPE2D(2, 3), 0.0f);
+
+  f32 gradValues[] = {1, 2, 3, 4, 5, 6};
+  memcpy(grad->values, gradValues, sizeof(gradValues));
+
+  Tensor reduced;
+  Result r = ReduceBroadcast(&ctx, input, grad, &reduced);
+  ASSERT_EQ(r, OK, "ReduceBroadcast should reduce extra leading dimensions");
+  ASSERT_EQ(reduced.shape.numOfDims, 1, "reduced gradient should match input rank");
+  ASSERT_EQ(reduced.shape.dims[0], 3, "reduced gradient should match input shape");
+
+  f32 *values = (f32 *)reduced.values;
+  ASSERT_EQ(values[0], 5.0f, "column 0 should sum both broadcast rows");
+  ASSERT_EQ(values[1], 7.0f, "column 1 should sum both broadcast rows");
+  ASSERT_EQ(values[2], 9.0f, "column 2 should sum both broadcast rows");
+
+  freeMemory(mem);
+}
+
+static void test_reduce_broadcast_sums_singleton_input_dims(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *input = T_Float(&ctx, SHAPE3D(2, 1, 2), 0.0f);
+  Tensor *grad = T_Float(&ctx, SHAPE3D(2, 3, 2), 0.0f);
+
+  f32 gradValues[] = {
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+  };
+  memcpy(grad->values, gradValues, sizeof(gradValues));
+
+  Tensor reduced;
+  Result r = ReduceBroadcast(&ctx, input, grad, &reduced);
+  ASSERT_EQ(r, OK, "ReduceBroadcast should sum expanded singleton dimensions");
+  ASSERT_EQ(reduced.shape.numOfDims, 3, "reduced gradient should preserve input rank");
+  ASSERT_EQ(reduced.shape.dims[0], 2, "dim 0 should match input");
+  ASSERT_EQ(reduced.shape.dims[1], 1, "dim 1 should collapse back to singleton");
+  ASSERT_EQ(reduced.shape.dims[2], 2, "dim 2 should match input");
+
+  f32 *values = (f32 *)reduced.values;
+  ASSERT_EQ(values[0], 9.0f, "first batch, channel 0 should sum singleton broadcast");
+  ASSERT_EQ(values[1], 12.0f, "first batch, channel 1 should sum singleton broadcast");
+  ASSERT_EQ(values[2], 27.0f, "second batch, channel 0 should sum singleton broadcast");
+  ASSERT_EQ(values[3], 30.0f, "second batch, channel 1 should sum singleton broadcast");
+
+  freeMemory(mem);
+}
+
+static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *input = T_Float(&ctx, SHAPE2D(1, 3), 0.0f);
+  Tensor *grad = T_Float(&ctx, SHAPE3D(2, 4, 3), 0.0f);
+
+  f32 *gradValues = (f32 *)grad->values;
+  for (u32 i = 0; i < grad->size; i++) {
+    gradValues[i] = (f32)(i + 1);
+  }
+
+  Tensor reduced;
+  Result r = ReduceBroadcast(&ctx, input, grad, &reduced);
+  ASSERT_EQ(r, OK, "ReduceBroadcast should handle combined broadcast reductions");
+  ASSERT_EQ(reduced.shape.numOfDims, 2, "reduced gradient should match input rank");
+  ASSERT_EQ(reduced.shape.dims[0], 1, "leading singleton dim should be restored");
+  ASSERT_EQ(reduced.shape.dims[1], 3, "feature dim should match input");
+
+  f32 *values = (f32 *)reduced.values;
+  ASSERT_EQ(values[0], 92.0f, "feature 0 should sum across both broadcast dimensions");
+  ASSERT_EQ(values[1], 100.0f, "feature 1 should sum across both broadcast dimensions");
+  ASSERT_EQ(values[2], 108.0f, "feature 2 should sum across both broadcast dimensions");
+
+  freeMemory(mem);
+}
+
 // Squeeze tests
 static void test_squeeze_removes_single_dims(void) {
   Memory *mem = initializeMemory();
@@ -3443,7 +3619,7 @@ static void test_multiply_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
   Tensor dest;
-  
+
   MoveTensors(&cudaCtx, 2, a, b);
 
   Result res = Multiply(&cudaCtx, a, b, &dest);
@@ -3599,7 +3775,8 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   MoveTensors(&ctx, 2, indices, srcGrad);
   Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
   ASSERT_EQ(res, OK, "CUDA IndexAccumulate1d should succeed");
-  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6, "CUDA IndexAccumulate1d result should match");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6,
+                              "CUDA IndexAccumulate1d result should match");
 
   DestroyContext(&ctx);
 }
@@ -3679,7 +3856,8 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   Result res = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &dest);
   ASSERT_EQ(res, OK, "CUDA IndexWithTensor2d should succeed with CPU inputs");
   ASSERT(dest.context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 4, "CUDA IndexWithTensor2d result should match");
+  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 4,
+                              "CUDA IndexWithTensor2d result should match");
 
   DestroyContext(&ctx);
 }
@@ -5171,6 +5349,10 @@ void run_tensor_tests(void) {
   test_zeros_creates_tensor_with_correct_shape();
   test_zeros_values_are_zero();
   test_int_creates_tensor_with_value();
+  test_make_random_tensor_respects_float_range_and_dtype();
+  test_make_random_tensor_uses_constant_range_value();
+  test_make_random_tensor_generates_varied_int_values();
+  test_make_from_contigous_array_copies_values_into_1d_tensor();
   test_zeros_1d_tensor();
   test_zeros_3d_tensor();
   test_multipliers_2d_tensor();
@@ -5269,6 +5451,9 @@ void run_tensor_tests(void) {
   test_sum_multiple_reduces_3d();
   test_sum_multiple_reduces_4d();
   test_sum_reduce_to_scalar_2d();
+  test_reduce_broadcast_sums_leading_broadcast_dims();
+  test_reduce_broadcast_sums_singleton_input_dims();
+  test_reduce_broadcast_combines_leading_and_singleton_reductions();
   // Squeeze tests
   test_squeeze_removes_single_dims();
   test_squeeze_middle_dim();

@@ -147,7 +147,8 @@ Result copyBetweenContexts(Context *restrict srcCtx, Context *restrict destCtx,
     return ERR_NULL_PTR;
   }
 
-  DeviceType srcType = srcCtx != NULL ? getDeviceTypeForContext(srcCtx) : getDeviceTypeForPointer(srcPtr);
+  DeviceType srcType =
+      srcCtx != NULL ? getDeviceTypeForContext(srcCtx) : getDeviceTypeForPointer(srcPtr);
   DeviceType destType =
       destCtx != NULL ? getDeviceTypeForContext(destCtx) : getDeviceTypeForPointer(destPtr);
 
@@ -188,7 +189,8 @@ void *allocateOnCtx(Context *ctx, size_t size) {
     case CPU: return allocate(ctx->memory, size);
     case CUDA: {
       size_t roundedSize = roundCudaAllocationSize(size);
-      CudaCachedBlock *reusedBlock = detachReusableCudaBlock(&ctx->device->cachedBlocks, roundedSize);
+      CudaCachedBlock *reusedBlock =
+          detachReusableCudaBlock(&ctx->device->cachedBlocks, roundedSize);
       if (reusedBlock != NULL) {
         pushCudaBlock(&ctx->device->activeBlocks, reusedBlock);
         return reusedBlock->ptr;
@@ -259,8 +261,8 @@ Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda) 
 
       if (handleResult == CUBLAS_STATUS_SUCCESS) {
         Device *device = allocate(memory, sizeof(Device));
-        *device = (Device){
-            .id = "cuda:0", .type = CUDA, .activeBlocks = NULL, .cachedBlocks = NULL};
+        *device =
+            (Device){.id = "cuda:0", .type = CUDA, .activeBlocks = NULL, .cachedBlocks = NULL};
         ctx.handle = handle;
         ctx.device = device;
       }
@@ -344,5 +346,4 @@ void MoveTensors(Context *destCtx, u8 numTensors, ...) {
     t->context = destCtx;
     t->values = locationOnDest;
   }
-
 }

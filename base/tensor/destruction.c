@@ -2,7 +2,6 @@
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor_internal.h"
-#include "../memory.h"
 #include <sched.h>
 
 static Memory *getTensorMetadataMemory(Context *ctx, Tensor *t) {
@@ -106,8 +105,8 @@ Result FreeTensor(Context *ctx, Tensor *t) {
 Result freeTensorBuffers(Context *ctx, Tensor *t) {
   Memory *metadataMemory = getTensorMetadataMemory(ctx, t);
 
-  if (!t->isView && t->values) { 
-    freeOnCtx(t->context != NULL ? t->context : ctx, t->values); 
+  if (!t->isView && t->values) {
+    freeOnCtx(t->context != NULL ? t->context : ctx, t->values);
   }
 
   if (t->shape.dims) {

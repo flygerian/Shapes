@@ -52,10 +52,10 @@ static void test_dense_linear_forward_with_bias_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, DIM2D(2, 3), F32);
-  Tensor *w= t_Zeros(&ctx, DIM2D(2, 3), F32);
-  Tensor *b = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor out;
+  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  Tensor *w = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  Tensor *b = t_Zeros(&ctx, SHAPE1D(2), F32);
+  Tensor *out;
 
   f32 *xVals = x->values;
   f32 *wVals = w->values;
@@ -77,13 +77,12 @@ static void test_dense_linear_forward_with_bias_f32(void) {
   bVals[0] = 0.1f;
   bVals[1] = -0.2f;
 
-  Result r = DenseLinear(&ctx, x, w, b, true, &out);
-  ASSERT_EQ(r, OK, "DenseLinear should succeed");
-  ASSERT_EQ(out.shape.numOfDims, 2, "Dense output should be 2D");
-  ASSERT_EQ(out.shape.dims[0], 2, "Dense output rows should match input rows");
-  ASSERT_EQ(out.shape.dims[1], 2, "Dense output cols should match weight output size");
+  out = DenseLinear(&ctx, x, w, b, true);
+  ASSERT_EQ(out->shape.numOfDims, 2, "Dense output should be 2D");
+  ASSERT_EQ(out->shape.dims[0], 2, "Dense output rows should match input rows");
+  ASSERT_EQ(out->shape.dims[1], 2, "Dense output cols should match weight output size");
 
-  f32 *outVals = out.values;
+  f32 *outVals = out->values;
   ASSERT(fabsf(outVals[0] - -1.9f) < 1e-5f, "Dense out[0,0] mismatch");
   ASSERT(fabsf(outVals[1] - 2.3f) < 1e-5f, "Dense out[0,1] mismatch");
   ASSERT(fabsf(outVals[2] - -1.9f) < 1e-5f, "Dense out[1,0] mismatch");
@@ -96,13 +95,13 @@ static void test_dense_backward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, DIM2D(2, 3), F32);
-  Tensor *w = t_Zeros(&ctx, DIM2D(2, 3), F32);
-  Tensor *gradOut =  t_Zeros(&ctx, DIM2D(2, 2), F32);  
+  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  Tensor *w = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
 
-  Tensor dX;
-  Tensor dW;
-  Tensor dB;
+  Tensor *dX = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  Tensor *dW = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  Tensor *dB = t_Zeros(&ctx, SHAPE1D(2), F32);
 
   f32 *xVals = x->values;
   f32 *wVals = w->values;
@@ -126,12 +125,12 @@ static void test_dense_backward_f32(void) {
   gVals[2] = 3.0f;
   gVals[3] = 4.0f;
 
-  Result r = DenseBackward(&ctx, x, w, gradOut, &dX, &dW, &dB);
+  Result r = DenseBackward(&ctx, x, w, gradOut, dX, dW, dB);
   ASSERT_EQ(r, OK, "DenseBackward should succeed");
 
-  f32 *dxVals = dX.values;
-  f32 *dwVals = dW.values;
-  f32 *dbVals = dB.values;
+  f32 *dxVals = dX->values;
+  f32 *dwVals = dW->values;
+  f32 *dbVals = dB->values;
 
   ASSERT(fabsf(dxVals[0] - 2.0f) < 1e-5f, "dX[0,0] mismatch");
   ASSERT(fabsf(dxVals[1] - 2.0f) < 1e-5f, "dX[0,1] mismatch");
@@ -157,10 +156,10 @@ static void test_batch_norm_forward_training_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, DIM2D(2, 2), F32);
-  Tensor *gamma = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor *beta = t_Zeros(&ctx, DIM1D(2), F32);  
-  
+  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  Tensor *gamma = t_Zeros(&ctx, SHAPE1D(2), F32);
+  Tensor *beta = t_Zeros(&ctx, SHAPE1D(2), F32);
+
   Tensor out;
   Tensor mean;
   Tensor variance;
@@ -199,9 +198,9 @@ static void test_batch_norm_backward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, DIM2D(2, 2), F32);
-  Tensor *grad = t_Zeros(&ctx, DIM2D(2, 2), F32);
-  Tensor *gamma = t_Zeros(&ctx, DIM1D(2), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  Tensor *grad = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  Tensor *gamma = t_Zeros(&ctx, SHAPE1D(2), F32);
 
   Tensor dX;
   Tensor dGamma;
@@ -244,8 +243,8 @@ static void test_batch_norm_backward_f32(void) {
 static void test_conv2d_forward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D( 1, 1, 2, 2 ), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
   Tensor out;
 
   f32 *x = t->values;
@@ -282,9 +281,9 @@ static void test_conv2d_forward_f32_single_channel(void) {
 static void test_conv2d_forward_f32_single_channel_with_bias(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 3, 3, 1 ), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *bias = t_Zeros(&ctx, DIM4D(1, 1, 1, 1), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *bias = t_Zeros(&ctx, SHAPE4D(1, 1, 1, 1), F32);
   Tensor out;
 
   f32 *x = t->values;
@@ -316,8 +315,8 @@ static void test_conv2d_forward_f32_single_channel_with_bias(void) {
 static void test_conv2d_returns_col_buffer_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2,2 ), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
   Tensor out;
   Tensor colBuffer;
 
@@ -359,13 +358,13 @@ static void test_conv2d_returns_col_buffer_f32(void) {
 static void test_conv2d_forward_f32_multi_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 3, 3, 2 ), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D( 1, 2, 2, 2 ), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 2), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 2), F32);
   Tensor out;
 
   f32 *x = t->values;
-  f32 input[18] = {1.0f, 10.0f, 2.0f, 11.0f, 3.0f, 12.0f, 4.0f, 13.0f, 5.0f,
-                   14.0f, 6.0f, 15.0f, 7.0f, 16.0f, 8.0f, 17.0f, 9.0f, 18.0f};
+  f32 input[18] = {1.0f,  10.0f, 2.0f,  11.0f, 3.0f,  12.0f, 4.0f,  13.0f, 5.0f,
+                   14.0f, 6.0f,  15.0f, 7.0f,  16.0f, 8.0f,  17.0f, 9.0f,  18.0f};
   for (int i = 0; i < 18; i++) {
     x[i] = input[i];
   }
@@ -398,8 +397,8 @@ static void test_conv2d_forward_f32_multi_channel(void) {
 static void test_conv2d_forward_f32_with_batch_dimension(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(2, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
   Tensor out;
 
   f32 *x = t->values;
@@ -438,8 +437,8 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
 static void test_conv2d_restores_openblas_threads_after_local_override(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
   Tensor out;
 
   f32 *x = t->values;
@@ -473,8 +472,8 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
 static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 5, 5, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(2, 1, 2, 2), F32);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
   Tensor out;
 
   f32 *x = t->values;
@@ -512,8 +511,8 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
 static void test_conv2d_forward_f64_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F64);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F64);
+  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F64);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F64);
   Tensor out;
 
   f64 *x = t->values;
@@ -544,11 +543,11 @@ static void test_conv2d_forward_f64_single_channel(void) {
 static void test_conv2d_backward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 9; i++) {
@@ -595,12 +594,12 @@ static void test_conv2d_backward_f32_single_channel(void) {
 static void test_conv2d_backward_f32_bias_grad(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D( 1, 3, 3, 1 ), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *dBias = t_Zeros(&ctx, DIM4D( 1, 1, 1, 1 ), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *dBias = t_Zeros(&ctx, SHAPE4D(1, 1, 1, 1), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 9; i++) {
@@ -636,11 +635,11 @@ static void test_conv2d_backward_f32_bias_grad(void) {
 static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx,DIM4D (1, 3, 3, 1 ), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 9; i++) {
@@ -687,11 +686,11 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
 static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 5, 5, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, DIM4D(1, 5, 5, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
+  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 25; i++) {
@@ -738,11 +737,11 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
 static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(2, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(2, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(2, 2, 2, 2), F32);
-  Tensor *dX = t_Zeros(&ctx, DIM4D(2, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, DIM4D(2, 1, 2, 2), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(2, 2, 2, 2), F32);
+  Tensor *dX = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
+  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 18; i++) {
@@ -795,8 +794,8 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
 static void test_conv_transpose2d_forward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
   Tensor out;
 
   f32 *xVals = x->values;
@@ -832,9 +831,9 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
 static void test_conv_transpose2d_backward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, DIM4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 3, 3, 1), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor dX;
   Tensor dKernels;
 
@@ -876,7 +875,7 @@ static void test_conv_transpose2d_backward_f32_single_channel(void) {
 static void test_max_pool2d_forward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 4, 4, 1), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
   Tensor out;
 
   f32 *xVals = x->values;
@@ -903,8 +902,8 @@ static void test_max_pool2d_forward_f32(void) {
 static void test_max_pool2d_backward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 4, 4, 1), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
   Tensor dX;
 
   f32 *xVals = x->values;
@@ -938,7 +937,7 @@ static void test_max_pool2d_backward_f32(void) {
 static void test_adaptive_avg_pool2d_forward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 4, 4, 1), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
   Tensor out;
 
   f32 *xVals = x->values;
@@ -961,8 +960,8 @@ static void test_adaptive_avg_pool2d_forward_f32(void) {
 static void test_adaptive_avg_pool2d_backward_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, DIM4D(1, 4, 4, 1), F32);
-  Tensor *gradOut = t_Zeros(&ctx, DIM4D(1, 2, 2, 1), F32);
+  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
+  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
   Tensor dX;
 
   f32 *xVals = x->values;
@@ -997,8 +996,8 @@ static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
   Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   Context hostCtx = {.memory = ctx.memory};
 
-  Tensor *yGround = t_Zeros(&hostCtx,DIM2D(2, 3), F32);
-  Tensor *logits = t_Zeros(&hostCtx, DIM2D(2, 3), F32);
+  Tensor *yGround = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
+  Tensor *logits = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
   Tensor loss;
   Tensor probs;
 
@@ -1032,8 +1031,8 @@ static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) 
   Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   Context hostCtx = {.memory = ctx.memory};
 
-  Tensor *yGround = t_Zeros(&hostCtx,DIM2D(2, 3), F32);
-  Tensor *probs = t_Zeros(&hostCtx, DIM2D( 2, 3 ), F32);
+  Tensor *yGround = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
+  Tensor *probs = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
   Tensor *gradOut = t_Zeros(&hostCtx, DIM_ZERO, F32);
   Tensor dLogits;
 

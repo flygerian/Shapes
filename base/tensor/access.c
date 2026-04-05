@@ -1,6 +1,5 @@
 #include "result/result.h"
 #include "tensor_internal.h"
-#include "value.h"
 #include "../common.h"
 #include <string.h>
 #include <stdlib.h>
@@ -78,17 +77,10 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
 
   u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndices->shape.numOfDims;
   dim_t *newDims = NULL;
-  multiplier_t *newMultipliers = NULL;
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-    newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
     result = ensureAllocated(newDims);
     if (result != OK) {
-      goto cleanup_index;
-    }
-    result = ensureAllocated(newMultipliers);
-    if (result != OK) {
-      freeAlloc(ctx->memory, newDims);
       goto cleanup_index;
     }
   }
@@ -101,31 +93,21 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
     newDims[workingIndices->shape.numOfDims + i] = workingSource->shape.dims[i + 1];
   }
 
-  calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims},
-                                   newMultipliers);
+  sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 1; i < workingSource->shape.numOfDims; i++) {
     sliceSize *= workingSource->shape.dims[i];
   }
 
-  Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers};
+  Dim destShape = {.dims = newDims, .numOfDims = newNumDims};
   result = initTensor(ctx, dest, destShape, workingSource->dtype);
-  if (result != OK) {
-    if (newMultipliers != NULL) {
-      freeAlloc(ctx->memory, newMultipliers);
-    }
-    if (newDims != NULL) {
-      freeAlloc(ctx->memory, newDims);
-    }
-    goto cleanup_index;
-  }
-
+  PANIC_IF(result != OK, result); 
   if (isCudaCtx) {
     result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
                                   workingIndices->values, workingIndices->dtype, dest->values,
                                   workingIndices->size, sliceSize);
-    goto cleanup_index;
+    PANIC_IF(result != OK, result);
   }
 
   tensor_size_t destOffset = 0;
@@ -133,15 +115,11 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   for (u64 i = 0; i < workingIndices->size; i++) {
     Value idxVal;
     result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
-    if (result != OK) {
-      goto cleanup_index;
-    }
+    PANIC_IF(result != OK, result); 
 
     dim_t idx = 0;
     result = indexValueToDim(idxVal, &idx);
-    if (result != OK) {
-      goto cleanup_index;
-    }
+    PANIC_IF(result != OK, result); 
 
     dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = idx;
@@ -154,10 +132,7 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
                                  (char *)workingSource->values + srcOffset * bytesPerElem,
                                  (char *)dest->values + destOffset * bytesPerElem,
                                  sliceSize * bytesPerElem);
-    if (result != OK) {
-      goto cleanup_index;
-    }
-
+    PANIC_IF(result != OK, result); 
     destOffset += sliceSize;
   }
 
@@ -173,11 +148,11 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
                          Tensor *dest) {
   Result result = OK;
 
-  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF(isInvalidTensor(rowIndices), ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF(isInvalidTensor(colIndices), ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF(source->shape.numOfDims < 2, ERR_DIM_MISMATCH); 
-  PANIC_IF(isIntType(rowIndices) || isIntType(colIndices), ERR_ONLY_INT_TYPE_ALLOWED); 
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(isInvalidTensor(rowIndices), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(isInvalidTensor(colIndices), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(source->shape.numOfDims < 2, ERR_DIM_MISMATCH);
+  PANIC_IF(isIntType(rowIndices) || isIntType(colIndices), ERR_ONLY_INT_TYPE_ALLOWED);
   PANIC_IF(rowIndices->size != colIndices->size, ERR_DIM_MISMATCH);
 
   Tensor *workingSource = materializeTensorOnContext(ctx, source);
@@ -188,10 +163,8 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
 
   u8 newNumDims = workingRows->shape.numOfDims + workingSource->shape.numOfDims - 2;
   dim_t *newDims = NULL;
-  multiplier_t *newMultipliers = NULL;
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-    newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
   }
 
   for (u8 i = 0; i < workingRows->shape.numOfDims; i++) {
@@ -202,17 +175,16 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
     newDims[workingRows->shape.numOfDims + i] = workingSource->shape.dims[i + 2];
   }
 
-  calculateNumValuesAndMultipliers((Dim){.dims = newDims, .numOfDims = newNumDims},
-                                   newMultipliers);
+  sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 2; i < workingSource->shape.numOfDims; i++) {
     sliceSize *= workingSource->shape.dims[i];
   }
 
-  Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers};
+  Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers};
   result = initTensor(ctx, dest, destShape, workingSource->dtype);
-  PANIC_IF(result != OK, result); 
+  PANIC_IF(result != OK, result);
   if (isCudaCtx) {
     result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values,
                                   workingSource->shape.dims[1], workingRows->values,
@@ -252,7 +224,7 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
                                  (char *)workingSource->values + srcOffset * bytesPerElem,
                                  (char *)dest->values + destOffset * bytesPerElem,
                                  sliceSize * bytesPerElem);
-    PANIC_IF(result != OK, result); 
+    PANIC_IF(result != OK, result);
     destOffset += sliceSize;
   }
 
@@ -346,11 +318,10 @@ Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest) {
     }
   }
 
-  *dest =
-      tensorView(source->context, ctx->memory, newValues, source->size / source->shape.dims[0],
-                 source->dtype,
-                 (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
-                 boundary, false);
+  *dest = tensorView(source->context, ctx->memory, newValues, source->size / source->shape.dims[0],
+                     source->dtype,
+                     (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
+                     boundary, false);
 
   return OK;
 }

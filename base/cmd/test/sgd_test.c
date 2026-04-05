@@ -2,14 +2,15 @@
 #include "tensor/tensor_internal.h"
 #include "test.h"
 #include "../../shapes.h"
+#include "utils_lib/array.h"
 #include <math.h>
 
 static void test_sgd_updates_f32_parameters(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, DIM1D(3), F32);
-  Tensor *g = t_Zeros(&ctx, DIM1D(3), F32);
+  Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
+  Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F32);
 
   f32 *pVals = p->values;
   f32 *gVals = g->values;
@@ -20,9 +21,11 @@ static void test_sgd_updates_f32_parameters(void) {
   gVals[1] = 0.2f;
   gVals[2] = 0.3f;
 
-  Tensor *params[] = {p};
-  Tensor *grads[] = {g};
-  Result r = Sgd(&ctx, params, grads, 1, 0.5f);
+  p->grad = g;
+
+  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  Array_Append(params, &p);
+  Result r = Sgd(&ctx, params, 0.5f);
 
   ASSERT_EQ(r, OK, "SGD should return OK for valid F32 tensors");
   ASSERT(fabsf(pVals[0] - 0.95f) < 1e-6f, "p[0] should be updated");
@@ -36,8 +39,8 @@ static void test_sgd_updates_f64_parameters(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, DIM1D(3), F64);
-  Tensor *g = t_Zeros(&ctx, DIM1D(3), F64);
+  Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F64);
+  Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F64);
 
   f64 *pVals = p->values;
   f64 *gVals = g->values;
@@ -46,10 +49,12 @@ static void test_sgd_updates_f64_parameters(void) {
   gVals[0] = 0.5;
   gVals[1] = -1.0;
 
-  Tensor *params[] = {p};
-  Tensor *grads[] = {g};
+  p->grad = g;
+
+  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  Array_Append(params, &p);
   f32 learningRate = 0.1f;
-  Result r = Sgd(&ctx, params, grads, 1, learningRate);
+  Result r = Sgd(&ctx, params, learningRate);
   f64 expected0 = 10.0 - (0.5 * (f64)learningRate);
   f64 expected1 = -2.0 - (-1.0 * (f64)learningRate);
 
@@ -61,25 +66,25 @@ static void test_sgd_updates_f64_parameters(void) {
 }
 
 static void test_sgd_null_inputs(void) {
-  return; //Skip
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
-  Result r = Sgd(&ctx, NULL, NULL, 0, 0.1f);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "NULL arrays should return ERR_NULL_TENSOR_PROVIDED");
+  Result r = Sgd(&ctx, NULL, 0.1f);
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "NULL parameter array should return ERR_NULL_TENSOR_PROVIDED");
   freeMemory(mem);
 }
 
 static void test_sgd_invalid_learning_rate(void) {
-  return; // Skip
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, DIM1D(1), F32);
-  Tensor *g = t_Zeros(&ctx, DIM1D(1), F32);
-  Tensor *params[] = {p};
-  Tensor *grads[] = {g};
+  Tensor *p = t_Zeros(&ctx, SHAPE1D(1), F32);
+  Tensor *g = t_Zeros(&ctx, SHAPE1D(1), F32);
+  p->grad = g;
 
-  Result r = Sgd(&ctx, params, grads, 1, 0.0f);
+  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  Array_Append(params, &p);
+
+  Result r = Sgd(&ctx, params, 0.0f);
   ASSERT_EQ(r, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE,
             "zero learning rate should return dedicated error");
 
@@ -87,48 +92,51 @@ static void test_sgd_invalid_learning_rate(void) {
 }
 
 static void test_sgd_dtype_mismatch(void) {
-  return; // Skip
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor *g = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor *params[] = {p};
-  Tensor *grads[] = {g};
+  Tensor *p = t_Zeros(&ctx, SHAPE1D(2), F32);
+  Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F64);
+  p->grad = g;
 
-  Result r = Sgd(&ctx, params, grads, 1, 0.01f);
+  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  Array_Append(params, &p);
+
+  Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_GRAD_DTYPE_MISMATCH, "dtype mismatch should return SGD dtype error");
 
   freeMemory(mem);
 }
 
 static void test_sgd_size_mismatch(void) {
-  return; // Skip
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, DIM1D(3), F32);
-  Tensor *g = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor *params[] = {p};
-  Tensor *grads[] = {g};
+  Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
+  Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F32);
+  p->grad = g;
 
-  Result r = Sgd(&ctx, params, grads, 1, 0.01f);
+  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  Array_Append(params, &p);
+
+  Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_NUMBER_MISMATCH, "size mismatch should return SGD size error");
 
   freeMemory(mem);
 }
 
 static void test_sgd_requires_float_tensors(void) {
-  return; //Skip
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor *g = t_Zeros(&ctx, DIM1D(2), F32);
-  Tensor *params[] = {p};
-  Tensor *grads[] = {g};
+  Tensor *p = t_Zeros(&ctx, SHAPE1D(2), I32);
+  Tensor *g = t_Zeros(&ctx, SHAPE1D(2), I32);
+  p->grad = g;
 
-  Result r = Sgd(&ctx, params, grads, 1, 0.01f);
+  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  Array_Append(params, &p);
+
+  Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_HAVE_TO_BE_FLOAT, "non-float tensors should be rejected");
 
   freeMemory(mem);

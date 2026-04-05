@@ -134,7 +134,7 @@ static bool isCastSafe(Dtype source, Dtype target) {
 }
 
 static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
-  Tensor *src  = materializeTensorOnContext(ctx, source);
+  Tensor *src = materializeTensorOnContext(ctx, source);
   Result result = initTensorLike(ctx, dest, source, target);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
@@ -150,7 +150,7 @@ static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target
 }
 
 static Result castOnCuda(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
-  Tensor *src  = materializeTensorOnContext(ctx, source);
+  Tensor *src = materializeTensorOnContext(ctx, source);
   Result result = initTensorLike(ctx, dest, src, target);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 

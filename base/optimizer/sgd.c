@@ -2,22 +2,17 @@
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
+#include "utils_lib/array.h"
 #include <stddef.h>
 #include <stdlib.h>
 
-Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
-           f32 learningRate) {
-  if (ctx == NULL || parameters == NULL || parameterGrads == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+Result Sgd(Context *ctx, Array *parameters, f32 learningRate) {
+  PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE); 
 
-  if (learningRate <= 0) {
-    return ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE;
-  }
-
-  for (size_t i = 0; i < numParameters; i++) {
-    Tensor *p = parameters[i];
-    Tensor *g = parameterGrads[i];
+  for (size_t i = 0; i < parameters->size; i++) {
+    Tensor *p = *(Tensor **)Array_Idx(parameters, i);
+    Tensor *g = p->grad;
 
     if (p == NULL || g == NULL) {
       return ERR_NULL_TENSOR_PROVIDED;
@@ -36,15 +31,16 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
     }
   }
 
-  for (size_t i = 0; i < numParameters; i++) {
-    Tensor *p = parameters[i];
-    Tensor *g = parameterGrads[i];
+  for (size_t i = 0; i < parameters->size; i++) {
+    Tensor *p = *(Tensor **)Array_Idx(parameters, i);
+    Tensor *g = p->grad;
 
     Tensor *pWork = materializeTensorOnContext(ctx, p);
     Tensor *gWork = materializeTensorOnContext(ctx, g);
 
     if (ctx->device != NULL && ctx->device->type == CUDA) {
-      Result res = runCudaSgd(ctx, pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
+      Result res =
+          runCudaSgd(ctx, pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
       PANIC_IF(res != OK, res);
     } else {
       if (p->dtype == F16) {

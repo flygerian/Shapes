@@ -72,8 +72,8 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
       res = runCudaMaxPool2dWithIndices(ctx, x->dtype, xContig->values, batch, channels, h, w, kH,
                                         kW, stride, dest->values, indices->values);
     } else {
-      res = runCudaMaxPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, kH, kW,
-                             stride, dest->values);
+      res = runCudaMaxPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, kH, kW, stride,
+                             dest->values);
     }
 
     freeIfContingousCopy(ctx, xContig);
@@ -95,8 +95,7 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
             f64 maxValue = input[maxIdx];
             for (dim_t ky = 0; ky < kH; ky++) {
               for (dim_t kx = 0; kx < kW; kx++) {
-                size_t inputIdx =
-                    (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
+                size_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f64 candidate = input[inputIdx];
                 if (candidate > maxValue) {
                   maxValue = candidate;
@@ -128,8 +127,7 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
             f32 maxValue = input[maxIdx];
             for (dim_t ky = 0; ky < kH; ky++) {
               for (dim_t kx = 0; kx < kW; kx++) {
-                size_t inputIdx =
-                    (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
+                size_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f32 candidate = input[inputIdx];
                 if (candidate > maxValue) {
                   maxValue = candidate;
@@ -237,8 +235,7 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
             f64 maxValue = input[maxIdx];
             for (dim_t ky = 0; ky < kH; ky++) {
               for (dim_t kx = 0; kx < kW; kx++) {
-                dim_t inputIdx =
-                    (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
+                dim_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f64 candidate = input[inputIdx];
                 if (candidate > maxValue) {
                   maxValue = candidate;
@@ -266,8 +263,7 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
             f32 maxValue = input[maxIdx];
             for (dim_t ky = 0; ky < kH; ky++) {
               for (dim_t kx = 0; kx < kW; kx++) {
-                dim_t inputIdx =
-                    (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
+                dim_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f32 candidate = input[inputIdx];
                 if (candidate > maxValue) {
                   maxValue = candidate;
@@ -319,14 +315,14 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   }
 
 
-  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);  
+  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
 
   Result res = initTensorLike(ctx, dX, x, x->dtype);
-  PANIC_IF(res != OK, res); 
+  PANIC_IF(res != OK, res);
 
   res = clearPoolTarget(ctx, dX);
-  PANIC_IF(res != OK, res); 
+  PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaMaxPool2dBackwardWithIndices(ctx, x->dtype, gradContig->values,
@@ -382,7 +378,7 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
   Tensor *xContig = materializeTensorOnContext(ctx, x);
 
   Result res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
-  PANIC_IF(res != OK, res); 
+  PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaAdaptiveAvgPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, outH,
@@ -397,11 +393,11 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
 
     for (dim_t b = 0; b < batch; b++) {
       for (dim_t oh = 0; oh < outH; oh++) {
-          dim_t startY = adaptivePoolStart(oh, h, outH);
-          dim_t endY = adaptivePoolEnd(oh, h, outH);
+        dim_t startY = adaptivePoolStart(oh, h, outH);
+        dim_t endY = adaptivePoolEnd(oh, h, outH);
         for (dim_t ow = 0; ow < outW; ow++) {
-            dim_t startX = adaptivePoolStart(ow, w, outW);
-            dim_t endX = adaptivePoolEnd(ow, w, outW);
+          dim_t startX = adaptivePoolStart(ow, w, outW);
+          dim_t endX = adaptivePoolEnd(ow, w, outW);
           dim_t count = (endY - startY) * (endX - startX);
           for (dim_t c = 0; c < channels; c++) {
             f64 sum = 0.0;
@@ -422,11 +418,11 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
 
     for (dim_t b = 0; b < batch; b++) {
       for (dim_t oh = 0; oh < outH; oh++) {
-          dim_t startY = adaptivePoolStart(oh, h, outH);
-          dim_t endY = adaptivePoolEnd(oh, h, outH);
+        dim_t startY = adaptivePoolStart(oh, h, outH);
+        dim_t endY = adaptivePoolEnd(oh, h, outH);
         for (dim_t ow = 0; ow < outW; ow++) {
-            dim_t startX = adaptivePoolStart(ow, w, outW);
-            dim_t endX = adaptivePoolEnd(ow, w, outW);
+          dim_t startX = adaptivePoolStart(ow, w, outW);
+          dim_t endX = adaptivePoolEnd(ow, w, outW);
           dim_t count = (endY - startY) * (endX - startX);
           for (dim_t c = 0; c < channels; c++) {
             f32 sum = 0.0f;
@@ -484,8 +480,8 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
   PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    res = runCudaAdaptiveAvgPool2dBackward(ctx, x->dtype, gradContig->values, batch, channels, h,
-                                           w, outH, outW, dX->values);
+    res = runCudaAdaptiveAvgPool2dBackward(ctx, x->dtype, gradContig->values, batch, channels, h, w,
+                                           outH, outW, dX->values);
     freeIfContingousCopy(ctx, gradContig);
     return res;
   }
@@ -496,11 +492,11 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
 
     for (dim_t b = 0; b < batch; b++) {
       for (dim_t oh = 0; oh < outH; oh++) {
-          dim_t startY = adaptivePoolStart(oh, h, outH);
-          dim_t endY = adaptivePoolEnd(oh, h, outH);
+        dim_t startY = adaptivePoolStart(oh, h, outH);
+        dim_t endY = adaptivePoolEnd(oh, h, outH);
         for (dim_t ow = 0; ow < outW; ow++) {
-            dim_t startX = adaptivePoolStart(ow, w, outW);
-            dim_t endX = adaptivePoolEnd(ow, w, outW);
+          dim_t startX = adaptivePoolStart(ow, w, outW);
+          dim_t endX = adaptivePoolEnd(ow, w, outW);
           dim_t count = (endY - startY) * (endX - startX);
           for (dim_t c = 0; c < channels; c++) {
             f64 scaledGrad = grad[(((b * outH + oh) * outW + ow) * channels) + c] / (f64)count;
@@ -519,11 +515,11 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
 
     for (dim_t b = 0; b < batch; b++) {
       for (dim_t oh = 0; oh < outH; oh++) {
-          dim_t startY = adaptivePoolStart(oh, h, outH);
-          dim_t endY = adaptivePoolEnd(oh, h, outH);
+        dim_t startY = adaptivePoolStart(oh, h, outH);
+        dim_t endY = adaptivePoolEnd(oh, h, outH);
         for (dim_t ow = 0; ow < outW; ow++) {
-            dim_t startX = adaptivePoolStart(ow, w, outW);
-            dim_t endX = adaptivePoolEnd(ow, w, outW);
+          dim_t startX = adaptivePoolStart(ow, w, outW);
+          dim_t endX = adaptivePoolEnd(ow, w, outW);
           dim_t count = (endY - startY) * (endX - startX);
           for (dim_t c = 0; c < channels; c++) {
             f32 scaledGrad = grad[(((b * outH + oh) * outW + ow) * channels) + c] / (f32)count;

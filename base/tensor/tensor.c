@@ -4,10 +4,10 @@
 #include <cuda_runtime_api.h>
 #include "../shapes.h"
 #include "common.h"
+#include "memory.h"
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "value.h"
-#include "../memory.h"
 #include <stdlib.h>
 
 void PrintItem(Tensor *t) {
@@ -53,18 +53,20 @@ Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
   return OK;
 }
 
+sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t* dims, u8 numOfDims) {
+  PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(dims == NULL, ERR_NULL_PTR);
+  PANIC_IF(numOfDims == 0, ERR_DIM_MISMATCH);
 
-tensor_size_t calculateNumValuesAndMultipliers(Dim shape, multiplier_t *multipliers) {
-  u64 numberOfValues = 1;
+  multiplier_t *multipliers  = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
+  tensor_size_t size = 1;
 
-  for (int x = shape.numOfDims - 1; x >= 0; x--) {
-    if (multipliers != NULL) {
-      multipliers[x] = numberOfValues;
-    }
-    numberOfValues *= shape.dims[x];
+  for (int x = numOfDims - 1; x >= 0; x--) {
+    multipliers[x] = size;
+    size *= dims[x];
   }
 
-  return numberOfValues;
+  return (sizeAndMultipliers) {.multipliers = multipliers, .size = size};
 }
 
 bool isSameContext(Context *a, Context *b) {
@@ -90,30 +92,6 @@ Result clearTensorValues(Tensor *t) {
   return OK;
 }
 
-Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
-  if (dest == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  tensor_size_t size = calculateNumValuesAndMultipliers(shape, shape.multipliers);
-  void *values = allocateOnCtx(ctx, size * getBytesForDtype(dtype));
-  Result allocRes = ensureAllocated(values);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-
-  *dest = (Tensor){.context = ctx,
-                   .metadataMemory = ctx != NULL ? ctx->memory : NULL,
-                   .dtype = dtype,
-                   .values = values,
-                   .size = size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL};
-
-  return OK;
-}
 
 Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
   u8 numDims = src->shape.numOfDims;
@@ -122,23 +100,9 @@ Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
   if (allocRes != OK) {
     return allocRes;
   }
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
-  allocRes = ensureAllocated(multipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, dims);
-    return allocRes;
-  }
 
-  for (u8 i = 0; i < numDims; i++) {
-    dims[i] = src->shape.dims[i];
-  }
-
-  Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
-  calculateNumValuesAndMultipliers(shape, multipliers);
-
-  Result initRes = initTensor(ctx, dest, shape, dtype);
+  Result initRes = initTensor(ctx, dest, SHAPE(dims, numDims), dtype);
   if (initRes != OK) {
-    freeAlloc(ctx->memory, multipliers);
     freeAlloc(ctx->memory, dims);
   }
   return initRes;
@@ -160,8 +124,7 @@ Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
   multipliers[0] = 1;
 
   Result initRes =
-      initTensor(ctx, dest, (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
-                 dtype);
+      initTensor(ctx, dest, (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers}, dtype);
   if (initRes != OK) {
     freeAlloc(ctx->memory, multipliers);
     freeAlloc(ctx->memory, dims);
@@ -169,34 +132,12 @@ Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
   return initRes;
 }
 
+// TODO: Remove this. Should not exists
 Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
                     Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 4);
-  Result allocRes = ensureAllocated(dims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 4);
-  allocRes = ensureAllocated(multipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, dims);
-    return allocRes;
-  }
 
-  dims[0] = d0;
-  dims[1] = d1;
-  dims[2] = d2;
-  dims[3] = d3;
-
-  Dim shape = {.dims = dims, .numOfDims = 4, .multipliers = multipliers};
-  calculateNumValuesAndMultipliers(shape, multipliers);
-
-  Result initRes = initTensor(ctx, dest, shape, dtype);
-  if (initRes != OK) {
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, dims);
-  }
-  return initRes;
+  Result initRes = initTensor(ctx, dest, SHAPE4D(d0, d1, d2, d3), dtype);
+  PANIC_IF(initRes != OK, initRes);   return initRes;
 }
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx) {
@@ -311,7 +252,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
   return copy;
 }
 
-Tensor* materializeTensorOnContext(Context *ctx, Tensor *src) {
+Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
   PANIC_IF(ctx == NULL || src == NULL, ERR_NULL_TENSOR_PROVIDED);
   bool isNotSameContext = !isSameContext(ctx, src->context);
   PANIC_IF(isNotSameContext, ERR_DIFFERENT_CTX_TENSORS_PASSED);
@@ -327,7 +268,7 @@ Tensor* materializeTensorOnContext(Context *ctx, Tensor *src) {
   return working;
 }
 
-void freeIfContingousCopy(Context *ctx, Tensor* tensor) {
+void freeIfContingousCopy(Context *ctx, Tensor *tensor) {
   if (!tensor->isContigousCopy) {
     return;
   }
@@ -561,29 +502,8 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
 }
 
 Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * 2);
-  Result allocRes = ensureAllocated(dims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * 2);
-  allocRes = ensureAllocated(multipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, dims);
-    return allocRes;
-  }
-
-  dims[0] = rows;
-  dims[1] = cols;
-
-  Dim shape = {.dims = dims, .numOfDims = 2, .multipliers = multipliers};
-  calculateNumValuesAndMultipliers(shape, multipliers);
-
-  Result initRes = initTensor(ctx, dest, shape, dtype);
-  if (initRes != OK) {
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, dims);
-  }
+  Result initRes = initTensor(ctx, dest, SHAPE2D(rows, cols), dtype);
+  PANIC_IF(initRes != OK, initRes);   return initRes;
   return initRes;
 }
 

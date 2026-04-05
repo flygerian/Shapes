@@ -2,6 +2,7 @@
 #define shapes_loss_cross_entropy_h
 
 #include "common.h"
+#include "../result/result.h"
 
 #ifdef __cplusplus
 extern "C" {

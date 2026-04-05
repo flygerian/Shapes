@@ -1,27 +1,21 @@
+#include "../common.h"
 #include "../loss/cross_entropy.h"
+#include "../result/result.h"
 #include <cuda_runtime.h>
 #include <math.h>
 
-static __device__ f32 deviceExpValue(f32 value) {
-  return expf(value);
-}
+static __device__ f32 deviceExpValue(f32 value) { return expf(value); }
 
-static __device__ f64 deviceExpValue(f64 value) {
-  return exp(value);
-}
+static __device__ f64 deviceExpValue(f64 value) { return exp(value); }
 
-static __device__ f32 deviceLogValue(f32 value) {
-  return logf(value);
-}
+static __device__ f32 deviceLogValue(f32 value) { return logf(value); }
 
-static __device__ f64 deviceLogValue(f64 value) {
-  return log(value);
-}
+static __device__ f64 deviceLogValue(f64 value) { return log(value); }
 
 template <typename T>
-__global__ static void crossEntropyForwardKernel(const T *yGround, const T *logits,
-                                                 tensor_size_t rows, dim_t classCount, T *probs,
-                                                 T *loss) {
+__global__ static void
+crossEntropyForwardKernel(const T *yGround, const T *logits, tensor_size_t rows,
+                          dim_t classCount, T *probs, T *loss) {
   size_t row = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   if (row >= rows) {
     return;
@@ -54,10 +48,10 @@ __global__ static void crossEntropyForwardKernel(const T *yGround, const T *logi
 }
 
 template <typename T>
-__global__ static void crossEntropyBackwardKernel(const T *yGround, const T *probs,
-                                                  const T *gradOut, tensor_size_t size,
-                                                  tensor_size_t rows, bool scalarGradOut,
-                                                  T *dLogits) {
+__global__ static void
+crossEntropyBackwardKernel(const T *yGround, const T *probs, const T *gradOut,
+                           tensor_size_t size, tensor_size_t rows,
+                           bool scalarGradOut, T *dLogits) {
   size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= size) {
     return;
@@ -78,21 +72,25 @@ static Result finishCrossEntropyLaunch() {
 }
 
 template <typename T>
-static Result launchCrossEntropyForward(const void *yGround, const void *logits, tensor_size_t rows,
-                                        dim_t classCount, void *probs, void *loss) {
+static Result launchCrossEntropyForward(const void *yGround, const void *logits,
+                                        tensor_size_t rows, dim_t classCount,
+                                        void *probs, void *loss) {
   if (rows == 0) {
     return OK;
   }
 
   int threadsPerBlock = 256;
-  int blocks = (int)((rows + (tensor_size_t)threadsPerBlock - 1) / (tensor_size_t)threadsPerBlock);
-  crossEntropyForwardKernel<<<blocks, threadsPerBlock>>>((const T *)yGround, (const T *)logits,
-                                                         rows, classCount, (T *)probs, (T *)loss);
+  int blocks = (int)((rows + (tensor_size_t)threadsPerBlock - 1) /
+                     (tensor_size_t)threadsPerBlock);
+  crossEntropyForwardKernel<<<blocks, threadsPerBlock>>>(
+      (const T *)yGround, (const T *)logits, rows, classCount, (T *)probs,
+      (T *)loss);
   return finishCrossEntropyLaunch();
 }
 
 template <typename T>
-static Result launchCrossEntropyBackward(const void *yGround, const void *probs, const void *gradOut,
+static Result launchCrossEntropyBackward(const void *yGround, const void *probs,
+                                         const void *gradOut,
                                          tensor_size_t size, tensor_size_t rows,
                                          bool scalarGradOut, void *dLogits) {
   if (size == 0) {
@@ -100,45 +98,54 @@ static Result launchCrossEntropyBackward(const void *yGround, const void *probs,
   }
 
   int threadsPerBlock = 256;
-  int blocks = (int)((size + (tensor_size_t)threadsPerBlock - 1) / (tensor_size_t)threadsPerBlock);
-  crossEntropyBackwardKernel<<<blocks, threadsPerBlock>>>((const T *)yGround, (const T *)probs,
-                                                          (const T *)gradOut, size, rows,
-                                                          scalarGradOut, (T *)dLogits);
+  int blocks = (int)((size + (tensor_size_t)threadsPerBlock - 1) /
+                     (tensor_size_t)threadsPerBlock);
+  crossEntropyBackwardKernel<<<blocks, threadsPerBlock>>>(
+      (const T *)yGround, (const T *)probs, (const T *)gradOut, size, rows,
+      scalarGradOut, (T *)dLogits);
   return finishCrossEntropyLaunch();
 }
 
-extern "C" Result runCudaCrossEntropyForward(Context *ctx, Dtype dtype, const void *yGround,
-                                             const void *logits, tensor_size_t rows,
-                                             dim_t classCount, void *probs, void *loss) {
+extern "C" Result
+runCudaCrossEntropyForward(Context *ctx, Dtype dtype, const void *yGround,
+                           const void *logits, tensor_size_t rows,
+                           dim_t classCount, void *probs, void *loss) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }
 
   switch (dtype) {
-    case F16:
-    case F32: return launchCrossEntropyForward<f32>(yGround, logits, rows, classCount, probs, loss);
-    case F64: return launchCrossEntropyForward<f64>(yGround, logits, rows, classCount, probs, loss);
-    default: return ERR_DTYPE_MISMATCH;
+  case F16:
+  case F32:
+    return launchCrossEntropyForward<f32>(yGround, logits, rows, classCount,
+                                          probs, loss);
+  case F64:
+    return launchCrossEntropyForward<f64>(yGround, logits, rows, classCount,
+                                          probs, loss);
+  default:
+    return ERR_DTYPE_MISMATCH;
   }
 }
 
-extern "C" Result runCudaCrossEntropyBackward(Context *ctx, Dtype dtype, const void *yGround,
-                                              const void *probs, const void *gradOut,
-                                              tensor_size_t rows, dim_t classCount,
-                                              bool scalarGradOut, void *dLogits) {
+extern "C" Result
+runCudaCrossEntropyBackward(Context *ctx, Dtype dtype, const void *yGround,
+                            const void *probs, const void *gradOut,
+                            tensor_size_t rows, dim_t classCount,
+                            bool scalarGradOut, void *dLogits) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }
 
   tensor_size_t size = rows * classCount;
   switch (dtype) {
-    case F16:
-    case F32:
-      return launchCrossEntropyBackward<f32>(yGround, probs, gradOut, size, rows, scalarGradOut,
-                                             dLogits);
-    case F64:
-      return launchCrossEntropyBackward<f64>(yGround, probs, gradOut, size, rows, scalarGradOut,
-                                             dLogits);
-    default: return ERR_DTYPE_MISMATCH;
+  case F16:
+  case F32:
+    return launchCrossEntropyBackward<f32>(yGround, probs, gradOut, size, rows,
+                                           scalarGradOut, dLogits);
+  case F64:
+    return launchCrossEntropyBackward<f64>(yGround, probs, gradOut, size, rows,
+                                           scalarGradOut, dLogits);
+  default:
+    return ERR_DTYPE_MISMATCH;
   }
 }

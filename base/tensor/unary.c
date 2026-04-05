@@ -1,5 +1,4 @@
 #include "common.h"
-#include "../memory.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor_internal.h"
@@ -258,7 +257,7 @@ static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opTy
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED); 
+  PANIC_IF(output == NULL, ALLOCATION_FAILED);
 
   for (tensor_size_t i = 0; i < input->size; i++) {
     Value value;
@@ -287,8 +286,8 @@ static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opT
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
   PANIC_IF(output == NULL, ERR_OUT_OF_MEMORY);
 
-  Result result = runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size,
-                          param);
+  Result result =
+      runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size, param);
 
   if (opType == UNARY_OP_RELU) {
     logReluTensorState("cuda_kernel", ctx, input, result);
@@ -303,7 +302,8 @@ static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opT
   return OK;
 }
 
-static Result dispatchUnaryOp(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+static Result dispatchUnaryOp(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType,
+                              f32 param) {
   if (opType == UNARY_OP_RELU && shouldLogRelu()) {
     fprintf(stderr, "[Relu] phase=dispatch device=%s\n",
             unaryDeviceTypeName(getUnaryDispatchDevice(ctx)));
@@ -376,16 +376,15 @@ Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest)
     }
   }
 
-  Tensor *outputWork  = materializeTensorOnContext(ctx, output);
+  Tensor *outputWork = materializeTensorOnContext(ctx, output);
   Tensor *gradWork = materializeTensorOnContext(ctx, gradOut);
 
   Tensor *dInput = t_Zeros(ctx, outputWork->shape, outputWork->dtype);
   PANIC_IF(dInput == NULL, ERR_OUT_OF_MEMORY);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    result =
-        runCudaReluBackward(ctx, outputWork->dtype, outputWork->values, gradWork->values,
-                            dInput->values, outputWork->size);
+    result = runCudaReluBackward(ctx, outputWork->dtype, outputWork->values, gradWork->values,
+                                 dInput->values, outputWork->size);
     PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   } else if (outputWork->dtype == F64) {

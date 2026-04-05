@@ -1,5 +1,4 @@
 #include "common.h"
-#include "../memory.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor_internal.h"
@@ -46,7 +45,7 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
   return true;
 }
 
-#define SWITCH_ARITH_OP(OP_TYPE, ADD_EXPR, SUB_EXPR, MUL_EXPR)                                    \
+#define SWITCH_ARITH_OP(OP_TYPE, ADD_EXPR, SUB_EXPR, MUL_EXPR)                                     \
   switch (OP_TYPE) {                                                                               \
     case OP_ADD: ADD_EXPR; break;                                                                  \
     case OP_SUBTRACT: SUB_EXPR; break;                                                             \
@@ -492,7 +491,7 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
   }
 
   Tensor *output = t_Zeros(ctx, outputShape, outputDtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED); 
+  PANIC_IF(output == NULL, ALLOCATION_FAILED);
 
   Result res;
   if (areTensorsSameShape(opA, opB)) {
@@ -501,7 +500,7 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
     res = broadcastBinop(outputShape, opA, opB, output, opType);
   }
 
-  PANIC_IF(res != OK, res); 
+  PANIC_IF(res != OK, res);
 
   *destination = *output;
   freeAlloc(ctx->memory, output);
@@ -523,8 +522,7 @@ static Result binaryOpViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, Tensor 
   return moveTensor(&cpuCtx, ctx, destination);
 }
 
-static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destination,
-                           OpType opType) {
+static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
   if (!isArithmeticOp(opType)) {
     return ERR_NO_OP;
   }
@@ -541,7 +539,7 @@ static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destinati
 
   Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
   Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
-                        output->size);
+                               output->size);
   if (res == OK) {
     *destination = *output;
     freeAlloc(ctx->memory, output);
@@ -566,7 +564,7 @@ static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, 
   }
 
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
-  
+
   DeviceType deviceType = ctx->device == NULL ? CPU : ctx->device->type;
 
   switch (deviceType) {
@@ -581,13 +579,6 @@ Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
 }
 
 static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (!areBroadcastable(a, b)) {
-    return ERR_DIM_MISMATCH;
-  }
 
   Tensor *opB = b;
   Tensor *paddedB = NULL;
@@ -685,17 +676,13 @@ static Result inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType
 
 
 static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
+  PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
-  if (!areBroadcastable(a, b)) {
-    return ERR_DIM_MISMATCH;
-  }
-
+  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:
-      PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims, ERR_DTYPE_MISMATCH);  
+      PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims,
+               ERR_DTYPE_MISMATCH);
       return inPlaceBinopCuda(ctx, a, b, opType);
     case CPU:
     default: return inPlaceBinopCpu(ctx, a, b, opType);

@@ -1,8 +1,8 @@
 #ifndef shapes_common_h
 #define shapes_common_h
 
-#include "memory.h"
-#include "result/result.h"
+#include "./utils_lib/memory.h"
+#include "utils_lib/array.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <termios.h>
 #include <time.h>
+#include "result/result.h"
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -112,7 +113,9 @@ typedef struct Context {
   cublasHandle_t handle;
 } Context;
 
-typedef struct {
+struct Tensor;
+
+typedef struct Tensor {
   Context *context;
   Memory *metadataMemory;
   void *values;
@@ -124,7 +127,15 @@ typedef struct {
   bool isView;
   bool isContigous;
   bool isContigousCopy;
+  struct Tensor *grad;
+  Array *inputs;
+  void (*backward)(Context *ctx, struct Tensor *tensor);
 } Tensor;
+
+typedef struct sizeAndMultipliers {
+  tensor_size_t size;
+  multiplier_t *multipliers;
+} sizeAndMultipliers;
 
 typedef struct {
   Tensor *param;
@@ -133,12 +144,14 @@ typedef struct {
   Tensor *v;
 } AdamData;
 
-
 size_t getBytesForDtype(Dtype type);
 
-#define DIM_ZERO ((Dim){.dims = NULL, .numOfDims = 0})
-#define DIM1D(dimSize) ((Dim){.dims = (dim_t[]){dimSize}, .numOfDims = 1})
-#define DIM2D(dim0Size, dim1Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size}, .numOfDims = 2})
-#define DIM3D(dim0Size, dim1Size, dim2Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size}, .numOfDims = 3})
-#define DIM4D(dim0Size, dim1Size, dim2Size, dim3Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size, dim3Size}, .numOfDims = 4})
+#define SHAPE(dimensions, numberOfDimensions) ((Dim){.dims = (dimensions), .numOfDims = (numberOfDimensions)})
+#define DIM_ZERO                  ((Dim){.dims = NULL, .numOfDims = 0})
+#define SHAPE1D(dimSize)            ((Dim){.dims = (dim_t[]){dimSize}, .numOfDims = 1})
+#define SHAPE2D(dim0Size, dim1Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size}, .numOfDims = 2})
+#define SHAPE3D(dim0Size, dim1Size, dim2Size)                                                        \
+  ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size}, .numOfDims = 3})
+#define SHAPE4D(dim0Size, dim1Size, dim2Size, dim3Size)                                              \
+  ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size, dim3Size}, .numOfDims = 4})
 #endif

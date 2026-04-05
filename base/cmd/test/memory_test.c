@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../memory.h"
+#include "../../utils_lib/memory.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,4 +1,5 @@
 #include "../common.h"
+#include "../result/result.h"
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stddef.h>
@@ -66,7 +67,8 @@ __global__ static void unaryOpKernel(const T *src, T *dest, size_t n,
 }
 
 template <typename T>
-__global__ static void reluBackwardKernel(const T *output, const T *gradOut, T *dest, size_t n) {
+__global__ static void reluBackwardKernel(const T *output, const T *gradOut,
+                                          T *dest, size_t n) {
   size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n) {
     return;
@@ -76,7 +78,8 @@ __global__ static void reluBackwardKernel(const T *output, const T *gradOut, T *
 }
 
 template <typename T>
-__global__ static void reluBackwardAccumulateKernel(const T *output, const T *gradOut, T *dest,
+__global__ static void reluBackwardAccumulateKernel(const T *output,
+                                                    const T *gradOut, T *dest,
                                                     size_t n) {
   size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n) {
@@ -122,32 +125,37 @@ static Result launchUnaryOpKernel(const void *src, void *dest, size_t n,
 }
 
 template <typename T>
-static Result launchReluBackwardKernel(const void *output, const void *gradOut, void *dest,
-                                       size_t n) {
+static Result launchReluBackwardKernel(const void *output, const void *gradOut,
+                                       void *dest, size_t n) {
   int threadsPerBlock = 256;
-  int blocks = (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
-  reluBackwardKernel<<<blocks, threadsPerBlock>>>((const T *)output, (const T *)gradOut, (T *)dest,
-                                                  n);
+  int blocks =
+      (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
+  reluBackwardKernel<<<blocks, threadsPerBlock>>>(
+      (const T *)output, (const T *)gradOut, (T *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
   if (launchError != cudaSuccess) {
-    return launchError == cudaErrorMemoryAllocation ? ERR_OUT_OF_MEMORY : ERR_NO_OP;
+    return launchError == cudaErrorMemoryAllocation ? ERR_OUT_OF_MEMORY
+                                                    : ERR_NO_OP;
   }
 
   return OK;
 }
 
 template <typename T>
-static Result launchReluBackwardAccumulateKernel(const void *output, const void *gradOut, void *dest,
-                                                 size_t n) {
+static Result launchReluBackwardAccumulateKernel(const void *output,
+                                                 const void *gradOut,
+                                                 void *dest, size_t n) {
   int threadsPerBlock = 256;
-  int blocks = (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
-  reluBackwardAccumulateKernel<<<blocks, threadsPerBlock>>>((const T *)output, (const T *)gradOut,
-                                                            (T *)dest, n);
+  int blocks =
+      (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
+  reluBackwardAccumulateKernel<<<blocks, threadsPerBlock>>>(
+      (const T *)output, (const T *)gradOut, (T *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
   if (launchError != cudaSuccess) {
-    return launchError == cudaErrorMemoryAllocation ? ERR_OUT_OF_MEMORY : ERR_NO_OP;
+    return launchError == cudaErrorMemoryAllocation ? ERR_OUT_OF_MEMORY
+                                                    : ERR_NO_OP;
   }
 
   return OK;
@@ -179,8 +187,9 @@ extern "C" Result runCudaUnaryOp(Context *ctx, Dtype dtype, UnaryOpType opType,
   }
 }
 
-extern "C" Result runCudaReluBackward(Context *ctx, Dtype dtype, const void *output,
-                                      const void *gradOut, void *dest, tensor_size_t n) {
+extern "C" Result runCudaReluBackward(Context *ctx, Dtype dtype,
+                                      const void *output, const void *gradOut,
+                                      void *dest, tensor_size_t n) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }
@@ -196,8 +205,10 @@ extern "C" Result runCudaReluBackward(Context *ctx, Dtype dtype, const void *out
   }
 }
 
-extern "C" Result runCudaReluBackwardAccumulate(Context *ctx, Dtype dtype, const void *output,
-                                                const void *gradOut, void *dest, tensor_size_t n) {
+extern "C" Result runCudaReluBackwardAccumulate(Context *ctx, Dtype dtype,
+                                                const void *output,
+                                                const void *gradOut, void *dest,
+                                                tensor_size_t n) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }

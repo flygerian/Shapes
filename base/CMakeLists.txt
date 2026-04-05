@@ -22,11 +22,12 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-set_source_files_properties(base/tensor/binary_op.c
-  PROPERTIES COMPILE_FLAGS "-S -o /tmp/binary_op.s"
+add_compile_options(
+  -march=native -c
+  $<$<CONFIG:Debug>:-O0>
+  $<$<CONFIG:Release>:-O3>
+  $<$<CONFIG:RelWithDebInfo>:-O2>
 )
-
-add_compile_options(-O3 -march=native -c)
 # Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
@@ -50,10 +51,13 @@ find_package(CUDAToolkit REQUIRED)
 include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 
 # Memory library
-add_library(shapes_memory
-    memory.c
+add_library(utils_lib
+  utils_lib/memory.c
+  utils_lib/array.c
+  utils_lib/set.c
 )
-target_include_directories(shapes_memory PUBLIC ${CMAKE_SOURCE_DIR})
+
+target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
 
 # Core library
 add_library(shapes_core
@@ -93,10 +97,15 @@ add_library(shapes_core
     tensor/cast.c
     tensor/accumulate.c
     tensor/gemm.c
+    nn/backward.c
+    nn/dense.c
+    nn/mse.c
+    nn/sgd.c
+    nn/training.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
-target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
+target_link_libraries(shapes_core utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
 
 # Main executable
 add_executable(shapes
@@ -115,7 +124,7 @@ add_executable(shapes_test
     cmd/test/adam_test.c
     cmd/test/layer_test.c
 )
-target_link_libraries(shapes_test shapes_core)
+target_link_libraries(shapes_test shapes_core utils_lib)
 
 add_executable(gemm_bench
   cmd/cuda/gemm_bench.cu

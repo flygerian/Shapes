@@ -2,7 +2,6 @@
 #include "result/result.h"
 #include "shapes.h"
 
-#include "../memory.h"
 #include "tensor/tensor_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,35 +10,69 @@
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
 // the last dim (feature width). Dense uses this to preserve any batch axes.
-static Result initTensorLikeInputWithLastDim(Context *ctx, Tensor *dest, Tensor *x, dim_t lastDim,
-                                             Dtype dtype) {
-  u8 numDims = x->shape.numOfDims;
+static Dim swapLastDim(Context *ctx, Dim dim, dim_t lastDim) {
+  u8 numDims = dim.numOfDims;
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
-  Result allocRes = ensureAllocated(dims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numDims);
-  allocRes = ensureAllocated(multipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, dims);
-    return allocRes;
-  }
+  PANIC_IF(dims == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < numDims; i++) {
-    dims[i] = x->shape.dims[i];
+    dims[i] = dim.dims[i];
   }
   dims[numDims - 1] = lastDim;
+  Dim shape = {.dims = dims, .numOfDims = numDims};
 
-  Dim shape = {.dims = dims, .numOfDims = numDims, .multipliers = multipliers};
-  calculateNumValuesAndMultipliers(shape, multipliers);
+  return shape;
+}
 
-  Result initRes = initTensor(ctx, dest, shape, dtype);
-  if (initRes != OK) {
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, dims);
+static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, Dtype dtype) {
+  if (isInvalidTensor(grad)) {
+    return ERR_NULL_TENSOR_PROVIDED;
   }
-  return initRes;
+
+  if (grad->dtype != dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (grad->shape.numOfDims != reference->shape.numOfDims) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  for (u8 i = 0; i < reference->shape.numOfDims; i++) {
+    if (grad->shape.dims[i] != reference->shape.dims[i]) {
+      return ERR_DIM_MISMATCH;
+    }
+  }
+
+  return OK;
+}
+
+static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, Dtype dtype) {
+  if (grad == NULL) {
+    return OK;
+  }
+
+  if (isInvalidTensor(grad)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
+
+  if (grad->dtype != dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (grad->shape.numOfDims != 1 || grad->shape.dims[0] != outputSize) {
+    return ERR_DIM_MISMATCH;
+  }
+
+  return OK;
+}
+
+static Result promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
+  if (src->shape.numOfDims == 1) {
+    return UnSqueeze(ctx, src, dest, 0);
+  }
+
+  *dest = *src;
+  return OK;
 }
 
 static bool shouldLogOpTiming(void) {
@@ -71,39 +104,28 @@ static void logOpTiming(Context *ctx, const char *opName, const char *phase, dou
           opTimingNowMs() - startMs);
 }
 
-Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor *dest) {
+Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
   // w: [outputSize, inputSize]
   // b: [outputSize] (optional)
   // out: [..., outputSize]
-  if (isInvalidTensor(x) || isInvalidTensor(w) || (withBias && isInvalidTensor(b))) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+  PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || (withBias && isInvalidTensor(b)),
+           ERR_NULL_TENSOR_PROVIDED);
 
-  if (x->shape.numOfDims < 2 || w->shape.numOfDims != 2) {
-    return ERR_MATMUL_MIN_2D;
-  }
+  PANIC_IF(x->shape.numOfDims < 2 || w->shape.numOfDims != 2, ERR_MATMUL_MIN_2D);
 
-  if (x->dtype != w->dtype || (withBias && b->dtype != x->dtype)) {
-    return ERR_DTYPE_MISMATCH;
-  }
+  PANIC_IF(x->dtype != w->dtype || (withBias && b->dtype != x->dtype), ERR_DTYPE_MISMATCH);
 
-  if (x->dtype != F16 && x->dtype != F32 && x->dtype != F64) {
-    return ERR_DTYPE_MISMATCH;
-  }
+  PANIC_IF(x->dtype != F16 && x->dtype != F32 && x->dtype != F64, ERR_DTYPE_MISMATCH);
 
   dim_t inputSize = x->shape.dims[x->shape.numOfDims - 1];
   dim_t outputSize = w->shape.dims[0];
 
-  if (w->shape.dims[1] != inputSize) {
-    return ERR_MATMUL_INNER_DIM_MISMATCH;
-  }
+  PANIC_IF(w->shape.dims[1] != inputSize, ERR_MATMUL_INNER_DIM_MISMATCH);
 
-  if (withBias && (b->shape.numOfDims != 1 || b->shape.dims[0] != outputSize)) {
-    return ERR_DIM_MISMATCH;
-  }
-
+  PANIC_IF(withBias && (b->shape.numOfDims != 1 || b->shape.dims[0] != outputSize),
+           ERR_DIM_MISMATCH);
   // BLAS expects dense row-major buffers. Views/slices from Go can be
   // non-contiguous, so we materialize contiguous copies when needed.
   double totalStartMs = 0.0;
@@ -112,7 +134,7 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
     totalStartMs = opTimingNowMs();
   }
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x);  
+  Tensor *xContig = materializeTensorOnContext(ctx, x);
   Tensor *wContig = materializeTensorOnContext(ctx, w);
 
   logOpTiming(ctx, "DenseLinear", "materialize", totalStartMs);
@@ -121,23 +143,24 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
 
   phaseStartMs = opTimingNowMs();
 
-  Result res = initTensorLikeInputWithLastDim(ctx, dest, x, outputSize, x->dtype);
-  PANIC_IF(res != OK, res);
+  Dim newDims = swapLastDim(ctx, x->shape, outputSize);
+  Tensor *out = T_Zeros(ctx, newDims);
+
   logOpTiming(ctx, "DenseLinear", "alloc_output", phaseStartMs);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
   phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
-          xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, dest->values,
+          xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, out->values,
           (int)outputSize);
 
   logOpTiming(ctx, "DenseLinear", "gemm", phaseStartMs);
 
   if (withBias) {
     phaseStartMs = opTimingNowMs();
-    res = AddInPlace(ctx, dest, b);
-    PANIC_IF(res != OK, res);     
+    Result res = AddInPlace(ctx, out, b);
+    PANIC_IF(res != OK, res);
     logOpTiming(ctx, "DenseLinear", "bias_add", phaseStartMs);
   }
 
@@ -146,28 +169,71 @@ Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias,
 
   logOpTiming(ctx, "DenseLinear", "total", totalStartMs);
 
-  return OK;
+  return out;
 }
 
 Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
                      Tensor *dB) {
-  // Backward inputs/outputs:
+  // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
-  // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize]
-  PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || isInvalidTensor(gradOut),  ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF(x->shape.numOfDims < 2 || gradOut->shape.numOfDims < 2 || w->shape.numOfDims != 2, ERR_MATMUL_MIN_2D);
-  PANIC_IF (x->dtype != gradOut->dtype || x->dtype != w->dtype, ERR_DTYPE_MISMATCH);
+  // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL
+  if (ctx == NULL || isInvalidTensor(x) || isInvalidTensor(w) || isInvalidTensor(gradOut) ||
+      isInvalidTensor(dX) || isInvalidTensor(dW)) {
+    return ERR_NULL_TENSOR_PROVIDED;
+  }
 
-  PANIC_IF(x->dtype != F16 && x->dtype != F32 && x->dtype != F64, ERR_DTYPE_MISMATCH); 
+  Tensor x2d = {0};
+  Result res = promoteDenseBackwardInput(ctx, x, &x2d);
+  if (res != OK) {
+    return res;
+  }
 
-  dim_t inputSize = x->shape.dims[x->shape.numOfDims - 1];
+  Tensor gradOut2d = {0};
+  res = promoteDenseBackwardInput(ctx, gradOut, &gradOut2d);
+  if (res != OK) {
+    return res;
+  }
+
+  if (x2d.shape.numOfDims < 2 || gradOut2d.shape.numOfDims < 2 || w->shape.numOfDims != 2) {
+    return ERR_MATMUL_MIN_2D;
+  }
+
+  if (x->dtype != gradOut->dtype || x->dtype != w->dtype) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  if (x->dtype != F16 && x->dtype != F32 && x->dtype != F64) {
+    return ERR_DTYPE_MISMATCH;
+  }
+
+  dim_t inputSize = x2d.shape.dims[x2d.shape.numOfDims - 1];
   dim_t outputSize = w->shape.dims[0];
 
-  PANIC_IF(w->shape.dims[1] != inputSize, ERR_MATMUL_INNER_DIM_MISMATCH); 
-  PANIC_IF(gradOut->shape.dims[gradOut->shape.numOfDims - 1] != outputSize, ERR_DIM_MISMATCH); 
-  tensor_size_t rows = x->size / inputSize;
+  if (w->shape.dims[1] != inputSize) {
+    return ERR_MATMUL_INNER_DIM_MISMATCH;
+  }
+  if (gradOut2d.shape.dims[gradOut2d.shape.numOfDims - 1] != outputSize) {
+    return ERR_DIM_MISMATCH;
+  }
 
-  PANIC_IF(gradOut->size != rows * outputSize, ERR_DIM_MISMATCH); 
+  res = validateDenseGradBuffer(dX, x, x->dtype);
+  if (res != OK) {
+    return res;
+  }
+  res = validateDenseGradBuffer(dW, w, w->dtype);
+  if (res != OK) {
+    return res;
+  }
+  res = validateDenseBiasGradBuffer(dB, outputSize, x->dtype);
+  if (res != OK) {
+    return res;
+  }
+
+  tensor_size_t rows = x2d.size / inputSize;
+  if (gradOut2d.size != rows * outputSize) {
+    return ERR_DIM_MISMATCH;
+  }
+
   // Same contiguous requirement as forward: BLAS kernels consume packed rows.
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
@@ -175,44 +241,76 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
     totalStartMs = opTimingNowMs();
   }
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x);  
-  Tensor *wContig = materializeTensorOnContext(ctx, w);  
-  Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
+  Tensor *xContig = materializeTensorOnContext(ctx, &x2d);
+  Tensor *wContig = materializeTensorOnContext(ctx, w);
+  Tensor *gContig = materializeTensorOnContext(ctx, &gradOut2d);
 
   logOpTiming(ctx, "DenseBackward", "materialize", totalStartMs);
 
   phaseStartMs = opTimingNowMs();
-  initTensorLikeInputWithLastDim(ctx, dX, x, inputSize, x->dtype);
-  initTensorLikeInputWithLastDim(ctx, dW, w, inputSize, w->dtype);
+  Tensor dX2d = {0};
+  res = initTensor(ctx, &dX2d, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
+  PANIC_IF (res != OK, res); 
+
+  Tensor dWRaw = {0};
+  res = initTensor(ctx, &dWRaw, swapLastDim(ctx, w->shape, inputSize), w->dtype);
+  PANIC_IF (res != OK, res); 
 
   logOpTiming(ctx, "DenseBackward", "alloc_outputs", phaseStartMs);
 
   phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
-            gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX->values,
-            (int)inputSize);
-  
+          gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX2d.values,
+          (int)inputSize);
+
   logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
 
   // dW = gradOut^T * x
   phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-            gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dW->values,
-            (int)inputSize);
+          gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dWRaw.values,
+          (int)inputSize);
   logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
 
-  dim_t *grad2dDims = allocate(ctx->memory, sizeof(dim_t) * 2);
-  grad2dDims[0] = rows;
-  grad2dDims[1] = outputSize;
-
-  Tensor grad2dView = {0};
-  
   phaseStartMs = opTimingNowMs();
-  Result res = Reshape(ctx, gContig, &grad2dView, (Dim){.dims = grad2dDims, .numOfDims = 2});
-  PANIC_IF(res != OK, res); 
+  Tensor dXReduced = {0};
+  res = ReduceBroadcast(ctx, x, &dX2d, &dXReduced);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = AddInPlace(ctx, dX, &dXReduced);
+  if (res != OK) {
+    goto cleanup;
+  }
 
-  res = Sum(ctx, &grad2dView, dB, 0);
-  PANIC_IF(res != OK, res);
+  Tensor dWReduced = {0};
+  res = ReduceBroadcast(ctx, w, &dWRaw, &dWReduced);
+  if (res != OK) {
+    goto cleanup;
+  }
+  res = AddInPlace(ctx, dW, &dWReduced);
+  if (res != OK) {
+    goto cleanup;
+  }
+
+  if (dB != NULL) {
+    Tensor dBRaw = {0};
+    res = Sum(ctx, gContig, &dBRaw, 0);
+    if (res != OK) {
+      goto cleanup;
+    }
+
+    Tensor dBReduced = {0};
+    res = ReduceBroadcast(ctx, dB, &dBRaw, &dBReduced);
+    if (res != OK) {
+      goto cleanup;
+    }
+
+    res = AddInPlace(ctx, dB, &dBReduced);
+    if (res != OK) {
+      goto cleanup;
+    }
+  }
 
   logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);
   logOpTiming(ctx, "DenseBackward", "total", totalStartMs);

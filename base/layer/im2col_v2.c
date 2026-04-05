@@ -117,7 +117,7 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
 }
 
 void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
-                           u8 stride) {
+                         u8 stride) {
   dim_t batch = dInput->shape.dims[0];
   dim_t height = dInput->shape.dims[1];
   dim_t width = dInput->shape.dims[2];
@@ -127,9 +127,9 @@ void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, di
 
   if (dInput->context != NULL && dInput->context->device != NULL &&
       dInput->context->device->type == CUDA) {
-    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
-                                   numInputChannels, height, width, kernelHeight, kernelWidth,
-                                   stride);
+    Result res =
+        runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
+                                numInputChannels, height, width, kernelHeight, kernelWidth, stride);
     PANIC_IF(res != OK, res);
   }
 
@@ -163,7 +163,7 @@ void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, di
 }
 
 void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth,
-                           u8 stride) {
+                         u8 stride) {
   dim_t batch = dInput->shape.dims[0];
   dim_t height = dInput->shape.dims[1];
   dim_t width = dInput->shape.dims[2];
@@ -173,9 +173,9 @@ void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, di
 
   if (dInput->context != NULL && dInput->context->device != NULL &&
       dInput->context->device->type == CUDA) {
-    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
-                                   numInputChannels, height, width, kernelHeight, kernelWidth,
-                                   stride);
+    Result res =
+        runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch,
+                                numInputChannels, height, width, kernelHeight, kernelWidth, stride);
     PANIC_IF(res != OK, res);
   }
 

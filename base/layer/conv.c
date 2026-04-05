@@ -215,26 +215,27 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     totalStartMs = opTimingNowMs();
   }
 
-  PANIC_IF(t == NULL || dest == NULL || ctx == NULL, ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(t == NULL || dest == NULL || ctx == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(stride == 0, ERR_CONV2D_KERNEL_STRIDE_ZERO);
   PANIC_IF(isNotFloatType(t), ERR_CONV2D_KERNEL_NOT_FLOAT);
 
-  PANIC_IF(t->shape.numOfDims < 4, ERR_CONV2D_INVALID_NUM_TENSOR_DIM); 
+  PANIC_IF(t->shape.numOfDims < 4, ERR_CONV2D_INVALID_NUM_TENSOR_DIM);
   PANIC_IF(inChannels < 1, ERR_CONV2D_IN_CHANNELS_ZERO);
 
   PANIC_IF(outChannels < 1, ERR_CONV2D_OUT_CHANNELS_ZERO);
-  PANIC_IF(kernels == NULL, ERR_NULL_TENSOR_PROVIDED); 
+  PANIC_IF(kernels == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(kernels->shape.numOfDims < 2 || kernels->shape.dims == NULL, ERR_CONV2D_KERNEL_NOT_2D);
 
   PANIC_IF(kernels->shape.numOfDims < 4, ERR_DIM_MISMATCH);
 
-  PANIC_IF (kernels->dtype != t->dtype, ERR_DTYPE_MISMATCH); 
+  PANIC_IF(kernels->dtype != t->dtype, ERR_DTYPE_MISMATCH);
   if (withBias) {
-    PANIC_IF (bias == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(bias == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(bias->dtype != t->dtype, ERR_DTYPE_MISMATCH);
-    PANIC_IF(bias->shape.numOfDims != 4 || bias->shape.dims == NULL, ERR_DIM_MISMATCH);     
+    PANIC_IF(bias->shape.numOfDims != 4 || bias->shape.dims == NULL, ERR_DIM_MISMATCH);
     PANIC_IF(bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 ||
-        bias->shape.dims[3] != outChannels, ERR_DIM_MISMATCH);   
+                 bias->shape.dims[3] != outChannels,
+             ERR_DIM_MISMATCH);
   }
 
   dim_t kernelHeight = kernels->shape.dims[2];
@@ -244,11 +245,13 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   dim_t width = t->shape.dims[2];
   dim_t numChannels = t->shape.dims[3];
 
-  PANIC_IF (kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight ||
-      width < kernelWidth, ERR_DIM_MISMATCH);
+  PANIC_IF(kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels ||
+               height < kernelHeight || width < kernelWidth,
+           ERR_DIM_MISMATCH);
 
   PANIC_IF(kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels ||
-      kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth, ERR_DIM_MISMATCH);
+               kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth,
+           ERR_DIM_MISMATCH);
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
@@ -283,9 +286,9 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
 
     colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
     PANIC_IF(colBuffer == NULL, ERR_OUT_OF_MEMORY);
-     
+
     logHostOpTiming(ctx, "Conv2d", "im2col", phaseStartMs);
-    
+
     if (shouldLogOpTiming()) {
       phaseStartMs = opTimingNowMs();
     }
@@ -313,9 +316,8 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
             (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
             gemmOutput.values, (int)outChannels);
 
-    
+
     logHostOpTiming(ctx, "Conv2d", "gemm", phaseStartMs);
-  
   }
 
   if (colBufferDest != NULL) {
@@ -501,7 +503,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
 
     runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out,
             colBufferContig->values, kS, false, dWValues, kS);
-    
+
     logHostOpTiming(ctx, "Conv2dBackward", "gemm_dk", phaseStartMs);
 
     if (shouldLogOpTiming()) {

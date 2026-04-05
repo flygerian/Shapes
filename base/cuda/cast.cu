@@ -1,4 +1,5 @@
 #include "../common.h"
+#include "../result/result.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 
@@ -15,7 +16,8 @@ __global__ static void castKernel(const Src *src, Dest *dest, size_t n) {
 template <typename Src, typename Dest>
 static Result launchCastKernel(const void *src, void *dest, size_t n) {
   int threadsPerBlock = 256;
-  int blocks = (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
+  int blocks =
+      (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
   castKernel<<<blocks, threadsPerBlock>>>((const Src *)src, (Dest *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
@@ -27,43 +29,68 @@ static Result launchCastKernel(const void *src, void *dest, size_t n) {
 }
 
 template <typename Src>
-static Result dispatchCudaCastTarget(Dtype targetDtype, const void *src, void *dest, size_t n) {
+static Result dispatchCudaCastTarget(Dtype targetDtype, const void *src,
+                                     void *dest, size_t n) {
   switch (targetDtype) {
-    case BOOL: return launchCastKernel<Src, bool>(src, dest, n);
-    case U8: return launchCastKernel<Src, u8>(src, dest, n);
-    case U16: return launchCastKernel<Src, u16>(src, dest, n);
-    case U32: return launchCastKernel<Src, u32>(src, dest, n);
-    case U64: return launchCastKernel<Src, u64>(src, dest, n);
-    case I8: return launchCastKernel<Src, i8>(src, dest, n);
-    case I16: return launchCastKernel<Src, i16>(src, dest, n);
-    case I32: return launchCastKernel<Src, i32>(src, dest, n);
-    case I64: return launchCastKernel<Src, i64>(src, dest, n);
-    case F16:
-    case F32: return launchCastKernel<Src, f32>(src, dest, n);
-    case F64: return launchCastKernel<Src, f64>(src, dest, n);
-    default: return ERR_DTYPE_MISMATCH;
+  case BOOL:
+    return launchCastKernel<Src, bool>(src, dest, n);
+  case U8:
+    return launchCastKernel<Src, u8>(src, dest, n);
+  case U16:
+    return launchCastKernel<Src, u16>(src, dest, n);
+  case U32:
+    return launchCastKernel<Src, u32>(src, dest, n);
+  case U64:
+    return launchCastKernel<Src, u64>(src, dest, n);
+  case I8:
+    return launchCastKernel<Src, i8>(src, dest, n);
+  case I16:
+    return launchCastKernel<Src, i16>(src, dest, n);
+  case I32:
+    return launchCastKernel<Src, i32>(src, dest, n);
+  case I64:
+    return launchCastKernel<Src, i64>(src, dest, n);
+  case F16:
+  case F32:
+    return launchCastKernel<Src, f32>(src, dest, n);
+  case F64:
+    return launchCastKernel<Src, f64>(src, dest, n);
+  default:
+    return ERR_DTYPE_MISMATCH;
   }
 }
 
-extern "C" Result runCudaCast(Context *ctx, Dtype sourceDtype, const void *src, Dtype targetDtype,
-                              void *dest, tensor_size_t n) {
+extern "C" Result runCudaCast(Context *ctx, Dtype sourceDtype, const void *src,
+                              Dtype targetDtype, void *dest, tensor_size_t n) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }
 
   switch (sourceDtype) {
-    case BOOL: return dispatchCudaCastTarget<bool>(targetDtype, src, dest, n);
-    case U8: return dispatchCudaCastTarget<u8>(targetDtype, src, dest, n);
-    case U16: return dispatchCudaCastTarget<u16>(targetDtype, src, dest, n);
-    case U32: return dispatchCudaCastTarget<u32>(targetDtype, src, dest, n);
-    case U64: return dispatchCudaCastTarget<u64>(targetDtype, src, dest, n);
-    case I8: return dispatchCudaCastTarget<i8>(targetDtype, src, dest, n);
-    case I16: return dispatchCudaCastTarget<i16>(targetDtype, src, dest, n);
-    case I32: return dispatchCudaCastTarget<i32>(targetDtype, src, dest, n);
-    case I64: return dispatchCudaCastTarget<i64>(targetDtype, src, dest, n);
-    case F16:
-    case F32: return dispatchCudaCastTarget<f32>(targetDtype, src, dest, n);
-    case F64: return dispatchCudaCastTarget<f64>(targetDtype, src, dest, n);
-    default: return ERR_DTYPE_MISMATCH;
+  case BOOL:
+    return dispatchCudaCastTarget<bool>(targetDtype, src, dest, n);
+  case U8:
+    return dispatchCudaCastTarget<u8>(targetDtype, src, dest, n);
+  case U16:
+    return dispatchCudaCastTarget<u16>(targetDtype, src, dest, n);
+  case U32:
+    return dispatchCudaCastTarget<u32>(targetDtype, src, dest, n);
+  case U64:
+    return dispatchCudaCastTarget<u64>(targetDtype, src, dest, n);
+  case I8:
+    return dispatchCudaCastTarget<i8>(targetDtype, src, dest, n);
+  case I16:
+    return dispatchCudaCastTarget<i16>(targetDtype, src, dest, n);
+  case I32:
+    return dispatchCudaCastTarget<i32>(targetDtype, src, dest, n);
+  case I64:
+    return dispatchCudaCastTarget<i64>(targetDtype, src, dest, n);
+  case F16:
+  case F32:
+    return dispatchCudaCastTarget<f32>(targetDtype, src, dest, n);
+  case F64:
+    return dispatchCudaCastTarget<f64>(targetDtype, src, dest, n);
+  default:
+    return ERR_DTYPE_MISMATCH;
   }
 }

@@ -35,7 +35,7 @@ static Result validateAccumulateTensorArgs(Tensor *dest, Tensor *srcGrad) {
 
 static dim_t indexValueToDim(Value *idxVal, Dtype dtype) {
   switch (dtype) {
-    case U8: return idxVal->as.u8;;
+    case U8: return idxVal->as.u8; ;
     case U16: return idxVal->as.u16;
     case U32: return idxVal->as.u32; return OK;
     case U64: return idxVal->as.u64; return OK;
@@ -52,7 +52,7 @@ static dim_t indexValueToDim(Value *idxVal, Dtype dtype) {
 static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
 
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
-  Tensor *srcContig= materializeTensorOnContext(ctx, srcGrad);
+  Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
   tensor_size_t sliceSize = 1;
   for (u8 i = 1; i < dest->shape.numOfDims; i++) {
@@ -106,7 +106,7 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
     VALUE_GET_FROM_ARR(colContig->values, i, &colValue, colContig->dtype);
 
     dim_t row = indexValueToDim(&rowValue, rowContig->dtype);
-    dim_t col =  indexValueToDim(&colValue, colContig->dtype);
+    dim_t col = indexValueToDim(&colValue, colContig->dtype);
 
     PANIC_IF(row >= dest->shape.dims[0] || col >= dest->shape.dims[1], ERR_OUT_OF_BOUNDS);
 
@@ -198,8 +198,8 @@ static Result indexAccumulate1dCuda(Context *ctx, Tensor *dest, Tensor *indices,
   }
 
   Result result = runCudaIndexAccumulate1d(ctx, dest->dtype, dest->values, indicesContig->values,
-                                    indicesContig->dtype, srcContig->values,
-                                    indicesContig->size, sliceSize);
+                                           indicesContig->dtype, srcContig->values,
+                                           indicesContig->size, sliceSize);
 
   freeIfContingousCopy(ctx, indicesContig);
   freeIfContingousCopy(ctx, srcContig);
@@ -221,10 +221,9 @@ static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndic
     sliceSize *= dest->shape.dims[i];
   }
 
-  Result result = runCudaIndexAccumulate2d(ctx, dest->dtype, dest->values, dest->shape.dims[1],
-                                    rowContig->values, rowContig->dtype, colConfig->values,
-                                    colConfig->dtype, srcGradContig->values, rowContig->size,
-                                    sliceSize);
+  Result result = runCudaIndexAccumulate2d(
+      ctx, dest->dtype, dest->values, dest->shape.dims[1], rowContig->values, rowContig->dtype,
+      colConfig->values, colConfig->dtype, srcGradContig->values, rowContig->size, sliceSize);
 
   freeIfContingousCopy(ctx, rowContig);
   freeIfContingousCopy(ctx, colConfig);
@@ -239,10 +238,9 @@ static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, Range *ranges, Ten
 
   Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  Result result = runCudaSliceAccumulate(ctx, dest->dtype, dest->values, dest->shape.numOfDims,
-                                  dest->shape.multipliers, ranges, srcContig->values,
-                                  srcContig->shape.dims, srcContig->shape.numOfDims,
-                                  srcContig->size);
+  Result result = runCudaSliceAccumulate(
+      ctx, dest->dtype, dest->values, dest->shape.numOfDims, dest->shape.multipliers, ranges,
+      srcContig->values, srcContig->shape.dims, srcContig->shape.numOfDims, srcContig->size);
 
   freeIfContingousCopy(ctx, srcContig);
   return result;

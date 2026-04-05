@@ -9,6 +9,7 @@
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
 
+
 // Context
 Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
 Context *CreateContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
@@ -72,6 +73,7 @@ Result Abs(Context *ctx, Tensor *t, Tensor *dest);
 
 // Reduction
 Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Result ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad, Tensor *dest);
 Result Mean(Context *ctx, Tensor *t, Tensor *dest);
 Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
 Result Std(Context *ctx, Tensor *t, Tensor *dest);
@@ -89,7 +91,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
 Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
 
 // Layer ops
-Result DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias, Tensor *dest);
+Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
 Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
                      Tensor *dB);
 Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
@@ -123,8 +125,7 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
                             Tensor *dLogits);
 
 // Optimizer ops
-Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
-           f32 learningRate);
+Result Sgd(Context *ctx, Array *parameters, f32 learningRate);
 
 
 Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step,
@@ -139,6 +140,8 @@ Tensor *T_Zeros(Context *ctx, Dim shape);
 Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
 Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue);
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
+Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements, Dtype dtype);
+Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype);
 Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
 Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step);
 void SetValues(Tensor *t, Value value);

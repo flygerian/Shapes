@@ -1,7 +1,6 @@
 #include "result/result.h"
 #include "shapes.h"
 
-#include "../memory.h"
 #include "tensor/tensor_internal.h"
 
 Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
@@ -33,9 +32,9 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor* xContig = materializeTensorOnContext(ctx, x2d);
-  Tensor* gammaContig = materializeTensorOnContext(ctx, gamma);
-  Tensor* betaContig = materializeTensorOnContext(ctx, beta);
+  Tensor *xContig = materializeTensorOnContext(ctx, x2d);
+  Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
+  Tensor *betaContig = materializeTensorOnContext(ctx, beta);
 
   Result res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
   if (res != OK) {
@@ -202,8 +201,9 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
   }
 
   // Keep backward math on packed memory for predictable stride-1 access.
-  Tensor* xContig = materializeTensorOnContext(ctx, x2d);
-  Tensor *gradContig =  materializeTensorOnContext(ctx, grad2d);;
+  Tensor *xContig = materializeTensorOnContext(ctx, x2d);
+  Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
+  ;
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
 
 
@@ -234,8 +234,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHat = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHatXHat = allocate(ctx->memory, sizeof(f64) * n);
-    if (mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL ||
-        sumDXHatXHat == NULL) {
+    if (mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL || sumDXHatXHat == NULL) {
       if (sumDXHatXHat != NULL) {
         freeAlloc(ctx->memory, sumDXHatXHat);
       }
@@ -344,8 +343,7 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHat = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHatXHat = allocate(ctx->memory, sizeof(f32) * n);
-    if (mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL ||
-        sumDXHatXHat == NULL) {
+    if (mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL || sumDXHatXHat == NULL) {
       if (sumDXHatXHat != NULL) {
         freeAlloc(ctx->memory, sumDXHatXHat);
       }
