@@ -57,18 +57,14 @@ static inline Tensor tensorView(Context *ctx, Memory *metadataMemory, void *valu
                   .shape = shape};
 }
 
-Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype);
-Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype);
-Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype);
-Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
-                    Dtype dtype);
-Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype);
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result);
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value);
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
 void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords);
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type);
+Tensor *t_Empty(Context *ctx, Dim shape, Dtype type);
+Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type);
 Tensor *copyToContiguous(Context *ctx, Tensor *source);
 bool isSameContext(Context *a, Context *b);
 Tensor *materializeTensorOnContext(Context *ctx, Tensor *src);

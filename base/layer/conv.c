@@ -257,9 +257,11 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
   phaseStartMs = opTimingNowMs();
-  result = init4DTensor(ctx, &gemmOutput, batch, outputChannelHeight, outputChannelWidth,
-                        outChannels, t->dtype);
-  PANIC_IF(result != OK, result);
+  Tensor *createdGemmOutput =
+      t_Zeros(ctx, SHAPE4D(batch, outputChannelHeight, outputChannelWidth, outChannels), t->dtype);
+  PANIC_IF(createdGemmOutput == NULL, ERR_OUT_OF_MEMORY);
+  gemmOutput = *createdGemmOutput;
+  freeAlloc(ctx->memory, createdGemmOutput);
   logHostOpTiming(ctx, "Conv2d", "alloc_gemm_output", phaseStartMs);
 
   phaseStartMs = opTimingNowMs();
@@ -688,12 +690,12 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
   dim_t outH = (h - 1) * stride + kH;
   dim_t outW = (w - 1) * stride + kW;
 
-  Result res = init4DTensor(ctx, dest, batch, outH, outW, outChannels, t->dtype);
-  if (res != OK) {
-    return res;
+  Tensor *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, outChannels), t->dtype);
+  if (createdDest == NULL) {
+    return ERR_OUT_OF_MEMORY;
   }
-
-  memset(dest->values, 0, dest->size * getBytesForDtype(dest->dtype));
+  *dest = *createdDest;
+  freeAlloc(ctx->memory, createdDest);
 
   if (t->dtype == F64) {
     f64 *input = t->values;
@@ -800,14 +802,21 @@ Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor 
     return ERR_DIM_MISMATCH;
   }
 
-  Result res = initTensorLike(ctx, dX, x, x->dtype);
-  if (res != OK) {
-    return res;
+  Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
+  if (createdDX == NULL) {
+    return ALLOCATION_FAILED;
   }
-  res = initTensorLike(ctx, dKernels, kernels, kernels->dtype);
-  if (res != OK) {
-    return res;
+  *dX = *createdDX;
+  freeAlloc(ctx->memory, createdDX);
+
+  Tensor *createdDKernels = t_Zeros(ctx, kernels->shape, kernels->dtype);
+  if (createdDKernels == NULL) {
+    return ALLOCATION_FAILED;
   }
+  *dKernels = *createdDKernels;
+  freeAlloc(ctx->memory, createdDKernels);
+
+  Result res = OK;
 
   memset(dX->values, 0, dX->size * getBytesForDtype(dX->dtype));
   memset(dKernels->values, 0, dKernels->size * getBytesForDtype(dKernels->dtype));

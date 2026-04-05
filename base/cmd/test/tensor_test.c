@@ -2691,6 +2691,36 @@ static void test_squeeze_shares_data(void) {
   freeMemory(mem);
 }
 
+static void squeezeTestBackward(Context *ctx, Tensor *tensor) {
+  (void)ctx;
+  (void)tensor;
+}
+
+static void test_squeeze_preserves_grad_and_graph_metadata(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  dim_t dims[] = {1, 3};
+  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
+  Tensor *input = T_Zeros(&ctx, SHAPE1D(3));
+
+  t->inputs = MakeArray(ctx.memory, sizeof(Tensor *), 1);
+  Array_Append(t->inputs, &input);
+  t->opType = OP_DENSE;
+  t->backward = squeezeTestBackward;
+
+  Tensor squeezed;
+  Result r = Squeeze(&ctx, t, &squeezed);
+  ASSERT_EQ(r, OK, "Squeeze should return OK");
+
+  ASSERT_EQ(squeezed.grad, t->grad, "Squeeze should preserve grad pointer");
+  ASSERT_EQ(squeezed.inputs, t->inputs, "Squeeze should preserve graph inputs");
+  ASSERT_EQ(squeezed.opType, t->opType, "Squeeze should preserve op type");
+  ASSERT_EQ(squeezed.backward, t->backward, "Squeeze should preserve backward callback");
+
+  freeMemory(mem);
+}
+
 static void test_squeeze_dim_specific(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -5461,6 +5491,7 @@ void run_tensor_tests(void) {
   test_squeeze_all_ones();
   test_squeeze_scalar_preserves_zero_dims();
   test_squeeze_shares_data();
+  test_squeeze_preserves_grad_and_graph_metadata();
   test_squeeze_dim_specific();
   test_squeeze_after_sum();
   // UnSqueeze tests

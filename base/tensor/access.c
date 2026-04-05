@@ -101,8 +101,10 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   }
 
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims};
-  result = initTensor(ctx, dest, destShape, workingSource->dtype);
-  PANIC_IF(result != OK, result); 
+  Tensor *createdDest = t_Empty(ctx, destShape, workingSource->dtype);
+  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
+  *dest = *createdDest;
+  freeAlloc(ctx->memory, createdDest);
   if (isCudaCtx) {
     result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
                                   workingIndices->values, workingIndices->dtype, dest->values,
@@ -183,8 +185,10 @@ Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tenso
   }
 
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers};
-  result = initTensor(ctx, dest, destShape, workingSource->dtype);
-  PANIC_IF(result != OK, result);
+  Tensor *createdDest = t_Empty(ctx, destShape, workingSource->dtype);
+  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
+  *dest = *createdDest;
+  freeAlloc(ctx->memory, createdDest);
   if (isCudaCtx) {
     result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values,
                                   workingSource->shape.dims[1], workingRows->values,

@@ -139,42 +139,54 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   return OK;
 }
 
-Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
-  Dim tShape = (Dim){.numOfDims = shape.numOfDims};
-
-  // Handle 0-dimensional tensor (scalar)
-  if (shape.numOfDims == 0) {
-    tShape.dims = NULL;
-    tShape.multipliers = NULL;
-
-    Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(t == NULL, ALLOCATION_FAILED);
-    PANIC_IF(initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK,
-             ALLOCATION_FAILED);
-    return t;
-  }
-
-  tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
-  PANIC_IF(tShape.dims == NULL, ALLOCATION_FAILED);
-
-  tShape.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * tShape.numOfDims);
-  PANIC_IF(tShape.multipliers == NULL, ALLOCATION_FAILED);
-
-  memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
-  sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, tShape.dims, tShape.numOfDims);
-  tShape.multipliers = snm.multipliers;
-
+Tensor *t_Empty(Context *ctx, Dim shape, Dtype type) {
   Tensor *t = allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(t == NULL, ALLOCATION_FAILED);
+  PANIC_IF(initTensor(ctx, t, shape, type) != OK, ALLOCATION_FAILED);
+  return t;
+}
 
-  PANIC_IF(initTensor(ctx, t, tShape, type) != OK || clearTensorValues(t) != OK, ALLOCATION_FAILED);
+static Tensor *zeroTensorWithGrad(Context *ctx, Dim shape, Dtype type, bool withGrad) {
+  Dim tShape = {.numOfDims = shape.numOfDims};
+  if (shape.numOfDims > 0) {
+    tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
+    PANIC_IF(tShape.dims == NULL, ALLOCATION_FAILED);
+    memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
+  } else {
+    tShape.dims = NULL;
+  }
+
+  Tensor *t = t_Empty(ctx, tShape, type);
+  PANIC_IF(clearTensorValues(t) != OK, ALLOCATION_FAILED);
+  if (withGrad) {
+    t->grad = zeroTensorWithGrad(ctx, tShape, F32, false);
+  }
+  return t;
+}
+
+Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type) {
+  return zeroTensorWithGrad(ctx, shape, type, true);
+}
+
+Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type) {
+  PANIC_IF(source == NULL, ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(dim >= source->shape.numOfDims, ERR_OUT_OF_BOUNDS);
+
+  dim_t *dims = NULL;
+  if (source->shape.numOfDims > 0) {
+    dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+    PANIC_IF(dims == NULL, ALLOCATION_FAILED);
+    memcpy(dims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
+    dims[dim] = 1;
+  }
+
+  Tensor *t = t_Empty(ctx, SHAPE(dims, source->shape.numOfDims), type);
+  t->grad = zeroTensorWithGrad(ctx, t->shape, F32, false);
   return t;
 }
 
 Tensor *T_Zeros(Context *ctx, Dim shape) {
-  Tensor *zeros = t_Zeros(ctx, shape, F32);
-  zeros->grad = t_Zeros(ctx, shape, F32);
-  return zeros;
+  return t_Zeros(ctx, shape, F32);
 }
 
 Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
@@ -312,7 +324,6 @@ Tensor *T_Int(Context *ctx, Dim shape, i8 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, I8);
   Value v = (Value){.dtype = I8, .as.i8 = initialValue};
   SetValues(init, v);
-  init->grad = t_Zeros(ctx, shape, F32);
   return init;
 }
 
@@ -320,7 +331,6 @@ Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, U8);
   Value v = (Value){.dtype = U8, .as.u8 = initialValue};
   SetValues(init, v);
-  init->grad = t_Zeros(ctx, shape, F32);
   return init;
 }
 
@@ -328,7 +338,6 @@ Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, F32);
   Value v = (Value){.dtype = F32, .as.f32 = initialValue};
   SetValues(init, v);
-  init->grad = t_Zeros(ctx, shape, F32);
   return init;
 }
 
@@ -346,7 +355,6 @@ Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_siz
   PANIC_IF(tensor == NULL, ALLOCATION_FAILED);
 
   memcpy(tensor->values, values, numElements * getBytesForDtype(dtype));
-  tensor->grad = t_Zeros(ctx, shape, dtype);
 
   return tensor;
 }
@@ -362,7 +370,6 @@ Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dt
   for (tensor_size_t i = 0; i < tensor->size; i++) {
     VALUE_SET(tensor->values, i, randomValueForRange(minValue, maxValue, dtype));
   }
-  tensor->grad = t_Zeros(ctx, shape, dtype);
 
   return tensor;
 }
@@ -400,34 +407,8 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
     return NULL;
   }
 
-  // Create 1D shape
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  if (dims == NULL) {
-    return NULL;
-  }
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
-  if (multipliers == NULL) {
-    freeAlloc(ctx->memory, dims);
-    return NULL;
-  }
-  *dims = (dim_t)n;
-  *multipliers = 1;
-
-  Dim shape = {.dims = dims, .numOfDims = 1, .multipliers = multipliers};
-
-  // Allocate and fill values
-  Tensor *t = allocate(ctx->memory, sizeof(Tensor));
-  if (t == NULL) {
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, dims);
-    return NULL;
-  }
-  if (initTensor(ctx, t, shape, F32) != OK) {
-    freeAlloc(ctx->memory, t);
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, dims);
-    return NULL;
-  }
+  Tensor *t = t_Zeros(ctx, SHAPE1D(n), F32);
+  PANIC_IF(t == NULL, ALLOCATION_FAILED);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result = runCudaArange(ctx, start, step, t->values, n);
@@ -440,8 +421,6 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
   for (tensor_size_t i = 0; i < n; i++) {
     values[i] = start + (f32)i * step;
   }
-
-  t->grad = t_Zeros(ctx, shape, F32);
 
   return t;
 }

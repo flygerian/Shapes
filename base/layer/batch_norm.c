@@ -36,18 +36,30 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
   Tensor *betaContig = materializeTensorOnContext(ctx, beta);
 
-  Result res = init2DTensor(ctx, out, batchSize, numFeatures, x2d->dtype);
-  if (res != OK) {
+  Result res = OK;
+  Tensor *createdOut = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
+  if (createdOut == NULL) {
+    res = ERR_OUT_OF_MEMORY;
     goto cleanup;
   }
-  res = init1DTensor(ctx, mean, numFeatures, x2d->dtype);
-  if (res != OK) {
+  *out = *createdOut;
+  freeAlloc(ctx->memory, createdOut);
+
+  Tensor *createdMean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  if (createdMean == NULL) {
+    res = ERR_OUT_OF_MEMORY;
     goto cleanup;
   }
-  res = init1DTensor(ctx, variance, numFeatures, x2d->dtype);
-  if (res != OK) {
+  *mean = *createdMean;
+  freeAlloc(ctx->memory, createdMean);
+
+  Tensor *createdVariance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  if (createdVariance == NULL) {
+    res = ERR_OUT_OF_MEMORY;
     goto cleanup;
   }
+  *variance = *createdVariance;
+  freeAlloc(ctx->memory, createdVariance);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
@@ -207,18 +219,30 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
 
 
-  Result res = init2DTensor(ctx, dX, m, n, x2d->dtype);
-  if (res != OK) {
+  Result res = OK;
+  Tensor *createdDX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
+  if (createdDX == NULL) {
+    res = ERR_OUT_OF_MEMORY;
     goto cleanup;
   }
-  res = init1DTensor(ctx, dGamma, n, x2d->dtype);
-  if (res != OK) {
+  *dX = *createdDX;
+  freeAlloc(ctx->memory, createdDX);
+
+  Tensor *createdDGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  if (createdDGamma == NULL) {
+    res = ERR_OUT_OF_MEMORY;
     goto cleanup;
   }
-  res = init1DTensor(ctx, dBeta, n, x2d->dtype);
-  if (res != OK) {
+  *dGamma = *createdDGamma;
+  freeAlloc(ctx->memory, createdDGamma);
+
+  Tensor *createdDBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  if (createdDBeta == NULL) {
+    res = ERR_OUT_OF_MEMORY;
     goto cleanup;
   }
+  *dBeta = *createdDBeta;
+  freeAlloc(ctx->memory, createdDBeta);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;

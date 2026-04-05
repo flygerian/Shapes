@@ -249,12 +249,16 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
 
   phaseStartMs = opTimingNowMs();
   Tensor dX2d = {0};
-  res = initTensor(ctx, &dX2d, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
-  PANIC_IF (res != OK, res); 
+  Tensor *createdDX2d = t_Empty(ctx, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
+  PANIC_IF(createdDX2d == NULL, ALLOCATION_FAILED);
+  dX2d = *createdDX2d;
+  freeAlloc(ctx->memory, createdDX2d);
 
   Tensor dWRaw = {0};
-  res = initTensor(ctx, &dWRaw, swapLastDim(ctx, w->shape, inputSize), w->dtype);
-  PANIC_IF (res != OK, res); 
+  Tensor *createdDWRaw = t_Empty(ctx, swapLastDim(ctx, w->shape, inputSize), w->dtype);
+  PANIC_IF(createdDWRaw == NULL, ALLOCATION_FAILED);
+  dWRaw = *createdDWRaw;
+  freeAlloc(ctx->memory, createdDWRaw);
 
   logOpTiming(ctx, "DenseBackward", "alloc_outputs", phaseStartMs);
 

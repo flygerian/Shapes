@@ -117,8 +117,11 @@ Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor
     phaseStartMs = opTimingNowMs();
   }
 
-  Result res = initTensorLike(ctx, probs, logitsContig, logitsContig->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdProbs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
+  PANIC_IF(createdProbs == NULL, ALLOCATION_FAILED);
+  *probs = *createdProbs;
+  freeAlloc(ctx->memory, createdProbs);
+  Result res = OK;
   logHostOpTiming(ctx, "CrossEntropyForward", "init_probs", phaseStartMs);
 
   if (isCudaContext(ctx)) {
@@ -294,8 +297,11 @@ Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor
   Tensor *pContig = materializeTensorOnContext(ctx, probs);
   Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
 
-  Result res = initTensorLike(ctx, dLogits, pContig, pContig->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdDLogits = t_Zeros(ctx, pContig->shape, pContig->dtype);
+  PANIC_IF(createdDLogits == NULL, ALLOCATION_FAILED);
+  *dLogits = *createdDLogits;
+  freeAlloc(ctx->memory, createdDLogits);
+  Result res = OK;
 
   if (isCudaContext(ctx)) {
     res = runCudaCrossEntropyBackward(ctx, pContig->dtype, yContig->values, pContig->values,

@@ -58,13 +58,18 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
   dim_t outW = (w - kW) / stride + 1;
 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
+  Result res = OK;
 
-  Result res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
+  PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
+  *dest = *createdDest;
+  freeAlloc(ctx->memory, createdDest);
 
   if (indices != NULL) {
-    res = init4DTensor(ctx, indices, batch, outH, outW, channels, U64);
-    PANIC_IF(res != OK, res);
+    Tensor *createdIndices = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), U64);
+    PANIC_IF(createdIndices == NULL, ERR_OUT_OF_MEMORY);
+    *indices = *createdIndices;
+    freeAlloc(ctx->memory, createdIndices);
   }
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
@@ -206,8 +211,11 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  Result res = initTensorLike(ctx, dX, x, x->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
+  PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
+  *dX = *createdDX;
+  freeAlloc(ctx->memory, createdDX);
+  Result res = OK;
 
   res = clearPoolTarget(ctx, dX);
   PANIC_IF(res != OK, res);
@@ -318,8 +326,11 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
 
-  Result res = initTensorLike(ctx, dX, x, x->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
+  PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
+  *dX = *createdDX;
+  freeAlloc(ctx->memory, createdDX);
+  Result res = OK;
 
   res = clearPoolTarget(ctx, dX);
   PANIC_IF(res != OK, res);
@@ -376,9 +387,12 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
   dim_t channels = x->shape.dims[3];
 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
+  Result res = OK;
 
-  Result res = init4DTensor(ctx, dest, batch, outH, outW, channels, x->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
+  PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
+  *dest = *createdDest;
+  freeAlloc(ctx->memory, createdDest);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaAdaptiveAvgPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, outH,
@@ -473,8 +487,11 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
 
   Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  Result res = initTensorLike(ctx, dX, x, x->dtype);
-  PANIC_IF(res != OK, res);
+  Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
+  PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
+  *dX = *createdDX;
+  freeAlloc(ctx->memory, createdDX);
+  Result res = OK;
 
   res = clearPoolTarget(ctx, dX);
   PANIC_IF(res != OK, res);

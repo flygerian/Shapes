@@ -20,7 +20,7 @@ Array* Backward(Context *ctx, Tensor *tensor) {
   Array *graph = buildGraph(ctx, tensor);
 
   for (size_t i = graph->size; i-- > 0;) {
-    Tensor *node = Array_Idx(graph, i);
+    Tensor *node = *(Tensor **)Array_Idx(graph, i);
     if (node->backward != NULL) {
       node->backward(ctx, node);
     }
@@ -48,12 +48,12 @@ void topoSort(Array *graph, PtrSet *visited, Tensor *tensor) {
   PtrSet_Put(visited, tensor);
 
   if (tensor->inputs == NULL) {
-    Array_Append(graph, tensor);
+    Array_Append(graph, &tensor);
     return;
   }
 
   for (size_t i = 0; i < tensor->inputs->size; i++) {
-    Tensor *t = Array_Idx(tensor->inputs, i);
+    Tensor *t = *(Tensor **)Array_Idx(tensor->inputs, i);
     topoSort(graph, visited, t);
   }
 

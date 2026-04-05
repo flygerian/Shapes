@@ -1,6 +1,7 @@
 #include "common.h"
 #include "tensor/value.h"
 #include "test.h"
+#include "../../nn/nn.h"
 #include "../../shapes.h"
 #include "../../layer/im2col.h"
 #include "../../tensor/tensor_internal.h"
@@ -148,6 +149,36 @@ static void test_dense_backward_f32(void) {
 
   ASSERT(fabsf(dbVals[0] - 4.0f) < 1e-5f, "dB[0] mismatch");
   ASSERT(fabsf(dbVals[1] - 6.0f) < 1e-5f, "dB[1] mismatch");
+
+  freeMemory(mem);
+}
+
+static void test_backward_graph_preserves_tensor_pointers(void) {
+  Memory *mem = initializeMemory();
+  Context ctx = {.memory = mem};
+
+  Tensor *yGround = t_Zeros(&ctx, SHAPE1D(2), F32);
+  Tensor *yPred = t_Zeros(&ctx, SHAPE1D(2), F32);
+
+  f32 *yGroundVals = yGround->values;
+  f32 *yPredVals = yPred->values;
+  yGroundVals[0] = 1.0f;
+  yGroundVals[1] = -1.0f;
+  yPredVals[0] = 0.25f;
+  yPredVals[1] = -0.75f;
+
+  Tensor loss = loss_Mse(&ctx, yGround, yPred);
+  Array *graph = Backward(&ctx, &loss);
+
+  ASSERT_EQ(graph->size, 3, "Backward graph should contain leaves and loss");
+
+  Tensor *first = *(Tensor **)Array_Idx(graph, 0);
+  Tensor *second = *(Tensor **)Array_Idx(graph, 1);
+  Tensor *third = *(Tensor **)Array_Idx(graph, 2);
+
+  ASSERT_EQ(first, yGround, "Backward graph should preserve first input pointer");
+  ASSERT_EQ(second, yPred, "Backward graph should preserve second input pointer");
+  ASSERT_EQ(third, &loss, "Backward graph should preserve loss pointer");
 
   freeMemory(mem);
 }
@@ -1060,6 +1091,7 @@ static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) 
 void run_layer_tests(void) {
   test_dense_linear_forward_with_bias_f32();
   test_dense_backward_f32();
+  test_backward_graph_preserves_tensor_pointers();
   test_batch_norm_forward_training_f32();
   test_batch_norm_backward_f32();
   test_conv2d_forward_f32_single_channel();

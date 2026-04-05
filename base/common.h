@@ -52,7 +52,9 @@ typedef enum {
   OP_GREATER,
   OP_GREATER_OR_EQUAL,
   OP_LESS,
-  OP_LESS_OR_EQUAL
+  OP_LESS_OR_EQUAL,
+  OP_DENSE,
+  OP_MSE,
 } OpType;
 
 typedef enum {
@@ -129,6 +131,7 @@ typedef struct Tensor {
   bool isContigousCopy;
   struct Tensor *grad;
   Array *inputs;
+  OpType opType;
   void (*backward)(Context *ctx, struct Tensor *tensor);
 } Tensor;
 

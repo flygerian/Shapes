@@ -294,6 +294,10 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
     *dest =
         tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                    (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL}, NULL, t->isContigous);
+    dest->grad = t->grad;
+    dest->inputs = t->inputs;
+    dest->opType = t->opType;
+    dest->backward = t->backward;
     return OK;
   }
 
@@ -365,6 +369,10 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                      (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers},
                      newBoundary, t->isContigous);
+  dest->grad = t->grad;
+  dest->inputs = t->inputs;
+  dest->opType = t->opType;
+  dest->backward = t->backward;
 
   return OK;
 }
@@ -584,8 +592,10 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, outputDims, workingTarget->shape.numOfDims);
   outputShape.multipliers = snm.multipliers;
 
-  result = initTensor(ctx, dest, outputShape, workingTarget->dtype);
-  PANIC_IF(result != OK, result);
+  Tensor *createdDest = t_Empty(ctx, outputShape, workingTarget->dtype);
+  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
+  *dest = *createdDest;
+  freeAlloc(ctx->memory, createdDest);
 
   dim_t currDimSize = workingTarget->shape.dims[targetDim];
   dim_t newDimSize = outputShape.dims[targetDim];

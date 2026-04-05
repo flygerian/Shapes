@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
   Layer dense = nn_Dense(&ctx, 3, 10);
   Layer dense2 = nn_Dense(&ctx, 10, 1);
 
-  Optimzer sgd = nn_SGD(0.01);
+  Optimzer sgd = nn_SGD(1e-4);
 
   for (u8 epoch = 1; epoch <= 10; epoch++) {
     Tensor *out = dense.forward(&ctx, &dense.state, xs);
@@ -39,9 +39,13 @@ int main(int argc, char *argv[]) {
     Tensor logitsSqueezed;
     Squeeze(&ctx, logits, &logitsSqueezed);
     Tensor loss = loss_Mse(&ctx, ys, &logitsSqueezed);
+    
+    Value lossValue;
+    VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, lossValue.dtype);
+
+    fprintf(stdout, "Loss: %f \n", lossValue.as.f32);
 
     Array *graph = Backward(&ctx, &loss);
-    printf("Ran backward");
 
     Array *parameters = MakeArray(ctx.memory, sizeof(Tensor*), 4);
 
@@ -53,6 +57,8 @@ int main(int argc, char *argv[]) {
     sgd.step(&ctx, sgd.opts, parameters);
     ZeroGrad(&ctx, graph);
   }
+
+  DestroyContext(&ctx);
 
   return 0;
 }

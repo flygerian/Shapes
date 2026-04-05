@@ -93,53 +93,6 @@ Result clearTensorValues(Tensor *t) {
 }
 
 
-Result initTensorLike(Context *ctx, Tensor *dest, Tensor *src, Dtype dtype) {
-  u8 numDims = src->shape.numOfDims;
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
-  Result allocRes = ensureAllocated(dims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-
-  Result initRes = initTensor(ctx, dest, SHAPE(dims, numDims), dtype);
-  if (initRes != OK) {
-    freeAlloc(ctx->memory, dims);
-  }
-  return initRes;
-}
-
-Result init1DTensor(Context *ctx, Tensor *dest, dim_t size, Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  Result allocRes = ensureAllocated(dims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
-  allocRes = ensureAllocated(multipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, dims);
-    return allocRes;
-  }
-  dims[0] = size;
-  multipliers[0] = 1;
-
-  Result initRes =
-      initTensor(ctx, dest, (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers}, dtype);
-  if (initRes != OK) {
-    freeAlloc(ctx->memory, multipliers);
-    freeAlloc(ctx->memory, dims);
-  }
-  return initRes;
-}
-
-// TODO: Remove this. Should not exists
-Result init4DTensor(Context *ctx, Tensor *dest, dim_t d0, dim_t d1, dim_t d2, dim_t d3,
-                    Dtype dtype) {
-
-  Result initRes = initTensor(ctx, dest, SHAPE4D(d0, d1, d2, d3), dtype);
-  PANIC_IF(initRes != OK, initRes);   return initRes;
-}
-
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx) {
   u64 result = 0;
 
@@ -499,12 +452,6 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
       break;
     }
   }
-}
-
-Result init2DTensor(Context *ctx, Tensor *dest, dim_t rows, dim_t cols, Dtype dtype) {
-  Result initRes = initTensor(ctx, dest, SHAPE2D(rows, cols), dtype);
-  PANIC_IF(initRes != OK, initRes);   return initRes;
-  return initRes;
 }
 
 Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {

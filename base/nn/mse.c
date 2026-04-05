@@ -62,6 +62,7 @@ Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
   Array_Append(loss.inputs, &yGround);
   Array_Append(loss.inputs, &yPred);
 
+  loss.opType = OP_MSE;
   loss.backward = mseBackward;
   return loss;
 }

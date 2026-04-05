@@ -47,14 +47,15 @@ Tensor* denseForward(Context *ctx, LayerState *state, Tensor *tensor) {
     Array_Append(out->inputs, &biasRef);
   }
 
+  out->opType = OP_DENSE;
   out->backward = denseBackward;
   return out;
 }
 
 Array *layerParameters(Context *ctx, LayerState *state) {
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_Append(params, state->weights);
-  Array_Append(params, state->bias);
+  Array_Append(params, &state->weights);
+  Array_Append(params, &state->bias);
 
   return params;
 }
