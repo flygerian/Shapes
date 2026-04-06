@@ -1414,7 +1414,6 @@ static void test_add_basic_same_shape(void) {
   dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   // b = [[10,20,30], [40,50,60]]
@@ -1428,11 +1427,11 @@ static void test_add_basic_same_shape(void) {
     }
   }
 
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Add should return OK");
+  Tensor *dest = Add(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Add should return a tensor");
 
   // Verify: result = [[11,22,33], [44,55,66]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
   ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
   ASSERT_EQ(values[5], 66.0f, "result[1,2] should be 66");
@@ -1440,21 +1439,6 @@ static void test_add_basic_same_shape(void) {
   freeMemory(mem);
 }
 
-static void test_add_dtype_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  b->dtype = U32; // Force dtype mismatch
-  Tensor dest;
-
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "Add should return ERR_DTYPE_MISMATCH");
-
-  freeMemory(mem);
-}
 
 static void test_add_broadcast_row_vector(void) {
   Memory *mem = initializeMemory();
@@ -1465,7 +1449,6 @@ static void test_add_broadcast_row_vector(void) {
   dim_t dims_b[] = {1, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1483,11 +1466,11 @@ static void test_add_broadcast_row_vector(void) {
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Add with broadcast should return OK");
+  Tensor *dest = Add(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Add with broadcast should return a tensor");
 
   // result = [[11,22,33], [14,25,36]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
   ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
   ASSERT_EQ(values[2], 33.0f, "result[0,2] should be 33");
@@ -1507,7 +1490,6 @@ static void test_add_broadcast_col_vector(void) {
   dim_t dims_b[] = {2, 1};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1525,11 +1507,11 @@ static void test_add_broadcast_col_vector(void) {
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Add with col broadcast should return OK");
+  Tensor *dest = Add(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Add with col broadcast should return a tensor");
 
   // result = [[11,12,13], [24,25,26]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
   ASSERT_EQ(values[1], 12.0f, "result[0,1] should be 12");
   ASSERT_EQ(values[2], 13.0f, "result[0,2] should be 13");
@@ -1549,7 +1531,6 @@ static void test_add_broadcast_scalar(void) {
   dim_t dims_b[] = {1, 1};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1565,11 +1546,11 @@ static void test_add_broadcast_scalar(void) {
   Value vb = {.dtype = F32, .as.f32 = 100.0f};
   AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Add with scalar broadcast should return OK");
+  Tensor *dest = Add(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Add with scalar broadcast should return a tensor");
 
   // result = [[101,102,103], [104,105,106]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 101.0f, "result[0,0] should be 101");
   ASSERT_EQ(values[5], 106.0f, "result[1,2] should be 106");
 
@@ -1583,7 +1564,6 @@ static void test_add_1d_tensors(void) {
   dim_t dims[] = {4};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
-  Tensor dest;
 
   // a = [1, 2, 3, 4], b = [10, 20, 30, 40]
   for (u32 i = 0; i < 4; i++) {
@@ -1594,10 +1574,10 @@ static void test_add_1d_tensors(void) {
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, vb);
   }
 
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Add 1D should return OK");
+  Tensor *dest = Add(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Add 1D should return a tensor");
 
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 11.0f, "result[0] should be 11");
   ASSERT_EQ(values[1], 22.0f, "result[1] should be 22");
   ASSERT_EQ(values[2], 33.0f, "result[2] should be 33");
@@ -1614,7 +1594,6 @@ static void test_subtract_basic_same_shape(void) {
   dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
   // b = [[1,2,3], [4,5,6]]
@@ -1628,11 +1607,11 @@ static void test_subtract_basic_same_shape(void) {
     }
   }
 
-  Result r = Subtract(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Subtract should return OK");
+  Tensor *dest = Subtract(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Subtract should return a tensor");
 
   // result = [[9,18,27], [36,45,54]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 9.0f, "result[0,0] should be 9");
   ASSERT_EQ(values[1], 18.0f, "result[0,1] should be 18");
   ASSERT_EQ(values[5], 54.0f, "result[1,2] should be 54");
@@ -1648,7 +1627,6 @@ static void test_subtract_broadcast(void) {
   dim_t dims_b[] = {1, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
@@ -1666,11 +1644,11 @@ static void test_subtract_broadcast(void) {
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Subtract(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Subtract with broadcast should return OK");
+  Tensor *dest = Subtract(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Subtract with broadcast should return a tensor");
 
   // result = [[9,18,27], [39,48,57]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 9.0f, "result[0,0] should be 9");
   ASSERT_EQ(values[3], 39.0f, "result[1,0] should be 39");
 
@@ -1685,7 +1663,6 @@ static void test_multiply_basic_same_shape(void) {
   dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   // b = [[2,2,2], [3,3,3]]
@@ -1699,11 +1676,11 @@ static void test_multiply_basic_same_shape(void) {
     }
   }
 
-  Result r = Multiply(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Multiply should return OK");
+  Tensor *dest = Multiply(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Multiply should return a tensor");
 
   // result = [[2,4,6], [12,15,18]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 2.0f, "result[0,0] should be 2");
   ASSERT_EQ(values[2], 6.0f, "result[0,2] should be 6");
   ASSERT_EQ(values[3], 12.0f, "result[1,0] should be 12");
@@ -1720,7 +1697,6 @@ static void test_multiply_broadcast_scalar(void) {
   dim_t dims_b[] = {1, 1};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1736,11 +1712,11 @@ static void test_multiply_broadcast_scalar(void) {
   Value vb = {.dtype = F32, .as.f32 = 5.0f};
   AssignValueAt(&ctx, b, (Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
-  Result r = Multiply(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Multiply with scalar should return OK");
+  Tensor *dest = Multiply(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Multiply with scalar should return a tensor");
 
   // result = [[5,10,15], [20,25,30]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
   ASSERT_EQ(values[2], 15.0f, "result[0,2] should be 15");
   ASSERT_EQ(values[5], 30.0f, "result[1,2] should be 30");
@@ -1756,7 +1732,6 @@ static void test_divide_basic_same_shape(void) {
   dim_t dims[] = {2, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
   // b = [[2,4,5], [8,10,12]]
@@ -1770,11 +1745,11 @@ static void test_divide_basic_same_shape(void) {
     }
   }
 
-  Result r = Divide(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Divide should return OK");
+  Tensor *dest = Divide(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Divide should return a tensor");
 
   // result = [[5,5,5], [5,5,5]] (integer division)
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
   ASSERT_EQ(values[5], 5.0f, "result[1,2] should be 5");
 
@@ -1789,7 +1764,6 @@ static void test_divide_broadcast(void) {
   dim_t dims_b[] = {1, 3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
@@ -1808,11 +1782,11 @@ static void test_divide_broadcast(void) {
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Result r = Divide(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Divide with broadcast should return OK");
+  Tensor *dest = Divide(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Divide with broadcast should return a tensor");
 
   // result = [[5,4,3], [20,10,6]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
   ASSERT_EQ(values[1], 4.0f, "result[0,1] should be 4");
   ASSERT_EQ(values[2], 3.0f, "result[0,2] should be 3");
@@ -1832,7 +1806,6 @@ static void test_add_non_contiguous_transposed(void) {
   dim_t dims_b[] = {3, 2};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 2});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1858,12 +1831,12 @@ static void test_add_non_contiguous_transposed(void) {
   Transpose(&ctx, b, &bTransposed, (dim_t)0, (dim_t)1);
   ASSERT(!bTransposed.isContigous, "transposed tensor should be non-contiguous");
 
-  Result r = Add(&ctx, a, &bTransposed, &dest);
-  ASSERT_EQ(r, OK, "Add with transposed tensor should return OK");
+  Tensor *dest = Add(&ctx, a, &bTransposed);
+  ASSERT_NOT_NULL(dest, "Add with transposed tensor should return a tensor");
 
   // result = [[1+10, 2+30, 3+50], [4+20, 5+40, 6+60]]
   //        = [[11, 32, 53], [24, 45, 66]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
   ASSERT_EQ(values[1], 32.0f, "result[0,1] should be 32");
   ASSERT_EQ(values[2], 53.0f, "result[0,2] should be 53");
@@ -1883,7 +1856,6 @@ static void test_add_2d_plus_1d_broadcast(void) {
   dim_t dims_b[] = {3};
   Tensor *a = T_Zeros(&ctx, (Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = T_Zeros(&ctx, (Dim){.dims = dims_b, .numOfDims = 1});
-  Tensor dest;
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1901,11 +1873,11 @@ static void test_add_2d_plus_1d_broadcast(void) {
     AssignValueAt(&ctx, b, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
-  Result r = Add(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "Add 2D + 1D broadcast should return OK");
+  Tensor *dest = Add(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "Add 2D + 1D broadcast should return a tensor");
 
   // result = [[11,22,33], [14,25,36]]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
   ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
   ASSERT_EQ(values[2], 33.0f, "result[0,2] should be 33");
@@ -1924,18 +1896,17 @@ static void test_greater_than_basic_same_shape(void) {
   dim_t dims[] = {2, 3};
   Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
   Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-  Tensor dest;
 
   i8 aVals[] = {1, 4, 3, 2, 8, 0};
   i8 bVals[] = {2, 4, 1, 3, 7, 0};
   memcpy(a->values, aVals, sizeof(aVals));
   memcpy(b->values, bVals, sizeof(bVals));
 
-  Result r = GreaterThan(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "GreaterThan should return OK");
-  ASSERT_EQ(dest.dtype, BOOL, "GreaterThan should return BOOL dtype");
+  Tensor *dest = GreaterThan(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "GreaterThan should return a tensor");
+  ASSERT_EQ(dest->dtype, BOOL, "GreaterThan should return BOOL dtype");
 
-  bool *vals = (bool *)dest.values;
+  bool *vals = (bool *)dest->values;
   ASSERT_EQ(vals[0], false, "1 > 2 should be false");
   ASSERT_EQ(vals[1], false, "4 > 4 should be false");
   ASSERT_EQ(vals[2], true, "3 > 1 should be true");
@@ -1953,27 +1924,26 @@ static void test_greater_or_equal_and_less_or_equal(void) {
   dim_t dims[] = {3};
   Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
   Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
-  Tensor ge, le;
 
   i8 aVals[] = {1, 4, 5};
   i8 bVals[] = {2, 4, 3};
   memcpy(a->values, aVals, sizeof(aVals));
   memcpy(b->values, bVals, sizeof(bVals));
 
-  Result r = GreaterThanOrEqual(&ctx, a, b, &ge);
-  ASSERT_EQ(r, OK, "GreaterThanOrEqual should return OK");
-  r = LessThanOrEqual(&ctx, a, b, &le);
-  ASSERT_EQ(r, OK, "LessThanOrEqual should return OK");
+  Tensor *ge = GreaterThanOrEqual(&ctx, a, b);
+  ASSERT_NOT_NULL(ge, "GreaterThanOrEqual should return a tensor");
+  Tensor *le = LessThanOrEqual(&ctx, a, b);
+  ASSERT_NOT_NULL(le, "LessThanOrEqual should return a tensor");
 
-  ASSERT_EQ(ge.dtype, BOOL, "GreaterThanOrEqual should return BOOL dtype");
-  ASSERT_EQ(le.dtype, BOOL, "LessThanOrEqual should return BOOL dtype");
+  ASSERT_EQ(ge->dtype, BOOL, "GreaterThanOrEqual should return BOOL dtype");
+  ASSERT_EQ(le->dtype, BOOL, "LessThanOrEqual should return BOOL dtype");
 
-  bool *geVals = (bool *)ge.values;
+  bool *geVals = (bool *)ge->values;
   ASSERT_EQ(geVals[0], false, "1 >= 2 should be false");
   ASSERT_EQ(geVals[1], true, "4 >= 4 should be true");
   ASSERT_EQ(geVals[2], true, "5 >= 3 should be true");
 
-  bool *leVals = (bool *)le.values;
+  bool *leVals = (bool *)le->values;
   ASSERT_EQ(leVals[0], true, "1 <= 2 should be true");
   ASSERT_EQ(leVals[1], true, "4 <= 4 should be true");
   ASSERT_EQ(leVals[2], false, "5 <= 3 should be false");
@@ -1989,7 +1959,6 @@ static void test_less_than_broadcast_row_vector(void) {
   dim_t dimsB[] = {1, 3};
   Tensor *a = T_Int(&ctx, (Dim){.dims = dimsA, .numOfDims = 2}, 0);
   Tensor *b = T_Int(&ctx, (Dim){.dims = dimsB, .numOfDims = 2}, 0);
-  Tensor dest;
 
   // a = [[1,4,3], [5,2,7]], b = [[2,2,7]]
   i8 aVals[] = {1, 4, 3, 5, 2, 7};
@@ -1997,14 +1966,14 @@ static void test_less_than_broadcast_row_vector(void) {
   memcpy(a->values, aVals, sizeof(aVals));
   memcpy(b->values, bVals, sizeof(bVals));
 
-  Result r = LessThan(&ctx, a, b, &dest);
-  ASSERT_EQ(r, OK, "LessThan with broadcast should return OK");
-  ASSERT_EQ(dest.dtype, BOOL, "LessThan should return BOOL dtype");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "LessThan result should keep rank");
-  ASSERT_EQ(dest.shape.dims[0], 2, "LessThan result dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 3, "LessThan result dim 1 should be 3");
+  Tensor *dest = LessThan(&ctx, a, b);
+  ASSERT_NOT_NULL(dest, "LessThan with broadcast should return a tensor");
+  ASSERT_EQ(dest->dtype, BOOL, "LessThan should return BOOL dtype");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "LessThan result should keep rank");
+  ASSERT_EQ(dest->shape.dims[0], 2, "LessThan result dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 3, "LessThan result dim 1 should be 3");
 
-  bool *vals = (bool *)dest.values;
+  bool *vals = (bool *)dest->values;
   // [[1<2,4<2,3<7],[5<2,2<2,7<7]] => [[1,0,1],[0,0,0]]
   ASSERT_EQ(vals[0], true, "result[0,0] should be true");
   ASSERT_EQ(vals[1], false, "result[0,1] should be false");
@@ -2016,24 +1985,6 @@ static void test_less_than_broadcast_row_vector(void) {
   freeMemory(mem);
 }
 
-static void test_comparison_dtype_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2};
-  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
-  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
-  b->dtype = U8; // force mismatch
-  Tensor dest;
-
-  Result r = GreaterThan(&ctx, a, b, &dest);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "GreaterThan should fail on dtype mismatch");
-
-  r = LessThanOrEqual(&ctx, a, b, &dest);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "LessThanOrEqual should fail on dtype mismatch");
-
-  freeMemory(mem);
-}
 
 // Sum tests
 static void test_sum_dim0_2d(void) {
@@ -3347,8 +3298,7 @@ static void test_add_in_place_on_slice_view(void) {
   // ones = 2x2 tensor of all 1.0
   Tensor *ones = T_Float(&ctx, (Dim){.dims = (dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
 
-  Result r = AddInPlace(&ctx, &s, ones);
-  ASSERT_EQ(r, OK, "AddInPlace on slice view should succeed");
+  AddInPlace(&ctx, &s, ones);
 
   // Verify base tensor: unchanged regions outside slice
   ASSERT_EQ(((f32 *)x->values)[0], 0.0f, "x[0,0] should be unchanged (0)");
@@ -3595,14 +3545,13 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
 
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
-  Tensor dest;
 
   MoveTensors(&cudaCtx, 2, a, b);
 
-  Result res = Add(&cudaCtx, a, b, &dest);
-  ASSERT_EQ(res, OK, "CUDA Add should succeed with CPU inputs");
-  ASSERT(dest.context == &cudaCtx, "CUDA Add result should live on the CUDA context");
-  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 6, "CUDA Add result should match");
+  Tensor *dest = Add(&cudaCtx, a, b);
+  ASSERT_NOT_NULL(dest, "CUDA Add should succeed with CPU inputs");
+  ASSERT(dest->context == &cudaCtx, "CUDA Add result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 6, "CUDA Add result should match");
 
   DestroyContext(&cudaCtx);
 }
@@ -3622,13 +3571,12 @@ static void test_subtract_gpu_dispatch_basic(void) {
 
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
-  Tensor dest;
 
   MoveTensors(&cudaCtx, 2, a, b);
 
-  Result res = Subtract(&cudaCtx, a, b, &dest);
-  ASSERT_EQ(res, OK, "CUDA Subtract should succeed");
-  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 6, "CUDA Subtract result should match");
+  Tensor *dest = Subtract(&cudaCtx, a, b);
+  ASSERT_NOT_NULL(dest, "CUDA Subtract should succeed");
+  assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 6, "CUDA Subtract result should match");
 
   DestroyContext(&cudaCtx);
 }
@@ -3648,13 +3596,12 @@ static void test_multiply_gpu_dispatch_basic(void) {
 
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
-  Tensor dest;
 
   MoveTensors(&cudaCtx, 2, a, b);
 
-  Result res = Multiply(&cudaCtx, a, b, &dest);
-  ASSERT_EQ(res, OK, "CUDA Multiply should succeed");
-  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 6, "CUDA Multiply result should match");
+  Tensor *dest = Multiply(&cudaCtx, a, b);
+  ASSERT_NOT_NULL(dest, "CUDA Multiply should succeed");
+  assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 6, "CUDA Multiply result should match");
 
   DestroyContext(&cudaCtx);
 }
@@ -3677,8 +3624,7 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
 
   MoveTensors(&cudaCtx, 2, a, b);
 
-  Result res = AddInPlace(&cudaCtx, a, b);
-  ASSERT_EQ(res, OK, "CUDA AddInPlace should succeed");
+  AddInPlace(&cudaCtx, a, b);
   assertF32TensorMatchesOnCpu(&cudaCtx, a, expected, 6, "CUDA AddInPlace result should match");
 
   DestroyContext(&cudaCtx);
@@ -5447,7 +5393,6 @@ void run_tensor_tests(void) {
   test_reshape_after_transpose_copies();
   // Add tests
   test_add_basic_same_shape();
-  test_add_dtype_mismatch();
   test_add_broadcast_row_vector();
   test_add_broadcast_col_vector();
   test_add_broadcast_scalar();
@@ -5457,7 +5402,6 @@ void run_tensor_tests(void) {
   test_greater_than_basic_same_shape();
   test_greater_or_equal_and_less_or_equal();
   test_less_than_broadcast_row_vector();
-  test_comparison_dtype_mismatch();
   // Subtract tests
   test_subtract_basic_same_shape();
   test_subtract_broadcast();

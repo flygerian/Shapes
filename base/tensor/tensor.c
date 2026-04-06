@@ -53,12 +53,12 @@ Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
   return OK;
 }
 
-sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t* dims, u8 numOfDims) {
+sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 numOfDims) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(dims == NULL, ERR_NULL_PTR);
   PANIC_IF(numOfDims == 0, ERR_DIM_MISMATCH);
 
-  multiplier_t *multipliers  = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
+  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
   tensor_size_t size = 1;
 
   for (int x = numOfDims - 1; x >= 0; x--) {
@@ -66,7 +66,7 @@ sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t* dims, u8 num
     size *= dims[x];
   }
 
-  return (sizeAndMultipliers) {.multipliers = multipliers, .size = size};
+  return (sizeAndMultipliers){.multipliers = multipliers, .size = size};
 }
 
 bool isSameContext(Context *a, Context *b) {

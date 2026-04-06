@@ -378,8 +378,8 @@ static Result meanCuda(Context *ctx, Tensor *t, Tensor *dest) {
   *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
   PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
 
-  Result result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values, dest->values,
-                                   input->size);
+  Result result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
+                                   dest->values, input->size);
   freeIfContingousCopy(ctx, input);
   return result;
 }
@@ -460,8 +460,8 @@ static Result argMaxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   *dest = *createdDest;
   freeAlloc(ctx->memory, createdDest);
 
-  result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX, input->values, dest->values,
-                            numBeforeDim, numAfterDim, reduce);
+  result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX, input->values,
+                            dest->values, numBeforeDim, numAfterDim, reduce);
   freeIfContingousCopy(ctx, input);
   return result;
 }
@@ -499,11 +499,11 @@ Result ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad, Tensor *dest) 
   for (i32 i = 0; i < dimDiff; i++) {
     Tensor summed = {0};
     result = Sum(ctx, current, &summed, 0);
-    PANIC_IF(result != OK, result); 
+    PANIC_IF(result != OK, result);
 
     Tensor squeezed = {0};
     result = SqueezeDim(ctx, &summed, &squeezed, 0);
-    PANIC_IF(result != OK, result); 
+    PANIC_IF(result != OK, result);
 
     *current = squeezed;
   }

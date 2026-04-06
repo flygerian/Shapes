@@ -10,7 +10,7 @@ typedef struct LayerState {
   void *additionalData;
 } LayerState;
 
-typedef Tensor* (*LayerForwardFn)(Context *ctx, LayerState *state, Tensor *tensor);
+typedef Tensor *(*LayerForwardFn)(Context *ctx, LayerState *state, Tensor *tensor);
 typedef Array *(*LayerParametersFn)(Context *ctx, LayerState *state);
 
 typedef struct Layer {
@@ -35,7 +35,7 @@ typedef struct Optimzer {
 Layer nn_Dense(Context *ctx, size_t inputSize, size_t outputSize);
 Optimzer nn_SGD(f32 learningRate);
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
-Array* Backward(Context *ctx, Tensor *tensor);
+Array *Backward(Context *ctx, Tensor *tensor);
 void ZeroGrad(Context *ctx, Array *graph);
 
 #endif

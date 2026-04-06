@@ -10,12 +10,11 @@
 Array *buildGraph(Context *ctx, Tensor *tensor);
 void topoSort(Array *graph, PtrSet *visited, Tensor *tensor);
 
-Array* Backward(Context *ctx, Tensor *tensor) {
+Array *Backward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   Tensor *ones = T_Float(ctx, SHAPE1D(1), 1);
-  Result result = AddInPlace(ctx, tensor->grad, ones);
-  PANIC_IF(result != OK, result);
+  AddInPlace(ctx, tensor->grad, ones);
 
   Array *graph = buildGraph(ctx, tensor);
 

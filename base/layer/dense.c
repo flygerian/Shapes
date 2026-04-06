@@ -104,7 +104,7 @@ static void logOpTiming(Context *ctx, const char *opName, const char *phase, dou
           opTimingNowMs() - startMs);
 }
 
-Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
+Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
   // w: [outputSize, inputSize]
@@ -159,8 +159,7 @@ Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
 
   if (withBias) {
     phaseStartMs = opTimingNowMs();
-    Result res = AddInPlace(ctx, out, b);
-    PANIC_IF(res != OK, res);
+    AddInPlace(ctx, out, b);
     logOpTiming(ctx, "DenseLinear", "bias_add", phaseStartMs);
   }
 
@@ -282,20 +281,14 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   if (res != OK) {
     goto cleanup;
   }
-  res = AddInPlace(ctx, dX, &dXReduced);
-  if (res != OK) {
-    goto cleanup;
-  }
+  AddInPlace(ctx, dX, &dXReduced);
 
   Tensor dWReduced = {0};
   res = ReduceBroadcast(ctx, w, &dWRaw, &dWReduced);
   if (res != OK) {
     goto cleanup;
   }
-  res = AddInPlace(ctx, dW, &dWReduced);
-  if (res != OK) {
-    goto cleanup;
-  }
+  AddInPlace(ctx, dW, &dWReduced);
 
   if (dB != NULL) {
     Tensor dBRaw = {0};
@@ -310,10 +303,7 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
       goto cleanup;
     }
 
-    res = AddInPlace(ctx, dB, &dBReduced);
-    if (res != OK) {
-      goto cleanup;
-    }
+    AddInPlace(ctx, dB, &dBReduced);
   }
 
   logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);

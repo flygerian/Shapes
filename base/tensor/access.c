@@ -117,11 +117,11 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
   for (u64 i = 0; i < workingIndices->size; i++) {
     Value idxVal;
     result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
-    PANIC_IF(result != OK, result); 
+    PANIC_IF(result != OK, result);
 
     dim_t idx = 0;
     result = indexValueToDim(idxVal, &idx);
-    PANIC_IF(result != OK, result); 
+    PANIC_IF(result != OK, result);
 
     dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = idx;
@@ -134,7 +134,7 @@ Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *de
                                  (char *)workingSource->values + srcOffset * bytesPerElem,
                                  (char *)dest->values + destOffset * bytesPerElem,
                                  sliceSize * bytesPerElem);
-    PANIC_IF(result != OK, result); 
+    PANIC_IF(result != OK, result);
     destOffset += sliceSize;
   }
 

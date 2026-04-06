@@ -75,7 +75,7 @@ bool areBroadcastable(Tensor *a, Tensor *b);
 TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
 
 bool isInvalidTensor(Tensor *t);
-sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t* dims, u8 numOfDims);
+sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 numOfDims);
 Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);

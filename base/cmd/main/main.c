@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     Tensor logitsSqueezed;
     Squeeze(&ctx, logits, &logitsSqueezed);
     Tensor loss = loss_Mse(&ctx, ys, &logitsSqueezed);
-    
+
     Value lossValue;
     VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, lossValue.dtype);
 
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 
     Array *graph = Backward(&ctx, &loss);
 
-    Array *parameters = MakeArray(ctx.memory, sizeof(Tensor*), 4);
+    Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 4);
 
     Array_Append(parameters, &dense.state.weights);
     Array_Append(parameters, &dense.state.bias);

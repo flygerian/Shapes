@@ -7,8 +7,8 @@
 #include <stdlib.h>
 
 Result Sgd(Context *ctx, Array *parameters, f32 learningRate) {
-  PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE); 
+  PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE);
 
   for (size_t i = 0; i < parameters->size; i++) {
     Tensor *p = *(Tensor **)Array_Idx(parameters, i);

@@ -460,14 +460,9 @@ static Result copyContiguousTensorIntoTensor(Context *srcCtx, Tensor *src, Tenso
   return OK;
 }
 
-static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (!areBroadcastable(a, b)) {
-    return ERR_DIM_MISMATCH;
-  }
+static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+  PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   TensorPair ops = {.a = a, .b = b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -476,7 +471,6 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
 
   Tensor *opA = materializeTensorOnContext(ctx, ops.a);
   Tensor *opB = materializeTensorOnContext(ctx, ops.b);
-
 
   Dim outputShape;
   if (opA->size > opB->size) {
@@ -502,29 +496,23 @@ static Result binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, Tensor *destinatio
 
   PANIC_IF(res != OK, res);
 
-  *destination = *output;
-  freeAlloc(ctx->memory, output);
-
-  freeIfContingousCopy(ctx, opB);
+  freeIfContingousCopy(ctx, opA);
   freeIfContingousCopy(ctx, opB);
   cleanupPaddedPair(ctx, a, b, &ops);
-  return OK;
+  return output;
 }
 
-static Result binaryOpViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, Tensor *destination,
-                                     OpType opType) {
+static Tensor *binaryOpViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Context cpuCtx = {.memory = ctx->memory};
-  Result res = binaryOpCpu(&cpuCtx, a, b, destination, opType);
-  if (res != OK) {
-    return res;
-  }
-
-  return moveTensor(&cpuCtx, ctx, destination);
+  Tensor *result = binaryOpCpu(&cpuCtx, a, b, opType);
+  Result res = moveTensor(&cpuCtx, ctx, result);
+  PANIC_IF(res != OK, res);
+  return result;
 }
 
-static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
+static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   if (!isArithmeticOp(opType)) {
-    return ERR_NO_OP;
+    return binaryOpViaCpuFallback(ctx, a, b, opType);
   }
 
   TensorPair ops = {.a = a, .b = b};
@@ -540,46 +528,39 @@ static Result binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, Tensor *destinati
   Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
   Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
                                output->size);
-  if (res == OK) {
-    *destination = *output;
-    freeAlloc(ctx->memory, output);
-  } else {
+  if (res != OK) {
     FreeTensor(ctx, output);
+    freeIfContingousCopy(ctx, opA);
+    freeIfContingousCopy(ctx, opB);
+    cleanupPaddedPair(ctx, a, b, &ops);
+    return binaryOpViaCpuFallback(ctx, a, b, opType);
   }
 
   freeIfContingousCopy(ctx, opA);
   freeIfContingousCopy(ctx, opB);
   cleanupPaddedPair(ctx, a, b, &ops);
-
-  return res;
+  return output;
 }
 
-static Result binaryOp(Context *ctx, Tensor *a, Tensor *b, Tensor *destination, OpType opType) {
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (!areBroadcastable(a, b)) {
-    return ERR_DIM_MISMATCH;
-  }
-
+static Tensor *binaryOp(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   DeviceType deviceType = ctx->device == NULL ? CPU : ctx->device->type;
 
   switch (deviceType) {
-    case CUDA: return binaryOpCuda(ctx, a, b, destination, opType);
+    case CUDA: return binaryOpCuda(ctx, a, b, opType);
     case CPU:
-    default: return binaryOpCpu(ctx, a, b, destination, opType);
+    default: return binaryOpCpu(ctx, a, b, opType);
   }
 }
 
-Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_ADD);
+Tensor *Add(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_ADD);
 }
 
-static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-
+static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Tensor *opB = b;
   Tensor *paddedB = NULL;
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -596,7 +577,8 @@ static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType)
     if (paddedB != NULL) {
       FreeViewTensor(ctx, paddedB);
     }
-    return res;
+    PANIC_IF(res != OK, res);
+    return;
   }
 
   dim_t currentCoord[a->shape.numOfDims];
@@ -635,22 +617,14 @@ static Result inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType)
   if (paddedB != NULL) {
     FreeViewTensor(ctx, paddedB);
   }
-
-  return OK;
 }
 
-static Result inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  if (!isArithmeticOp(opType) || !a->isContigous || a->isView || !isSameContext(a->context, ctx)) {
-    return ERR_NO_OP;
-  }
-
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (!areBroadcastable(a, b)) {
-    return ERR_DIM_MISMATCH;
-  }
+static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+  PANIC_IF(!isArithmeticOp(opType) || !a->isContigous || a->isView ||
+               !isSameContext(a->context, ctx),
+           ERR_NO_OP);
+  PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   Tensor *opB = b;
   Tensor *paddedB = NULL;
@@ -665,85 +639,76 @@ static Result inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType
   PANIC_IF(!areTensorsSameShape(a, opB), ERR_DTYPE_MISMATCH);
 
   Result res = runCudaBinaryOp(ctx, a->dtype, opType, a->values, opB->values, a->values, a->size);
+  PANIC_IF(res != OK, res);
 
   freeIfContingousCopy(ctx, opB);
   if (paddedB != NULL) {
     FreeViewTensor(ctx, paddedB);
   }
-
-  return res;
 }
 
 
-static Result inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
-
   PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:
       PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims,
                ERR_DTYPE_MISMATCH);
-      return inPlaceBinopCuda(ctx, a, b, opType);
+      inPlaceBinopCuda(ctx, a, b, opType);
+      return;
     case CPU:
-    default: return inPlaceBinopCpu(ctx, a, b, opType);
+    default: inPlaceBinopCpu(ctx, a, b, opType);
   }
 }
 
-Result AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
-  return inPlaceBinop(ctx, a, b, OP_ADD);
+void AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  inPlaceBinop(ctx, a, b, OP_ADD);
 }
 
-Result SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) {
-  return inPlaceBinop(ctx, a, b, OP_SUBTRACT);
+void SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  inPlaceBinop(ctx, a, b, OP_SUBTRACT);
 }
 
-Result MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) {
-  return inPlaceBinop(ctx, a, b, OP_MULTIPLY);
+void MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) {
+  inPlaceBinop(ctx, a, b, OP_MULTIPLY);
 }
 
-Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_SUBTRACT);
+Tensor *Subtract(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_SUBTRACT);
 }
 
-Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_MULTIPLY);
+Tensor *Multiply(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_MULTIPLY);
 }
 
-Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination) {
+Tensor *Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
   // Implement division as: numerator / denominator = numerator * (denominator^-1)
   // This automatically gets correct gradients through the computation graph!
 
   // Pow writes into dest by assigning a newly allocated tensor payload. Allocate only the
   // container struct here so we don't leak a preallocated payload on overwrite.
   Tensor *denom_inv = allocate(ctx->memory, sizeof(Tensor));
-  Result allocRes = ensureAllocated(denom_inv);
-  if (allocRes != OK) {
-    return allocRes;
-  }
+  PANIC_IF(denom_inv == NULL, ALLOCATION_FAILED);
   Result res = Pow(ctx, denominator, -1.0f, denom_inv);
-  if (res != OK) {
-    freeAlloc(ctx->memory, denom_inv);
-    return res;
-  }
-
-  // Compute numerator * denominator^-1
-  res = Multiply(ctx, numerator, denom_inv, destination);
+  PANIC_IF(res != OK, res);
+  Tensor *result = Multiply(ctx, numerator, denom_inv);
   FreeTensor(ctx, denom_inv);
-  return res;
+  return result;
 }
 
-Result GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_GREATER);
+Tensor *GreaterThan(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_GREATER);
 }
 
-Result GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_GREATER_OR_EQUAL);
+Tensor *GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_GREATER_OR_EQUAL);
 }
 
-Result LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_LESS);
+Tensor *LessThan(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_LESS);
 }
 
-Result LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination) {
-  return binaryOp(ctx, a, b, destination, OP_LESS_OR_EQUAL);
+Tensor *LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_LESS_OR_EQUAL);
 }

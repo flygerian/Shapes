@@ -10,5 +10,5 @@ void sgdStep(Context *ctx, OptimizerOpts opts, Array *parameters) {
 }
 
 Optimzer nn_SGD(f32 learningRate) {
-  return (Optimzer) {.step = sgdStep, .opts = (OptimizerOpts) {.learningRate = learningRate}};  
+  return (Optimzer){.step = sgdStep, .opts = (OptimizerOpts){.learningRate = learningRate}};
 }

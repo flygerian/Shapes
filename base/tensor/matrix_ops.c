@@ -103,7 +103,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDim.dims, newDim.numOfDims);
   void *values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * snm.size);
-  PANIC_IF(values == NULL, ALLOCATION_FAILED); 
+  PANIC_IF(values == NULL, ALLOCATION_FAILED);
 
   *result = (Tensor){.context = ctx,
                      .metadataMemory = ctx != NULL ? ctx->memory : NULL,

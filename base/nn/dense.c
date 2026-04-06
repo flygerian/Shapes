@@ -28,11 +28,11 @@ void denseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(result != OK, result);
 }
 
-Tensor* denseForward(Context *ctx, LayerState *state, Tensor *tensor) {
+Tensor *denseForward(Context *ctx, LayerState *state, Tensor *tensor) {
   PANIC_IF(ctx == NULL || state == NULL || tensor == NULL || state->weights == NULL,
            ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor* out = DenseLinear(ctx, tensor, state->weights, state->bias, state->bias != NULL);
+  Tensor *out = DenseLinear(ctx, tensor, state->weights, state->bias, state->bias != NULL);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);

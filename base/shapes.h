@@ -23,18 +23,18 @@ void freeOnCtx(Context *ctx, void *ptr);
 void MoveTensors(Context *destCtx, u8 numTensors, ...);
 
 // Binary Ops
-Result Add(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
-Result Subtract(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
-Result Divide(Context *ctx, Tensor *numerator, Tensor *denominator, Tensor *destination);
-Result Multiply(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
-Result GreaterThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
-Result GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
-Result LessThan(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
-Result LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b, Tensor *destination);
+Tensor *Add(Context *ctx, Tensor *a, Tensor *b);
+Tensor *Subtract(Context *ctx, Tensor *a, Tensor *b);
+Tensor *Divide(Context *ctx, Tensor *numerator, Tensor *denominator);
+Tensor *Multiply(Context *ctx, Tensor *a, Tensor *b);
+Tensor *GreaterThan(Context *ctx, Tensor *a, Tensor *b);
+Tensor *GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b);
+Tensor *LessThan(Context *ctx, Tensor *a, Tensor *b);
+Tensor *LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b);
 
-Result AddInPlace(Context *ctx, Tensor *a, Tensor *b);
-Result SubtractInPlace(Context *ctx, Tensor *a, Tensor *b);
-Result MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
+void AddInPlace(Context *ctx, Tensor *a, Tensor *b);
+void SubtractInPlace(Context *ctx, Tensor *a, Tensor *b);
+void MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
 Result GetAt(Tensor *t, Dim dim, Value *result);
@@ -91,7 +91,7 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
 Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
 
 // Layer ops
-Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
+Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
 Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
                      Tensor *dB);
 Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
@@ -140,7 +140,8 @@ Tensor *T_Zeros(Context *ctx, Dim shape);
 Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
 Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue);
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
-Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements, Dtype dtype);
+Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
+                               Dtype dtype);
 Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype);
 Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
 Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step);

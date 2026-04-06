@@ -75,4 +75,3 @@ void *Array_Idx(Array *slice, size_t idx) {
 
   return ARRAY_PTR_AT_IDX(slice, idx);
 }
-

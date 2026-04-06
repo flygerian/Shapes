@@ -341,7 +341,8 @@ Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
   return init;
 }
 
-Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements, Dtype dtype) {
+Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
+                               Dtype dtype) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(values == NULL, ERR_NULL_PTR);
   PANIC_IF(numElements == 0, ERR_NO_OP);
@@ -444,13 +445,13 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   outDims[outNumDims - 1] = numClasses;
 
   // Create output tensor filled with zeros
-  Tensor *out = T_Zeros(ctx, SHAPE(outDims, outNumDims)); 
+  Tensor *out = T_Zeros(ctx, SHAPE(outDims, outNumDims));
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result =
         runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);
     freeIfContingousCopy(ctx, source);
-    PANIC_IF(result != OK, result);     
+    PANIC_IF(result != OK, result);
     return out;
   }
 
@@ -460,7 +461,7 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   for (tensor_size_t i = 0; i < source->size; i++) {
     Value idxVal;
     Result readResult = readTensorValueAtFlatIndex(source, i, &idxVal);
-    PANIC_IF(readResult != OK, readResult); 
+    PANIC_IF(readResult != OK, readResult);
 
     // Convert index to i64 for bounds checking
     i64 classIdx = 0;
