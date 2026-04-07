@@ -23,33 +23,16 @@ static bool areBatchDimsBroadcastable(Tensor *a, Tensor *b) {
   return true;
 }
 
-Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
-  if (isInvalidTensor(a) || isInvalidTensor(b)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if ((a->shape.numOfDims < 2 || b->shape.numOfDims < 2)) {
-    return ERR_MATMUL_MIN_2D;
-  }
-
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (a->dtype != F32 && a->dtype != F64 && a->dtype != F16) {
-    return ERR_DTYPE_MISMATCH;
-  }
+Tensor *MatMul(Context *ctx, Tensor *a, Tensor *b) {
+  PANIC_IF(isInvalidTensor(a) || isInvalidTensor(b), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(a->shape.numOfDims < 2 || b->shape.numOfDims < 2, ERR_MATMUL_MIN_2D);
+  PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(a->dtype != F32 && a->dtype != F64 && a->dtype != F16, ERR_DTYPE_MISMATCH);
 
   dim_t innerDimA = a->shape.dims[a->shape.numOfDims - 1];
   dim_t innerDimB = b->shape.dims[b->shape.numOfDims - 2];
-
-  if (innerDimA != innerDimB) {
-    return ERR_MATMUL_INNER_DIM_MISMATCH;
-  }
-
-  if (!areBatchDimsBroadcastable(a, b)) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF(innerDimA != innerDimB, ERR_MATMUL_INNER_DIM_MISMATCH);
+  PANIC_IF(!areBatchDimsBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   TensorPair ops = {.a = a, .b = b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -66,45 +49,33 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   tensor_size_t batchSizeA, batchSizeB;
   dim_t batchDimIdx = opA->shape.numOfDims - 2;
   Result r = calculateNumElementsBeforeDim(opA, batchDimIdx, &batchSizeA);
-  if (r != OK) {
-    goto cleanup;
-  }
+  PANIC_IF(r != OK, r);
 
   r = calculateNumElementsBeforeDim(opB, batchDimIdx, &batchSizeB);
-  if (r != OK) {
-    goto cleanup;
-  }
+  PANIC_IF(r != OK, r);
 
   tensor_size_t batchSize = batchSizeA > batchSizeB ? batchSizeA : batchSizeB;
 
   Tensor *sentinel = batchSizeA >= batchSizeB ? opA : opB;
   Dim newDim = (Dim){.dims = allocate(ctx->memory, sizeof(dim_t) * sentinel->shape.numOfDims),
                      .numOfDims = sentinel->shape.numOfDims};
-
-  r = ensureAllocated(newDim.dims);
-  if (r != OK) {
-    goto cleanup;
-  }
+  PANIC_IF(newDim.dims == NULL, ALLOCATION_FAILED);
 
   r = getDimsBefore(ctx, sentinel, batchDimIdx, &newDim);
-  if (r != OK) {
-    goto cleanup;
-  }
+  PANIC_IF(r != OK, r);
 
   newDim.dims[newDim.numOfDims - 2] = m;
   newDim.dims[newDim.numOfDims - 1] = n;
 
   newDim.multipliers = allocate(ctx->memory, sizeof(multiplier_t) * newDim.numOfDims);
-  r = ensureAllocated(newDim.multipliers);
-  if (r != OK) {
-    freeAlloc(ctx->memory, newDim.dims);
-    goto cleanup;
-  }
+  PANIC_IF(newDim.multipliers == NULL, ALLOCATION_FAILED);
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDim.dims, newDim.numOfDims);
   void *values = allocateOnCtx(ctx, getBytesForDtype(opA->dtype) * snm.size);
   PANIC_IF(values == NULL, ALLOCATION_FAILED);
 
+  Tensor *result = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(result == NULL, ALLOCATION_FAILED);
   *result = (Tensor){.context = ctx,
                      .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                      .dtype = a->dtype,
@@ -126,32 +97,17 @@ Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
             B_batch, (int)n, false, C_batch, (int)n);
   }
 
-cleanup:
   freeIfContingousCopy(ctx, opA);
   freeIfContingousCopy(ctx, opB);
-  return r;
+  return result;
 }
 
-Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
-  if (isInvalidTensor(a) || isInvalidTensor(b)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (a->shape.numOfDims != 1 || b->shape.numOfDims != 1) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (a->size != b->size) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (a->dtype != b->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (a->dtype != F32 && a->dtype != F64 && a->dtype != F16) {
-    return ERR_DTYPE_MISMATCH;
-  }
+Tensor *Dot(Context *ctx, Tensor *a, Tensor *b) {
+  PANIC_IF(isInvalidTensor(a) || isInvalidTensor(b), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(a->shape.numOfDims != 1 || b->shape.numOfDims != 1, ERR_DIM_MISMATCH);
+  PANIC_IF(a->size != b->size, ERR_DIM_MISMATCH);
+  PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(a->dtype != F32 && a->dtype != F64 && a->dtype != F16, ERR_DTYPE_MISMATCH);
 
   Tensor *opA = materializeTensorOnContext(ctx, a);
   Tensor *opB = materializeTensorOnContext(ctx, b);
@@ -169,6 +125,8 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
 
   BLAS_DOT(a->dtype, (int)a->size, opA->values, opB->values, resVal);
 
+  Tensor *result = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(result == NULL, ALLOCATION_FAILED);
   *result = (Tensor){.context = ctx,
                      .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                      .dtype = a->dtype,
@@ -182,5 +140,5 @@ Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result) {
   freeIfContingousCopy(ctx, opA);
   freeIfContingousCopy(ctx, opB);
 
-  return OK;
+  return result;
 }

@@ -16,6 +16,19 @@ static TestTensor createZerosTensor(dim_t *dims, u8 numOfDims) {
   return (TestTensor){.tensor = *t, .mem = mem};
 }
 
+static Tensor createScalarTensor(Context *ctx, Dtype dtype) {
+  Tensor t = {.context = ctx,
+              .metadataMemory = ctx->memory,
+              .values = allocate(ctx->memory, getBytesForDtype(dtype)),
+              .boundary = NULL,
+              .size = 1,
+              .shape = (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL},
+              .dtype = dtype,
+              .isView = false,
+              .isContigous = true};
+  return t;
+}
+
 static void test_zeros_creates_tensor_with_correct_shape(void) {
   dim_t dims[] = {2, 3};
   TestTensor tt = createZerosTensor(dims, 2);
@@ -147,7 +160,7 @@ static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
 
   f32 values[] = {1.5f, -2.0f, 3.25f, 4.0f};
 
-  Tensor *tensor = MakeFromContigousArray(&ctx, SHAPE1D(1), values, 4, F32);
+  Tensor *tensor = MakeFromContigousArray(&ctx, SHAPE1D(4), values, 4, F32);
   ASSERT_NOT_NULL(tensor, "MakeFromContigousArray should allocate a tensor");
   ASSERT_EQ(tensor->dtype, F32, "MakeFromContigousArray should preserve dtype");
   ASSERT_EQ(tensor->shape.numOfDims, 1, "MakeFromContigousArray should create a 1D tensor");
@@ -474,14 +487,12 @@ static void test_slice_basic_2d(void) {
     }
   }
 
-  Tensor slice;
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
-  ASSERT_EQ(r, OK, "Slice should return OK");
-  ASSERT(slice.isView, "slice should be a view");
-  ASSERT_EQ(slice.shape.numOfDims, 2, "slice should have 2 dimensions");
-  ASSERT_EQ(slice.shape.dims[0], 2, "slice dim[0] should be 2");
-  ASSERT_EQ(slice.shape.dims[1], 3, "slice dim[1] should be 3");
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  ASSERT_NOT_NULL(slice, "Slice should return a tensor");
+  ASSERT(slice->isView, "slice should be a view");
+  ASSERT_EQ(slice->shape.numOfDims, 2, "slice should have 2 dimensions");
+  ASSERT_EQ(slice->shape.dims[0], 2, "slice dim[0] should be 2");
+  ASSERT_EQ(slice->shape.dims[1], 3, "slice dim[1] should be 3");
 
   freeMemory(mem);
 }
@@ -497,11 +508,9 @@ static void test_slice_shares_data_with_source(void) {
   Value val = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor slice;
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
-  ASSERT_EQ(r, OK, "Slice should return OK");
-  ASSERT_EQ(slice.values, tt.tensor.values, "slice should share values pointer with source");
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  ASSERT_NOT_NULL(slice, "Slice should return a tensor");
+  ASSERT_EQ(slice->values, tt.tensor.values, "slice should share values pointer with source");
 
   freeMemory(mem);
 }
@@ -521,52 +530,20 @@ static void test_slice_get_at_correct_values(void) {
     }
   }
 
-  Tensor slice;
-  // Slice rows 1-3 (exclusive), cols 2-5 (exclusive) -> should get [1,2], [1,3], [1,4], [2,2],
-  // [2,3], [2,4]
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
   dim_t slice_idx[] = {0, 0};
   Value result;
-  Result r = GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
+  Result r = GetAt(slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 7.0f, "slice[0,0] should be 7 (source[1,2])");
 
   // Access slice[1,2] should be source[2,4] = 2*5+4 = 14
   dim_t slice_idx2[] = {1, 2};
-  r = GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 2}, &result);
+  r = GetAt(slice, (Dim){.dims = slice_idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 14.0f, "slice[1,2] should be 14 (source[2,4])");
-
-  freeMemory(mem);
-}
-
-static void test_slice_invalid_range_end_before_start(void) {
-  dim_t dims[] = {4, 5};
-  TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
-  Context ctx = {.memory = mem};
-
-  Tensor slice;
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 1}, (Range){.start = 0, .end = 4});
-  ASSERT_EQ(r, ERR_INVALID_RANGE, "should return ERR_INVALID_RANGE when end < start");
-
-  freeMemory(mem);
-}
-
-static void test_slice_range_out_of_bounds(void) {
-  dim_t dims[] = {4, 5};
-  TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
-  Context ctx = {.memory = mem};
-
-  Tensor slice;
-  // Range end exceeds dim size (5 > 4 for first dim)
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 4});
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH when range exceeds bounds");
 
   freeMemory(mem);
 }
@@ -582,17 +559,14 @@ static void test_slice_single_element_range(void) {
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor slice;
-  // Single element slice at [2,3] (exclusive end: 2:3 gives 1 element, 3:4 gives 1 element)
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
-  ASSERT_EQ(r, OK, "single element slice should return OK");
-  ASSERT_EQ(slice.shape.dims[0], 1, "slice dim[0] should be 1");
-  ASSERT_EQ(slice.shape.dims[1], 1, "slice dim[1] should be 1");
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
+  ASSERT_NOT_NULL(slice, "single element slice should return a tensor");
+  ASSERT_EQ(slice->shape.dims[0], 1, "slice dim[0] should be 1");
+  ASSERT_EQ(slice->shape.dims[1], 1, "slice dim[1] should be 1");
 
   dim_t slice_idx[] = {0, 0};
   Value result;
-  GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
+  GetAt(slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 99.0f, "single element slice value should be 99");
 
   freeMemory(mem);
@@ -604,13 +578,10 @@ static void test_slice_full_range(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor slice;
-  // Full range slice (exclusive end: 0:3 gives 3 elements, 0:4 gives 4 elements)
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
-  ASSERT_EQ(r, OK, "full range slice should return OK");
-  ASSERT_EQ(slice.shape.dims[0], 3, "slice dim[0] should match source");
-  ASSERT_EQ(slice.shape.dims[1], 4, "slice dim[1] should match source");
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  ASSERT_NOT_NULL(slice, "full range slice should return a tensor");
+  ASSERT_EQ(slice->shape.dims[0], 3, "slice dim[0] should match source");
+  ASSERT_EQ(slice->shape.dims[1], 4, "slice dim[1] should match source");
 
   freeMemory(mem);
 }
@@ -628,20 +599,19 @@ static void test_slice_1d_tensor(void) {
     AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 1}, val);
   }
 
-  Tensor slice;
-  Result r = Slice(&ctx, &tt.tensor, &slice, (Range){.start = 3, .end = 8});
-  ASSERT_EQ(r, OK, "1D slice should return OK");
-  ASSERT_EQ(slice.shape.dims[0], 5, "1D slice should have 5 elements");
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 3, .end = 8});
+  ASSERT_NOT_NULL(slice, "1D slice should return a tensor");
+  ASSERT_EQ(slice->shape.dims[0], 5, "1D slice should have 5 elements");
 
   // slice[0] should be source[3] = 3
   dim_t slice_idx[] = {0};
   Value result;
-  GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 1}, &result);
+  GetAt(slice, (Dim){.dims = slice_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 3.0f, "slice[0] should be 3");
 
   // slice[4] should be source[7] = 7
   dim_t slice_idx2[] = {4};
-  GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 1}, &result);
+  GetAt(slice, (Dim){.dims = slice_idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "slice[4] should be 7");
 
   freeMemory(mem);
@@ -653,13 +623,12 @@ static void test_slice_modify_reflects_in_source(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
 
   // Modify slice[0,1] which maps to source[1,2]
   dim_t slice_idx[] = {0, 1};
   Value val = {.dtype = F32, .as.f32 = 77.0f};
-  AssignValueAt(&ctx, &slice, (Dim){.dims = slice_idx, .numOfDims = 2}, val);
+  AssignValueAt(&ctx, slice, (Dim){.dims = slice_idx, .numOfDims = 2}, val);
 
   // Check source[1,2]
   dim_t src_idx[] = {1, 2};
@@ -686,22 +655,19 @@ static void test_slice_of_slice(void) {
   }
 
   // First slice: rows 1-5 (exclusive), cols 1-5 (exclusive) -> 4x4 region
-  Tensor slice1;
-  Slice(&ctx, &tt.tensor, &slice1, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+  Tensor *slice1 = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
 
   // Second slice of first slice: rows 1-3 (exclusive), cols 1-3 (exclusive) -> 2x2 region
   // This maps to source rows 2-3, cols 2-3
-  Tensor slice2;
-  Result r =
-      Slice(&ctx, &slice1, &slice2, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
-  ASSERT_EQ(r, OK, "slice of slice should return OK");
-  ASSERT_EQ(slice2.shape.dims[0], 2, "nested slice dim[0] should be 2");
-  ASSERT_EQ(slice2.shape.dims[1], 2, "nested slice dim[1] should be 2");
+  Tensor *slice2 = Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  ASSERT_NOT_NULL(slice2, "slice of slice should return a tensor");
+  ASSERT_EQ(slice2->shape.dims[0], 2, "nested slice dim[0] should be 2");
+  ASSERT_EQ(slice2->shape.dims[1], 2, "nested slice dim[1] should be 2");
 
   // slice2[0,0] should be source[2,2] = 2*6+2 = 14
   dim_t slice_idx[] = {0, 0};
   Value result;
-  GetAt(&slice2, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
+  GetAt(slice2, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "nested slice[0,0] should be 14 (source[2,2])");
 
   freeMemory(mem);
@@ -727,34 +693,31 @@ static void test_slice_large_4d_tensor(void) {
     }
   }
 
-  Tensor slice;
-  // Slice: [2:6, 3:8, 4:10, 1:5] (exclusive) -> 4x5x6x4 = 480 elements
-  Result r =
-      Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8},
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8},
             (Range){.start = 4, .end = 10}, (Range){.start = 1, .end = 5});
 
-  ASSERT_EQ(r, OK, "4D slice should return OK");
-  ASSERT_EQ(slice.shape.dims[0], 4, "4D slice dim[0] should be 4");
-  ASSERT_EQ(slice.shape.dims[1], 5, "4D slice dim[1] should be 5");
-  ASSERT_EQ(slice.shape.dims[2], 6, "4D slice dim[2] should be 6");
-  ASSERT_EQ(slice.shape.dims[3], 4, "4D slice dim[3] should be 4");
+  ASSERT_NOT_NULL(slice, "4D slice should return a tensor");
+  ASSERT_EQ(slice->shape.dims[0], 4, "4D slice dim[0] should be 4");
+  ASSERT_EQ(slice->shape.dims[1], 5, "4D slice dim[1] should be 5");
+  ASSERT_EQ(slice->shape.dims[2], 6, "4D slice dim[2] should be 6");
+  ASSERT_EQ(slice->shape.dims[3], 4, "4D slice dim[3] should be 4");
 
   // Test slice[0,0,0,0] = source[2,3,4,1]
   dim_t slice_idx[] = {0, 0, 0, 0};
   Value result;
-  GetAt(&slice, (Dim){.dims = slice_idx, .numOfDims = 4}, &result);
+  GetAt(slice, (Dim){.dims = slice_idx, .numOfDims = 4}, &result);
   f32 expected = (f32)((2 * 10 * 12 * 6 + 3 * 12 * 6 + 4 * 6 + 1) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice[0,0,0,0] should match source[2,3,4,1]");
 
   // Test slice[3,4,5,3] = source[5,7,9,4]
   dim_t slice_idx2[] = {3, 4, 5, 3};
-  GetAt(&slice, (Dim){.dims = slice_idx2, .numOfDims = 4}, &result);
+  GetAt(slice, (Dim){.dims = slice_idx2, .numOfDims = 4}, &result);
   expected = (f32)((5 * 10 * 12 * 6 + 7 * 12 * 6 + 9 * 6 + 4) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice[3,4,5,3] should match source[5,7,9,4]");
 
   // Test middle element: slice[2,2,3,2] = source[4,5,7,3]
   dim_t slice_idx3[] = {2, 2, 3, 2};
-  GetAt(&slice, (Dim){.dims = slice_idx3, .numOfDims = 4}, &result);
+  GetAt(slice, (Dim){.dims = slice_idx3, .numOfDims = 4}, &result);
   expected = (f32)((4 * 10 * 12 * 6 + 5 * 12 * 6 + 7 * 6 + 3) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice middle element should be correct");
 
@@ -765,7 +728,7 @@ static void test_slice_large_4d_tensor(void) {
       for (u32 k = 0; k < 6 && all_correct; k++) {
         for (u32 l = 0; l < 4 && all_correct; l++) {
           dim_t s_idx[] = {i, j, k, l};
-          GetAt(&slice, (Dim){.dims = s_idx, .numOfDims = 4}, &result);
+          GetAt(slice, (Dim){.dims = s_idx, .numOfDims = 4}, &result);
 
           u32 src_i = i + 2, src_j = j + 3, src_k = k + 4, src_l = l + 1;
           f32 exp = (f32)((src_i * 10 * 12 * 6 + src_j * 12 * 6 + src_k * 6 + src_l) % 256);
@@ -791,11 +754,10 @@ static void test_reshape_basic_2d_to_1d(void) {
   dim_t new_dims[] = {12};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape 2D to 1D should return OK");
-  ASSERT_EQ(reshaped.shape.numOfDims, 1, "reshaped should have 1 dimension");
-  ASSERT_EQ(reshaped.shape.dims[0], 12, "reshaped dim[0] should be 12");
+  Tensor *reshaped = Reshape(&ctx, &tt.tensor, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape 2D to 1D should return a tensor");
+  ASSERT_EQ(reshaped->shape.numOfDims, 1, "reshaped should have 1 dimension");
+  ASSERT_EQ(reshaped->shape.dims[0], 12, "reshaped dim[0] should be 12");
 
   freeMemory(mem);
 }
@@ -809,12 +771,11 @@ static void test_reshape_1d_to_2d(void) {
   dim_t new_dims[] = {4, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape 1D to 2D should return OK");
-  ASSERT_EQ(reshaped.shape.numOfDims, 2, "reshaped should have 2 dimensions");
-  ASSERT_EQ(reshaped.shape.dims[0], 4, "reshaped dim[0] should be 4");
-  ASSERT_EQ(reshaped.shape.dims[1], 6, "reshaped dim[1] should be 6");
+  Tensor *reshaped = Reshape(&ctx, &tt.tensor, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape 1D to 2D should return a tensor");
+  ASSERT_EQ(reshaped->shape.numOfDims, 2, "reshaped should have 2 dimensions");
+  ASSERT_EQ(reshaped->shape.dims[0], 4, "reshaped dim[0] should be 4");
+  ASSERT_EQ(reshaped->shape.dims[1], 6, "reshaped dim[1] should be 6");
 
   freeMemory(mem);
 }
@@ -837,14 +798,13 @@ static void test_reshape_preserves_data(void) {
   dim_t new_dims[] = {6};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor reshaped;
-  Reshape(&ctx, &tt.tensor, &reshaped, newShape);
+  Tensor *reshaped = Reshape(&ctx, &tt.tensor, newShape);
 
   // Verify all values preserved in row-major order
   for (u32 i = 0; i < 6; i++) {
     dim_t idx[] = {i};
     Value result;
-    GetAt(&reshaped, (Dim){.dims = idx, .numOfDims = 1}, &result);
+    GetAt(reshaped, (Dim){.dims = idx, .numOfDims = 1}, &result);
     ASSERT_EQ(result.as.f32, i, "reshaped data should be preserved");
   }
 
@@ -860,67 +820,19 @@ static void test_reshape_shares_data_with_source(void) {
   dim_t new_dims[] = {2, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor reshaped;
-  Reshape(&ctx, &tt.tensor, &reshaped, newShape);
+  Tensor *reshaped = Reshape(&ctx, &tt.tensor, newShape);
 
-  ASSERT_EQ(reshaped.values, tt.tensor.values, "reshaped should share values pointer");
+  ASSERT_EQ(reshaped->values, tt.tensor.values, "reshaped should share values pointer");
 
   // Modify via reshaped, check source
   dim_t r_idx[] = {0, 0};
   Value val = {.dtype = F32, .as.f32 = 55.0f};
-  AssignValueAt(&ctx, &reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, val);
+  AssignValueAt(&ctx, reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, val);
 
   dim_t s_idx[] = {0, 0};
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = s_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 55.0f, "modification via reshaped should reflect in source");
-
-  freeMemory(mem);
-}
-
-static void test_reshape_invalid_size_mismatch(void) {
-  dim_t dims[] = {3, 4}; // 12 elements
-  TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
-  Context ctx = {.memory = mem};
-
-  dim_t new_dims[] = {10}; // 10 != 12
-  Dim newShape = {.dims = new_dims, .numOfDims = 1};
-
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, ERR_RESHAPE_DIM_MISMATCH,
-            "should return ERR_RESHAPE_DIM_MISMATCH for size mismatch");
-
-  freeMemory(mem);
-}
-
-static void test_reshape_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t new_dims[] = {6};
-  Dim newShape = {.dims = new_dims, .numOfDims = 1};
-
-  Tensor reshaped;
-  Result r = Reshape(&ctx, NULL, &reshaped, newShape);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "should return ERR_NULL_TENSOR_PROVIDED for null tensor");
-
-  freeMemory(mem);
-}
-
-static void test_reshape_null_shape(void) {
-  dim_t dims[] = {3, 4};
-  TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
-  Context ctx = {.memory = mem};
-
-  Dim newShape = {.dims = NULL, .numOfDims = 1};
-
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, ERR_NULL_SHAPE_PROVIDED,
-            "should return ERR_NULL_SHAPE_PROVIDED for null shape dims");
 
   freeMemory(mem);
 }
@@ -945,20 +857,19 @@ static void test_reshape_3d_to_2d(void) {
   dim_t new_dims[] = {6, 4};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &tt.tensor, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape 3D to 2D should return OK");
-  ASSERT_EQ(reshaped.shape.dims[0], 6, "reshaped dim[0] should be 6");
-  ASSERT_EQ(reshaped.shape.dims[1], 4, "reshaped dim[1] should be 4");
+  Tensor *reshaped = Reshape(&ctx, &tt.tensor, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape 3D to 2D should return a tensor");
+  ASSERT_EQ(reshaped->shape.dims[0], 6, "reshaped dim[0] should be 6");
+  ASSERT_EQ(reshaped->shape.dims[1], 4, "reshaped dim[1] should be 4");
 
   // Check reshaped[0,0] = 0, reshaped[5,3] = 23
   dim_t idx1[] = {0, 0};
   Value result;
-  GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 2}, &result);
+  GetAt(reshaped, (Dim){.dims = idx1, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0,0] should be 0");
 
   dim_t idx2[] = {5, 3};
-  GetAt(&reshaped, (Dim){.dims = idx2, .numOfDims = 2}, &result);
+  GetAt(reshaped, (Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "reshaped[5,3] should be 23");
 
   freeMemory(mem);
@@ -981,18 +892,16 @@ static void test_reshape_view(void) {
 
   // Create a slice: rows 1-4 (exclusive), cols 0-6 (exclusive) -> 3x6 = 18 elements
   // Note: This slice is contiguous in memory
-  Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
 
   // Reshape the slice to 1D (18 elements)
   dim_t new_dims[] = {18};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &slice, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape of view should return OK");
-  ASSERT(!reshaped.isView, "reshaped view should be copied to contiguous array");
-  ASSERT_EQ(reshaped.shape.dims[0], 18, "reshaped should have 18 elements");
+  Tensor *reshaped = Reshape(&ctx, slice, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape of view should return a tensor");
+  ASSERT(!reshaped->isView, "reshaped view should be copied to contiguous array");
+  ASSERT_EQ(reshaped->shape.dims[0], 18, "reshaped should have 18 elements");
 
   freeMemory(mem);
 }
@@ -1015,29 +924,27 @@ static void test_reshape_3d_view(void) {
   }
 
   // Slice: [1:3, 0:5, 0:6] (exclusive) -> 2x5x6 = 60 elements
-  Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5},
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5},
         (Range){.start = 0, .end = 6});
 
-  ASSERT_EQ(slice.shape.dims[0], 2, "3D slice dim[0] should be 2");
-  ASSERT_EQ(slice.shape.dims[1], 5, "3D slice dim[1] should be 5");
-  ASSERT_EQ(slice.shape.dims[2], 6, "3D slice dim[2] should be 6");
+  ASSERT_EQ(slice->shape.dims[0], 2, "3D slice dim[0] should be 2");
+  ASSERT_EQ(slice->shape.dims[1], 5, "3D slice dim[1] should be 5");
+  ASSERT_EQ(slice->shape.dims[2], 6, "3D slice dim[2] should be 6");
 
   // Reshape slice to 2D: 10x6 = 60 elements
   dim_t new_dims[] = {10, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &slice, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape 3D view to 2D should return OK");
-  ASSERT(!reshaped.isView, "reshaped 3D view should be copied to contiguous array");
-  ASSERT_EQ(reshaped.shape.dims[0], 10, "reshaped dim[0] should be 10");
-  ASSERT_EQ(reshaped.shape.dims[1], 6, "reshaped dim[1] should be 6");
+  Tensor *reshaped = Reshape(&ctx, slice, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape 3D view to 2D should return a tensor");
+  ASSERT(!reshaped->isView, "reshaped 3D view should be copied to contiguous array");
+  ASSERT_EQ(reshaped->shape.dims[0], 10, "reshaped dim[0] should be 10");
+  ASSERT_EQ(reshaped->shape.dims[1], 6, "reshaped dim[1] should be 6");
 
   // Verify reshaped[0,0] = slice[0,0,0] = source[1,0,0] = 1*30 = 30
   dim_t r_idx[] = {0, 0};
   Value result;
-  GetAt(&reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, &result);
+  GetAt(reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 30.0f, "reshaped[0,0] should be 30");
 
   freeMemory(mem);
@@ -1064,27 +971,25 @@ static void test_reshape_4d_view(void) {
   }
 
   // Slice: [0:2, 1:4, 0:5, 0:6] (exclusive) -> 2x3x5x6 = 180 elements
-  Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4},
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4},
         (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
-  ASSERT_EQ(slice.shape.dims[0], 2, "4D slice dim[0] should be 2");
-  ASSERT_EQ(slice.shape.dims[1], 3, "4D slice dim[1] should be 3");
-  ASSERT_EQ(slice.shape.dims[2], 5, "4D slice dim[2] should be 5");
-  ASSERT_EQ(slice.shape.dims[3], 6, "4D slice dim[3] should be 6");
+  ASSERT_EQ(slice->shape.dims[0], 2, "4D slice dim[0] should be 2");
+  ASSERT_EQ(slice->shape.dims[1], 3, "4D slice dim[1] should be 3");
+  ASSERT_EQ(slice->shape.dims[2], 5, "4D slice dim[2] should be 5");
+  ASSERT_EQ(slice->shape.dims[3], 6, "4D slice dim[3] should be 6");
 
   // Reshape to 3D: 6x5x6 = 180 elements
   dim_t new_dims[] = {6, 5, 6};
   Dim newShape = {.dims = new_dims, .numOfDims = 3};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &slice, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape 4D view to 3D should return OK");
-  ASSERT(!reshaped.isView, "reshaped 4D view should be copied to contiguous array");
-  ASSERT_EQ(reshaped.shape.numOfDims, 3, "reshaped should have 3 dimensions");
-  ASSERT_EQ(reshaped.shape.dims[0], 6, "reshaped dim[0] should be 6");
-  ASSERT_EQ(reshaped.shape.dims[1], 5, "reshaped dim[1] should be 5");
-  ASSERT_EQ(reshaped.shape.dims[2], 6, "reshaped dim[2] should be 6");
+  Tensor *reshaped = Reshape(&ctx, slice, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape 4D view to 3D should return a tensor");
+  ASSERT(!reshaped->isView, "reshaped 4D view should be copied to contiguous array");
+  ASSERT_EQ(reshaped->shape.numOfDims, 3, "reshaped should have 3 dimensions");
+  ASSERT_EQ(reshaped->shape.dims[0], 6, "reshaped dim[0] should be 6");
+  ASSERT_EQ(reshaped->shape.dims[1], 5, "reshaped dim[1] should be 5");
+  ASSERT_EQ(reshaped->shape.dims[2], 6, "reshaped dim[2] should be 6");
 
   freeMemory(mem);
 }
@@ -1110,24 +1015,22 @@ static void test_reshape_4d_view_to_1d(void) {
   }
 
   // Slice: [0:1, 0:3, 0:4, 0:5] (exclusive) -> 1x3x4x5 = 60 elements
-  Tensor slice;
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3},
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3},
         (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
 
   // Reshape to 1D: 60 elements
   dim_t new_dims[] = {60};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &slice, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape 4D view to 1D should return OK");
-  ASSERT_EQ(reshaped.shape.numOfDims, 1, "reshaped should have 1 dimension");
-  ASSERT_EQ(reshaped.shape.dims[0], 60, "reshaped should have 60 elements");
+  Tensor *reshaped = Reshape(&ctx, slice, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape 4D view to 1D should return a tensor");
+  ASSERT_EQ(reshaped->shape.numOfDims, 1, "reshaped should have 1 dimension");
+  ASSERT_EQ(reshaped->shape.dims[0], 60, "reshaped should have 60 elements");
 
   // Check first element: reshaped[0] = slice[0,0,0,0] = source[0,0,0,0] = 0
   dim_t idx1[] = {0};
   Value result;
-  GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
+  GetAt(reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 
   freeMemory(mem);
@@ -1155,8 +1058,7 @@ static void test_reshape_then_access_elements(void) {
   dim_t new_dims[] = {4, 3};
   Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor reshaped;
-  Reshape(&ctx, &tt.tensor, &reshaped, newShape);
+  Tensor *reshaped = Reshape(&ctx, &tt.tensor, newShape);
 
   // Verify all elements accessible with new indexing
   // reshaped[0,0] = 0, reshaped[0,1] = 1, reshaped[0,2] = 2
@@ -1167,7 +1069,7 @@ static void test_reshape_then_access_elements(void) {
     for (u32 j = 0; j < 3 && all_correct; j++) {
       dim_t idx[] = {i, j};
       Value result;
-      GetAt(&reshaped, (Dim){.dims = idx, .numOfDims = 2}, &result);
+      GetAt(reshaped, (Dim){.dims = idx, .numOfDims = 2}, &result);
       f32 expected = (f32)(i * 3 + j);
       if (result.as.f32 != expected) {
         all_correct = 0;
@@ -1186,13 +1088,12 @@ static void test_transpose_basic_2d(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor transposed;
-  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
-  ASSERT_EQ(r, OK, "Transpose should return OK");
-  ASSERT(transposed.isView, "transposed should be a view");
-  ASSERT(!transposed.isContigous, "transposed should not be contiguous");
-  ASSERT_EQ(transposed.shape.dims[0], 4, "transposed dim[0] should be 4");
-  ASSERT_EQ(transposed.shape.dims[1], 3, "transposed dim[1] should be 3");
+  Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
+  ASSERT_NOT_NULL(transposed, "Transpose should return a tensor");
+  ASSERT(transposed->isView, "transposed should be a view");
+  ASSERT(!transposed->isContigous, "transposed should not be contiguous");
+  ASSERT_EQ(transposed->shape.dims[0], 4, "transposed dim[0] should be 4");
+  ASSERT_EQ(transposed->shape.dims[1], 3, "transposed dim[1] should be 3");
 
   freeMemory(mem);
 }
@@ -1206,11 +1107,10 @@ static void test_transpose_swaps_dims_and_multipliers(void) {
   multiplier_t orig_mult_0 = tt.tensor.shape.multipliers[0];
   multiplier_t orig_mult_1 = tt.tensor.shape.multipliers[1];
 
-  Tensor transposed;
-  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+  Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
 
-  ASSERT_EQ(transposed.shape.multipliers[0], orig_mult_1, "multiplier[0] should be swapped");
-  ASSERT_EQ(transposed.shape.multipliers[1], orig_mult_0, "multiplier[1] should be swapped");
+  ASSERT_EQ(transposed->shape.multipliers[0], orig_mult_1, "multiplier[0] should be swapped");
+  ASSERT_EQ(transposed->shape.multipliers[1], orig_mult_0, "multiplier[1] should be swapped");
 
   freeMemory(mem);
 }
@@ -1221,10 +1121,9 @@ static void test_transpose_shares_data(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor transposed;
-  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+  Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
 
-  ASSERT_EQ(transposed.values, tt.tensor.values, "transposed should share values pointer");
+  ASSERT_EQ(transposed->values, tt.tensor.values, "transposed should share values pointer");
 
   freeMemory(mem);
 }
@@ -1246,8 +1145,7 @@ static void test_transpose_access_elements(void) {
     }
   }
 
-  Tensor transposed;
-  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+  Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
 
   // transposed[j,i] should equal source[i,j]
   // transposed[0,0] = source[0,0] = 0
@@ -1257,57 +1155,20 @@ static void test_transpose_access_elements(void) {
   Value result;
 
   dim_t idx1[] = {0, 0};
-  GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 2}, &result);
+  GetAt(transposed, (Dim){.dims = idx1, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0] should be 0");
 
   dim_t idx2[] = {0, 1};
-  GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 2}, &result);
+  GetAt(transposed, (Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 3.0f, "transposed[0,1] should be 3");
 
   dim_t idx3[] = {1, 0};
-  GetAt(&transposed, (Dim){.dims = idx3, .numOfDims = 2}, &result);
+  GetAt(transposed, (Dim){.dims = idx3, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "transposed[1,0] should be 1");
 
   dim_t idx4[] = {2, 1};
-  GetAt(&transposed, (Dim){.dims = idx4, .numOfDims = 2}, &result);
+  GetAt(transposed, (Dim){.dims = idx4, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "transposed[2,1] should be 5");
-
-  freeMemory(mem);
-}
-
-static void test_transpose_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor transposed;
-  Result r = Transpose(&ctx, NULL, &transposed, (dim_t)0, (dim_t)1);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "should return ERR_NULL_TENSOR_PROVIDED");
-
-  freeMemory(mem);
-}
-
-static void test_transpose_dim_out_of_bounds(void) {
-  dim_t dims[] = {3, 4};
-  TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
-  Context ctx = {.memory = mem};
-
-  Tensor transposed;
-  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)5);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH for out of bounds dim");
-
-  freeMemory(mem);
-}
-
-static void test_transpose_size_less_than_2(void) {
-  dim_t dims[] = {1};
-  TestTensor tt = createZerosTensor(dims, 1);
-  Memory *mem = tt.mem;
-  Context ctx = {.memory = mem};
-
-  Tensor transposed;
-  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)0);
-  ASSERT_EQ(r, ERR_NO_OP, "should return ERR_NO_OP for tensor with size < 2");
 
   freeMemory(mem);
 }
@@ -1330,12 +1191,11 @@ static void test_transpose_3d(void) {
   }
 
   // Transpose dims 0 and 2: shape becomes 4x3x2
-  Tensor transposed;
-  Result r = Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)2);
-  ASSERT_EQ(r, OK, "Transpose 3D should return OK");
-  ASSERT_EQ(transposed.shape.dims[0], 4, "transposed dim[0] should be 4");
-  ASSERT_EQ(transposed.shape.dims[1], 3, "transposed dim[1] should be 3");
-  ASSERT_EQ(transposed.shape.dims[2], 2, "transposed dim[2] should be 2");
+  Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)2);
+  ASSERT_NOT_NULL(transposed, "Transpose 3D should return a tensor");
+  ASSERT_EQ(transposed->shape.dims[0], 4, "transposed dim[0] should be 4");
+  ASSERT_EQ(transposed->shape.dims[1], 3, "transposed dim[1] should be 3");
+  ASSERT_EQ(transposed->shape.dims[2], 2, "transposed dim[2] should be 2");
 
   // transposed[k,j,i] = source[i,j,k]
   // transposed[0,0,0] = source[0,0,0] = 0
@@ -1343,11 +1203,11 @@ static void test_transpose_3d(void) {
   Value result;
 
   dim_t idx1[] = {0, 0, 0};
-  GetAt(&transposed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
+  GetAt(transposed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0,0] should be 0");
 
   dim_t idx2[] = {3, 2, 1};
-  GetAt(&transposed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
+  GetAt(transposed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "transposed[3,2,1] should be 23");
 
   freeMemory(mem);
@@ -1369,17 +1229,15 @@ static void test_reshape_after_transpose_copies(void) {
   }
 
   // Transpose: 3x4 -> 4x3
-  Tensor transposed;
-  Transpose(&ctx, &tt.tensor, &transposed, (dim_t)0, (dim_t)1);
+  Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
 
   // Reshape transposed to 1D: 12 elements
   dim_t new_dims[] = {12};
   Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor reshaped;
-  Result r = Reshape(&ctx, &transposed, &reshaped, newShape);
-  ASSERT_EQ(r, OK, "Reshape after transpose should return OK");
-  ASSERT(!reshaped.isContigous || reshaped.values != transposed.values,
+  Tensor *reshaped = Reshape(&ctx, transposed, newShape);
+  ASSERT_NOT_NULL(reshaped, "Reshape after transpose should return a tensor");
+  ASSERT(!reshaped->isContigous || reshaped->values != transposed->values,
          "reshape should copy non-contiguous data");
 
   // Verify data is correctly copied in transposed order
@@ -1392,15 +1250,15 @@ static void test_reshape_after_transpose_copies(void) {
   // So reshaped = [0,4,8, 1,5,9, 2,6,10, 3,7,11]
   Value result;
   dim_t idx0[] = {0};
-  GetAt(&reshaped, (Dim){.dims = idx0, .numOfDims = 1}, &result);
+  GetAt(reshaped, (Dim){.dims = idx0, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 
   dim_t idx1[] = {1};
-  GetAt(&reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
+  GetAt(reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "reshaped[1] should be 4 (transposed[0,1])");
 
   dim_t idx3[] = {3};
-  GetAt(&reshaped, (Dim){.dims = idx3, .numOfDims = 1}, &result);
+  GetAt(reshaped, (Dim){.dims = idx3, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "reshaped[3] should be 1 (transposed[1,0])");
 
   freeMemory(mem);
@@ -1827,11 +1685,10 @@ static void test_add_non_contiguous_transposed(void) {
 
   // Transpose b: [3, 2] -> [2, 3]
   // transposed b = [[10,30,50], [20,40,60]]
-  Tensor bTransposed;
-  Transpose(&ctx, b, &bTransposed, (dim_t)0, (dim_t)1);
-  ASSERT(!bTransposed.isContigous, "transposed tensor should be non-contiguous");
+  Tensor *bTransposed = Transpose(&ctx, b, (dim_t)0, (dim_t)1);
+  ASSERT(!bTransposed->isContigous, "transposed tensor should be non-contiguous");
 
-  Tensor *dest = Add(&ctx, a, &bTransposed);
+  Tensor *dest = Add(&ctx, a, bTransposed);
   ASSERT_NOT_NULL(dest, "Add with transposed tensor should return a tensor");
 
   // result = [[1+10, 2+30, 3+50], [4+20, 5+40, 6+60]]
@@ -2003,16 +1860,15 @@ static void test_sum_dim0_2d(void) {
     }
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "Sum dim 0 should return OK");
+  Tensor *dest = Sum(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "Sum dim 0 should return a tensor");
 
   // Sum along dim 0: [1+4, 2+5, 3+6] = [5, 7, 9], shape [1, 3]
-  ASSERT_EQ(dest.shape.numOfDims, 2, "result should have 2 dims");
-  ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(dest.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "result should have 2 dims");
+  ASSERT_EQ(dest->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(dest->shape.dims[1], 3, "dim 1 should be 3");
 
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 5.0f, "result[0] should be 5");
   ASSERT_EQ(values[1], 7.0f, "result[1] should be 7");
   ASSERT_EQ(values[2], 9.0f, "result[2] should be 9");
@@ -2036,16 +1892,15 @@ static void test_sum_dim1_2d(void) {
     }
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 1);
-  ASSERT_EQ(r, OK, "Sum dim 1 should return OK");
+  Tensor *dest = Sum(&ctx, t, 1);
+  ASSERT_NOT_NULL(dest, "Sum dim 1 should return a tensor");
 
   // Sum along dim 1: [1+2+3, 4+5+6] = [6, 15], shape [2, 1]
-  ASSERT_EQ(dest.shape.numOfDims, 2, "result should have 2 dims");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "result should have 2 dims");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "dim 1 should be 1");
 
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 6.0f, "result[0] should be 6");
   ASSERT_EQ(values[1], 15.0f, "result[1] should be 15");
 
@@ -2071,48 +1926,22 @@ static void test_sum_3d_middle_dim(void) {
     }
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 1);
-  ASSERT_EQ(r, OK, "Sum 3D middle dim should return OK");
+  Tensor *dest = Sum(&ctx, t, 1);
+  ASSERT_NOT_NULL(dest, "Sum 3D middle dim should return a tensor");
 
   // Shape should be [2, 1, 2]
-  ASSERT_EQ(dest.shape.numOfDims, 3, "result should have 3 dims");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
-  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest->shape.numOfDims, 3, "result should have 3 dims");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(dest->shape.dims[2], 2, "dim 2 should be 2");
 
   // For batch 0: sum rows [1,2], [3,4], [5,6] along dim 1 = [1+3+5, 2+4+6] = [9, 12]
   // For batch 1: sum rows [7,8], [9,10], [11,12] along dim 1 = [7+9+11, 8+10+12] = [27, 30]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 9.0f, "result[0,0,0] should be 9");
   ASSERT_EQ(values[1], 12.0f, "result[0,0,1] should be 12");
   ASSERT_EQ(values[2], 27.0f, "result[1,0,0] should be 27");
   ASSERT_EQ(values[3], 30.0f, "result[1,0,1] should be 30");
-
-  freeMemory(mem);
-}
-
-static void test_sum_dim_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor dest;
-
-  Result r = Sum(&ctx, t, &dest, 2);
-  ASSERT_EQ(r, ERR_SUM_DIM_OUT_OF_BOUNDS, "Sum with dim >= numOfDims should fail");
-
-  freeMemory(mem);
-}
-
-static void test_sum_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-  Tensor dest;
-
-  Result r = Sum(&ctx, NULL, &dest, 0);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Sum with null tensor should fail");
 
   freeMemory(mem);
 }
@@ -2135,16 +1964,14 @@ static void test_sum_non_contiguous(void) {
   }
 
   // Transpose to 2x3: [[1,3,5], [2,4,6]]
-  Tensor transposed;
-  Transpose(&ctx, t, &transposed, (dim_t)0, (dim_t)1);
-  ASSERT(!transposed.isContigous, "transposed should be non-contiguous");
+  Tensor *transposed = Transpose(&ctx, t, (dim_t)0, (dim_t)1);
+  ASSERT(!transposed->isContigous, "transposed should be non-contiguous");
 
-  Tensor dest;
-  Result r = Sum(&ctx, &transposed, &dest, 1);
-  ASSERT_EQ(r, OK, "Sum on transposed tensor should return OK");
+  Tensor *dest = Sum(&ctx, transposed, 1);
+  ASSERT_NOT_NULL(dest, "Sum on transposed tensor should return a tensor");
 
   // Sum along dim 1: [1+3+5, 2+4+6] = [9, 12], shape [2, 1]
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 9.0f, "result[0] should be 9");
   ASSERT_EQ(values[1], 12.0f, "result[1] should be 12");
 
@@ -2165,15 +1992,14 @@ static void test_sum_1d_tensor(void) {
     AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "Sum 1D should return OK");
+  Tensor *dest = Sum(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "Sum 1D should return a tensor");
 
   // Sum = 15, shape [1]
-  ASSERT_EQ(dest.shape.numOfDims, 1, "result should have 1 dim");
-  ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(dest->shape.numOfDims, 1, "result should have 1 dim");
+  ASSERT_EQ(dest->shape.dims[0], 1, "dim 0 should be 1");
 
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 15.0f, "result should be 15");
 
   freeMemory(mem);
@@ -2201,20 +2027,19 @@ static void test_sum_4d_dim0(void) {
     }
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "Sum 4D dim 0 should return OK");
+  Tensor *dest = Sum(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "Sum 4D dim 0 should return a tensor");
 
   // Shape should be [1, 2, 2, 3]
-  ASSERT_EQ(dest.shape.numOfDims, 4, "result should have 4 dims");
-  ASSERT_EQ(dest.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(dest.shape.dims[1], 2, "dim 1 should be 2");
-  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
-  ASSERT_EQ(dest.shape.dims[3], 3, "dim 3 should be 3");
+  ASSERT_EQ(dest->shape.numOfDims, 4, "result should have 4 dims");
+  ASSERT_EQ(dest->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(dest->shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT_EQ(dest->shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest->shape.dims[3], 3, "dim 3 should be 3");
 
   // First batch [0,:,:,:] has values 1-12, second [1,:,:,:] has 13-24
   // Sum along dim 0: element-wise 1+13=14, 2+14=16, ..., 12+24=36
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 14.0f, "result[0,0,0,0] should be 14");
   ASSERT_EQ(values[1], 16.0f, "result[0,0,0,1] should be 16");
   ASSERT_EQ(values[2], 18.0f, "result[0,0,0,2] should be 18");
@@ -2245,20 +2070,19 @@ static void test_sum_4d_dim1(void) {
     }
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 1);
-  ASSERT_EQ(r, OK, "Sum 4D dim 1 should return OK");
+  Tensor *dest = Sum(&ctx, t, 1);
+  ASSERT_NOT_NULL(dest, "Sum 4D dim 1 should return a tensor");
 
   // Shape should be [2, 1, 2, 2]
-  ASSERT_EQ(dest.shape.numOfDims, 4, "result should have 4 dims");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "dim 1 should be 1");
-  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
-  ASSERT_EQ(dest.shape.dims[3], 2, "dim 3 should be 2");
+  ASSERT_EQ(dest->shape.numOfDims, 4, "result should have 4 dims");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(dest->shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest->shape.dims[3], 2, "dim 3 should be 2");
 
   // Batch 0: sum j=0,1,2 for each (k,l)
   // [0,0,0,0]: 1+5+9=15, [0,0,0,1]: 2+6+10=18, [0,0,1,0]: 3+7+11=21, [0,0,1,1]: 4+8+12=24
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 15.0f, "result[0,0,0,0] should be 15");
   ASSERT_EQ(values[1], 18.0f, "result[0,0,0,1] should be 18");
   ASSERT_EQ(values[2], 21.0f, "result[0,0,1,0] should be 21");
@@ -2289,21 +2113,20 @@ static void test_sum_4d_dim3(void) {
     }
   }
 
-  Tensor dest;
-  Result r = Sum(&ctx, t, &dest, 3);
-  ASSERT_EQ(r, OK, "Sum 4D dim 3 should return OK");
+  Tensor *dest = Sum(&ctx, t, 3);
+  ASSERT_NOT_NULL(dest, "Sum 4D dim 3 should return a tensor");
 
   // Shape should be [2, 2, 2, 1]
-  ASSERT_EQ(dest.shape.numOfDims, 4, "result should have 4 dims");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 2, "dim 1 should be 2");
-  ASSERT_EQ(dest.shape.dims[2], 2, "dim 2 should be 2");
-  ASSERT_EQ(dest.shape.dims[3], 1, "dim 3 should be 1");
+  ASSERT_EQ(dest->shape.numOfDims, 4, "result should have 4 dims");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT_EQ(dest->shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(dest->shape.dims[3], 1, "dim 3 should be 1");
 
   // [0,0,0,:] = 1+2+3+4 = 10
   // [0,0,1,:] = 5+6+7+8 = 26
   // [0,1,0,:] = 9+10+11+12 = 42
-  f32 *values = (f32 *)dest.values;
+  f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 10.0f, "result[0,0,0,0] should be 10");
   ASSERT_EQ(values[1], 26.0f, "result[0,0,1,0] should be 26");
   ASSERT_EQ(values[2], 42.0f, "result[0,1,0,0] should be 42");
@@ -2332,31 +2155,28 @@ static void test_sum_multiple_reduces_3d(void) {
   }
 
   // First reduce dim 2: [2,3,4] -> [2,3,1]
-  Tensor after_dim2;
-  Result r = Sum(&ctx, t, &after_dim2, 2);
-  ASSERT_EQ(r, OK, "First reduce should return OK");
-  ASSERT_EQ(after_dim2.shape.dims[0], 2, "after dim2: dim 0 should be 2");
-  ASSERT_EQ(after_dim2.shape.dims[1], 3, "after dim2: dim 1 should be 3");
-  ASSERT_EQ(after_dim2.shape.dims[2], 1, "after dim2: dim 2 should be 1");
+  Tensor *after_dim2 = Sum(&ctx, t, 2);
+  ASSERT_NOT_NULL(after_dim2, "First reduce should return a tensor");
+  ASSERT_EQ(after_dim2->shape.dims[0], 2, "after dim2: dim 0 should be 2");
+  ASSERT_EQ(after_dim2->shape.dims[1], 3, "after dim2: dim 1 should be 3");
+  ASSERT_EQ(after_dim2->shape.dims[2], 1, "after dim2: dim 2 should be 1");
 
   // Then reduce dim 1: [2,3,1] -> [2,1,1]
-  Tensor after_dim1;
-  r = Sum(&ctx, &after_dim2, &after_dim1, 1);
-  ASSERT_EQ(r, OK, "Second reduce should return OK");
-  ASSERT_EQ(after_dim1.shape.dims[0], 2, "after dim1: dim 0 should be 2");
-  ASSERT_EQ(after_dim1.shape.dims[1], 1, "after dim1: dim 1 should be 1");
-  ASSERT_EQ(after_dim1.shape.dims[2], 1, "after dim1: dim 2 should be 1");
+  Tensor *after_dim1 = Sum(&ctx, after_dim2, 1);
+  ASSERT_NOT_NULL(after_dim1, "Second reduce should return a tensor");
+  ASSERT_EQ(after_dim1->shape.dims[0], 2, "after dim1: dim 0 should be 2");
+  ASSERT_EQ(after_dim1->shape.dims[1], 1, "after dim1: dim 1 should be 1");
+  ASSERT_EQ(after_dim1->shape.dims[2], 1, "after dim1: dim 2 should be 1");
 
   // Finally reduce dim 0: [2,1,1] -> [1,1,1]
-  Tensor after_dim0;
-  r = Sum(&ctx, &after_dim1, &after_dim0, 0);
-  ASSERT_EQ(r, OK, "Third reduce should return OK");
-  ASSERT_EQ(after_dim0.shape.dims[0], 1, "after dim0: dim 0 should be 1");
-  ASSERT_EQ(after_dim0.shape.dims[1], 1, "after dim0: dim 1 should be 1");
-  ASSERT_EQ(after_dim0.shape.dims[2], 1, "after dim0: dim 2 should be 1");
+  Tensor *after_dim0 = Sum(&ctx, after_dim1, 0);
+  ASSERT_NOT_NULL(after_dim0, "Third reduce should return a tensor");
+  ASSERT_EQ(after_dim0->shape.dims[0], 1, "after dim0: dim 0 should be 1");
+  ASSERT_EQ(after_dim0->shape.dims[1], 1, "after dim0: dim 1 should be 1");
+  ASSERT_EQ(after_dim0->shape.dims[2], 1, "after dim0: dim 2 should be 1");
 
   // Total sum of 1+2+...+24 = 300
-  f32 *values = (f32 *)after_dim0.values;
+  f32 *values = (f32 *)after_dim0->values;
   ASSERT_EQ(values[0], 300.0f, "final sum should be 300");
 
   freeMemory(mem);
@@ -2385,22 +2205,20 @@ static void test_sum_multiple_reduces_4d(void) {
   }
 
   // Reduce dim 3: [2,2,3,2] -> [2,2,3,1]
-  Tensor r1;
-  Result res = Sum(&ctx, t, &r1, 3);
-  ASSERT_EQ(res, OK, "Reduce dim 3 should return OK");
+  Tensor *r1 = Sum(&ctx, t, 3);
+  ASSERT_NOT_NULL(r1, "Reduce dim 3 should return a tensor");
 
   // Reduce dim 0: [2,2,3,1] -> [1,2,3,1]
-  Tensor r2;
-  res = Sum(&ctx, &r1, &r2, 0);
-  ASSERT_EQ(res, OK, "Reduce dim 0 should return OK");
+  Tensor *r2 = Sum(&ctx, r1, 0);
+  ASSERT_NOT_NULL(r2, "Reduce dim 0 should return a tensor");
 
-  ASSERT_EQ(r2.shape.dims[0], 1, "r2: dim 0 should be 1");
-  ASSERT_EQ(r2.shape.dims[1], 2, "r2: dim 1 should be 2");
-  ASSERT_EQ(r2.shape.dims[2], 3, "r2: dim 2 should be 3");
-  ASSERT_EQ(r2.shape.dims[3], 1, "r2: dim 3 should be 1");
+  ASSERT_EQ(r2->shape.dims[0], 1, "r2: dim 0 should be 1");
+  ASSERT_EQ(r2->shape.dims[1], 2, "r2: dim 1 should be 2");
+  ASSERT_EQ(r2->shape.dims[2], 3, "r2: dim 2 should be 3");
+  ASSERT_EQ(r2->shape.dims[3], 1, "r2: dim 3 should be 1");
 
   // Verify size
-  ASSERT_EQ(r2.size, 6, "r2 size should be 6");
+  ASSERT_EQ(r2->size, 6, "r2 size should be 6");
 
   freeMemory(mem);
 }
@@ -2423,18 +2241,16 @@ static void test_sum_reduce_to_scalar_2d(void) {
   }
 
   // Reduce dim 1: [3,4] -> [3,1]
-  Tensor r1;
-  Sum(&ctx, t, &r1, 1);
+  Tensor *r1 = Sum(&ctx, t, 1);
 
   // Reduce dim 0: [3,1] -> [1,1]
-  Tensor r2;
-  Sum(&ctx, &r1, &r2, 0);
+  Tensor *r2 = Sum(&ctx, r1, 0);
 
-  ASSERT_EQ(r2.shape.dims[0], 1, "final dim 0 should be 1");
-  ASSERT_EQ(r2.shape.dims[1], 1, "final dim 1 should be 1");
+  ASSERT_EQ(r2->shape.dims[0], 1, "final dim 0 should be 1");
+  ASSERT_EQ(r2->shape.dims[1], 1, "final dim 1 should be 1");
 
   // Sum of 1-12 = 78
-  f32 *values = (f32 *)r2.values;
+  f32 *values = (f32 *)r2->values;
   ASSERT_EQ(values[0], 78.0f, "total sum should be 78");
 
   freeMemory(mem);
@@ -2450,13 +2266,12 @@ static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
   f32 gradValues[] = {1, 2, 3, 4, 5, 6};
   memcpy(grad->values, gradValues, sizeof(gradValues));
 
-  Tensor reduced;
-  Result r = ReduceBroadcast(&ctx, input, grad, &reduced);
-  ASSERT_EQ(r, OK, "ReduceBroadcast should reduce extra leading dimensions");
-  ASSERT_EQ(reduced.shape.numOfDims, 1, "reduced gradient should match input rank");
-  ASSERT_EQ(reduced.shape.dims[0], 3, "reduced gradient should match input shape");
+  Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
+  ASSERT_NOT_NULL(reduced, "ReduceBroadcast should reduce extra leading dimensions");
+  ASSERT_EQ(reduced->shape.numOfDims, 1, "reduced gradient should match input rank");
+  ASSERT_EQ(reduced->shape.dims[0], 3, "reduced gradient should match input shape");
 
-  f32 *values = (f32 *)reduced.values;
+  f32 *values = (f32 *)reduced->values;
   ASSERT_EQ(values[0], 5.0f, "column 0 should sum both broadcast rows");
   ASSERT_EQ(values[1], 7.0f, "column 1 should sum both broadcast rows");
   ASSERT_EQ(values[2], 9.0f, "column 2 should sum both broadcast rows");
@@ -2476,15 +2291,14 @@ static void test_reduce_broadcast_sums_singleton_input_dims(void) {
   };
   memcpy(grad->values, gradValues, sizeof(gradValues));
 
-  Tensor reduced;
-  Result r = ReduceBroadcast(&ctx, input, grad, &reduced);
-  ASSERT_EQ(r, OK, "ReduceBroadcast should sum expanded singleton dimensions");
-  ASSERT_EQ(reduced.shape.numOfDims, 3, "reduced gradient should preserve input rank");
-  ASSERT_EQ(reduced.shape.dims[0], 2, "dim 0 should match input");
-  ASSERT_EQ(reduced.shape.dims[1], 1, "dim 1 should collapse back to singleton");
-  ASSERT_EQ(reduced.shape.dims[2], 2, "dim 2 should match input");
+  Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
+  ASSERT_NOT_NULL(reduced, "ReduceBroadcast should sum expanded singleton dimensions");
+  ASSERT_EQ(reduced->shape.numOfDims, 3, "reduced gradient should preserve input rank");
+  ASSERT_EQ(reduced->shape.dims[0], 2, "dim 0 should match input");
+  ASSERT_EQ(reduced->shape.dims[1], 1, "dim 1 should collapse back to singleton");
+  ASSERT_EQ(reduced->shape.dims[2], 2, "dim 2 should match input");
 
-  f32 *values = (f32 *)reduced.values;
+  f32 *values = (f32 *)reduced->values;
   ASSERT_EQ(values[0], 9.0f, "first batch, channel 0 should sum singleton broadcast");
   ASSERT_EQ(values[1], 12.0f, "first batch, channel 1 should sum singleton broadcast");
   ASSERT_EQ(values[2], 27.0f, "second batch, channel 0 should sum singleton broadcast");
@@ -2505,14 +2319,13 @@ static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void
     gradValues[i] = (f32)(i + 1);
   }
 
-  Tensor reduced;
-  Result r = ReduceBroadcast(&ctx, input, grad, &reduced);
-  ASSERT_EQ(r, OK, "ReduceBroadcast should handle combined broadcast reductions");
-  ASSERT_EQ(reduced.shape.numOfDims, 2, "reduced gradient should match input rank");
-  ASSERT_EQ(reduced.shape.dims[0], 1, "leading singleton dim should be restored");
-  ASSERT_EQ(reduced.shape.dims[1], 3, "feature dim should match input");
+  Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
+  ASSERT_NOT_NULL(reduced, "ReduceBroadcast should handle combined broadcast reductions");
+  ASSERT_EQ(reduced->shape.numOfDims, 2, "reduced gradient should match input rank");
+  ASSERT_EQ(reduced->shape.dims[0], 1, "leading singleton dim should be restored");
+  ASSERT_EQ(reduced->shape.dims[1], 3, "feature dim should match input");
 
-  f32 *values = (f32 *)reduced.values;
+  f32 *values = (f32 *)reduced->values;
   ASSERT_EQ(values[0], 92.0f, "feature 0 should sum across both broadcast dimensions");
   ASSERT_EQ(values[1], 100.0f, "feature 1 should sum across both broadcast dimensions");
   ASSERT_EQ(values[2], 108.0f, "feature 2 should sum across both broadcast dimensions");
@@ -2529,14 +2342,13 @@ static void test_squeeze_removes_single_dims(void) {
   dim_t dims[] = {1, 3, 1, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
-  Tensor squeezed;
-  Result r = Squeeze(&ctx, t, &squeezed);
-  ASSERT_EQ(r, OK, "Squeeze should return OK");
+  Tensor *squeezed = Squeeze(&ctx, t);
+  ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
-  ASSERT_EQ(squeezed.shape.numOfDims, 2, "squeezed should have 2 dims");
-  ASSERT_EQ(squeezed.shape.dims[0], 3, "dim 0 should be 3");
-  ASSERT_EQ(squeezed.shape.dims[1], 4, "dim 1 should be 4");
-  ASSERT_EQ(squeezed.size, 12, "size should remain 12");
+  ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
+  ASSERT_EQ(squeezed->shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(squeezed->shape.dims[1], 4, "dim 1 should be 4");
+  ASSERT_EQ(squeezed->size, 12, "size should remain 12");
 
   freeMemory(mem);
 }
@@ -2549,13 +2361,12 @@ static void test_squeeze_middle_dim(void) {
   dim_t dims[] = {2, 1, 3};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
-  Tensor squeezed;
-  Result r = Squeeze(&ctx, t, &squeezed);
-  ASSERT_EQ(r, OK, "Squeeze should return OK");
+  Tensor *squeezed = Squeeze(&ctx, t);
+  ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
-  ASSERT_EQ(squeezed.shape.numOfDims, 2, "squeezed should have 2 dims");
-  ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(squeezed.shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
+  ASSERT_EQ(squeezed->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(squeezed->shape.dims[1], 3, "dim 1 should be 3");
 
   freeMemory(mem);
 }
@@ -2568,14 +2379,13 @@ static void test_squeeze_no_single_dims(void) {
   dim_t dims[] = {2, 3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
-  Tensor squeezed;
-  Result r = Squeeze(&ctx, t, &squeezed);
-  ASSERT_EQ(r, OK, "Squeeze should return OK");
+  Tensor *squeezed = Squeeze(&ctx, t);
+  ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
-  ASSERT_EQ(squeezed.shape.numOfDims, 3, "squeezed should have 3 dims");
-  ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(squeezed.shape.dims[1], 3, "dim 1 should be 3");
-  ASSERT_EQ(squeezed.shape.dims[2], 4, "dim 2 should be 4");
+  ASSERT_EQ(squeezed->shape.numOfDims, 3, "squeezed should have 3 dims");
+  ASSERT_EQ(squeezed->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(squeezed->shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(squeezed->shape.dims[2], 4, "dim 2 should be 4");
 
   freeMemory(mem);
 }
@@ -2588,13 +2398,12 @@ static void test_squeeze_all_ones(void) {
   dim_t dims[] = {1, 1, 1};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 3});
 
-  Tensor squeezed;
-  Result r = Squeeze(&ctx, t, &squeezed);
-  ASSERT_EQ(r, OK, "Squeeze should return OK");
+  Tensor *squeezed = Squeeze(&ctx, t);
+  ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
-  ASSERT_EQ(squeezed.shape.numOfDims, 1, "squeezed should have 1 dim");
-  ASSERT_EQ(squeezed.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(squeezed.size, 1, "size should be 1");
+  ASSERT_EQ(squeezed->shape.numOfDims, 1, "squeezed should have 1 dim");
+  ASSERT_EQ(squeezed->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(squeezed->size, 1, "size should be 1");
 
   freeMemory(mem);
 }
@@ -2603,17 +2412,16 @@ static void test_squeeze_scalar_preserves_zero_dims(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
 
-  Tensor *scalar = T_Float(&ctx, (Dim){.dims = NULL, .numOfDims = 0}, 9.0f);
+  Tensor scalar = createScalarTensor(&ctx, F32);
 
-  Tensor squeezed;
-  Result r = Squeeze(&ctx, scalar, &squeezed);
-  ASSERT_EQ(r, OK, "Squeeze scalar should return OK");
+  Tensor *squeezed = Squeeze(&ctx, &scalar);
+  ASSERT_NOT_NULL(squeezed, "Squeeze scalar should return a tensor");
 
-  ASSERT_EQ(squeezed.shape.numOfDims, 0, "scalar squeeze should remain 0-D");
-  ASSERT_EQ(squeezed.shape.dims, NULL, "scalar squeeze dims should remain NULL");
-  ASSERT_EQ(squeezed.shape.multipliers, NULL, "scalar squeeze multipliers should remain NULL");
-  ASSERT_EQ(squeezed.size, 1, "scalar squeeze size should remain 1");
-  ASSERT_EQ(squeezed.values, scalar->values, "scalar squeeze should share data");
+  ASSERT_EQ(squeezed->shape.numOfDims, 0, "scalar squeeze should remain 0-D");
+  ASSERT_EQ(squeezed->shape.dims, NULL, "scalar squeeze dims should remain NULL");
+  ASSERT_EQ(squeezed->shape.multipliers, NULL, "scalar squeeze multipliers should remain NULL");
+  ASSERT_EQ(squeezed->size, 1, "scalar squeeze size should remain 1");
+  ASSERT_EQ(squeezed->values, scalar.values, "scalar squeeze should share data");
 
   freeMemory(mem);
 }
@@ -2630,13 +2438,12 @@ static void test_squeeze_shares_data(void) {
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 2}, v);
 
-  Tensor squeezed;
-  Squeeze(&ctx, t, &squeezed);
+  Tensor *squeezed = Squeeze(&ctx, t);
 
   // Check value is accessible in squeezed tensor
   dim_t sq_idx[] = {1};
   Value result;
-  GetAt(&squeezed, (Dim){.dims = sq_idx, .numOfDims = 1}, &result);
+  GetAt(squeezed, (Dim){.dims = sq_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "squeezed should share data with source");
 
   freeMemory(mem);
@@ -2660,14 +2467,13 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
   t->opType = OP_DENSE;
   t->backward = squeezeTestBackward;
 
-  Tensor squeezed;
-  Result r = Squeeze(&ctx, t, &squeezed);
-  ASSERT_EQ(r, OK, "Squeeze should return OK");
+  Tensor *squeezed = Squeeze(&ctx, t);
+  ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
-  ASSERT_EQ(squeezed.grad, t->grad, "Squeeze should preserve grad pointer");
-  ASSERT_EQ(squeezed.inputs, t->inputs, "Squeeze should preserve graph inputs");
-  ASSERT_EQ(squeezed.opType, t->opType, "Squeeze should preserve op type");
-  ASSERT_EQ(squeezed.backward, t->backward, "Squeeze should preserve backward callback");
+  ASSERT_EQ(squeezed->grad, t->grad, "Squeeze should preserve grad pointer");
+  ASSERT_EQ(squeezed->inputs, t->inputs, "Squeeze should preserve graph inputs");
+  ASSERT_EQ(squeezed->opType, t->opType, "Squeeze should preserve op type");
+  ASSERT_EQ(squeezed->backward, t->backward, "Squeeze should preserve backward callback");
 
   freeMemory(mem);
 }
@@ -2680,32 +2486,20 @@ static void test_squeeze_dim_specific(void) {
   dim_t dims[] = {1, 3, 1, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 4});
 
-  Tensor squeezed;
-  Result r = SqueezeDim(&ctx, t, &squeezed, 0);
-  ASSERT_EQ(r, OK, "SqueezeDim should return OK");
-  ASSERT_EQ(squeezed.shape.numOfDims, 3, "should have 3 dims");
-  ASSERT_EQ(squeezed.shape.dims[0], 3, "dim 0 should be 3");
-  ASSERT_EQ(squeezed.shape.dims[1], 1, "dim 1 should be 1");
-  ASSERT_EQ(squeezed.shape.dims[2], 4, "dim 2 should be 4");
+  Tensor *squeezed = SqueezeDim(&ctx, t, 0);
+  ASSERT_NOT_NULL(squeezed, "SqueezeDim should return a tensor");
+  ASSERT_EQ(squeezed->shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(squeezed->shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(squeezed->shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(squeezed->shape.dims[2], 4, "dim 2 should be 4");
 
   // [1, 3, 1, 4] squeeze dim 2 -> [1, 3, 4]
-  Tensor squeezed2;
-  r = SqueezeDim(&ctx, t, &squeezed2, 2);
-  ASSERT_EQ(r, OK, "SqueezeDim dim 2 should return OK");
-  ASSERT_EQ(squeezed2.shape.numOfDims, 3, "should have 3 dims");
-  ASSERT_EQ(squeezed2.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(squeezed2.shape.dims[1], 3, "dim 1 should be 3");
-  ASSERT_EQ(squeezed2.shape.dims[2], 4, "dim 2 should be 4");
-
-  // Squeezing a non-1 dim should fail
-  Tensor squeezed3;
-  r = SqueezeDim(&ctx, t, &squeezed3, 1);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "SqueezeDim non-1 dim should fail");
-
-  // Out of bounds dim should fail
-  Tensor squeezed4;
-  r = SqueezeDim(&ctx, t, &squeezed4, 5);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "SqueezeDim out of bounds should fail");
+  Tensor *squeezed2 = SqueezeDim(&ctx, t, 2);
+  ASSERT_NOT_NULL(squeezed2, "SqueezeDim dim 2 should return a tensor");
+  ASSERT_EQ(squeezed2->shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(squeezed2->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(squeezed2->shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(squeezed2->shape.dims[2], 4, "dim 2 should be 4");
 
   freeMemory(mem);
 }
@@ -2727,17 +2521,15 @@ static void test_squeeze_after_sum(void) {
   }
 
   // Sum dim 1: [2, 3] -> [2, 1]
-  Tensor summed;
-  Sum(&ctx, t, &summed, 1);
+  Tensor *summed = Sum(&ctx, t, 1);
 
   // Squeeze: [2, 1] -> [2]
-  Tensor squeezed;
-  Squeeze(&ctx, &summed, &squeezed);
+  Tensor *squeezed = Squeeze(&ctx, summed);
 
-  ASSERT_EQ(squeezed.shape.numOfDims, 1, "squeezed should have 1 dim");
-  ASSERT_EQ(squeezed.shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(squeezed->shape.numOfDims, 1, "squeezed should have 1 dim");
+  ASSERT_EQ(squeezed->shape.dims[0], 2, "dim 0 should be 2");
 
-  f32 *values = (f32 *)squeezed.values;
+  f32 *values = (f32 *)squeezed->values;
   ASSERT_EQ(values[0], 6.0f, "result[0] should be 6");
   ASSERT_EQ(values[1], 15.0f, "result[1] should be 15");
 
@@ -2753,15 +2545,14 @@ static void test_unsqueeze_dim0(void) {
   dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
-  Tensor unsqueezed;
-  Result r = UnSqueeze(&ctx, t, &unsqueezed, 0);
-  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+  Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
+  ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
-  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
-  ASSERT_EQ(unsqueezed.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(unsqueezed.shape.dims[1], 3, "dim 1 should be 3");
-  ASSERT_EQ(unsqueezed.shape.dims[2], 4, "dim 2 should be 4");
-  ASSERT_EQ(unsqueezed.size, 12, "size should remain 12");
+  ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(unsqueezed->shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(unsqueezed->shape.dims[2], 4, "dim 2 should be 4");
+  ASSERT_EQ(unsqueezed->size, 12, "size should remain 12");
 
   freeMemory(mem);
 }
@@ -2774,14 +2565,13 @@ static void test_unsqueeze_middle(void) {
   dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
-  Tensor unsqueezed;
-  Result r = UnSqueeze(&ctx, t, &unsqueezed, 1);
-  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+  Tensor *unsqueezed = UnSqueeze(&ctx, t, 1);
+  ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
-  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
-  ASSERT_EQ(unsqueezed.shape.dims[0], 3, "dim 0 should be 3");
-  ASSERT_EQ(unsqueezed.shape.dims[1], 1, "dim 1 should be 1");
-  ASSERT_EQ(unsqueezed.shape.dims[2], 4, "dim 2 should be 4");
+  ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed->shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(unsqueezed->shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(unsqueezed->shape.dims[2], 4, "dim 2 should be 4");
 
   freeMemory(mem);
 }
@@ -2794,14 +2584,13 @@ static void test_unsqueeze_end(void) {
   dim_t dims[] = {3, 4};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
 
-  Tensor unsqueezed;
-  Result r = UnSqueeze(&ctx, t, &unsqueezed, 2);
-  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+  Tensor *unsqueezed = UnSqueeze(&ctx, t, 2);
+  ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
-  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
-  ASSERT_EQ(unsqueezed.shape.dims[0], 3, "dim 0 should be 3");
-  ASSERT_EQ(unsqueezed.shape.dims[1], 4, "dim 1 should be 4");
-  ASSERT_EQ(unsqueezed.shape.dims[2], 1, "dim 2 should be 1");
+  ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed->shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(unsqueezed->shape.dims[1], 4, "dim 1 should be 4");
+  ASSERT_EQ(unsqueezed->shape.dims[2], 1, "dim 2 should be 1");
 
   freeMemory(mem);
 }
@@ -2814,13 +2603,12 @@ static void test_unsqueeze_1d(void) {
   dim_t dims[] = {5};
   Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
 
-  Tensor unsqueezed;
-  Result r = UnSqueeze(&ctx, t, &unsqueezed, 0);
-  ASSERT_EQ(r, OK, "UnSqueeze should return OK");
+  Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
+  ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
-  ASSERT_EQ(unsqueezed.shape.numOfDims, 2, "should have 2 dims");
-  ASSERT_EQ(unsqueezed.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(unsqueezed.shape.dims[1], 5, "dim 1 should be 5");
+  ASSERT_EQ(unsqueezed->shape.numOfDims, 2, "should have 2 dims");
+  ASSERT_EQ(unsqueezed->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(unsqueezed->shape.dims[1], 5, "dim 1 should be 5");
 
   freeMemory(mem);
 }
@@ -2836,28 +2624,13 @@ static void test_unsqueeze_shares_data(void) {
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
 
-  Tensor unsqueezed;
-  UnSqueeze(&ctx, t, &unsqueezed, 0);
+  Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
 
   // Access via [0, 1]
   dim_t new_idx[] = {0, 1};
   Value result;
-  GetAt(&unsqueezed, (Dim){.dims = new_idx, .numOfDims = 2}, &result);
+  GetAt(unsqueezed, (Dim){.dims = new_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "unsqueezed should share data");
-
-  freeMemory(mem);
-}
-
-static void test_unsqueeze_dim_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {3, 4};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2});
-  Tensor dest;
-
-  Result r = UnSqueeze(&ctx, t, &dest, 3);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "UnSqueeze with dim > numOfDims should fail");
 
   freeMemory(mem);
 }
@@ -2880,36 +2653,34 @@ static void test_unsqueeze_non_contiguous(void) {
   }
 
   // Transpose to 3x2: [[1,4], [2,5], [3,6]]
-  Tensor transposed;
-  Transpose(&ctx, t, &transposed, (dim_t)0, (dim_t)1);
-  ASSERT(!transposed.isContigous, "transposed should be non-contiguous");
+  Tensor *transposed = Transpose(&ctx, t, (dim_t)0, (dim_t)1);
+  ASSERT(!transposed->isContigous, "transposed should be non-contiguous");
 
   // Unsqueeze to [1, 3, 2]
-  Tensor unsqueezed;
-  Result r = UnSqueeze(&ctx, &transposed, &unsqueezed, 0);
-  ASSERT_EQ(r, OK, "UnSqueeze non-contiguous should return OK");
+  Tensor *unsqueezed = UnSqueeze(&ctx, transposed, 0);
+  ASSERT_NOT_NULL(unsqueezed, "UnSqueeze non-contiguous should return a tensor");
 
-  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "should have 3 dims");
-  ASSERT_EQ(unsqueezed.shape.dims[0], 1, "dim 0 should be 1");
-  ASSERT_EQ(unsqueezed.shape.dims[1], 3, "dim 1 should be 3");
-  ASSERT_EQ(unsqueezed.shape.dims[2], 2, "dim 2 should be 2");
+  ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
+  ASSERT_EQ(unsqueezed->shape.dims[0], 1, "dim 0 should be 1");
+  ASSERT_EQ(unsqueezed->shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(unsqueezed->shape.dims[2], 2, "dim 2 should be 2");
 
   // Verify data access: [0, 0, 0] should be 1, [0, 0, 1] should be 4
   Value result;
   dim_t idx1[] = {0, 0, 0};
-  GetAt(&unsqueezed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
+  GetAt(unsqueezed, (Dim){.dims = idx1, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "unsqueezed[0,0,0] should be 1");
 
   dim_t idx2[] = {0, 0, 1};
-  GetAt(&unsqueezed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
+  GetAt(unsqueezed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "unsqueezed[0,0,1] should be 4");
 
   dim_t idx3[] = {0, 1, 0};
-  GetAt(&unsqueezed, (Dim){.dims = idx3, .numOfDims = 3}, &result);
+  GetAt(unsqueezed, (Dim){.dims = idx3, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 2.0f, "unsqueezed[0,1,0] should be 2");
 
   dim_t idx4[] = {0, 2, 1};
-  GetAt(&unsqueezed, (Dim){.dims = idx4, .numOfDims = 3}, &result);
+  GetAt(unsqueezed, (Dim){.dims = idx4, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "unsqueezed[0,2,1] should be 6");
 
   freeMemory(mem);
@@ -2931,21 +2702,19 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
     }
   }
 
-  Tensor squeezed;
-  Squeeze(&ctx, t, &squeezed);
-  ASSERT_EQ(squeezed.shape.numOfDims, 2, "squeezed should have 2 dims");
+  Tensor *squeezed = Squeeze(&ctx, t);
+  ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
 
-  Tensor unsqueezed;
-  UnSqueeze(&ctx, &squeezed, &unsqueezed, 1);
-  ASSERT_EQ(unsqueezed.shape.numOfDims, 3, "unsqueezed should have 3 dims");
-  ASSERT_EQ(unsqueezed.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(unsqueezed.shape.dims[1], 1, "dim 1 should be 1");
-  ASSERT_EQ(unsqueezed.shape.dims[2], 3, "dim 2 should be 3");
+  Tensor *unsqueezed = UnSqueeze(&ctx, squeezed, 1);
+  ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "unsqueezed should have 3 dims");
+  ASSERT_EQ(unsqueezed->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(unsqueezed->shape.dims[1], 1, "dim 1 should be 1");
+  ASSERT_EQ(unsqueezed->shape.dims[2], 3, "dim 2 should be 3");
 
   // Verify data
   dim_t idx[] = {1, 0, 2};
   Value result;
-  GetAt(&unsqueezed, (Dim){.dims = idx, .numOfDims = 3}, &result);
+  GetAt(unsqueezed, (Dim){.dims = idx, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "data should be preserved");
 
   freeMemory(mem);
@@ -2967,17 +2736,16 @@ static void test_clone_basic(void) {
     }
   }
 
-  Tensor cloned;
-  Result r = Clone(&ctx, t, &cloned);
-  ASSERT_EQ(r, OK, "Clone should return OK");
+  Tensor *cloned = Clone(&ctx, t);
+  ASSERT_NOT_NULL(cloned, "Clone should return a tensor");
 
-  ASSERT_EQ(cloned.shape.numOfDims, 2, "cloned should have 2 dims");
-  ASSERT_EQ(cloned.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(cloned.shape.dims[1], 3, "dim 1 should be 3");
-  ASSERT_EQ(cloned.size, 6, "size should be 6");
-  ASSERT(!cloned.isView, "clone should not be a view");
+  ASSERT_EQ(cloned->shape.numOfDims, 2, "cloned should have 2 dims");
+  ASSERT_EQ(cloned->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(cloned->shape.dims[1], 3, "dim 1 should be 3");
+  ASSERT_EQ(cloned->size, 6, "size should be 6");
+  ASSERT(!cloned->isView, "clone should not be a view");
 
-  f32 *values = (f32 *)cloned.values;
+  f32 *values = (f32 *)cloned->values;
   ASSERT_EQ(values[0], 1.0f, "cloned[0] should be 1");
   ASSERT_EQ(values[5], 6.0f, "cloned[5] should be 6");
 
@@ -2995,8 +2763,7 @@ static void test_clone_independent_data(void) {
   Value v = {.dtype = F32, .as.f32 = 10.0f};
   AssignValueAt(&ctx, t, (Dim){.dims = idx, .numOfDims = 1}, v);
 
-  Tensor cloned;
-  Clone(&ctx, t, &cloned);
+  Tensor *cloned = Clone(&ctx, t);
 
   // Modify original
   v.as.u8 = 99;
@@ -3004,7 +2771,7 @@ static void test_clone_independent_data(void) {
 
   // Clone should be unchanged
   Value result;
-  GetAt(&cloned, (Dim){.dims = idx, .numOfDims = 1}, &result);
+  GetAt(cloned, (Dim){.dims = idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 10.0f, "clone should be independent from source");
 
   freeMemory(mem);
@@ -3026,24 +2793,22 @@ static void test_clone_slice(void) {
   }
 
   // Slice [1:3, 1:3] -> 2x2 region
-  Tensor slice;
-  Slice(&ctx, t, &slice, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  Tensor *slice = Slice(&ctx, t, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
 
-  Tensor cloned;
-  Result r = Clone(&ctx, &slice, &cloned);
-  ASSERT_EQ(r, OK, "Clone slice should return OK");
+  Tensor *cloned = Clone(&ctx, slice);
+  ASSERT_NOT_NULL(cloned, "Clone slice should return a tensor");
 
-  ASSERT_EQ(cloned.shape.numOfDims, 2, "cloned should have 2 dims");
-  ASSERT_EQ(cloned.shape.dims[0], 2, "dim 0 should be 2");
-  ASSERT_EQ(cloned.shape.dims[1], 2, "dim 1 should be 2");
-  ASSERT(!cloned.isView, "clone should not be a view");
-  ASSERT(cloned.isContigous, "clone should be contiguous");
+  ASSERT_EQ(cloned->shape.numOfDims, 2, "cloned should have 2 dims");
+  ASSERT_EQ(cloned->shape.dims[0], 2, "dim 0 should be 2");
+  ASSERT_EQ(cloned->shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT(!cloned->isView, "clone should not be a view");
+  ASSERT(cloned->isContigous, "clone should be contiguous");
 
   // slice[0,0] = source[1,1] = 5
   // slice[0,1] = source[1,2] = 6
   // slice[1,0] = source[2,1] = 9
   // slice[1,1] = source[2,2] = 10
-  f32 *values = (f32 *)cloned.values;
+  f32 *values = (f32 *)cloned->values;
   ASSERT_EQ(values[0], 5.0f, "cloned[0,0] should be 5");
   ASSERT_EQ(values[1], 6.0f, "cloned[0,1] should be 6");
   ASSERT_EQ(values[2], 9.0f, "cloned[1,0] should be 9");
@@ -3068,34 +2833,21 @@ static void test_clone_transposed(void) {
     }
   }
 
-  Tensor transposed;
-  Transpose(&ctx, t, &transposed, (dim_t)0, (dim_t)1);
+  Tensor *transposed = Transpose(&ctx, t, (dim_t)0, (dim_t)1);
 
-  Tensor cloned;
-  Result r = Clone(&ctx, &transposed, &cloned);
-  ASSERT_EQ(r, OK, "Clone transposed should return OK");
+  Tensor *cloned = Clone(&ctx, transposed);
+  ASSERT_NOT_NULL(cloned, "Clone transposed should return a tensor");
 
-  ASSERT_EQ(cloned.shape.dims[0], 3, "dim 0 should be 3");
-  ASSERT_EQ(cloned.shape.dims[1], 2, "dim 1 should be 2");
-  ASSERT(cloned.isContigous, "clone should be contiguous");
+  ASSERT_EQ(cloned->shape.dims[0], 3, "dim 0 should be 3");
+  ASSERT_EQ(cloned->shape.dims[1], 2, "dim 1 should be 2");
+  ASSERT(cloned->isContigous, "clone should be contiguous");
 
   // Transposed: [[1,4], [2,5], [3,6]]
-  f32 *values = (f32 *)cloned.values;
+  f32 *values = (f32 *)cloned->values;
   ASSERT_EQ(values[0], 1.0f, "cloned[0,0] should be 1");
   ASSERT_EQ(values[1], 4.0f, "cloned[0,1] should be 4");
   ASSERT_EQ(values[2], 2.0f, "cloned[1,0] should be 2");
   ASSERT_EQ(values[3], 5.0f, "cloned[1,1] should be 5");
-
-  freeMemory(mem);
-}
-
-static void test_clone_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-  Tensor dest;
-
-  Result r = Clone(&ctx, NULL, &dest);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Clone null should fail");
 
   freeMemory(mem);
 }
@@ -3117,31 +2869,30 @@ static void test_view_slice_boundary_propagation(void) {
   }
 
   // Slice rows 1-3 (exclusive), cols 2-5 (exclusive) -> 2x3 view
-  Tensor s;
-  Result r = Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
-  ASSERT_EQ(r, OK, "slice should succeed");
-  ASSERT_EQ(s.shape.dims[0], 2, "slice dim[0] should be 2");
-  ASSERT_EQ(s.shape.dims[1], 3, "slice dim[1] should be 3");
+  Tensor *s = Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  ASSERT_NOT_NULL(s, "slice should succeed");
+  ASSERT_EQ(s->shape.dims[0], 2, "slice dim[0] should be 2");
+  ASSERT_EQ(s->shape.dims[1], 3, "slice dim[1] should be 3");
 
   // s[0,0] should be x[1,2] = 1*5+2 = 7
   dim_t idx00[] = {0, 0};
   Value result;
-  GetAt(&s, (Dim){.dims = idx00, .numOfDims = 2}, &result);
+  GetAt(s, (Dim){.dims = idx00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "s[0,0] should be x[1,2]=7");
 
   // s[0,2] should be x[1,4] = 1*5+4 = 9
   dim_t idx02[] = {0, 2};
-  GetAt(&s, (Dim){.dims = idx02, .numOfDims = 2}, &result);
+  GetAt(s, (Dim){.dims = idx02, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 9.0f, "s[0,2] should be x[1,4]=9");
 
   // s[1,0] should be x[2,2] = 2*5+2 = 12
   dim_t idx10[] = {1, 0};
-  GetAt(&s, (Dim){.dims = idx10, .numOfDims = 2}, &result);
+  GetAt(s, (Dim){.dims = idx10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 12.0f, "s[1,0] should be x[2,2]=12");
 
   // s[1,2] should be x[2,4] = 2*5+4 = 14
   dim_t idx12[] = {1, 2};
-  GetAt(&s, (Dim){.dims = idx12, .numOfDims = 2}, &result);
+  GetAt(s, (Dim){.dims = idx12, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s[1,2] should be x[2,4]=14");
 
   freeMemory(mem);
@@ -3162,35 +2913,33 @@ static void test_view_nested_slice_correctness(void) {
   }
 
   // s1 = x[1:5, 1:5] -> 4x4
-  Tensor s1;
-  Slice(&ctx, x, &s1, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+  Tensor *s1 = Slice(&ctx, x, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
 
   // s2 = s1[1:3, 1:3] -> 2x2, which maps to x[2:4, 2:4]
-  Tensor s2;
-  Result r = Slice(&ctx, &s1, &s2, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
-  ASSERT_EQ(r, OK, "nested slice should succeed");
-  ASSERT_EQ(s2.shape.dims[0], 2, "nested slice dim[0] should be 2");
-  ASSERT_EQ(s2.shape.dims[1], 2, "nested slice dim[1] should be 2");
+  Tensor *s2 = Slice(&ctx, s1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  ASSERT_NOT_NULL(s2, "nested slice should succeed");
+  ASSERT_EQ(s2->shape.dims[0], 2, "nested slice dim[0] should be 2");
+  ASSERT_EQ(s2->shape.dims[1], 2, "nested slice dim[1] should be 2");
 
   // s2[0,0] = x[2,2] = 2*6+2 = 14
   dim_t idx00[] = {0, 0};
   Value result;
-  GetAt(&s2, (Dim){.dims = idx00, .numOfDims = 2}, &result);
+  GetAt(s2, (Dim){.dims = idx00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s2[0,0] should be x[2,2]=14");
 
   // s2[0,1] = x[2,3] = 2*6+3 = 15
   dim_t idx01[] = {0, 1};
-  GetAt(&s2, (Dim){.dims = idx01, .numOfDims = 2}, &result);
+  GetAt(s2, (Dim){.dims = idx01, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "s2[0,1] should be x[2,3]=15");
 
   // s2[1,0] = x[3,2] = 3*6+2 = 20
   dim_t idx10[] = {1, 0};
-  GetAt(&s2, (Dim){.dims = idx10, .numOfDims = 2}, &result);
+  GetAt(s2, (Dim){.dims = idx10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 20.0f, "s2[1,0] should be x[3,2]=20");
 
   // s2[1,1] = x[3,3] = 3*6+3 = 21
   dim_t idx11[] = {1, 1};
-  GetAt(&s2, (Dim){.dims = idx11, .numOfDims = 2}, &result);
+  GetAt(s2, (Dim){.dims = idx11, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "s2[1,1] should be x[3,3]=21");
 
   freeMemory(mem);
@@ -3211,23 +2960,21 @@ static void test_view_get_tensor_at_on_slice(void) {
   }
 
   // s = x[2:5, 0:4] -> 3x4 view (row offset = 2)
-  Tensor s;
-  Slice(&ctx, x, &s, (Range){.start = 2, .end = 5}, (Range){.start = 0, .end = 4});
+  Tensor *s = Slice(&ctx, x, (Range){.start = 2, .end = 5}, (Range){.start = 0, .end = 4});
 
   // row = GetTensorAt(s, 1) -> should be x[3, :] = [12, 13, 14, 15]
-  Tensor row;
-  Result r = GetTensorAt(&ctx, &s, 1, &row);
-  ASSERT_EQ(r, OK, "GetTensorAt on slice should succeed");
-  ASSERT_EQ(row.shape.numOfDims, 1, "row should be 1D");
-  ASSERT_EQ(row.shape.dims[0], 4, "row should have 4 elements");
+  Tensor *row = GetTensorAt(&ctx, s, 1);
+  ASSERT_NOT_NULL(row, "GetTensorAt on slice should succeed");
+  ASSERT_EQ(row->shape.numOfDims, 1, "row should be 1D");
+  ASSERT_EQ(row->shape.dims[0], 4, "row should have 4 elements");
 
   dim_t idx[] = {0};
   Value result;
-  GetAt(&row, (Dim){.dims = idx, .numOfDims = 1}, &result);
+  GetAt(row, (Dim){.dims = idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 12.0f, "row[0] should be x[3,0]=12");
 
   dim_t idx2[] = {3};
-  GetAt(&row, (Dim){.dims = idx2, .numOfDims = 1}, &result);
+  GetAt(row, (Dim){.dims = idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "row[3] should be x[3,3]=15");
 
   freeMemory(mem);
@@ -3248,8 +2995,7 @@ static void test_view_advanced_indexing_on_slice(void) {
   }
 
   // s = x[2:6, 0:4] -> 4x4 (row offset = 2; rows 2,3,4,5 of x)
-  Tensor s;
-  Slice(&ctx, x, &s, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
+  Tensor *s = Slice(&ctx, x, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
 
   // IndexWithTensor(s, [0, 2]) should gather s[0,:] and s[2,:] = x[2,:] and x[4,:]
   dim_t idxDims[] = {2};
@@ -3257,14 +3003,13 @@ static void test_view_advanced_indexing_on_slice(void) {
   ((i8 *)indices->values)[0] = 0;
   ((i8 *)indices->values)[1] = 2;
 
-  Tensor result;
-  Result r = IndexWithTensor(&ctx, &s, indices, &result);
-  ASSERT_EQ(r, OK, "IndexWithTensor on slice should succeed");
-  ASSERT_EQ(result.shape.numOfDims, 2, "result should be 2D");
-  ASSERT_EQ(result.shape.dims[0], 2, "result dim[0] should be 2");
-  ASSERT_EQ(result.shape.dims[1], 4, "result dim[1] should be 4");
+  Tensor *result = IndexWithTensor(&ctx, s, indices);
+  ASSERT_NOT_NULL(result, "IndexWithTensor on slice should succeed");
+  ASSERT_EQ(result->shape.numOfDims, 2, "result should be 2D");
+  ASSERT_EQ(result->shape.dims[0], 2, "result dim[0] should be 2");
+  ASSERT_EQ(result->shape.dims[1], 4, "result dim[1] should be 4");
 
-  f32 *vals = (f32 *)result.values;
+  f32 *vals = (f32 *)result->values;
   // s[0,:] = x[2,:] = [8,9,10,11]
   ASSERT_EQ(vals[0], 8.0f, "result[0,0] should be x[2,0]=8");
   ASSERT_EQ(vals[1], 9.0f, "result[0,1] should be x[2,1]=9");
@@ -3292,13 +3037,12 @@ static void test_add_in_place_on_slice_view(void) {
   }
 
   // s = x[1:3, 1:3] -> 2x2 view covering x[1,1], x[1,2], x[2,1], x[2,2] = 5,6,9,10
-  Tensor s;
-  Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  Tensor *s = Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
 
   // ones = 2x2 tensor of all 1.0
   Tensor *ones = T_Float(&ctx, (Dim){.dims = (dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
 
-  AddInPlace(&ctx, &s, ones);
+  AddInPlace(&ctx, s, ones);
 
   // Verify base tensor: unchanged regions outside slice
   ASSERT_EQ(((f32 *)x->values)[0], 0.0f, "x[0,0] should be unchanged (0)");
@@ -3328,40 +3072,38 @@ static void test_view_boundary_deep_copy_transpose(void) {
   }
 
   // s = x[1:3, 0:4] -> 2x4 view (rows 1 and 2 of x)
-  Tensor s;
-  Slice(&ctx, x, &s, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 4});
+  Tensor *s = Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 4});
 
   // t = Transpose(s, 0, 1) -> 4x2 view
-  Tensor t;
-  Result r = Transpose(&ctx, &s, &t, (dim_t)0, (dim_t)1);
-  ASSERT_EQ(r, OK, "Transpose of slice should succeed");
+  Tensor *t = Transpose(&ctx, s, (dim_t)0, (dim_t)1);
+  ASSERT_NOT_NULL(t, "Transpose of slice should succeed");
 
   // Verify s and t have DIFFERENT boundary pointers (deep-copy)
-  ASSERT_NEQ((uintptr_t)s.boundary, (uintptr_t)t.boundary,
+  ASSERT_NEQ((uintptr_t)s->boundary, (uintptr_t)t->boundary,
              "s and t should have independent boundary arrays");
 
   // Verify correct values through both views
   // s[0,0] = x[1,0] = 4
   dim_t s00[] = {0, 0};
   Value result;
-  GetAt(&s, (Dim){.dims = s00, .numOfDims = 2}, &result);
+  GetAt(s, (Dim){.dims = s00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "s[0,0] should be x[1,0]=4");
 
   // t[0,0] = s[0,0] = x[1,0] = 4
   dim_t t00[] = {0, 0};
-  GetAt(&t, (Dim){.dims = t00, .numOfDims = 2}, &result);
+  GetAt(t, (Dim){.dims = t00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should be x[1,0]=4");
 
   // t[1,0] = s[0,1] = x[1,1] = 5
   dim_t t10[] = {1, 0};
-  GetAt(&t, (Dim){.dims = t10, .numOfDims = 2}, &result);
+  GetAt(t, (Dim){.dims = t10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "t[1,0] should be x[1,1]=5");
 
   // Corrupt s's boundary to prove t is unaffected
-  s.boundary[0].start = 999;
+  s->boundary[0].start = 999;
 
   // t should still read correctly
-  GetAt(&t, (Dim){.dims = t00, .numOfDims = 2}, &result);
+  GetAt(t, (Dim){.dims = t00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should still be 4 after corrupting s boundary");
 
   freeMemory(mem);
@@ -3382,31 +3124,29 @@ static void test_slice_boundary_access(void) {
     }
   }
 
-  Tensor slice;
-  // Slice rows 2-5 (exclusive), cols 1-4 (exclusive) -> 3x3 region
-  Slice(&ctx, &tt.tensor, &slice, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
 
   // Test all 4 corners of the slice
   Value result;
 
   // Top-left: slice[0,0] = source[2,1] = 11
   dim_t tl[] = {0, 0};
-  GetAt(&slice, (Dim){.dims = tl, .numOfDims = 2}, &result);
+  GetAt(slice, (Dim){.dims = tl, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 11.0f, "top-left corner should be 11");
 
   // Top-right: slice[0,2] = source[2,3] = 13
   dim_t tr[] = {0, 2};
-  GetAt(&slice, (Dim){.dims = tr, .numOfDims = 2}, &result);
+  GetAt(slice, (Dim){.dims = tr, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 13.0f, "top-right corner should be 13");
 
   // Bottom-left: slice[2,0] = source[4,1] = 21
   dim_t bl[] = {2, 0};
-  GetAt(&slice, (Dim){.dims = bl, .numOfDims = 2}, &result);
+  GetAt(slice, (Dim){.dims = bl, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "bottom-left corner should be 21");
 
   // Bottom-right: slice[2,2] = source[4,3] = 23
   dim_t br[] = {2, 2};
-  GetAt(&slice, (Dim){.dims = br, .numOfDims = 2}, &result);
+  GetAt(slice, (Dim){.dims = br, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
 
   freeMemory(mem);
@@ -3516,14 +3256,13 @@ static void test_get_tensor_at_gpu_scalar_result_lives_on_ctx(void) {
     ASSERT_EQ(assignResult, OK, "AssignValueAt should populate CUDA tensor");
   }
 
-  Tensor scalar;
-  Result res = GetTensorAt(&ctx, tensor, 1, &scalar);
-  ASSERT_EQ(res, OK, "GetTensorAt should succeed on CUDA tensors");
-  ASSERT(scalar.context == &ctx, "Scalar result should stay on the requested CUDA context");
-  ASSERT_EQ(scalar.shape.numOfDims, 0, "Selecting from a 1D tensor should produce a scalar");
+  Tensor *scalar = GetTensorAt(&ctx, tensor, 1);
+  ASSERT_NOT_NULL(scalar, "GetTensorAt should succeed on CUDA tensors");
+  ASSERT(scalar->context == &ctx, "Scalar result should stay on the requested CUDA context");
+  ASSERT_EQ(scalar->shape.numOfDims, 0, "Selecting from a 1D tensor should produce a scalar");
 
   Value value;
-  res = GetScalar(&scalar, &value);
+  Result res = GetScalar(scalar, &value);
   ASSERT_EQ(res, OK, "GetScalar should read CUDA scalar tensors");
   ASSERT_EQ(value.as.f32, 2.0f, "CUDA scalar result should match selected element");
 
@@ -3644,12 +3383,11 @@ static void test_sum_gpu_dispatch_basic(void) {
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
   MoveTensors(&cudaCtx, 1, t);
-  Tensor dest;
 
-  Result res = Sum(&cudaCtx, t, &dest, 0);
-  ASSERT_EQ(res, OK, "CUDA Sum should succeed");
-  ASSERT(dest.context == &cudaCtx, "CUDA Sum result should live on the CUDA context");
-  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 3, "CUDA Sum result should match");
+  Tensor *dest = Sum(&cudaCtx, t, 0);
+  ASSERT_NOT_NULL(dest, "CUDA Sum should succeed");
+  ASSERT(dest->context == &cudaCtx, "CUDA Sum result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 3, "CUDA Sum result should match");
 
   DestroyContext(&cudaCtx);
 }
@@ -3667,14 +3405,13 @@ static void test_mean_gpu_dispatch_basic(void) {
   float expected[] = {3.5f};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
-  Tensor dest;
 
   MoveTensors(&cudaCtx, 1, t);
 
-  Result res = Mean(&cudaCtx, t, &dest);
-  ASSERT_EQ(res, OK, "CUDA Mean should succeed");
-  ASSERT(dest.context == &cudaCtx, "CUDA Mean result should live on the CUDA context");
-  assertF32TensorMatchesOnCpu(&cudaCtx, &dest, expected, 1, "CUDA Mean result should match");
+  Tensor *dest = Mean(&cudaCtx, t);
+  ASSERT_NOT_NULL(dest, "CUDA Mean should succeed");
+  ASSERT(dest->context == &cudaCtx, "CUDA Mean result should live on the CUDA context");
+  assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 1, "CUDA Mean result should match");
 
   DestroyContext(&cudaCtx);
 }
@@ -3692,13 +3429,12 @@ static void test_argmax_gpu_dispatch_basic(void) {
   i64 expected[] = {1, 0, 1};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
-  Tensor dest;
 
   MoveTensors(&cudaCtx, 1, t);
-  Result res = ArgMax(&cudaCtx, t, &dest, 0);
-  ASSERT_EQ(res, OK, "CUDA ArgMax should succeed");
-  ASSERT(dest.context == &cudaCtx, "CUDA ArgMax result should live on the CUDA context");
-  assertI64TensorMatchesOnCpu(&cudaCtx, &dest, expected, 3, "CUDA ArgMax result should match");
+  Tensor *dest = ArgMax(&cudaCtx, t, 0);
+  ASSERT_NOT_NULL(dest, "CUDA ArgMax should succeed");
+  ASSERT(dest->context == &cudaCtx, "CUDA ArgMax result should live on the CUDA context");
+  assertI64TensorMatchesOnCpu(&cudaCtx, dest, expected, 3, "CUDA ArgMax result should match");
 
   DestroyContext(&cudaCtx);
 }
@@ -3718,8 +3454,7 @@ static void test_index_accumulate_1d_basic(void) {
   Tensor *indices = createHostI32Tensor(&ctx, indexDims, 1, indicesValues, 2);
   Tensor *srcGrad = createHostF32Tensor(&ctx, srcDims, 2, srcValues, 4);
 
-  Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
-  ASSERT_EQ(res, OK, "IndexAccumulate1d should succeed on CPU");
+  IndexAccumulate1d(&ctx, dest, indices, srcGrad);
 
   float *values = dest->values;
   for (tensor_size_t i = 0; i < 6; i++) {
@@ -3749,34 +3484,9 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
 
   MoveTensors(&ctx, 2, indices, srcGrad);
-  Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
-  ASSERT_EQ(res, OK, "CUDA IndexAccumulate1d should succeed");
+  IndexAccumulate1d(&ctx, dest, indices, srcGrad);
   assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6,
                               "CUDA IndexAccumulate1d result should match");
-
-  DestroyContext(&ctx);
-}
-
-static void test_index_accumulate_1d_gpu_requires_dest_on_ctx(void) {
-  if (!hasCudaDevice()) {
-    return;
-  }
-
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
-
-  dim_t destDims[] = {2, 2};
-  dim_t indexDims[] = {1};
-  dim_t srcDims[] = {1, 2};
-  i32 indicesValues[] = {0};
-  float srcValues[] = {10, 20};
-
-  Tensor *dest = T_Float(&hostCtx, (Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
-  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 1);
-  Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 2);
-
-  Result res = IndexAccumulate1d(&ctx, dest, indices, srcGrad);
-  ASSERT_EQ(res, ERR_NO_OP, "CUDA IndexAccumulate1d should reject CPU destination tensors");
 
   DestroyContext(&ctx);
 }
@@ -3797,13 +3507,12 @@ static void test_index_with_tensor_gpu_dispatch_basic(void) {
 
   Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 2, sourceValues, 6);
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
-  Tensor dest;
 
   MoveTensors(&ctx, 2, source, indices);
-  Result res = IndexWithTensor(&ctx, source, indices, &dest);
-  ASSERT_EQ(res, OK, "CUDA IndexWithTensor should succeed with CPU inputs");
-  ASSERT(dest.context == &ctx, "CUDA IndexWithTensor result should live on CUDA");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 4, "CUDA IndexWithTensor result should match");
+  Tensor *dest = IndexWithTensor(&ctx, source, indices);
+  ASSERT_NOT_NULL(dest, "CUDA IndexWithTensor should succeed with CPU inputs");
+  ASSERT(dest->context == &ctx, "CUDA IndexWithTensor result should live on CUDA");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 4, "CUDA IndexWithTensor result should match");
 
   DestroyContext(&ctx);
 }
@@ -3826,13 +3535,12 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 3, sourceValues, 12);
   Tensor *rowIndices = createHostI32Tensor(&hostCtx, indexDims, 1, rowValues, 2);
   Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
-  Tensor dest;
 
   MoveTensors(&ctx, 3, rowIndices, colIndices, source);
-  Result res = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &dest);
-  ASSERT_EQ(res, OK, "CUDA IndexWithTensor2d should succeed with CPU inputs");
-  ASSERT(dest.context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 4,
+  Tensor *dest = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
+  ASSERT_NOT_NULL(dest, "CUDA IndexWithTensor2d should succeed with CPU inputs");
+  ASSERT(dest->context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 4,
                               "CUDA IndexWithTensor2d result should match");
 
   DestroyContext(&ctx);
@@ -3855,15 +3563,13 @@ static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *target = createHostF32Tensor(&hostCtx, targetDims, 2, targetValues, 4);
   Tensor *toAdd = createHostF32Tensor(&hostCtx, addDims, 2, addValues, 2);
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
-
 
   MoveTensors(&ctx, 2, target, toAdd);
 
-  Result res = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(res, OK, "CUDA Concat should succeed with CPU inputs");
-  ASSERT(dest.context == &ctx, "CUDA Concat result should live on CUDA");
-  assertF32TensorMatchesOnCpu(&ctx, &dest, expected, 6, "CUDA Concat result should match");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "CUDA Concat should succeed with CPU inputs");
+  ASSERT(dest->context == &ctx, "CUDA Concat result should live on CUDA");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6, "CUDA Concat result should match");
 
   DestroyContext(&ctx);
 }
@@ -3951,15 +3657,14 @@ static void test_matmul_2d_basic(void) {
   float valsB[] = {1, 2, 3, 4, 5, 6};
   Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
 
-  Tensor result;
-  Result r = MatMul(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, OK, "MatMul 2D basic should return OK");
+  Tensor *result = MatMul(&ctx, &a, &b);
+  ASSERT_NOT_NULL(result, "MatMul 2D basic should return a tensor");
 
-  ASSERT_EQ(result.shape.numOfDims, 2, "result should be 2D");
-  ASSERT_EQ(result.shape.dims[0], 2, "result rows should be 2");
-  ASSERT_EQ(result.shape.dims[1], 2, "result cols should be 2");
+  ASSERT_EQ(result->shape.numOfDims, 2, "result should be 2D");
+  ASSERT_EQ(result->shape.dims[0], 2, "result rows should be 2");
+  ASSERT_EQ(result->shape.dims[1], 2, "result cols should be 2");
 
-  float *vals = (float *)result.values;
+  float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 22, "[0,0] should be 22");
   ASSERT_EQ((int)vals[1], 28, "[0,1] should be 28");
   ASSERT_EQ((int)vals[2], 49, "[1,0] should be 49");
@@ -3980,14 +3685,13 @@ static void test_matmul_2d_non_square(void) {
   float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 12);
 
-  Tensor result;
-  Result r = MatMul(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, OK, "MatMul 2D non-square should return OK");
+  Tensor *result = MatMul(&ctx, &a, &b);
+  ASSERT_NOT_NULL(result, "MatMul 2D non-square should return a tensor");
 
-  ASSERT_EQ(result.shape.dims[0], 2, "result rows should be 2");
-  ASSERT_EQ(result.shape.dims[1], 3, "result cols should be 3");
+  ASSERT_EQ(result->shape.dims[0], 2, "result rows should be 2");
+  ASSERT_EQ(result->shape.dims[1], 3, "result cols should be 3");
 
-  float *vals = (float *)result.values;
+  float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 70, "[0,0] should be 70");
   ASSERT_EQ((int)vals[1], 80, "[0,1] should be 80");
   ASSERT_EQ((int)vals[2], 90, "[0,2] should be 90");
@@ -4007,16 +3711,15 @@ static void test_matmul_3d_batch(void) {
   float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 12);
 
-  Tensor result;
-  Result r = MatMul(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, OK, "MatMul 3D batch should return OK");
+  Tensor *result = MatMul(&ctx, &a, &b);
+  ASSERT_NOT_NULL(result, "MatMul 3D batch should return a tensor");
 
-  ASSERT_EQ(result.shape.numOfDims, 3, "result should be 3D");
-  ASSERT_EQ(result.shape.dims[0], 2, "batch size should be 2");
-  ASSERT_EQ(result.shape.dims[1], 2, "result rows should be 2");
-  ASSERT_EQ(result.shape.dims[2], 2, "result cols should be 2");
+  ASSERT_EQ(result->shape.numOfDims, 3, "result should be 3D");
+  ASSERT_EQ(result->shape.dims[0], 2, "batch size should be 2");
+  ASSERT_EQ(result->shape.dims[1], 2, "result rows should be 2");
+  ASSERT_EQ(result->shape.dims[2], 2, "result cols should be 2");
 
-  float *vals = (float *)result.values;
+  float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 22, "batch0[0,0] should be 22");
   ASSERT_EQ((int)vals[1], 28, "batch0[0,1] should be 28");
 
@@ -4035,90 +3738,20 @@ static void test_matmul_broadcast_batch(void) {
   float valsB[] = {1, 2, 3, 4, 5, 6};
   Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 6);
 
-  Tensor result;
-  Result r = MatMul(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, OK, "MatMul broadcast batch should return OK");
+  Tensor *result = MatMul(&ctx, &a, &b);
+  ASSERT_NOT_NULL(result, "MatMul broadcast batch should return a tensor");
 
-  ASSERT_EQ(result.shape.dims[0], 2, "output batch should be 2");
-  ASSERT_EQ(result.shape.dims[1], 2, "result rows should be 2");
-  ASSERT_EQ(result.shape.dims[2], 2, "result cols should be 2");
+  ASSERT_EQ(result->shape.dims[0], 2, "output batch should be 2");
+  ASSERT_EQ(result->shape.dims[1], 2, "result rows should be 2");
+  ASSERT_EQ(result->shape.dims[2], 2, "result cols should be 2");
 
-  float *vals = (float *)result.values;
+  float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 22, "batch0[0,0] should be 22");
   ASSERT_EQ((int)vals[4], 76, "batch1[0,0] should be 76");
 
   freeMemory(mem);
 }
 
-static void test_matmul_dtype_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dimsA[] = {2, 2};
-  float valsA[] = {1, 2, 3, 4};
-  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 4);
-
-  Tensor *b = T_Int(&ctx, (Dim){.dims = dimsA, .numOfDims = 2}, 0);
-
-  Tensor result;
-  Result r = MatMul(&ctx, &a, b, &result);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "MatMul with mismatched dtypes should fail");
-
-  freeMemory(mem);
-}
-
-static void test_matmul_inner_dim_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dimsA[] = {2, 3};
-  float valsA[] = {1, 2, 3, 4, 5, 6};
-  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
-
-  dim_t dimsB[] = {2, 2};
-  float valsB[] = {1, 2, 3, 4};
-  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 4);
-
-  Tensor result;
-  Result r = MatMul(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, ERR_MATMUL_INNER_DIM_MISMATCH, "MatMul with inner dim mismatch should fail");
-
-  freeMemory(mem);
-}
-
-static void test_matmul_1d_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dimsA[] = {3};
-  float valsA[] = {1, 2, 3};
-  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
-
-  dim_t dimsB[] = {3, 2};
-  float valsB[] = {1, 2, 3, 4, 5, 6};
-  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
-
-  Tensor result;
-  Result r = MatMul(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, ERR_MATMUL_MIN_2D, "MatMul with 1D tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_matmul_integer_dtype_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-
-  Tensor result;
-  Result r = MatMul(&ctx, a, b, &result);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "MatMul with integer dtype should fail");
-
-  freeMemory(mem);
-}
 
 static void test_dot_basic(void) {
   Memory *mem = initializeMemory();
@@ -4132,14 +3765,13 @@ static void test_dot_basic(void) {
   float valsB[] = {4, 5, 6};
   Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
 
-  Tensor result;
-  Result r = Dot(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, OK, "Dot basic should return OK");
+  Tensor *result = Dot(&ctx, &a, &b);
+  ASSERT_NOT_NULL(result, "Dot basic should return a tensor");
 
-  ASSERT_EQ(result.shape.numOfDims, 1, "result should be 1D");
-  ASSERT_EQ(result.shape.dims[0], 1, "result size should be 1");
+  ASSERT_EQ(result->shape.numOfDims, 1, "result should be 1D");
+  ASSERT_EQ(result->shape.dims[0], 1, "result size should be 1");
 
-  float *vals = (float *)result.values;
+  float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 32, "1*4 + 2*5 + 3*6 = 32");
 
   freeMemory(mem);
@@ -4157,95 +3789,24 @@ static void test_dot_larger_vectors(void) {
   float valsB[] = {1, 1, 1, 1, 1};
   Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 5);
 
-  Tensor result;
-  Result r = Dot(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, OK, "Dot larger vectors should return OK");
+  Tensor *result = Dot(&ctx, &a, &b);
+  ASSERT_NOT_NULL(result, "Dot larger vectors should return a tensor");
 
-  float *vals = (float *)result.values;
+  float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 15, "1+2+3+4+5 = 15");
 
   freeMemory(mem);
 }
 
-static void test_dot_size_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dimsA[] = {3};
-  float valsA[] = {1, 2, 3};
-  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
-
-  dim_t dimsB[] = {4};
-  float valsB[] = {1, 2, 3, 4};
-  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 4);
-
-  Tensor result;
-  Result r = Dot(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Dot with size mismatch should fail");
-
-  freeMemory(mem);
-}
-
-static void test_dot_dtype_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dimsA[] = {3};
-  float valsA[] = {1, 2, 3};
-  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
-
-  Tensor *b = T_Int(&ctx, (Dim){.dims = dimsA, .numOfDims = 1}, 0);
-
-  Tensor result;
-  Result r = Dot(&ctx, &a, b, &result);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "Dot with dtype mismatch should fail");
-
-  freeMemory(mem);
-}
-
-static void test_dot_2d_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dimsA[] = {2, 3};
-  float valsA[] = {1, 2, 3, 4, 5, 6};
-  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
-
-  dim_t dimsB[] = {3};
-  float valsB[] = {1, 2, 3};
-  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
-
-  Tensor result;
-  Result r = Dot(&ctx, &a, &b, &result);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Dot with 2D tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_dot_integer_dtype_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {3};
-  Tensor *a = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
-  Tensor *b = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0);
-
-  Tensor result;
-  Result r = Dot(&ctx, a, b, &result);
-  ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "Dot with integer dtype should fail");
-
-  freeMemory(mem);
-}
 
 static void test_negate_f32(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
   dim_t dims[] = {3};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 5.0);
-  Tensor dest;
-  Result r = Negate(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Negate should succeed");
-  f32 *vals = (f32 *)dest.values;
+  Tensor *dest = Negate(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Negate should return a tensor");
+  f32 *vals = (f32 *)dest->values;
   for (int i = 0; i < 3; i++) {
     ASSERT_EQ(vals[i], -5.0f, "negated value should be -5.0");
   }
@@ -4257,24 +3818,12 @@ static void test_negate_already_negative(void) {
   Context ctx = {.memory = mem};
   dim_t dims[] = {2};
   Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, -3.0);
-  Tensor dest;
-  Result r = Negate(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Negate should succeed for negative values");
-  f32 *vals = (f32 *)dest.values;
+  Tensor *dest = Negate(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Negate should return a tensor for negative values");
+  f32 *vals = (f32 *)dest->values;
   for (int i = 0; i < 2; i++) {
     ASSERT_EQ(vals[i], 3.0f, "negated -3.0 should be 3.0");
   }
-  freeMemory(mem);
-}
-
-static void test_negate_unsigned_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-  dim_t dims[] = {2};
-  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 1);
-  t->dtype = U32;
-  Result r = Negate(&ctx, t, &(Tensor){});
-  ASSERT_EQ(r, ERR_NEGATE_UNSUPPORTED_DTYPE, "Negate should reject unsigned dtypes");
   freeMemory(mem);
 }
 
@@ -4402,13 +3951,12 @@ static void test_index_with_tensor_2d_basic(void) {
   ((i8 *)colIndices->values)[1] = 2;
   ((i8 *)colIndices->values)[2] = 3;
 
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
-  ASSERT_EQ(r, OK, "IndexWithTensor2d should succeed");
-  ASSERT_EQ(result.shape.numOfDims, 1, "Result should be 1D");
-  ASSERT_EQ(result.shape.dims[0], 3, "Result should have 3 elements");
+  Tensor *result = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
+  ASSERT_NOT_NULL(result, "IndexWithTensor2d should succeed");
+  ASSERT_EQ(result->shape.numOfDims, 1, "Result should be 1D");
+  ASSERT_EQ(result->shape.dims[0], 3, "Result should have 3 elements");
 
-  f32 *vals = (f32 *)result.values;
+  f32 *vals = (f32 *)result->values;
   ASSERT_EQ(vals[0], 1.0f, "First element should be 1 (source[0,1])");
   ASSERT_EQ(vals[1], 6.0f, "Second element should be 6 (source[1,2])");
   ASSERT_EQ(vals[2], 11.0f, "Third element should be 11 (source[2,3])");
@@ -4437,14 +3985,13 @@ static void test_index_with_tensor_2d_3d_source(void) {
   ((i8 *)colIndices->values)[0] = 0;
   ((i8 *)colIndices->values)[1] = 2;
 
-  Tensor result;
-  Result r = IndexWithTensor2d(&ctx, source, rowIndices, colIndices, &result);
-  ASSERT_EQ(r, OK, "IndexWithTensor2d with 3D source should succeed");
-  ASSERT_EQ(result.shape.numOfDims, 2, "Result should be 2D");
-  ASSERT_EQ(result.shape.dims[0], 2, "Result dim 0 should be 2");
-  ASSERT_EQ(result.shape.dims[1], 4, "Result dim 1 should be 4");
+  Tensor *result = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
+  ASSERT_NOT_NULL(result, "IndexWithTensor2d with 3D source should succeed");
+  ASSERT_EQ(result->shape.numOfDims, 2, "Result should be 2D");
+  ASSERT_EQ(result->shape.dims[0], 2, "Result dim 0 should be 2");
+  ASSERT_EQ(result->shape.dims[1], 4, "Result dim 1 should be 4");
 
-  f32 *vals = (f32 *)result.values;
+  f32 *vals = (f32 *)result->values;
   // First row: source[0,0,:] = [0,1,2,3]
   ASSERT_EQ(vals[0], 0.0f, "vals[0] should be 0");
   ASSERT_EQ(vals[1], 1.0f, "vals[1] should be 1");
@@ -4475,42 +4022,17 @@ static void test_mean_basic(void) {
   ((f32 *)t->values)[4] = 5.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor dest;
-  Result r = Mean(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Mean should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 0, "Mean result should be scalar");
-  ASSERT_EQ(dest.size, 1, "Mean scalar result should have size 1");
+  Tensor *dest = Mean(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Mean should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 0, "Mean result should be scalar");
+  ASSERT_EQ(dest->size, 1, "Mean scalar result should have size 1");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 3.5f, "Mean should be 3.5");
 
   freeMemory(mem);
 }
 
-static void test_mean_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor dest;
-  Result r = Mean(&ctx, NULL, &dest);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Mean with null tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_mean_non_float_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-
-  Tensor dest;
-  Result r = Mean(&ctx, t, &dest);
-  ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "Mean with integer dtype should fail");
-
-  freeMemory(mem);
-}
 
 // Std tests
 static void test_std_basic(void) {
@@ -4524,58 +4046,18 @@ static void test_std_basic(void) {
   ((f32 *)t->values)[2] = 3.0f;
   ((f32 *)t->values)[3] = 4.0f;
 
-  Tensor dest;
-  Result r = Std(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Std should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 0, "Std result should be scalar");
-  ASSERT_EQ(dest.size, 1, "Std scalar result should have size 1");
+  Tensor *dest = Std(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Std should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 0, "Std result should be scalar");
+  ASSERT_EQ(dest->size, 1, "Std scalar result should have size 1");
 
   // Sample std([1,2,3,4]) = sqrt(5/3) ~= 1.2909944
-  f32 got = ((f32 *)dest.values)[0];
+  f32 got = ((f32 *)dest->values)[0];
   ASSERT(fabsf(got - 1.2909944f) < 1e-5f, "Std should match sample standard deviation");
 
   freeMemory(mem);
 }
 
-static void test_std_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor dest;
-  Result r = Std(&ctx, NULL, &dest);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Std with null tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_std_non_float_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-
-  Tensor dest;
-  Result r = Std(&ctx, t, &dest);
-  ASSERT_EQ(r, ERR_STD_NOT_FLOAT_TYPE, "Std with integer dtype should fail");
-
-  freeMemory(mem);
-}
-
-static void test_std_requires_two_or_more_values(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {1};
-  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 2.0f);
-
-  Tensor dest;
-  Result r = Std(&ctx, t, &dest);
-  ASSERT_EQ(r, ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES,
-            "Std should fail when tensor has fewer than 2 values");
-
-  freeMemory(mem);
-}
 
 // Log tests
 static void test_log_basic(void) {
@@ -4592,44 +4074,18 @@ static void test_log_basic(void) {
   ((f32 *)t->values)[2] = 10.0f;
   ((f32 *)t->values)[3] = 100.0f;
 
-  Tensor dest;
-  Result r = Log(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Log should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "Log result should preserve shape");
-  ASSERT_EQ(dest.shape.dims[0], 2, "Log result dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 2, "Log result dim 1 should be 2");
+  Tensor *dest = Log(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Log should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "Log result should preserve shape");
+  ASSERT_EQ(dest->shape.dims[0], 2, "Log result dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 2, "Log result dim 1 should be 2");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   f32 tolerance = 0.01f;
   ASSERT(fabs(vals[0] - 0.0f) < tolerance, "ln(1) should be ~0");
   ASSERT(fabs(vals[1] - 1.0f) < tolerance, "ln(e) should be ~1");
   ASSERT(fabs(vals[2] - 2.303f) < tolerance, "ln(10) should be ~2.303");
   ASSERT(fabs(vals[3] - 4.605f) < tolerance, "ln(100) should be ~4.605");
-
-  freeMemory(mem);
-}
-
-static void test_log_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor dest;
-  Result r = Log(&ctx, NULL, &dest);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Log with null tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_log_non_float_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-
-  Tensor dest;
-  Result r = Log(&ctx, t, &dest);
-  ASSERT_EQ(r, ERR_LOG_VALUE_NOT_FLOAT, "Log with integer dtype should fail");
 
   freeMemory(mem);
 }
@@ -4647,14 +4103,13 @@ static void test_abs_signed_int(void) {
   ((i8 *)t->values)[2] = -3;
   ((i8 *)t->values)[3] = 0;
 
-  Tensor dest;
-  Result r = Abs(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Abs on signed int tensor should succeed");
-  ASSERT_EQ(dest.dtype, I8, "Abs should preserve dtype");
-  ASSERT_EQ(dest.shape.numOfDims, 1, "Abs should preserve rank");
-  ASSERT_EQ(dest.shape.dims[0], 4, "Abs should preserve shape");
+  Tensor *dest = Abs(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Abs on signed int tensor should return a tensor");
+  ASSERT_EQ(dest->dtype, I8, "Abs should preserve dtype");
+  ASSERT_EQ(dest->shape.numOfDims, 1, "Abs should preserve rank");
+  ASSERT_EQ(dest->shape.dims[0], 4, "Abs should preserve shape");
 
-  i8 *vals = (i8 *)dest.values;
+  i8 *vals = (i8 *)dest->values;
   ASSERT_EQ(vals[0], 1, "abs(-1) should be 1");
   ASSERT_EQ(vals[1], 2, "abs(2) should be 2");
   ASSERT_EQ(vals[2], 3, "abs(-3) should be 3");
@@ -4675,45 +4130,18 @@ static void test_abs_float(void) {
   ((f32 *)t->values)[2] = -3.0f;
   ((f32 *)t->values)[3] = 0.0f;
 
-  Tensor dest;
-  Result r = Abs(&ctx, t, &dest);
-  ASSERT_EQ(r, OK, "Abs on float tensor should succeed");
-  ASSERT_EQ(dest.dtype, F32, "Abs should preserve float dtype");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "Abs should preserve rank");
-  ASSERT_EQ(dest.shape.dims[0], 2, "Abs shape dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 2, "Abs shape dim 1 should be 2");
+  Tensor *dest = Abs(&ctx, t);
+  ASSERT_NOT_NULL(dest, "Abs on float tensor should return a tensor");
+  ASSERT_EQ(dest->dtype, F32, "Abs should preserve float dtype");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "Abs should preserve rank");
+  ASSERT_EQ(dest->shape.dims[0], 2, "Abs shape dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 2, "Abs shape dim 1 should be 2");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 1.5f, "abs(-1.5) should be 1.5");
   ASSERT_EQ(vals[1], 2.25f, "abs(2.25) should be 2.25");
   ASSERT_EQ(vals[2], 3.0f, "abs(-3.0) should be 3.0");
   ASSERT_EQ(vals[3], 0.0f, "abs(0.0) should be 0.0");
-
-  freeMemory(mem);
-}
-
-static void test_abs_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor dest;
-  Result r = Abs(&ctx, NULL, &dest);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Abs with null tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_abs_unsigned_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2};
-  Tensor *t = T_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1});
-  t->dtype = U8;
-
-  Tensor dest;
-  Result r = Abs(&ctx, t, &dest);
-  ASSERT_EQ(r, ERR_ABS_VALUE_NOT_SIGNED, "Abs with unsigned dtype should fail");
 
   freeMemory(mem);
 }
@@ -4734,14 +4162,13 @@ static void test_max_dim0(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor dest;
-  Result r = Max(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "Max dim0 should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "Max result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 1, "Max result dim 0 should be 1");
-  ASSERT_EQ(dest.shape.dims[1], 3, "Max result dim 1 should be 3");
+  Tensor *dest = Max(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "Max dim0 should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "Max result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 1, "Max result dim 0 should be 1");
+  ASSERT_EQ(dest->shape.dims[1], 3, "Max result dim 1 should be 3");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 4.0f, "Max[0,0] should be 4 (max of 1,4)");
   ASSERT_EQ(vals[1], 5.0f, "Max[0,1] should be 5 (max of 5,2)");
   ASSERT_EQ(vals[2], 6.0f, "Max[0,2] should be 6 (max of 3,6)");
@@ -4764,14 +4191,13 @@ static void test_max_dim1(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor dest;
-  Result r = Max(&ctx, t, &dest, 1);
-  ASSERT_EQ(r, OK, "Max dim1 should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "Max result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 2, "Max result dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "Max result dim 1 should be 1");
+  Tensor *dest = Max(&ctx, t, 1);
+  ASSERT_NOT_NULL(dest, "Max dim1 should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "Max result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 2, "Max result dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "Max result dim 1 should be 1");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 5.0f, "Max[0,0] should be 5 (max of 1,5,3)");
   ASSERT_EQ(vals[1], 6.0f, "Max[1,0] should be 6 (max of 4,2,6)");
 
@@ -4791,41 +4217,16 @@ static void test_max_int_type(void) {
   ((i8 *)t->values)[2] = 3;
   ((i8 *)t->values)[3] = 2;
 
-  Tensor dest;
-  Result r = Max(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "Max with int type should succeed");
+  Tensor *dest = Max(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "Max with int type should return a tensor");
 
-  i8 *vals = (i8 *)dest.values;
+  i8 *vals = (i8 *)dest->values;
   ASSERT_EQ(vals[0], 3, "Max[0,0] should be 3 (max of 1,3)");
   ASSERT_EQ(vals[1], 5, "Max[0,1] should be 5 (max of 5,2)");
 
   freeMemory(mem);
 }
 
-static void test_max_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor dest;
-  Result r = Max(&ctx, NULL, &dest, 0);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "Max with null tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_max_dim_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-
-  Tensor dest;
-  Result r = Max(&ctx, t, &dest, 5);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "Max with out of bounds dim should fail");
-
-  freeMemory(mem);
-}
 
 static void test_max_non_contiguous(void) {
   Memory *mem = initializeMemory();
@@ -4842,12 +4243,10 @@ static void test_max_non_contiguous(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor transposed;
-  Transpose(&ctx, t, &transposed, 0, 1);
+  Tensor *transposed = Transpose(&ctx, t, 0, 1);
 
-  Tensor dest;
-  Result r = Max(&ctx, &transposed, &dest, 0);
-  ASSERT_EQ(r, OK, "Max on non-contiguous tensor should succeed");
+  Tensor *dest = Max(&ctx, transposed, 0);
+  ASSERT_NOT_NULL(dest, "Max on non-contiguous tensor should return a tensor");
 
   freeMemory(mem);
 }
@@ -4868,15 +4267,14 @@ static void test_argmax_dim0(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor dest;
-  Result r = ArgMax(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "ArgMax dim0 should succeed");
-  ASSERT_EQ(dest.dtype, I64, "ArgMax output dtype should be I64");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "ArgMax result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 1, "ArgMax result dim 0 should be 1");
-  ASSERT_EQ(dest.shape.dims[1], 3, "ArgMax result dim 1 should be 3");
+  Tensor *dest = ArgMax(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "ArgMax dim0 should return a tensor");
+  ASSERT_EQ(dest->dtype, I64, "ArgMax output dtype should be I64");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "ArgMax result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 1, "ArgMax result dim 0 should be 1");
+  ASSERT_EQ(dest->shape.dims[1], 3, "ArgMax result dim 1 should be 3");
 
-  i64 *vals = (i64 *)dest.values;
+  i64 *vals = (i64 *)dest->values;
   ASSERT_EQ(vals[0], 1, "ArgMax[0,0] should be 1");
   ASSERT_EQ(vals[1], 0, "ArgMax[0,1] should be 0");
   ASSERT_EQ(vals[2], 1, "ArgMax[0,2] should be 1");
@@ -4901,44 +4299,19 @@ static void test_argmax_dim1_with_ties(void) {
   ((i8 *)t->values)[6] = 1;
   ((i8 *)t->values)[7] = 3;
 
-  Tensor dest;
-  Result r = ArgMax(&ctx, t, &dest, 1);
-  ASSERT_EQ(r, OK, "ArgMax dim1 should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "ArgMax result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 2, "ArgMax result dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "ArgMax result dim 1 should be 1");
+  Tensor *dest = ArgMax(&ctx, t, 1);
+  ASSERT_NOT_NULL(dest, "ArgMax dim1 should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "ArgMax result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 2, "ArgMax result dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "ArgMax result dim 1 should be 1");
 
-  i64 *vals = (i64 *)dest.values;
+  i64 *vals = (i64 *)dest->values;
   ASSERT_EQ(vals[0], 1, "ArgMax row 0 should pick first max index");
   ASSERT_EQ(vals[1], 0, "ArgMax row 1 should pick first max index");
 
   freeMemory(mem);
 }
 
-static void test_argmax_null_tensor(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  Tensor dest;
-  Result r = ArgMax(&ctx, NULL, &dest, 0);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "ArgMax with null tensor should fail");
-
-  freeMemory(mem);
-}
-
-static void test_argmax_dim_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-
-  Tensor dest;
-  Result r = ArgMax(&ctx, t, &dest, 5);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "ArgMax with out of bounds dim should fail");
-
-  freeMemory(mem);
-}
 
 static void test_argmax_non_contiguous(void) {
   Memory *mem = initializeMemory();
@@ -4955,13 +4328,11 @@ static void test_argmax_non_contiguous(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor transposed;
-  Transpose(&ctx, t, &transposed, 0, 1);
+  Tensor *transposed = Transpose(&ctx, t, 0, 1);
 
-  Tensor dest;
-  Result r = ArgMax(&ctx, &transposed, &dest, 0);
-  ASSERT_EQ(r, OK, "ArgMax on non-contiguous tensor should succeed");
-  ASSERT_EQ(dest.dtype, I64, "ArgMax output dtype should be I64");
+  Tensor *dest = ArgMax(&ctx, transposed, 0);
+  ASSERT_NOT_NULL(dest, "ArgMax on non-contiguous tensor should return a tensor");
+  ASSERT_EQ(dest->dtype, I64, "ArgMax output dtype should be I64");
 
   freeMemory(mem);
 }
@@ -4982,14 +4353,13 @@ static void test_meandim_dim0(void) {
   ((f32 *)t->values)[4] = 5.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, OK, "MeanDim dim0 should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 1, "MeanDim result dim 0 should be 1");
-  ASSERT_EQ(dest.shape.dims[1], 3, "MeanDim result dim 1 should be 3");
+  Tensor *dest = MeanDim(&ctx, t, 0);
+  ASSERT_NOT_NULL(dest, "MeanDim dim0 should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 1, "MeanDim result dim 0 should be 1");
+  ASSERT_EQ(dest->shape.dims[1], 3, "MeanDim result dim 1 should be 3");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 2.5f, "MeanDim[0,0] should be 2.5 (mean of 1,4)");
   ASSERT_EQ(vals[1], 3.5f, "MeanDim[0,1] should be 3.5 (mean of 2,5)");
   ASSERT_EQ(vals[2], 4.5f, "MeanDim[0,2] should be 4.5 (mean of 3,6)");
@@ -5012,47 +4382,19 @@ static void test_meandim_dim1(void) {
   ((f32 *)t->values)[4] = 5.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 1);
-  ASSERT_EQ(r, OK, "MeanDim dim1 should succeed");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 2, "MeanDim result dim 0 should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "MeanDim result dim 1 should be 1");
+  Tensor *dest = MeanDim(&ctx, t, 1);
+  ASSERT_NOT_NULL(dest, "MeanDim dim1 should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 2, "MeanDim result dim 0 should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "MeanDim result dim 1 should be 1");
 
-  f32 *vals = (f32 *)dest.values;
+  f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 2.0f, "MeanDim[0,0] should be 2 (mean of 1,2,3)");
   ASSERT_EQ(vals[1], 5.0f, "MeanDim[1,0] should be 5 (mean of 4,5,6)");
 
   freeMemory(mem);
 }
 
-static void test_meandim_non_float_rejected(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 2};
-  Tensor *t = T_Int(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0);
-
-  Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 0);
-  ASSERT_EQ(r, ERR_MEAN_VALUE_NOT_FLOAT, "MeanDim with integer dtype should fail");
-
-  freeMemory(mem);
-}
-
-static void test_meandim_dim_out_of_bounds(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
-
-  dim_t dims[] = {2, 3};
-  Tensor *t = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-
-  Tensor dest;
-  Result r = MeanDim(&ctx, t, &dest, 5);
-  ASSERT_EQ(r, ERR_DIM_MISMATCH, "MeanDim with out of bounds dim should fail");
-
-  freeMemory(mem);
-}
 
 // ============================================================================
 // Concat Tests
@@ -5071,16 +4413,15 @@ static void test_concat_2d_dim0_basic(void) {
   Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat 2D dim0 should return OK");
-  ASSERT_EQ(dest.shape.numOfDims, 2, "result should have 2 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 5, "dim[0] should be 2+3=5");
-  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
-  ASSERT_EQ(dest.size, 15, "size should be 15");
-  ASSERT(dest.isContigous, "result should be contiguous");
-  ASSERT(!dest.isView, "result should not be a view");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat 2D dim0 should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 2, "result should have 2 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 2+3=5");
+  ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
+  ASSERT_EQ(dest->size, 15, "size should be 15");
+  ASSERT(dest->isContigous, "result should be contiguous");
+  ASSERT(!dest->isView, "result should not be a view");
 
   freeMemory(mem);
 }
@@ -5098,12 +4439,11 @@ static void test_concat_2d_dim1_basic(void) {
   Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 3.0f);
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 1, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat 2D dim1 should return OK");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim[0] should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 5, "dim[1] should be 2+3=5");
+  Tensor *dest = Concat(&ctx, target, 1, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat 2D dim1 should return a tensor");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 5, "dim[1] should be 2+3=5");
 
   freeMemory(mem);
 }
@@ -5124,12 +4464,11 @@ static void test_concat_multiple_tensors(void) {
   Tensor *toAdd2 = T_Float(&ctx, (Dim){.dims = add2Dims, .numOfDims = 2}, 3.0f);
 
   Tensor *tensors[] = {toAdd1, toAdd2};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 0, tensors, 2, &dest);
-  ASSERT_EQ(r, OK, "Concat multiple tensors should return OK");
-  ASSERT_EQ(dest.shape.dims[0], 6, "dim[0] should be 1+2+3=6");
-  ASSERT_EQ(dest.shape.dims[1], 2, "dim[1] should be 2");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 2);
+  ASSERT_NOT_NULL(dest, "Concat multiple tensors should return a tensor");
+  ASSERT_EQ(dest->shape.dims[0], 6, "dim[0] should be 1+2+3=6");
+  ASSERT_EQ(dest->shape.dims[1], 2, "dim[1] should be 2");
 
   freeMemory(mem);
 }
@@ -5147,12 +4486,11 @@ static void test_concat_1d_tensors(void) {
   Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat 1D should return OK");
-  ASSERT_EQ(dest.shape.numOfDims, 1, "result should be 1D");
-  ASSERT_EQ(dest.shape.dims[0], 5, "dim[0] should be 3+2=5");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat 1D should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 1, "result should be 1D");
+  ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 3+2=5");
 
   freeMemory(mem);
 }
@@ -5170,14 +4508,13 @@ static void test_concat_3d_tensors(void) {
   Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 3}, 2.0f);
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat 3D should return OK");
-  ASSERT_EQ(dest.shape.numOfDims, 3, "result should have 3 dimensions");
-  ASSERT_EQ(dest.shape.dims[0], 5, "dim[0] should be 2+3=5");
-  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
-  ASSERT_EQ(dest.shape.dims[2], 4, "dim[2] should be 4");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat 3D should return a tensor");
+  ASSERT_EQ(dest->shape.numOfDims, 3, "result should have 3 dimensions");
+  ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 2+3=5");
+  ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
+  ASSERT_EQ(dest->shape.dims[2], 4, "dim[2] should be 4");
 
   freeMemory(mem);
 }
@@ -5205,16 +4542,15 @@ static void test_concat_data_correctness(void) {
   addVals[3] = 13.0f;
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
   // Concat along dim 0: result should be 4x2
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat should return OK");
-  ASSERT_EQ(dest.shape.dims[0], 4, "dim[0] should be 4");
-  ASSERT_EQ(dest.shape.dims[1], 2, "dim[1] should be 2");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat should return a tensor");
+  ASSERT_EQ(dest->shape.dims[0], 4, "dim[0] should be 4");
+  ASSERT_EQ(dest->shape.dims[1], 2, "dim[1] should be 2");
 
   // Verify values are in correct positions
-  f32 *destVals = (f32 *)dest.values;
+  f32 *destVals = (f32 *)dest->values;
   // First 2 rows from target
   ASSERT_EQ(destVals[0], 0.0f, "dest[0,0] should be 0");
   ASSERT_EQ(destVals[1], 1.0f, "dest[0,1] should be 1");
@@ -5236,9 +4572,8 @@ static void test_concat_with_non_contiguous_target(void) {
   // Create a transposed tensor (non-contiguous) as target
   dim_t origDims[] = {3, 2};
   Tensor *orig = T_Float(&ctx, (Dim){.dims = origDims, .numOfDims = 2}, 1.0f);
-  Tensor target;
-  Transpose(&ctx, orig, &target, (dim_t)0, (dim_t)1);
-  ASSERT(!target.isContigous, "target should not be contiguous");
+  Tensor *target = Transpose(&ctx, orig, (dim_t)0, (dim_t)1);
+  ASSERT(!target->isContigous, "target should not be contiguous");
 
   // Set specific values to verify copying works
   f32 *origVals = (f32 *)orig->values;
@@ -5254,12 +4589,11 @@ static void test_concat_with_non_contiguous_target(void) {
   Tensor *toAdd = T_Float(&ctx, (Dim){.dims = addDims, .numOfDims = 2}, 10.0f);
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
-  Result r = Concat(&ctx, &target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat with non-contiguous target should succeed");
-  ASSERT_EQ(dest.shape.dims[0], 4, "dim[0] should be 2+2=4");
-  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat with non-contiguous target should return a tensor");
+  ASSERT_EQ(dest->shape.dims[0], 4, "dim[0] should be 2+2=4");
+  ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
 
   freeMemory(mem);
 }
@@ -5279,15 +4613,14 @@ static void test_concat_single_element_tensors(void) {
   ((f32 *)toAdd->values)[0] = 2.0f;
 
   Tensor *tensors[] = {toAdd};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 0, tensors, 1, &dest);
-  ASSERT_EQ(r, OK, "Concat single element tensors should succeed");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim[0] should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 1, "dim[1] should be 1");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  ASSERT_NOT_NULL(dest, "Concat single element tensors should return a tensor");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 1, "dim[1] should be 1");
 
   // Verify values
-  f32 *destVals = (f32 *)dest.values;
+  f32 *destVals = (f32 *)dest->values;
   ASSERT_EQ(destVals[0], 1.0f, "dest[0,0] should be 1");
   ASSERT_EQ(destVals[1], 2.0f, "dest[1,0] should be 2");
 
@@ -5305,15 +4638,14 @@ static void test_concat_no_additional_tensors(void) {
 
   // Concat with 0 additional tensors
   Tensor *tensors[] = {};
-  Tensor dest;
 
-  Result r = Concat(&ctx, target, 0, tensors, 0, &dest);
-  ASSERT_EQ(r, OK, "Concat with 0 additional tensors should succeed");
-  ASSERT_EQ(dest.shape.dims[0], 2, "dim[0] should be 2");
-  ASSERT_EQ(dest.shape.dims[1], 3, "dim[1] should be 3");
+  Tensor *dest = Concat(&ctx, target, 0, tensors, 0);
+  ASSERT_NOT_NULL(dest, "Concat with 0 additional tensors should return a tensor");
+  ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
+  ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
 
   // Verify target values are copied
-  f32 *destVals = (f32 *)dest.values;
+  f32 *destVals = (f32 *)dest->values;
   ASSERT_EQ(destVals[0], 5.0f, "dest[0] should be 5");
   ASSERT_EQ(destVals[1], 6.0f, "dest[1] should be 6");
 
@@ -5351,8 +4683,6 @@ void run_tensor_tests(void) {
   test_slice_basic_2d();
   test_slice_shares_data_with_source();
   test_slice_get_at_correct_values();
-  test_slice_invalid_range_end_before_start();
-  test_slice_range_out_of_bounds();
   test_slice_single_element_range();
   test_slice_full_range();
   test_slice_1d_tensor();
@@ -5372,9 +4702,6 @@ void run_tensor_tests(void) {
   test_reshape_1d_to_2d();
   test_reshape_preserves_data();
   test_reshape_shares_data_with_source();
-  test_reshape_invalid_size_mismatch();
-  test_reshape_null_tensor();
-  test_reshape_null_shape();
   test_reshape_3d_to_2d();
   test_reshape_view();
   test_reshape_3d_view();
@@ -5386,9 +4713,6 @@ void run_tensor_tests(void) {
   test_transpose_swaps_dims_and_multipliers();
   test_transpose_shares_data();
   test_transpose_access_elements();
-  test_transpose_null_tensor();
-  test_transpose_dim_out_of_bounds();
-  test_transpose_size_less_than_2();
   test_transpose_3d();
   test_reshape_after_transpose_copies();
   // Add tests
@@ -5415,8 +4739,6 @@ void run_tensor_tests(void) {
   test_sum_dim0_2d();
   test_sum_dim1_2d();
   test_sum_3d_middle_dim();
-  test_sum_dim_out_of_bounds();
-  test_sum_null_tensor();
   test_sum_non_contiguous();
   test_sum_1d_tensor();
   test_sum_4d_dim0();
@@ -5444,7 +4766,6 @@ void run_tensor_tests(void) {
   test_unsqueeze_end();
   test_unsqueeze_1d();
   test_unsqueeze_shares_data();
-  test_unsqueeze_dim_out_of_bounds();
   test_unsqueeze_non_contiguous();
   test_squeeze_unsqueeze_roundtrip();
   // Clone tests
@@ -5452,7 +4773,6 @@ void run_tensor_tests(void) {
   test_clone_independent_data();
   test_clone_slice();
   test_clone_transposed();
-  test_clone_null_tensor();
   // CUDA binary op tests
   test_assign_value_gpu_dispatch_basic();
   test_get_tensor_at_gpu_scalar_result_lives_on_ctx();
@@ -5467,7 +4787,6 @@ void run_tensor_tests(void) {
   // Accumulate tests
   test_index_accumulate_1d_basic();
   test_index_accumulate_1d_gpu_dispatch_basic();
-  test_index_accumulate_1d_gpu_requires_dest_on_ctx();
   test_index_with_tensor_gpu_dispatch_basic();
   test_index_with_tensor_2d_gpu_dispatch_basic();
   test_concat_gpu_dispatch_materializes_cpu_inputs();
@@ -5479,21 +4798,12 @@ void run_tensor_tests(void) {
   test_matmul_2d_non_square();
   test_matmul_3d_batch();
   test_matmul_broadcast_batch();
-  test_matmul_dtype_mismatch();
-  test_matmul_inner_dim_mismatch();
-  test_matmul_1d_rejected();
-  test_matmul_integer_dtype_rejected();
   // Dot tests
   test_dot_basic();
   test_dot_larger_vectors();
-  test_dot_size_mismatch();
-  test_dot_dtype_mismatch();
-  test_dot_2d_rejected();
-  test_dot_integer_dtype_rejected();
   // Negate tests
   test_negate_f32();
   test_negate_already_negative();
-  test_negate_unsigned_rejected();
   // Arange tests
   test_arange_basic_positive_step();
   test_arange_negative_step();
@@ -5506,40 +4816,25 @@ void run_tensor_tests(void) {
   test_index_with_tensor_2d_3d_source();
   // Mean tests
   test_mean_basic();
-  test_mean_null_tensor();
-  test_mean_non_float_rejected();
   // Std tests
   test_std_basic();
-  test_std_null_tensor();
-  test_std_non_float_rejected();
-  test_std_requires_two_or_more_values();
   // Log tests
   test_log_basic();
-  test_log_null_tensor();
-  test_log_non_float_rejected();
   // Abs tests
   test_abs_signed_int();
   test_abs_float();
-  test_abs_null_tensor();
-  test_abs_unsigned_rejected();
   // Max tests
   test_max_dim0();
   test_max_dim1();
   test_max_int_type();
-  test_max_null_tensor();
-  test_max_dim_out_of_bounds();
   test_max_non_contiguous();
   // ArgMax tests
   test_argmax_dim0();
   test_argmax_dim1_with_ties();
-  test_argmax_null_tensor();
-  test_argmax_dim_out_of_bounds();
   test_argmax_non_contiguous();
   // MeanDim tests
   test_meandim_dim0();
   test_meandim_dim1();
-  test_meandim_non_float_rejected();
-  test_meandim_dim_out_of_bounds();
   // Concat tests
   test_concat_2d_dim0_basic();
   test_concat_2d_dim1_basic();

@@ -66,13 +66,13 @@ static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, Dtype 
   return OK;
 }
 
-static Result promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
+static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
   if (src->shape.numOfDims == 1) {
-    return UnSqueeze(ctx, src, dest, 0);
+    *dest = *UnSqueeze(ctx, src, 0);
+    return;
   }
 
   *dest = *src;
-  return OK;
 }
 
 static bool shouldLogOpTiming(void) {
@@ -182,16 +182,10 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   }
 
   Tensor x2d = {0};
-  Result res = promoteDenseBackwardInput(ctx, x, &x2d);
-  if (res != OK) {
-    return res;
-  }
+  promoteDenseBackwardInput(ctx, x, &x2d);
 
   Tensor gradOut2d = {0};
-  res = promoteDenseBackwardInput(ctx, gradOut, &gradOut2d);
-  if (res != OK) {
-    return res;
-  }
+  promoteDenseBackwardInput(ctx, gradOut, &gradOut2d);
 
   if (x2d.shape.numOfDims < 2 || gradOut2d.shape.numOfDims < 2 || w->shape.numOfDims != 2) {
     return ERR_MATMUL_MIN_2D;
@@ -215,7 +209,7 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
     return ERR_DIM_MISMATCH;
   }
 
-  res = validateDenseGradBuffer(dX, x, x->dtype);
+  Result res = validateDenseGradBuffer(dX, x, x->dtype);
   if (res != OK) {
     return res;
   }
@@ -276,42 +270,23 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
 
   phaseStartMs = opTimingNowMs();
-  Tensor dXReduced = {0};
-  res = ReduceBroadcast(ctx, x, &dX2d, &dXReduced);
-  if (res != OK) {
-    goto cleanup;
-  }
-  AddInPlace(ctx, dX, &dXReduced);
+  Tensor *dXReduced = ReduceBroadcast(ctx, x, &dX2d);
+  AddInPlace(ctx, dX, dXReduced);
 
-  Tensor dWReduced = {0};
-  res = ReduceBroadcast(ctx, w, &dWRaw, &dWReduced);
-  if (res != OK) {
-    goto cleanup;
-  }
-  AddInPlace(ctx, dW, &dWReduced);
+  Tensor *dWReduced = ReduceBroadcast(ctx, w, &dWRaw);
+  AddInPlace(ctx, dW, dWReduced);
 
   if (dB != NULL) {
-    Tensor dBRaw = {0};
-    res = Sum(ctx, gContig, &dBRaw, 0);
-    if (res != OK) {
-      goto cleanup;
-    }
-
-    Tensor dBReduced = {0};
-    res = ReduceBroadcast(ctx, dB, &dBRaw, &dBReduced);
-    if (res != OK) {
-      goto cleanup;
-    }
-
-    AddInPlace(ctx, dB, &dBReduced);
+    Tensor *dBRaw = Sum(ctx, gContig, 0);
+    Tensor *dBReduced = ReduceBroadcast(ctx, dB, dBRaw);
+    AddInPlace(ctx, dB, dBReduced);
   }
 
   logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);
   logOpTiming(ctx, "DenseBackward", "total", totalStartMs);
 
-cleanup:
   freeIfContingousCopy(ctx, xContig);
   freeIfContingousCopy(ctx, wContig);
   freeIfContingousCopy(ctx, gContig);
-  return res;
+  return OK;
 }

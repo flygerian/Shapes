@@ -253,7 +253,7 @@ static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
   }
 }
 
-static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+static Tensor *unaryOpCpu(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
@@ -264,23 +264,16 @@ static Result unaryOpCpu(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opTy
     VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
     Result result = applyUnaryCpuValue(&value, opType, param);
-    if (result != OK) {
-      FreeTensor(ctx, output);
-      freeIfContingousCopy(ctx, input);
-      return result;
-    }
+    PANIC_IF(result != OK, result);
 
     VALUE_SET(output->values, i, value);
   }
 
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
   freeIfContingousCopy(ctx, input);
-
-  return OK;
+  return output;
 }
 
-static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType, f32 param) {
+static Tensor *unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
@@ -295,85 +288,59 @@ static Result unaryOpCuda(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opT
 
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
-  *dest = *output;
-  freeAlloc(ctx->memory, output);
   freeIfContingousCopy(ctx, input);
-
-  return OK;
+  return output;
 }
 
-static Result dispatchUnaryOp(Context *ctx, Tensor *t, Tensor *dest, UnaryOpType opType,
-                              f32 param) {
+static Tensor *dispatchUnaryOp(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
   if (opType == UNARY_OP_RELU && shouldLogRelu()) {
     fprintf(stderr, "[Relu] phase=dispatch device=%s\n",
             unaryDeviceTypeName(getUnaryDispatchDevice(ctx)));
   }
 
   switch (getUnaryDispatchDevice(ctx)) {
-    case CUDA: return unaryOpCuda(ctx, t, dest, opType, param);
+    case CUDA: return unaryOpCuda(ctx, t, opType, param);
     case CPU:
-    default: return unaryOpCpu(ctx, t, dest, opType, param);
+    default: return unaryOpCpu(ctx, t, opType, param);
   }
 }
 
-Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest) {
+Tensor *Pow(Context *ctx, Tensor *t, f32 power) {
   Result result = validatePowTensor(t);
-  if (result != OK) {
-    return result;
-  }
-
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_POW, power);
+  PANIC_IF(result != OK, result);
+  return dispatchUnaryOp(ctx, t, UNARY_OP_POW, power);
 }
 
-Result Tanh(Context *ctx, Tensor *t, Tensor *dest) {
+Tensor *Tanh(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_TANH_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
-
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_TANH, 0.0f);
+  PANIC_IF(result != OK, result);
+  return dispatchUnaryOp(ctx, t, UNARY_OP_TANH, 0.0f);
 }
 
-Result Relu(Context *ctx, Tensor *t, Tensor *dest) {
+Tensor *Relu(Context *ctx, Tensor *t) {
   logReluTensorState("entry", ctx, t, OK);
-
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    logReluTensorState("validate", ctx, t, result);
-    return result;
-  }
-
-  result = dispatchUnaryOp(ctx, t, dest, UNARY_OP_RELU, 0.0f);
+  PANIC_IF(result != OK, result);
+  Tensor *out = dispatchUnaryOp(ctx, t, UNARY_OP_RELU, 0.0f);
   if (shouldLogRelu()) {
-    fprintf(stderr, "[Relu] phase=return result=%s(%d)\n", unaryResultName(result), (int)result);
+    fprintf(stderr, "[Relu] phase=return result=OK(0)\n");
   }
-
-  return result;
+  return out;
 }
 
-Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+Tensor *ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
   result = validateFloatUnaryTensor(gradOut, ERR_RELU_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  if (output->dtype != gradOut->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (output->size != gradOut->size || output->shape.numOfDims != gradOut->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF(output->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(output->size != gradOut->size || output->shape.numOfDims != gradOut->shape.numOfDims,
+           ERR_DIM_MISMATCH);
 
   for (u8 i = 0; i < output->shape.numOfDims; i++) {
-    if (output->shape.dims[i] != gradOut->shape.dims[i]) {
-      return ERR_DIM_MISMATCH;
-    }
+    PANIC_IF(output->shape.dims[i] != gradOut->shape.dims[i], ERR_DIM_MISMATCH);
   }
 
   Tensor *outputWork = materializeTensorOnContext(ctx, output);
@@ -403,50 +370,36 @@ Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest)
     }
   }
 
-  *dest = *dInput;
-  freeAlloc(ctx->memory, dInput);
   freeIfContingousCopy(ctx, outputWork);
   freeIfContingousCopy(ctx, gradWork);
-  return OK;
+  return dInput;
 }
 
-Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
   result = validateFloatUnaryTensor(gradOut, ERR_RELU_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
   result = validateFloatUnaryTensor(dest, ERR_RELU_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  if (output->dtype != gradOut->dtype || output->dtype != dest->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (output->size != gradOut->size || output->size != dest->size ||
-      output->shape.numOfDims != gradOut->shape.numOfDims ||
-      output->shape.numOfDims != dest->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF(output->dtype != gradOut->dtype || output->dtype != dest->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(output->size != gradOut->size || output->size != dest->size ||
+               output->shape.numOfDims != gradOut->shape.numOfDims ||
+               output->shape.numOfDims != dest->shape.numOfDims,
+           ERR_DIM_MISMATCH);
 
   for (u8 i = 0; i < output->shape.numOfDims; i++) {
-    if (output->shape.dims[i] != gradOut->shape.dims[i] ||
-        output->shape.dims[i] != dest->shape.dims[i]) {
-      return ERR_DIM_MISMATCH;
-    }
+    PANIC_IF(output->shape.dims[i] != gradOut->shape.dims[i] ||
+                 output->shape.dims[i] != dest->shape.dims[i],
+             ERR_DIM_MISMATCH);
   }
 
-  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA &&
-      (!dest->isContigous || dest->isView)) {
-    return ERR_NO_OP;
-  }
+  PANIC_IF(ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA &&
+               (!dest->isContigous || dest->isView),
+           ERR_NO_OP);
 
   Tensor *outputWork = materializeTensorOnContext(ctx, output);
   Tensor *gradWork = materializeTensorOnContext(ctx, gradOut);
@@ -455,7 +408,9 @@ Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Ten
     result = runCudaReluBackwardAccumulate(ctx, outputWork->dtype, outputWork->values,
                                            gradWork->values, dest->values, outputWork->size);
     PANIC_IF(result != OK, CUDA_OP_FAILED);
-    return result;
+    freeIfContingousCopy(ctx, outputWork);
+    freeIfContingousCopy(ctx, gradWork);
+    return;
   }
 
   PANIC_IF(!dest->isContigous || dest->isView, ERR_NO_OP);
@@ -478,41 +433,28 @@ Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Ten
 
   freeIfContingousCopy(ctx, outputWork);
   freeIfContingousCopy(ctx, gradWork);
-  return OK;
 }
 
-Result Negate(Context *ctx, Tensor *t, Tensor *dest) {
+Tensor *Negate(Context *ctx, Tensor *t) {
   Result result = validateNegateTensor(t);
-  if (result != OK) {
-    return result;
-  }
-
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_NEGATE, 0.0f);
+  PANIC_IF(result != OK, result);
+  return dispatchUnaryOp(ctx, t, UNARY_OP_NEGATE, 0.0f);
 }
 
-Result Exp(Context *ctx, Tensor *t, Tensor *dest) {
+Tensor *Exp(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_EXP_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
-
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_EXP, 0.0f);
+  PANIC_IF(result != OK, result);
+  return dispatchUnaryOp(ctx, t, UNARY_OP_EXP, 0.0f);
 }
 
-Result Log(Context *ctx, Tensor *t, Tensor *dest) {
+Tensor *Log(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_LOG_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
-
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_LOG, 0.0f);
+  PANIC_IF(result != OK, result);
+  return dispatchUnaryOp(ctx, t, UNARY_OP_LOG, 0.0f);
 }
 
-Result Abs(Context *ctx, Tensor *t, Tensor *dest) {
+Tensor *Abs(Context *ctx, Tensor *t) {
   Result result = validateAbsTensor(t);
-  if (result != OK) {
-    return result;
-  }
-
-  return dispatchUnaryOp(ctx, t, dest, UNARY_OP_ABS, 0.0f);
+  PANIC_IF(result != OK, result);
+  return dispatchUnaryOp(ctx, t, UNARY_OP_ABS, 0.0f);
 }

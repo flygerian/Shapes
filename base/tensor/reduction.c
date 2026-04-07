@@ -50,60 +50,30 @@ static DeviceType getReductionDispatchDevice(Context *ctx) {
   return ctx->device->type;
 }
 
-static Result validateReductionTensor(Tensor *t) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  return OK;
+static void validateReductionTensor(Tensor *t) {
+  PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 }
 
-static Result validateReduceDim(Tensor *t, dim_t dim, Result dimError) {
-  Result result = validateReductionTensor(t);
-  if (result != OK) {
-    return result;
-  }
-
-  if (dim >= t->shape.numOfDims) {
-    return dimError;
-  }
-
-  if (t->size == 0) {
-    return ERR_NO_OP;
-  }
-
-  return OK;
+static void validateReduceDim(Tensor *t, dim_t dim, Result dimError) {
+  validateReductionTensor(t);
+  PANIC_IF(dim >= t->shape.numOfDims, dimError);
+  PANIC_IF(t->size == 0, ERR_NO_OP);
 }
 
-static Result validateMeanLike(Tensor *t, Result invalidTypeError) {
-  Result result = validateReductionTensor(t);
-  if (result != OK) {
-    return result;
-  }
-
+static void validateMeanLike(Tensor *t, Result invalidTypeError) {
+  validateReductionTensor(t);
   switch (t->dtype) {
     case F16:
     case F32:
-    case F64: return OK;
-    default: return invalidTypeError;
+    case F64: return;
+    default: PANIC_IF(true, invalidTypeError);
   }
 }
 
-static Result validateStdTensor(Tensor *t) {
-  Result result = validateReductionTensor(t);
-  if (result != OK) {
-    return result;
-  }
-
-  if (t->size < 2) {
-    return ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES;
-  }
-
-  if (isNotFloatType(t)) {
-    return ERR_STD_NOT_FLOAT_TYPE;
-  }
-
-  return OK;
+static void validateStdTensor(Tensor *t) {
+  validateReductionTensor(t);
+  PANIC_IF(t->size < 2, ERR_STD_REQUIRES_AT_LEAST_TWO_VALUES);
+  PANIC_IF(isNotFloatType(t), ERR_STD_NOT_FLOAT_TYPE);
 }
 
 static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numBeforeDim,
@@ -117,8 +87,7 @@ static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numB
   return calculateNumElementsAfterDim(t, dim, numAfterDim);
 }
 
-static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
+static Tensor *sumCpu(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -126,18 +95,10 @@ static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   dim_t reduce = 0;
   Result result =
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    freeIfContingousCopy(ctx, workingTensor);
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  Tensor *createdDest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
-  if (createdDest == NULL) {
-    freeIfContingousCopy(ctx, workingTensor);
-    return ALLOCATION_FAILED;
-  }
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -154,10 +115,10 @@ static Result sumCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   freeIfContingousCopy(ctx, workingTensor);
-  return OK;
+  return dest;
 }
 
-static Result meanCpu(Context *ctx, Tensor *t, Tensor *dest) {
+static Tensor *meanCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
@@ -165,16 +126,18 @@ static Result meanCpu(Context *ctx, Tensor *t, Tensor *dest) {
   Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
   PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
   VALUE_SET(dest->values, 0, mean);
 
   freeAlloc(ctx->memory, tensorSum);
   freeIfContingousCopy(ctx, input);
-  return OK;
+  return dest;
 }
 
-static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+static Tensor *meanDimCpu(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -185,10 +148,8 @@ static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
-  Tensor *createdDest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -217,10 +178,10 @@ static Result meanDimCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   freeIfContingousCopy(ctx, workingTensor);
-  return OK;
+  return dest;
 }
 
-static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
+static Tensor *stdCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
@@ -250,6 +211,9 @@ static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   f64 std = sqrt(deviationSquaredSum / (f64)(input->size - 1));
+
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
   PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
 
@@ -262,11 +226,10 @@ static Result stdCpu(Context *ctx, Tensor *t, Tensor *dest) {
 
   freeAlloc(ctx->memory, tensorSum);
   freeIfContingousCopy(ctx, input);
-  return OK;
+  return dest;
 }
 
-static Result maxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
+static Tensor *maxCpu(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -275,15 +238,10 @@ static Result maxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
 
   Result result =
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    freeIfContingousCopy(ctx, workingTensor);
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  Tensor *createdDest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
@@ -305,10 +263,10 @@ static Result maxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   freeIfContingousCopy(ctx, workingTensor);
-  return OK;
+  return dest;
 }
 
-static Result argMaxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+static Tensor *argMaxCpu(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -318,10 +276,8 @@ static Result argMaxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
-  Tensor *createdDest = t_Reduced(ctx, workingTensor, dim, I64);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, workingTensor, dim, I64);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   i64 *destValues = (i64 *)dest->values;
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
@@ -346,103 +302,96 @@ static Result argMaxCpu(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   }
 
   freeIfContingousCopy(ctx, workingTensor);
-  return OK;
+  return dest;
 }
 
-static Result sumCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+static Tensor *sumCuda(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    freeIfContingousCopy(ctx, input);
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  Tensor *createdDest = t_Reduced(ctx, input, dim, input->dtype);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, input, dim, input->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_SUM, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
+  PANIC_IF(result != OK, result);
   freeIfContingousCopy(ctx, input);
-  return result;
+  return dest;
 }
 
-static Result meanCuda(Context *ctx, Tensor *t, Tensor *dest) {
+static Tensor *meanCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
   PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
 
   Result result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
                                    dest->values, input->size);
+  PANIC_IF(result != OK, result);
   freeIfContingousCopy(ctx, input);
-  return result;
+  return dest;
 }
 
-static Result meanDimCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+static Tensor *meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    freeIfContingousCopy(ctx, input);
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  Tensor *createdDest = t_Reduced(ctx, input, dim, input->dtype);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, input, dim, input->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MEAN, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
+  PANIC_IF(result != OK, result);
   freeIfContingousCopy(ctx, input);
-  return result;
+  return dest;
 }
 
-static Result stdCuda(Context *ctx, Tensor *t, Tensor *dest) {
+static Tensor *stdCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
   PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
 
   Result result = runCudaStd(ctx, input->dtype, input->values, dest->values, input->size);
+  PANIC_IF(result != OK, result);
   freeIfContingousCopy(ctx, input);
-  return result;
+  return dest;
 }
 
-static Result maxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
+static Tensor *maxCuda(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
   tensor_size_t numAfterDim = 0;
   dim_t reduce = 0;
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    freeIfContingousCopy(ctx, input);
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  Tensor *createdDest = t_Reduced(ctx, input, dim, input->dtype);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, input, dim, input->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MAX, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
+  PANIC_IF(result != OK, result);
   freeIfContingousCopy(ctx, input);
-  return result;
+  return dest;
 }
 
-static Result argMaxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  TensorArg inputArg = {0};
+static Tensor *argMaxCuda(Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -450,144 +399,99 @@ static Result argMaxCuda(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   dim_t reduce = 0;
 
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
-  if (result != OK) {
-    freeIfContingousCopy(ctx, input);
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  Tensor *createdDest = t_Reduced(ctx, input, dim, I64);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Reduced(ctx, input, dim, I64);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
+  PANIC_IF(result != OK, result);
   freeIfContingousCopy(ctx, input);
-  return result;
+  return dest;
 }
 
-Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  Result result = validateReduceDim(t, dim, ERR_SUM_DIM_OUT_OF_BOUNDS);
-  if (result != OK) {
-    return result;
-  }
+Tensor *Sum(Context *ctx, Tensor *t, dim_t dim) {
+  validateReduceDim(t, dim, ERR_SUM_DIM_OUT_OF_BOUNDS);
 
   switch (getReductionDispatchDevice(ctx)) {
-    case CUDA: return sumCuda(ctx, t, dest, dim);
+    case CUDA: return sumCuda(ctx, t, dim);
     case CPU:
-    default: return sumCpu(ctx, t, dest, dim);
+    default: return sumCpu(ctx, t, dim);
   }
 }
 
-Result ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad, Tensor *dest) {
-  Result result = validateReductionTensor(input);
-  if (result != OK) {
-    return result;
-  }
-
-  result = validateReductionTensor(grad);
-  if (result != OK) {
-    return result;
-  }
+Tensor *ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
+  validateReductionTensor(input);
+  validateReductionTensor(grad);
 
   Tensor *current = grad;
   i32 dimDiff = (i32)grad->shape.numOfDims - (i32)input->shape.numOfDims;
   if (dimDiff < 0) {
-    return Clone(ctx, current, dest);
+    return Clone(ctx, current);
   }
 
   for (i32 i = 0; i < dimDiff; i++) {
-    Tensor summed = {0};
-    result = Sum(ctx, current, &summed, 0);
-    PANIC_IF(result != OK, result);
-
-    Tensor squeezed = {0};
-    result = SqueezeDim(ctx, &summed, &squeezed, 0);
-    PANIC_IF(result != OK, result);
-
-    *current = squeezed;
+    Tensor *summed = Sum(ctx, current, 0);
+    current = SqueezeDim(ctx, summed, 0);
   }
 
   for (u8 d = 0; d < input->shape.numOfDims; d++) {
     if (input->shape.dims[d] == 1 && current->shape.dims[d] > 1) {
-      Tensor summed = {0};
-      result = Sum(ctx, current, &summed, d);
-      if (result != OK) {
-        return result;
-      }
-
-      current = &summed;
+      current = Sum(ctx, current, d);
     }
   }
 
-  return Clone(ctx, current, dest);
+  return Clone(ctx, current);
 }
 
-Result Mean(Context *ctx, Tensor *t, Tensor *dest) {
-  Result result = validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
+Tensor *Mean(Context *ctx, Tensor *t) {
+  validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
 
   switch (getReductionDispatchDevice(ctx)) {
-    case CUDA: return meanCuda(ctx, t, dest);
+    case CUDA: return meanCuda(ctx, t);
     case CPU:
-    default: return meanCpu(ctx, t, dest);
+    default: return meanCpu(ctx, t);
   }
 }
 
-Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  Result result = validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
-  if (result != OK) {
-    return result;
-  }
-
-  if (dim >= t->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+Tensor *MeanDim(Context *ctx, Tensor *t, dim_t dim) {
+  validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
+  PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {
-    case CUDA: return meanDimCuda(ctx, t, dest, dim);
+    case CUDA: return meanDimCuda(ctx, t, dim);
     case CPU:
-    default: return meanDimCpu(ctx, t, dest, dim);
+    default: return meanDimCpu(ctx, t, dim);
   }
 }
 
-Result Std(Context *ctx, Tensor *t, Tensor *dest) {
-  Result result = validateStdTensor(t);
-  if (result != OK) {
-    return result;
-  }
+Tensor *Std(Context *ctx, Tensor *t) {
+  validateStdTensor(t);
 
   switch (getReductionDispatchDevice(ctx)) {
-    case CUDA: return stdCuda(ctx, t, dest);
+    case CUDA: return stdCuda(ctx, t);
     case CPU:
-    default: return stdCpu(ctx, t, dest);
+    default: return stdCpu(ctx, t);
   }
 }
 
-Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  Result result = validateReduceDim(t, dim, ERR_DIM_MISMATCH);
-  if (result != OK) {
-    return result;
-  }
+Tensor *Max(Context *ctx, Tensor *t, dim_t dim) {
+  validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {
-    case CUDA: return maxCuda(ctx, t, dest, dim);
+    case CUDA: return maxCuda(ctx, t, dim);
     case CPU:
-    default: return maxCpu(ctx, t, dest, dim);
+    default: return maxCpu(ctx, t, dim);
   }
 }
 
-Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  Result result = validateReduceDim(t, dim, ERR_DIM_MISMATCH);
-  if (result != OK) {
-    return result;
-  }
+Tensor *ArgMax(Context *ctx, Tensor *t, dim_t dim) {
+  validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {
-    case CUDA: return argMaxCuda(ctx, t, dest, dim);
+    case CUDA: return argMaxCuda(ctx, t, dim);
     case CPU:
-    default: return argMaxCpu(ctx, t, dest, dim);
+    default: return argMaxCpu(ctx, t, dim);
   }
 }

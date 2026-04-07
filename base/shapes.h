@@ -23,14 +23,14 @@ void freeOnCtx(Context *ctx, void *ptr);
 void MoveTensors(Context *destCtx, u8 numTensors, ...);
 
 // Binary Ops
-Tensor *Add(Context *ctx, Tensor *a, Tensor *b);
-Tensor *Subtract(Context *ctx, Tensor *a, Tensor *b);
-Tensor *Divide(Context *ctx, Tensor *numerator, Tensor *denominator);
-Tensor *Multiply(Context *ctx, Tensor *a, Tensor *b);
-Tensor *GreaterThan(Context *ctx, Tensor *a, Tensor *b);
-Tensor *GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b);
-Tensor *LessThan(Context *ctx, Tensor *a, Tensor *b);
-Tensor *LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b);
+Tensor* Add(Context *ctx, Tensor *a, Tensor *b);
+Tensor* Subtract(Context *ctx, Tensor *a, Tensor *b);
+Tensor* Divide(Context *ctx, Tensor *numerator, Tensor *denominator);
+Tensor* Multiply(Context *ctx, Tensor *a, Tensor *b);
+Tensor* GreaterThan(Context *ctx, Tensor *a, Tensor *b);
+Tensor* GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b);
+Tensor* LessThan(Context *ctx, Tensor *a, Tensor *b);
+Tensor*LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b);
 
 void AddInPlace(Context *ctx, Tensor *a, Tensor *b);
 void SubtractInPlace(Context *ctx, Tensor *a, Tensor *b);
@@ -38,60 +38,59 @@ void MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
 Result GetAt(Tensor *t, Dim dim, Value *result);
-Result GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor *dest);
+Tensor* GetTensorAt(Context *ctx, Tensor *source, dim_t index);
 Result GetScalar(Tensor *t, Value *result);
 Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims);
 Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value);
-Result IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor *dest);
-Result IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices,
-                         Tensor *dest);
-Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...);
-Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape);
-Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...);
-Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order);
-Result Squeeze(Context *ctx, Tensor *t, Tensor *dest);
-Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result Clone(Context *ctx, Tensor *t, Tensor *dest);
-Result Copy(Context *ctx, Tensor *src, Tensor *dest);
-Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensorsToAdd,
-              Tensor *dest);
+Tensor* IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices);
+Tensor* IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices);
+Tensor* Slice(Context *ctx, Tensor *source, ...);
+Tensor* Reshape(Context *ctx, Tensor *source, Dim newShape);
+Tensor* Transpose(Context *ctx, Tensor *source, ...);
+Tensor* Permute(Context *ctx, Tensor *source, Dim order);
+Tensor* Squeeze(Context *ctx, Tensor *t);
+Tensor* SqueezeDim(Context *ctx, Tensor *t, dim_t dim);
+Tensor* UnSqueeze(Context *ctx, Tensor *t, dim_t dim);
+Tensor* Clone(Context *ctx, Tensor *t);
+void Copy(Context *ctx, Tensor *src, Tensor *dest);
+Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
+               u32 numTensorsToAdd);
 
 // Cast
-Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype targetDtype);
+Tensor *Cast(Context *ctx, Tensor *source, Dtype targetDtype);
 
 // Unary
-Result Pow(Context *ctx, Tensor *t, f32 power, Tensor *dest);
-Result Exp(Context *ctx, Tensor *t, Tensor *dest);
-Result Tanh(Context *ctx, Tensor *t, Tensor *dest);
-Result Relu(Context *ctx, Tensor *t, Tensor *dest);
-Result ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
-Result ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
-Result Negate(Context *ctx, Tensor *t, Tensor *dest);
-Result Log(Context *ctx, Tensor *t, Tensor *dest);
-Result Abs(Context *ctx, Tensor *t, Tensor *dest);
+Tensor* Pow(Context *ctx, Tensor *t, f32 power);
+Tensor* Exp(Context *ctx, Tensor *t);
+Tensor* Tanh(Context *ctx, Tensor *t);
+Tensor* Relu(Context *ctx, Tensor *t);
+Tensor* ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut);
+void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
+Tensor* Negate(Context *ctx, Tensor *t);
+Tensor* Log(Context *ctx, Tensor *t);
+Tensor* Abs(Context *ctx, Tensor *t);
 
 // Reduction
-Result Sum(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad, Tensor *dest);
-Result Mean(Context *ctx, Tensor *t, Tensor *dest);
-Result MeanDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result Std(Context *ctx, Tensor *t, Tensor *dest);
-Result Max(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
-Result ArgMax(Context *ctx, Tensor *t, Tensor *dest, dim_t dim);
+Tensor* Sum(Context *ctx, Tensor *t, dim_t dim);
+Tensor* ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad);
+Tensor* Mean(Context *ctx, Tensor *t);
+Tensor* MeanDim(Context *ctx, Tensor *t, dim_t dim);
+Tensor* Std(Context *ctx, Tensor *t);
+Tensor* Max(Context *ctx, Tensor *t, dim_t dim);
+Tensor* ArgMax(Context *ctx, Tensor *t, dim_t dim);
 
 // Accumulate
-Result IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad);
-Result IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
-                         Tensor *srcGrad);
-Result SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad);
+void IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad);
+void IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
+                       Tensor *srcGrad);
+void SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad);
 
 // Matrix ops
-Result MatMul(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
-Result Dot(Context *ctx, Tensor *a, Tensor *b, Tensor *result);
+Tensor* MatMul(Context *ctx, Tensor *a, Tensor *b);
+Tensor* Dot(Context *ctx, Tensor *a, Tensor *b);
 
 // Layer ops
-Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
+Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
 Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
                      Tensor *dB);
 Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
@@ -136,15 +135,15 @@ void PrintItem(Tensor *t);
 char *GetItem(Context *ctx, Tensor *t);
 
 // Tensor creation
-Tensor *T_Zeros(Context *ctx, Dim shape);
-Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
-Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue);
-Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
-Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
+Tensor* T_Zeros(Context *ctx, Dim shape);
+Tensor* T_Int(Context *ctx, Dim shape, i8 initialValues);
+Tensor* T_UInt(Context *ctx, Dim shape, u8 initialValue);
+Tensor* T_Float(Context *ctx, Dim shape, f32 initialValues);
+Tensor* MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
                                Dtype dtype);
-Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype);
-Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
-Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step);
+Tensor* MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype);
+Tensor* T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
+Tensor* T_Arange(Context *ctx, f32 start, f32 end, f32 step);
 void SetValues(Tensor *t, Value value);
 
 // Tensor destruction

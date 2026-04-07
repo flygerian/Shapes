@@ -189,62 +189,34 @@ Tensor *T_Zeros(Context *ctx, Dim shape) {
   return t_Zeros(ctx, shape, F32);
 }
 
-Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+Tensor *Clone(Context *ctx, Tensor *t) {
+  PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *source = t;
   if (!t->isContigous) {
     source = copyToContiguous(ctx, t);
-    if (source == NULL) {
-      return ERR_OUT_OF_MEMORY;
-    }
+    PANIC_IF(source == NULL, ERR_OUT_OF_MEMORY);
   }
 
   size_t valueBytes = getBytesForDtype(source->dtype) * source->size;
   void *newValues = allocateOnCtx(ctx, valueBytes);
-  Result allocRes = ensureAllocated(newValues);
-  if (allocRes != OK) {
-    if (!t->isContigous) {
-      FreeTensor(ctx, source);
-    }
-    return allocRes;
-  }
+  PANIC_IF(newValues == NULL, ALLOCATION_FAILED);
+
   Result valueCopyRes =
       copyBetweenContexts(source->context, ctx, source->values, newValues, valueBytes);
-  if (valueCopyRes != OK) {
-    freeOnCtx(ctx, newValues);
-    if (!t->isContigous) {
-      FreeTensor(ctx, source);
-    }
-    return valueCopyRes;
-  }
+  PANIC_IF(valueCopyRes != OK, valueCopyRes);
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
-  allocRes = ensureAllocated(newDims);
-  if (allocRes != OK) {
-    freeOnCtx(ctx, newValues);
-    if (!t->isContigous) {
-      FreeTensor(ctx, source);
-    }
-    return allocRes;
-  }
+  PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
 
   multiplier_t *newMultipliers =
       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
-  allocRes = ensureAllocated(newMultipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, newDims);
-    freeOnCtx(ctx, newValues);
-    if (!t->isContigous) {
-      FreeTensor(ctx, source);
-    }
-    return allocRes;
-  }
+  PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = (Tensor){.context = ctx,
                    .metadataMemory = ctx != NULL ? ctx->memory : NULL,
                    .dtype = source->dtype,
@@ -259,32 +231,19 @@ Result Clone(Context *ctx, Tensor *t, Tensor *dest) {
   if (!t->isContigous) {
     FreeTensor(ctx, source);
   }
-  return OK;
+  return dest;
 }
 
-Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
-  if (isInvalidTensor(src) || isInvalidTensor(dest)) {
-    return ERR_COPY_REQUIRES_INITIALIZED_TENSORS;
-  }
-
-  if (dest->isView) {
-    return ERR_COPY_DESTINATION_VIEW;
-  }
-
-  if (src->size != dest->size) {
-    return ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE;
-  }
-
-  if (src->dtype != dest->dtype) {
-    return ERR_COPY_SAME_DTYPE;
-  }
+void Copy(Context *ctx, Tensor *src, Tensor *dest) {
+  PANIC_IF(isInvalidTensor(src) || isInvalidTensor(dest), ERR_COPY_REQUIRES_INITIALIZED_TENSORS);
+  PANIC_IF(dest->isView, ERR_COPY_DESTINATION_VIEW);
+  PANIC_IF(src->size != dest->size, ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE);
+  PANIC_IF(src->dtype != dest->dtype, ERR_COPY_SAME_DTYPE);
 
   Tensor *srcContigous;
   if (!src->isContigous) {
     srcContigous = copyToContiguous(ctx, src);
-    if (srcContigous == NULL) {
-      return ERR_OUT_OF_MEMORY;
-    }
+    PANIC_IF(srcContigous == NULL, ERR_OUT_OF_MEMORY);
   } else {
     srcContigous = src;
   }
@@ -292,19 +251,11 @@ Result Copy(Context *ctx, Tensor *src, Tensor *dest) {
   Result copyRes =
       copyBetweenContexts(srcContigous->context, dest->context, srcContigous->values, dest->values,
                           srcContigous->size * getBytesForDtype(srcContigous->dtype));
-  if (copyRes != OK) {
-    if (!src->isContigous) {
-      FreeTensor(ctx, srcContigous);
-    }
-    return copyRes;
-  }
+  PANIC_IF(copyRes != OK, copyRes);
 
   if (!src->isContigous) {
-    // Free the intermediate contigous tensor
     FreeTensor(ctx, srcContigous);
   }
-
-  return OK;
 }
 
 void SetValues(Tensor *t, Value value) {

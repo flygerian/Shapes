@@ -55,8 +55,10 @@ Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
 
 sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 numOfDims) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
-  PANIC_IF(dims == NULL, ERR_NULL_PTR);
-  PANIC_IF(numOfDims == 0, ERR_DIM_MISMATCH);
+
+  if (dims == NULL || numOfDims == 0) {
+    return (sizeAndMultipliers) {.size = 0, .multipliers = NULL};
+  }
 
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
   tensor_size_t size = 1;
@@ -275,16 +277,7 @@ TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
-  Tensor *reshapedSmaller = allocate(ctx->memory, sizeof(Tensor));
-  if (reshapedSmaller == NULL) {
-    freeAlloc(ctx->memory, newDims);
-    return (TensorPair){.a = a, .b = b};
-  }
-  if (Reshape(ctx, smaller, reshapedSmaller, newShape) != OK) {
-    freeAlloc(ctx->memory, newDims);
-    freeAlloc(ctx->memory, reshapedSmaller);
-    return (TensorPair){.a = a, .b = b};
-  }
+  Tensor *reshapedSmaller = Reshape(ctx, smaller, newShape);
 
   if (smaller == a) {
     return (TensorPair){.a = reshapedSmaller, .b = b};

@@ -12,7 +12,6 @@
 #include "tensor/value.h"
 #include "utils_lib/array.h"
 
-
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
@@ -30,18 +29,17 @@ int main(int argc, char *argv[]) {
   Layer dense = nn_Dense(&ctx, 3, 10);
   Layer dense2 = nn_Dense(&ctx, 10, 1);
 
-  Optimzer sgd = nn_SGD(1e-4);
+  Optimzer sgd = nn_SGD(1e-2);
 
-  for (u8 epoch = 1; epoch <= 10; epoch++) {
+  for (u8 epoch = 1; epoch <= 20; epoch++) {
     Tensor *out = dense.forward(&ctx, &dense.state, xs);
     Tensor *logits = dense2.forward(&ctx, &dense2.state, out);
 
-    Tensor logitsSqueezed;
-    Squeeze(&ctx, logits, &logitsSqueezed);
-    Tensor loss = loss_Mse(&ctx, ys, &logitsSqueezed);
+    Tensor *logitsSqueezed = Squeeze(&ctx, logits);
+    Tensor loss = loss_Mse(&ctx, ys, logitsSqueezed);
 
     Value lossValue;
-    VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, lossValue.dtype);
+    VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
 
     fprintf(stdout, "Loss: %f \n", lossValue.as.f32);
 

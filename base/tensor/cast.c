@@ -133,12 +133,10 @@ static bool isCastSafe(Dtype source, Dtype target) {
   return dtypeRank(target) >= dtypeRank(source);
 }
 
-static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
+static Tensor *castOnCpu(Context *ctx, Tensor *source, Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
-  Tensor *createdDest = t_Zeros(ctx, source->shape, target);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Zeros(ctx, source->shape, target);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   for (tensor_size_t i = 0; i < src->size; i++) {
     Value v;
@@ -148,29 +146,23 @@ static Result castOnCpu(Context *ctx, Tensor *source, Tensor *dest, Dtype target
   }
 
   freeIfContingousCopy(ctx, src);
-  return OK;
+  return dest;
 }
 
-static Result castOnCuda(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
+static Tensor *castOnCuda(Context *ctx, Tensor *source, Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
-  Tensor *createdDest = t_Zeros(ctx, src->shape, target);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Zeros(ctx, src->shape, target);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
-  Result result = OK;
-
-  result = runCudaCast(ctx, src->dtype, src->values, target, dest->values, src->size);
+  Result result = runCudaCast(ctx, src->dtype, src->values, target, dest->values, src->size);
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   freeIfContingousCopy(ctx, src);
-  return result;
+  return dest;
 }
 
-Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
-  if (isInvalidTensor(source)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+Tensor *Cast(Context *ctx, Tensor *source, Dtype target) {
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
   Dtype srcDtype = source->dtype;
 
@@ -184,17 +176,13 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
 
   // Unsigned <-> anything else is a sign mismatch
   bool involvesUnsigned = (srcFamily == 2 || tgtFamily == 2);
-  if (involvesUnsigned && srcFamily != tgtFamily) {
-    return ERR_SIGN_MISMATCH_CAST;
-  }
+  PANIC_IF(involvesUnsigned && srcFamily != tgtFamily, ERR_SIGN_MISMATCH_CAST);
 
   // Check for truncation (within same family, narrowing is not allowed)
-  if (!isCastSafe(srcDtype, target)) {
-    return ERR_TRUNCATING_CAST;
-  }
+  PANIC_IF(!isCastSafe(srcDtype, target), ERR_TRUNCATING_CAST);
 
   if (srcDtype == target) {
-    return Clone(ctx, source, dest);
+    return Clone(ctx, source);
   }
 
   DeviceType deviceType = CPU;
@@ -203,9 +191,8 @@ Result Cast(Context *ctx, Tensor *source, Tensor *dest, Dtype target) {
   }
 
   switch (deviceType) {
-    case CPU: return castOnCpu(ctx, source, dest, target);
-    case CUDA: return castOnCuda(ctx, source, dest, target);
+    case CUDA: return castOnCuda(ctx, source, target);
+    case CPU:
+    default: return castOnCpu(ctx, source, target);
   }
-
-  return ERR_NO_OP;
 }

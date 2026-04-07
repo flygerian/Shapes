@@ -246,99 +246,83 @@ static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, Range *ranges, Ten
   return result;
 }
 
-Result IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
-  if (isInvalidTensor(dest) || isInvalidTensor(indices) || isInvalidTensor(srcGrad)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+void IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
+  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(indices) || isInvalidTensor(srcGrad),
+           ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  if (isIntType(indices)) {
-    return ERR_ONLY_INT_TYPE_ALLOWED;
-  }
-
-  if (!isDestOnDispatchDevice(ctx, dest)) {
-    return ERR_NO_OP;
-  }
+  PANIC_IF(isIntType(indices), ERR_ONLY_INT_TYPE_ALLOWED);
+  PANIC_IF(!isDestOnDispatchDevice(ctx, dest), ERR_NO_OP);
 
   switch (getAccumulateDispatchDevice(ctx)) {
-    case CUDA: return indexAccumulate1dCuda(ctx, dest, indices, srcGrad);
+    case CUDA:
+      result = indexAccumulate1dCuda(ctx, dest, indices, srcGrad);
+      PANIC_IF(result != OK, result);
+      return;
     case CPU:
-    default: return indexAccumulate1dCpu(ctx, dest, indices, srcGrad);
+    default:
+      result = indexAccumulate1dCpu(ctx, dest, indices, srcGrad);
+      PANIC_IF(result != OK, result);
   }
 }
 
-Result IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
-                         Tensor *srcGrad) {
-  if (isInvalidTensor(dest) || isInvalidTensor(rowIndices) || isInvalidTensor(colIndices) ||
-      isInvalidTensor(srcGrad)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+void IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
+                       Tensor *srcGrad) {
+  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(rowIndices) || isInvalidTensor(colIndices) ||
+               isInvalidTensor(srcGrad),
+           ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  if (isIntType(rowIndices) || isIntType(colIndices)) {
-    return ERR_ONLY_INT_TYPE_ALLOWED;
-  }
-
-  if (rowIndices->size != colIndices->size || dest->shape.numOfDims < 2) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (!isDestOnDispatchDevice(ctx, dest)) {
-    return ERR_NO_OP;
-  }
+  PANIC_IF(isIntType(rowIndices) || isIntType(colIndices), ERR_ONLY_INT_TYPE_ALLOWED);
+  PANIC_IF(rowIndices->size != colIndices->size || dest->shape.numOfDims < 2, ERR_DIM_MISMATCH);
+  PANIC_IF(!isDestOnDispatchDevice(ctx, dest), ERR_NO_OP);
 
   switch (getAccumulateDispatchDevice(ctx)) {
-    case CUDA: return indexAccumulate2dCuda(ctx, dest, rowIndices, colIndices, srcGrad);
+    case CUDA:
+      result = indexAccumulate2dCuda(ctx, dest, rowIndices, colIndices, srcGrad);
+      PANIC_IF(result != OK, result);
+      return;
     case CPU:
-    default: return indexAccumulate2dCpu(ctx, dest, rowIndices, colIndices, srcGrad);
+    default:
+      result = indexAccumulate2dCpu(ctx, dest, rowIndices, colIndices, srcGrad);
+      PANIC_IF(result != OK, result);
   }
 }
 
-Result SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
-  if (isInvalidTensor(dest) || isInvalidTensor(srcGrad) || ranges == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+void SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(srcGrad) || ranges == NULL,
+           ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);
-  if (result != OK) {
-    return result;
-  }
+  PANIC_IF(result != OK, result);
 
-  if (dest->shape.numOfDims != srcGrad->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF(dest->shape.numOfDims != srcGrad->shape.numOfDims, ERR_DIM_MISMATCH);
 
   u8 ndims = dest->shape.numOfDims;
-  if (ndims == 0) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF(ndims == 0, ERR_DIM_MISMATCH);
 
   for (u8 i = 0; i < ndims; i++) {
-    if (ranges[i].start > ranges[i].end || ranges[i].end > dest->shape.dims[i]) {
-      return ERR_OUT_OF_BOUNDS;
-    }
+    PANIC_IF(ranges[i].start > ranges[i].end || ranges[i].end > dest->shape.dims[i],
+             ERR_OUT_OF_BOUNDS);
 
     u64 span = ranges[i].end - ranges[i].start;
-    if ((u64)srcGrad->shape.dims[i] != span) {
-      return ERR_DIM_MISMATCH;
-    }
+    PANIC_IF((u64)srcGrad->shape.dims[i] != span, ERR_DIM_MISMATCH);
   }
 
-  if (!isDestOnDispatchDevice(ctx, dest)) {
-    return ERR_NO_OP;
-  }
+  PANIC_IF(!isDestOnDispatchDevice(ctx, dest), ERR_NO_OP);
 
   switch (getAccumulateDispatchDevice(ctx)) {
-    case CUDA: return sliceAccumulateCuda(ctx, dest, ranges, srcGrad);
+    case CUDA:
+      result = sliceAccumulateCuda(ctx, dest, ranges, srcGrad);
+      PANIC_IF(result != OK, result);
+      return;
     case CPU:
-    default: return sliceAccumulateCpu(ctx, dest, ranges, srcGrad);
+    default:
+      result = sliceAccumulateCpu(ctx, dest, ranges, srcGrad);
+      PANIC_IF(result != OK, result);
   }
 }

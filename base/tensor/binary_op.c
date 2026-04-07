@@ -686,12 +686,7 @@ Tensor *Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
   // Implement division as: numerator / denominator = numerator * (denominator^-1)
   // This automatically gets correct gradients through the computation graph!
 
-  // Pow writes into dest by assigning a newly allocated tensor payload. Allocate only the
-  // container struct here so we don't leak a preallocated payload on overwrite.
-  Tensor *denom_inv = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(denom_inv == NULL, ALLOCATION_FAILED);
-  Result res = Pow(ctx, denominator, -1.0f, denom_inv);
-  PANIC_IF(res != OK, res);
+  Tensor *denom_inv = Pow(ctx, denominator, -1.0f);
   Tensor *result = Multiply(ctx, numerator, denom_inv);
   FreeTensor(ctx, denom_inv);
   return result;

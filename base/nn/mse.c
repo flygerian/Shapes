@@ -23,40 +23,33 @@ void mseBackward(Context *ctx, Tensor *tensor) {
   Tensor *two = T_Float(ctx, diff->shape, 2.0);
   Tensor *localGrad = Multiply(ctx, two, diff);
   Tensor *gradYPred = Multiply(ctx, tensor->grad, localGrad);
-  Tensor reducedGradYPred;
-  ReduceBroadcast(ctx, yPred, gradYPred, &reducedGradYPred);
-  AddInPlace(ctx, yPred->grad, &reducedGradYPred);
+  Tensor *reducedGradYPred = ReduceBroadcast(ctx, yPred, gradYPred);
+  AddInPlace(ctx, yPred->grad, reducedGradYPred);
 
   // ∂L/∂yGround = upstream_grad * -2*(yPred - yGround)
-  Tensor negLocalGrad;
-  Negate(ctx, localGrad, &negLocalGrad);
-  Tensor *gradYGround = Multiply(ctx, tensor->grad, &negLocalGrad);
-  Tensor reducedGradYGround;
-  ReduceBroadcast(ctx, yGround, gradYGround, &reducedGradYGround);
-  AddInPlace(ctx, yGround->grad, &reducedGradYGround);
+  Tensor *negLocalGrad = Negate(ctx, localGrad);
+  Tensor *gradYGround = Multiply(ctx, tensor->grad, negLocalGrad);
+  Tensor *reducedGradYGround = ReduceBroadcast(ctx, yGround, gradYGround);
+  AddInPlace(ctx, yGround->grad, reducedGradYGround);
 }
 
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
   Tensor *diff = Subtract(ctx, yPred, yGround);
 
-  Tensor se;
-  Result result = Pow(ctx, diff, 2, &se);
-  PANIC_IF(result != OK, result);
+  Tensor *loss = Pow(ctx, diff, 2);
 
-  Tensor loss = se;
-
-  for (dim_t i = 0; i < loss.shape.numOfDims; i++) {
-    dim_t dim = loss.shape.dims[i];
+  for (dim_t i = 0; i < loss->shape.numOfDims; i++) {
+    dim_t dim = loss->shape.dims[i];
     if (dim > 1) {
-      Sum(ctx, &loss, &loss, dim);
+      loss = Sum(ctx, loss, i);
     }
   }
 
-  loss.inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_Append(loss.inputs, &yGround);
-  Array_Append(loss.inputs, &yPred);
+  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
+  Array_Append(loss->inputs, &yGround);
+  Array_Append(loss->inputs, &yPred);
 
-  loss.opType = OP_MSE;
-  loss.backward = mseBackward;
-  return loss;
+  loss->opType = OP_MSE;
+  loss->backward = mseBackward;
+  return *loss;
 }

@@ -10,14 +10,14 @@
 #include "tensor_internal.h"
 #include <stdlib.h>
 
-Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
+Tensor *Slice(Context *ctx, Tensor *source, ...) {
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
+
   Range *ranges = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
-  if (ranges == NULL) {
-    return ERR_OUT_OF_MEMORY;
-  }
+  PANIC_IF(ranges == NULL, ERR_OUT_OF_MEMORY);
 
   va_list args;
-  va_start(args, dest);
+  va_start(args, source);
 
   for (u8 x = 0; x < source->shape.numOfDims; x++) {
     ranges[x] = va_arg(args, Range);
@@ -25,14 +25,14 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
     if (ranges[x].end < ranges[x].start) {
       va_end(args);
       freeAlloc(ctx->memory, ranges);
-      return ERR_INVALID_RANGE;
+      PANIC_IF(true, ERR_INVALID_RANGE);
     }
 
     if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 ||
         ranges[x].end > source->shape.dims[x]) {
       va_end(args);
       freeAlloc(ctx->memory, ranges);
-      return ERR_DIM_MISMATCH;
+      PANIC_IF(true, ERR_DIM_MISMATCH);
     }
   }
   va_end(args);
@@ -42,19 +42,8 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
                   .multipliers =
                       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
   Range *boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
-  if (newShape.dims == NULL || newShape.multipliers == NULL || boundary == NULL) {
-    if (newShape.dims != NULL) {
-      freeAlloc(ctx->memory, newShape.dims);
-    }
-    if (newShape.multipliers != NULL) {
-      freeAlloc(ctx->memory, newShape.multipliers);
-    }
-    if (boundary != NULL) {
-      freeAlloc(ctx->memory, boundary);
-    }
-    freeAlloc(ctx->memory, ranges);
-    return ERR_OUT_OF_MEMORY;
-  }
+  PANIC_IF(newShape.dims == NULL || newShape.multipliers == NULL || boundary == NULL,
+           ALLOCATION_FAILED);
 
   for (u8 x = 0; x < source->shape.numOfDims; x++) {
     Range r = ranges[x];
@@ -75,27 +64,21 @@ Result Slice(Context *ctx, Tensor *source, Tensor *dest, ...) {
          sizeof(multiplier_t) * source->shape.numOfDims);
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newShape.dims, newShape.numOfDims);
   freeAlloc(ctx->memory, ranges);
+
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = tensorView(source->context, ctx->memory, source->values, snm.size, source->dtype,
                      newShape, boundary, false);
 
-  return OK;
+  return dest;
 }
 
-Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
-  if (isInvalidTensor(source)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (newShape.dims == NULL) {
-    return ERR_NULL_SHAPE_PROVIDED;
-  }
+Tensor *Reshape(Context *ctx, Tensor *source, Dim newShape) {
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(newShape.dims == NULL, ERR_NULL_SHAPE_PROVIDED);
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newShape.dims, newShape.numOfDims);
-
-  if (snm.size != source->size) {
-    freeAlloc(ctx->memory, snm.multipliers);
-    return ERR_RESHAPE_DIM_MISMATCH;
-  }
+  PANIC_IF(snm.size != source->size, ERR_RESHAPE_DIM_MISMATCH);
 
   void *values;
   bool isView = true;
@@ -103,10 +86,7 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
 
   if (!source->isContigous) {
     Tensor *contiguous = copyToContiguous(ctx, source);
-    if (contiguous == NULL) {
-      freeAlloc(ctx->memory, snm.multipliers);
-      return ERR_OUT_OF_MEMORY;
-    }
+    PANIC_IF(contiguous == NULL, ERR_OUT_OF_MEMORY);
     values = contiguous->values;
     isView = false;
     freeAlloc(contiguous->metadataMemory, contiguous->shape.dims);
@@ -121,6 +101,8 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
     }
   }
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = isView ? tensorView(source->context, ctx->memory, values, source->size, source->dtype,
                               (Dim){0}, boundary, true)
                  : (Tensor){.context = ctx,
@@ -133,38 +115,30 @@ Result Reshape(Context *ctx, Tensor *source, Tensor *dest, Dim newShape) {
                             .isContigous = true};
   dest->shape =
       (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = snm.multipliers};
-  return OK;
+  return dest;
 }
 
-Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
+Tensor *Transpose(Context *ctx, Tensor *source, ...) {
   dim_t transposeDims[2];
   u8 expectedDims = 2;
 
-  if (isInvalidTensor(source)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (source->size < 2) {
-    return ERR_NO_OP;
-  }
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(source->size < 2, ERR_NO_OP);
 
   va_list args;
-  va_start(args, dest);
+  va_start(args, source);
 
   for (u8 x = 0; x < expectedDims; x++) {
     transposeDims[x] = va_arg(args, dim_t);
   }
   va_end(args);
 
-  if (transposeDims[0] >= source->shape.numOfDims || transposeDims[1] >= source->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF(transposeDims[0] >= source->shape.numOfDims ||
+               transposeDims[1] >= source->shape.numOfDims,
+           ERR_DIM_MISMATCH);
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
-  Result allocRes = ensureAllocated(newDims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
+  PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
 
   dim_t temp = newDims[transposeDims[0]];
@@ -173,11 +147,7 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
 
   multiplier_t *newMultipliers =
       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
-  allocRes = ensureAllocated(newMultipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, newDims);
-    return allocRes;
-  }
+  PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
   multiplier_t tempMultiplier = newMultipliers[transposeDims[0]];
@@ -188,51 +158,37 @@ Result Transpose(Context *ctx, Tensor *source, Tensor *dest, ...) {
   Range *newBoundary = NULL;
   if (source->boundary != NULL) {
     newBoundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
-    allocRes = ensureAllocated(newBoundary);
-    if (allocRes != OK) {
-      freeAlloc(ctx->memory, newMultipliers);
-      freeAlloc(ctx->memory, newDims);
-      return allocRes;
-    }
+    PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     memcpy(newBoundary, source->boundary, sizeof(Range) * source->shape.numOfDims);
     Range tmp = newBoundary[transposeDims[0]];
     newBoundary[transposeDims[0]] = newBoundary[transposeDims[1]];
     newBoundary[transposeDims[1]] = tmp;
   }
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = tensorView(
       source->context, ctx->memory, source->values, source->size, source->dtype,
       (Dim){.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers},
       newBoundary, false);
 
-  return OK;
+  return dest;
 }
 
-Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
-  if (isInvalidTensor(source)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (order.dims == NULL) {
-    return ERR_NULL_SHAPE_PROVIDED;
-  }
-
-  if (order.numOfDims != source->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+Tensor *Permute(Context *ctx, Tensor *source, Dim order) {
+  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(order.dims == NULL, ERR_NULL_SHAPE_PROVIDED);
+  PANIC_IF(order.numOfDims != source->shape.numOfDims, ERR_DIM_MISMATCH);
 
   bool *seen = allocate(ctx->memory, sizeof(bool) * source->shape.numOfDims);
-  Result allocRes = ensureAllocated(seen);
-  if (allocRes != OK) {
-    return allocRes;
-  }
+  PANIC_IF(seen == NULL, ALLOCATION_FAILED);
   memset(seen, 0, sizeof(bool) * source->shape.numOfDims);
 
   for (u8 i = 0; i < order.numOfDims; i++) {
     dim_t sourceDim = order.dims[i];
     if (sourceDim >= source->shape.numOfDims || seen[sourceDim]) {
       freeAlloc(ctx->memory, seen);
-      return ERR_DIM_MISMATCH;
+      PANIC_IF(true, ERR_DIM_MISMATCH);
     }
     seen[sourceDim] = true;
   }
@@ -240,17 +196,7 @@ Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   multiplier_t *newMultipliers =
       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
-  allocRes = ensureAllocated(newDims);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, seen);
-    return allocRes;
-  }
-  allocRes = ensureAllocated(newMultipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, newDims);
-    freeAlloc(ctx->memory, seen);
-    return allocRes;
-  }
+  PANIC_IF(newDims == NULL || newMultipliers == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < order.numOfDims; i++) {
     dim_t sourceDim = order.dims[i];
@@ -261,13 +207,7 @@ Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
   Range *newBoundary = NULL;
   if (source->boundary != NULL) {
     newBoundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
-    allocRes = ensureAllocated(newBoundary);
-    if (allocRes != OK) {
-      freeAlloc(ctx->memory, newMultipliers);
-      freeAlloc(ctx->memory, newDims);
-      freeAlloc(ctx->memory, seen);
-      return allocRes;
-    }
+    PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < order.numOfDims; i++) {
       dim_t sourceDim = order.dims[i];
       newBoundary[i] = source->boundary[sourceDim];
@@ -276,18 +216,21 @@ Result Permute(Context *ctx, Tensor *source, Tensor *dest, Dim order) {
 
   freeAlloc(ctx->memory, seen);
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = tensorView(
       source->context, ctx->memory, source->values, source->size, source->dtype,
       (Dim){.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers},
       newBoundary, false);
 
-  return OK;
+  return dest;
 }
 
-Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+Tensor *Squeeze(Context *ctx, Tensor *t) {
+  PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
+
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   // Scalars have no singleton dimensions to remove, so preserve the 0-D shape.
   if (t->shape.numOfDims == 0) {
@@ -298,7 +241,7 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
     dest->inputs = t->inputs;
     dest->opType = t->opType;
     dest->backward = t->backward;
-    return OK;
+    return dest;
   }
 
   u8 newNumDims = 0;
@@ -313,10 +256,7 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   }
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-  Result allocRes = ensureAllocated(newDims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
+  PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   u8 destIdx = 0;
 
   if (newNumDims == 1 && t->shape.dims[0] == 1) {
@@ -347,12 +287,7 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   Range *newBoundary = NULL;
   if (t->boundary != NULL) {
     newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
-    allocRes = ensureAllocated(newBoundary);
-    if (allocRes != OK) {
-      freeAlloc(ctx->memory, snm.multipliers);
-      freeAlloc(ctx->memory, newDims);
-      return allocRes;
-    }
+    PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     u8 bIdx = 0;
     if (newNumDims == 1 && t->shape.dims[0] == 1) {
       // All-ones edge case: kept first dim
@@ -375,57 +310,41 @@ Result Squeeze(Context *ctx, Tensor *t, Tensor *dest) {
   dest->opType = t->opType;
   dest->backward = t->backward;
 
-  return OK;
+  return dest;
 }
 
-Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+Tensor *SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
+  PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
+  PANIC_IF(t->shape.dims[dim] != 1, ERR_DIM_MISMATCH);
 
-  if (dim >= t->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (t->shape.dims[dim] != 1) {
-    return ERR_DIM_MISMATCH;
-  }
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   if (t->shape.numOfDims == 1) {
     dim_t *newDims = allocate(ctx->memory, sizeof(dim_t));
-    Result allocRes = ensureAllocated(newDims);
-    if (allocRes != OK) {
-      return allocRes;
-    }
+    PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
     newDims[0] = 1;
     multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t));
-    allocRes = ensureAllocated(newMultipliers);
-    if (allocRes != OK) {
-      freeAlloc(ctx->memory, newDims);
-      return allocRes;
-    }
+    PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
     newMultipliers[0] = 1;
 
     Range *newBoundary = NULL;
     if (t->boundary != NULL) {
       newBoundary = allocate(ctx->memory, sizeof(Range));
-      allocRes = ensureAllocated(newBoundary);
-      PANIC_IF(allocRes != OK, ALLOCATION_FAILED);
+      PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
       newBoundary[0] = t->boundary[0];
     }
 
     *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                        (Dim){.dims = newDims, .numOfDims = 1, .multipliers = newMultipliers},
                        newBoundary, t->isContigous);
-    return OK;
+    return dest;
   }
 
   u8 newNumDims = t->shape.numOfDims - 1;
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-  Result allocRes = ensureAllocated(newDims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
+  PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
 
   u8 destIdx = 0;
   for (u8 i = 0; i < t->shape.numOfDims; i++) {
@@ -441,8 +360,7 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   Range *newBoundary = NULL;
   if (t->boundary != NULL) {
     newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
-    allocRes = ensureAllocated(newBoundary);
-    PANIC_IF(allocRes != OK, ALLOCATION_FAILED);
+    PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     u8 bIdx = 0;
     for (u8 i = 0; i < t->shape.numOfDims; i++) {
       if (i != dim) {
@@ -456,30 +374,17 @@ Result SqueezeDim(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
                  (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers},
                  newBoundary, t->isContigous);
 
-  return OK;
+  return dest;
 }
 
-Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (dim > t->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
+Tensor *UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
+  PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(dim > t->shape.numOfDims, ERR_DIM_MISMATCH);
 
   u8 newNumDims = t->shape.numOfDims + 1;
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
-  Result allocRes = ensureAllocated(newDims);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-  allocRes = ensureAllocated(newMultipliers);
-  if (allocRes != OK) {
-    freeAlloc(ctx->memory, newDims);
-    return allocRes;
-  }
+  PANIC_IF(newDims == NULL || newMultipliers == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < newNumDims; i++) {
     if (i < dim) {
@@ -506,12 +411,7 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
   Range *newBoundary = NULL;
   if (t->boundary != NULL) {
     newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
-    allocRes = ensureAllocated(newBoundary);
-    if (allocRes != OK) {
-      freeAlloc(ctx->memory, newMultipliers);
-      freeAlloc(ctx->memory, newDims);
-      return allocRes;
-    }
+    PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < newNumDims; i++) {
       if (i < dim) {
         newBoundary[i] = t->boundary[i];
@@ -523,17 +423,18 @@ Result UnSqueeze(Context *ctx, Tensor *t, Tensor *dest, dim_t dim) {
     }
   }
 
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
   *dest = tensorView(t->context, ctx->memory, t->values, t->size, t->dtype,
                      (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
                      newBoundary, t->isContigous);
 
-  return OK;
+  return dest;
 }
 
-Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u32 numTensorsToAdd,
-              Tensor *dest) {
+Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
+               u32 numTensorsToAdd) {
   Tensor **tensorsContig = NULL;
-  Result result = OK;
 
   PANIC_IF(isInvalidTensor(target), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(target->shape.numOfDims < 1, ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS);
@@ -542,7 +443,7 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
   Tensor *workingTarget = materializeTensorOnContext(ctx, target);
 
   tensor_size_t numElementsBeforeTargetDim;
-  result = calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
+  Result result = calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
   PANIC_IF(result != OK, result);
 
   tensor_size_t numElementsAfterTargetDim;
@@ -595,10 +496,8 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
       calculateSizeAndMultipliers(ctx, outputDims, workingTarget->shape.numOfDims);
   outputShape.multipliers = snm.multipliers;
 
-  Tensor *createdDest = t_Empty(ctx, outputShape, workingTarget->dtype);
-  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
-  *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
+  Tensor *dest = t_Empty(ctx, outputShape, workingTarget->dtype);
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   dim_t currDimSize = workingTarget->shape.dims[targetDim];
   dim_t newDimSize = outputShape.dims[targetDim];
@@ -630,9 +529,6 @@ Result Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors, u
     }
   }
 
-  result = OK;
-
-cleanup_concat:
   if (tensorsContig != NULL) {
     for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
       freeIfContingousCopy(ctx, tensorsContig[it]);
@@ -640,5 +536,5 @@ cleanup_concat:
   }
 
   freeIfContingousCopy(ctx, target);
-  return result;
+  return dest;
 }
