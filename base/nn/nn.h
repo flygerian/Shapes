@@ -2,7 +2,6 @@
 #define shapes_nn_h
 
 #include "../common.h"
-#include "../shapes.h"
 
 typedef struct LayerState {
   Tensor *weights;

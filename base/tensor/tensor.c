@@ -7,6 +7,7 @@
 #include "memory.h"
 #include "result/result.h"
 #include "tensor_internal.h"
+#include "utils_lib/array.h"
 #include "value.h"
 #include <stdlib.h>
 
@@ -479,3 +480,13 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
 
   return OK;
 }
+
+void Array_AppendTensor(Array *array, Tensor* tensor) {
+  Array_Append(array, (void*) &tensor);
+}
+
+Tensor* Array_TensorIdx(Array *array, size_t idx) {
+  return *( (Tensor**) Array_Idx(array, idx) );
+}
+
+

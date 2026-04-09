@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <termios.h>
 #include <time.h>
-#include "result/result.h"
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -132,6 +131,7 @@ typedef struct Tensor {
   struct Tensor *grad;
   Array *inputs;
   OpType opType;
+  void* opMetadata; 
   void (*backward)(Context *ctx, struct Tensor *tensor);
 } Tensor;
 

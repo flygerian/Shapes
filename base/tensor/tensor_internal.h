@@ -91,6 +91,9 @@ bool isNotFloatType(Tensor *t);
 Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
+void Array_AppendTensor(Array *array, Tensor* tensor);
+Tensor* Array_TensorIdx(Array *array, size_t idx);
+
 Result freeTensorBuffers(Context *ctx, Tensor *t);
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m,
              int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,

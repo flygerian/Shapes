@@ -2,7 +2,7 @@
 #include "result/result.h"
 #include "shapes.h"
 #include <stddef.h>
-#include "stdlib.h"
+#include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 
 void mseBackward(Context *ctx, Tensor *tensor) {
@@ -11,12 +11,11 @@ void mseBackward(Context *ctx, Tensor *tensor) {
            ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *yGround = *(Tensor **)Array_Idx(tensor->inputs, 0);
-  Tensor *yPred = *(Tensor **)Array_Idx(tensor->inputs, 1);
+  Tensor *yGround = Array_TensorIdx(tensor->inputs, 0);
+  Tensor *yPred = Array_TensorIdx(tensor->inputs, 1);
 
   PANIC_IF(yGround == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(yPred == NULL, ERR_NULL_TENSOR_PROVIDED);
-
 
   // ∂L/∂yPred = upstream_grad * 2*(yPred - yGround)
   Tensor *diff = Subtract(ctx, yPred, yGround);
@@ -46,8 +45,8 @@ Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
   }
 
   loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_Append(loss->inputs, &yGround);
-  Array_Append(loss->inputs, &yPred);
+  Array_AppendTensor(loss->inputs, yGround);
+  Array_Append(loss->inputs, yPred);
 
   loss->opType = OP_MSE;
   loss->backward = mseBackward;

@@ -16,6 +16,7 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss_fns"
 	"github.com/flygerian/shapes/optimizer"
+	"github.com/flygerian/shapes/visual"
 )
 
 type imageLabelPair struct {
@@ -51,7 +52,7 @@ func getTrainingParams() trainingParams {
 		batchSize:    128,
 		learningRate: 1e-2,
 		inputShape:   shapes.Shape{32, 32, 3},
-		epochs:       8,
+		epochs:       50,
 	}
 }
 
@@ -374,12 +375,12 @@ func runTraining(
 
 func Vgg_cifar10() {
 	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithArenaSize(10000*Mb))
-	// cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
+	gpuCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
 	// defer cpuCtx.Finish()
 
 	datasetRaw, labelData := getDataSet(cpuCtx)
 	hyperParams := getTrainingParams()
-	ds := shuffleAndBatchDataSet(cpuCtx, datasetRaw, hyperParams)
+	ds := shuffleAndBatchDataSet(gpuCtx, datasetRaw, hyperParams)
 
 	// imageArtefacts := make([]visual.Artefact, 0)
 	// rows := make([]visual.Artefact, 0)
@@ -424,16 +425,16 @@ func Vgg_cifar10() {
 
 	model := layer.NewSequential(
 		cpuCtx,
-		convBlock(cpuCtx),
-		linearBlock(cpuCtx, len(labelData)),
+		convBlock(gpuCtx),
+		linearBlock(gpuCtx, len(labelData)),
 	)
 
 	fmt.Printf("\nTraining start...\n")
 
-	trainingCtx := cpuCtx.Training(
+	trainingCtx := gpuCtx.Training(
 		hyperParams.epochs,
 		shapes.WithNumSteps(len(ds.Xtrain)),
-		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
+		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
 
 	runTraining(

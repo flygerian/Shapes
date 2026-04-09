@@ -1,6 +1,7 @@
 #include "../common.h"
 #include "result/result.h"
 #include "shapes.h"
+#include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/set.h"
 #include <stddef.h>
@@ -19,7 +20,7 @@ Array *Backward(Context *ctx, Tensor *tensor) {
   Array *graph = buildGraph(ctx, tensor);
 
   for (size_t i = graph->size; i-- > 0;) {
-    Tensor *node = *(Tensor **)Array_Idx(graph, i);
+    Tensor *node = Array_TensorIdx(graph, i);
     if (node->backward != NULL) {
       node->backward(ctx, node);
     }
@@ -47,14 +48,14 @@ void topoSort(Array *graph, PtrSet *visited, Tensor *tensor) {
   PtrSet_Put(visited, tensor);
 
   if (tensor->inputs == NULL) {
-    Array_Append(graph, &tensor);
+    Array_AppendTensor(graph, tensor);
     return;
   }
 
   for (size_t i = 0; i < tensor->inputs->size; i++) {
-    Tensor *t = *(Tensor **)Array_Idx(tensor->inputs, i);
+    Tensor *t = Array_TensorIdx(tensor->inputs, i);
     topoSort(graph, visited, t);
   }
 
-  Array_Append(graph, &tensor);
+  Array_AppendTensor(graph, tensor);
 }
