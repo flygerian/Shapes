@@ -13,7 +13,7 @@ void denseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *input = Array_TensorIdx(tensor->inputs, 0);
-  Tensor *weights = *(Tensor **)Array_TensorIdx(tensor->inputs, 1);
+  Tensor *weights = Array_TensorIdx(tensor->inputs, 1);
   Tensor *bias = NULL;
   if (tensor->inputs->size > 2) {
     bias = Array_TensorIdx(tensor->inputs, 2);
@@ -39,8 +39,8 @@ Tensor *denseForward(Context *ctx, LayerState *state, Tensor *tensor) {
 
   Tensor *inputRef = tensor;
   Tensor *weightRef = state->weights;
-  Array_AppendTensor(out->inputs, (void*) inputRef);
-  Array_AppendTensor(out->inputs, (void*) weightRef);
+  Array_AppendTensor(out->inputs,inputRef);
+  Array_AppendTensor(out->inputs, weightRef);
 
   if (state->bias != NULL) {
     Tensor *biasRef = state->bias;

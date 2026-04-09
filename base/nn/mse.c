@@ -46,7 +46,7 @@ Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
 
   loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
   Array_AppendTensor(loss->inputs, yGround);
-  Array_Append(loss->inputs, yPred);
+  Array_AppendTensor(loss->inputs, yPred);
 
   loss->opType = OP_MSE;
   loss->backward = mseBackward;

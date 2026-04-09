@@ -482,7 +482,7 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
 }
 
 void Array_AppendTensor(Array *array, Tensor* tensor) {
-  Array_Append(array, (void*) &tensor);
+  Array_Append(array, &tensor);
 }
 
 Tensor* Array_TensorIdx(Array *array, size_t idx) {
