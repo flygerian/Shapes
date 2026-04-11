@@ -45,6 +45,7 @@ typedef struct {
 typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL } Dtype;
 
 typedef enum {
+  OP_NONE,
   OP_ADD,
   OP_SUBTRACT,
   OP_MULTIPLY,
@@ -54,6 +55,7 @@ typedef enum {
   OP_LESS_OR_EQUAL,
   OP_DENSE,
   OP_MSE,
+  OP_SGD,
 } OpType;
 
 typedef enum {

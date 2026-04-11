@@ -11,6 +11,7 @@ void denseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
            ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(tensor->opType != OP_DENSE, NOT_A_DENSE_LAYER);
 
   Tensor *input = Array_TensorIdx(tensor->inputs, 0);
   Tensor *weights = Array_TensorIdx(tensor->inputs, 1);
@@ -28,22 +29,22 @@ void denseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(result != OK, result);
 }
 
-Tensor *denseForward(Context *ctx, LayerState *state, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || state == NULL || tensor == NULL || state->weights == NULL,
+Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
+  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights == NULL,
            ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *out = DenseLinear(ctx, tensor, state->weights, state->bias, state->bias != NULL);
+  Tensor *out = DenseLinear(ctx, tensor, layer->weights, layer->bias, layer->bias != NULL);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
-  Tensor *weightRef = state->weights;
+  Tensor *weightRef = layer->weights;
   Array_AppendTensor(out->inputs,inputRef);
   Array_AppendTensor(out->inputs, weightRef);
 
-  if (state->bias != NULL) {
-    Tensor *biasRef = state->bias;
+  if (layer->bias != NULL) {
+    Tensor *biasRef = layer->bias;
     Array_Append(out->inputs, (void*) &biasRef);
   }
 
@@ -52,7 +53,7 @@ Tensor *denseForward(Context *ctx, LayerState *state, Tensor *tensor) {
   return out;
 }
 
-Array *layerParameters(Context *ctx, LayerState *state) {
+Array *denseLayerParameters(Context *ctx, Layer *state) {
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
   Array_AppendTensor(params, (void*) state->weights);
   Array_AppendTensor(params, (void*) state->bias);
@@ -60,13 +61,15 @@ Array *layerParameters(Context *ctx, LayerState *state) {
   return params;
 }
 
-Layer nn_Dense(Context *ctx, size_t inputSize, size_t outputSize) {
+FowardPassOp nn_Dense(Context *ctx, size_t inputSize, size_t outputSize) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
   Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, F32);
   Tensor *b = MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, F32);
 
-  LayerState state = (LayerState){.weights = w, .bias = b};
+  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  layer->bias = b;
+  layer->weights = w;
 
-  Layer denseLayer = {.state = state, .forward = denseForward, .parameters = layerParameters};
+  FowardPassOp denseLayer = {.type = OP_DENSE, .op = layer};
   return denseLayer;
 }

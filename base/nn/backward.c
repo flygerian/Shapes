@@ -4,12 +4,31 @@
 #include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/set.h"
+#include <sched.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <time.h>
+#include "nn_internal.h"
 
 Array *buildGraph(Context *ctx, Tensor *tensor);
 void topoSort(Array *graph, PtrSet *visited, Tensor *tensor);
+
+void backward(Context *ctx, Tensor *node) {
+  PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(node == NULL, NULL_CONTEXT);
+
+  switch (node->opType) {
+    case OP_DENSE:
+      denseBackward(ctx, node);
+      return;
+    case OP_MSE:
+      mseBackward(ctx, node);
+      return;
+  }
+
+  PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);
+}
 
 Array *Backward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
@@ -21,13 +40,12 @@ Array *Backward(Context *ctx, Tensor *tensor) {
 
   for (size_t i = graph->size; i-- > 0;) {
     Tensor *node = Array_TensorIdx(graph, i);
-    if (node->backward != NULL) {
-      node->backward(ctx, node);
-    }
+    backward(ctx, node);
   }
 
   return graph;
 }
+
 
 Array *buildGraph(Context *ctx, Tensor *tensor) {
   Array *graph = MakeDynamicArray(ctx->memory, sizeof(Tensor *));

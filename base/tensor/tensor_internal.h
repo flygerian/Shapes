@@ -4,7 +4,9 @@
 #include "../shapes.h"
 #include "cblas.h"
 #include "../common.h"
+#include "nn/nn.h"
 #include "result/result.h"
+#include "utils_lib/array.h"
 #include "value.h"
 #include <stddef.h>
 
@@ -92,7 +94,10 @@ Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
 void Array_AppendTensor(Array *array, Tensor* tensor);
+void Array_AppendTensorArray(Array *array, Array *tensorArray);
 Tensor* Array_TensorIdx(Array *array, size_t idx);
+void Array_AppendLayer(Array *array, Layer *layer);
+Layer* Array_LayerIdx(Array *array, size_t idx);
 
 Result freeTensorBuffers(Context *ctx, Tensor *t);
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m,

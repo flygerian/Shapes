@@ -5,6 +5,7 @@
 #include "../shapes.h"
 #include "common.h"
 #include "memory.h"
+#include "nn/nn.h"
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "utils_lib/array.h"
@@ -468,6 +469,7 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
   if (allocRes != OK) {
     return allocRes;
   }
+
   Result copyResult =
       copyBetweenContexts(tensorCtx, destCtx, t->values, locationOnTarget, valueBytes);
   if (copyResult != OK) {
@@ -482,11 +484,28 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
 }
 
 void Array_AppendTensor(Array *array, Tensor* tensor) {
-  Array_Append(array, &tensor);
+  Array_Append(array, (void*) &tensor);
+}
+
+void Array_AppendTensorArray(Array *array, Array *tensorArray) {
+  PANIC_IF(array == NULL, ERR_NULL_PTR);
+  
+  for (size_t i = 0; i < tensorArray->size; i++) {
+    Tensor *tensor = Array_TensorIdx(tensorArray, i);
+    PANIC_IF(tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
+
+    Array_AppendTensor(array, tensor);
+  }
 }
 
 Tensor* Array_TensorIdx(Array *array, size_t idx) {
   return *( (Tensor**) Array_Idx(array, idx) );
 }
 
+void Array_AppendLayer(Array *array, Layer *layer) {
+  Array_Append(array, (void*) &layer);
+}
 
+Layer* Array_LayerIdx(Array *array, size_t idx) {
+  return *(Layer**) Array_Idx(array, idx);
+}

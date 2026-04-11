@@ -1,12 +1,10 @@
 #include "../../shapes.h"
-#include "cblas.h"
 #include "common.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <termios.h>
-#include "memory.h"
 #include "nn/nn.h"
 #include "tensor/tensor_internal.h"
 #include "tensor/value.h"
@@ -26,14 +24,14 @@ int main(int argc, char *argv[]) {
   Tensor *xs = MakeFromContigousArray(&ctx, SHAPE2D(4, 3), &xData, 12, F32);
   Tensor *ys = MakeFromContigousArray(&ctx, SHAPE1D(4), &yData, 4, F32);
 
-  Layer dense = nn_Dense(&ctx, 3, 10);
-  Layer dense2 = nn_Dense(&ctx, 10, 1);
+  FowardPassOp dense = nn_Dense(&ctx, 3, 10);
+  FowardPassOp dense2 = nn_Dense(&ctx, 10, 1);
 
-  Optimzer sgd = nn_SGD(1e-2);
+  Optimizer sgd = nn_SGD(1e-3);
 
-  for (u8 epoch = 1; epoch <= 20; epoch++) {
-    Tensor *out = dense.forward(&ctx, &dense.state, xs);
-    Tensor *logits = dense2.forward(&ctx, &dense2.state, out);
+  for (u8 epoch = 1; epoch <= 50; epoch++) {
+    Tensor *out = Forward(&ctx, &dense, xs);
+    Tensor *logits = Forward(&ctx, &dense2, out);
 
     Tensor *logitsSqueezed = Squeeze(&ctx, logits);
     Tensor loss = loss_Mse(&ctx, ys, logitsSqueezed);
@@ -47,13 +45,11 @@ int main(int argc, char *argv[]) {
 
     Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 4);
 
-    Array_Append(parameters, &dense.state.weights);
-    Array_Append(parameters, &dense.state.bias);
-    Array_Append(parameters, &dense2.state.weights);
-    Array_Append(parameters, &dense2.state.bias);
+    Array_AppendTensorArray(parameters, Parameters(&ctx, &dense));
+    Array_AppendTensorArray(parameters, Parameters(&ctx, &dense2));
 
-    sgd.step(&ctx, sgd.opts, parameters);
-    ZeroGrad(&ctx, graph);
+    OptimizerStep(&ctx, &sgd, parameters);
+    ZeroGrad(&ctx, parameters);
   }
 
   DestroyContext(&ctx);

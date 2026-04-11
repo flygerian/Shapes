@@ -1,8 +1,14 @@
+#include "common.h"
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
 #include "tensor/value.h"
+#include "utils_lib/array.h"
+#include <sched.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include "nn_internal.h"
 
 void ZeroGrad(Context *ctx, Array *graph) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
@@ -14,4 +20,44 @@ void ZeroGrad(Context *ctx, Array *graph) {
 
     SetValues(g, VALUE(g->dtype, 0));
   }
+}
+
+Tensor* Forward(Context *ctx, FowardPassOp *op, Tensor *input) {
+  PANIC_IF(ctx == NULL, ERR_NULL_PTR);
+  PANIC_IF(op == NULL, ERR_NULL_PTR);
+  PANIC_IF(input == NULL, ERR_NULL_PTR);
+
+  switch (op->type) {
+    case OP_DENSE:
+      return denseForward(ctx, (Layer*) op->op, input);
+      break;
+  }
+  
+  PANIC_IF(true, LAYER_OP_NOT_FOUND);
+}
+
+Array* Parameters(Context *ctx, FowardPassOp *op) {
+  PANIC_IF(ctx == NULL, ERR_NULL_PTR);
+  PANIC_IF(op == NULL, ERR_NULL_PTR);
+  
+  switch (op->type) {
+    case OP_DENSE:
+      return denseLayerParameters(ctx, (Layer*) op->op);
+      break;
+  }
+  
+  PANIC_IF(true, LAYER_OP_NOT_FOUND);
+}
+
+void OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters) {
+  PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(optimizer == NULL, ERR_NULL_PTR);
+
+  switch (optimizer->opType) {
+    case OP_SGD:
+      sgdStep(ctx, optimizer, parameters);
+      return;
+  }
+
+  PANIC_IF(true, OPTIMIZER_OP_NOT_FOUND);
 }
