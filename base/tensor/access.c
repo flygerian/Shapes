@@ -1,6 +1,7 @@
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "../common.h"
+#include "utils_lib/memory.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -31,22 +32,16 @@ static Result indexValueToDim(Value idxVal, dim_t *idx) {
   }
 }
 
-Result GetAt(Tensor *t, Dim dim, Value *result) {
-  if (t == NULL || result == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  if (dim.numOfDims != t->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (isOutOfBounds(t, dim)) {
-    return ERR_OUT_OF_BOUNDS;
-  }
+Value* GetAt(Tensor *t, Dim dim) {
+  PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH); 
+  PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS); 
 
   u64 idx = getContigousIdxFromCoord(t, dim.dims);
+  
+  Value *result = allocate(t->context->memory, sizeof(Value));
 
-  return readTensorValueAtFlatIndex(t, idx, result);
+  readTensorValueAtFlatIndex(t, idx, result);
+  return result;
 }
 
 Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {

@@ -563,7 +563,14 @@ Tensor *Add(Context *ctx, Tensor *a, Tensor *b) {
 static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Tensor *opB = b;
   Tensor *paddedB = NULL;
-  if (a->shape.numOfDims != b->shape.numOfDims) {
+  if (a->shape.numOfDims != b->shape.numOfDims && b->shape.numOfDims > 1) {
+    for (dim_t d = 1; d <= b->shape.numOfDims; d++) {
+      dim_t aDim = a->shape.dims[a->shape.numOfDims - d];
+      dim_t bDim = b->shape.dims[b->shape.numOfDims - d];
+
+      PANIC_IF(aDim != bDim, ERR_DIM_MISMATCH);
+    }
+
     TensorPair ops = padSmallerTensor(ctx, a, b);
     opB = ops.b;
     paddedB = ops.b;

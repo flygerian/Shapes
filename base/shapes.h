@@ -9,6 +9,17 @@
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
 
+typedef struct BatchNormFowardResult {
+  Tensor *out;
+  Tensor *mean;
+  Tensor *variance;
+} BatchNormFowardResult;
+
+typedef struct BatchNormBackwardResult {
+  Tensor *dx2d;
+  Tensor *dGamma;
+  Tensor *dBeta;
+} BatchNormBackwardResult;
 
 // Context
 Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
@@ -37,7 +48,7 @@ void SubtractInPlace(Context *ctx, Tensor *a, Tensor *b);
 void MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
-Result GetAt(Tensor *t, Dim dim, Value *result);
+Value* GetAt(Tensor *t, Dim dim);
 Tensor* GetTensorAt(Context *ctx, Tensor *source, dim_t index);
 Result GetScalar(Tensor *t, Value *result);
 Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims);
@@ -93,10 +104,8 @@ Tensor* Dot(Context *ctx, Tensor *a, Tensor *b);
 Tensor* DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
 Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
                      Tensor *dB);
-Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
-                                Tensor *out, Tensor *mean, Tensor *variance);
-Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
-                         Tensor *dX, Tensor *dGamma, Tensor *dBeta);
+BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon);
+BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon);
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
               Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBuffer);
 Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,

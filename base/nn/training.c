@@ -22,15 +22,17 @@ void ZeroGrad(Context *ctx, Array *graph) {
   }
 }
 
-Tensor* Forward(Context *ctx, FowardPassOp *op, Tensor *input) {
-  PANIC_IF(ctx == NULL, ERR_NULL_PTR);
-  PANIC_IF(op == NULL, ERR_NULL_PTR);
+Tensor* Forward(FowardPassOp *fwdOp, Tensor *input) {
+  PANIC_IF(fwdOp->ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(fwdOp == NULL, ERR_NULL_PTR);
   PANIC_IF(input == NULL, ERR_NULL_PTR);
 
-  switch (op->type) {
+  switch (fwdOp->type) {
     case OP_DENSE:
-      return denseForward(ctx, (Layer*) op->op, input);
+      return denseForward(fwdOp->ctx, (Layer*) fwdOp->op, input);
       break;
+    case OP_BATCH_NORM:
+      return batchNormForward(fwdOp->ctx, (Layer*) fwdOp->op, input); 
   }
   
   PANIC_IF(true, LAYER_OP_NOT_FOUND);
@@ -43,7 +45,8 @@ Array* Parameters(Context *ctx, FowardPassOp *op) {
   switch (op->type) {
     case OP_DENSE:
       return denseLayerParameters(ctx, (Layer*) op->op);
-      break;
+    case OP_BATCH_NORM:
+      return batchNormLayerParameters(ctx, (Layer*) op->op);
   }
   
   PANIC_IF(true, LAYER_OP_NOT_FOUND);

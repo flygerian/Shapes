@@ -3,63 +3,31 @@
 
 #include "tensor/tensor_internal.h"
 
-Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon,
-                                Tensor *out, Tensor *mean, Tensor *variance) {
+
+BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {
   // Training forward expects flattened activations:
   // x2d: [m, n] where m=batch/items and n=features/channels.
   // gamma, beta: [n] affine parameters.
   // Outputs:
   // out: [m, n], mean: [n], variance: [n].
-  if (isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+  PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1, ERR_DIM_MISMATCH);
 
-  if (x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (x2d->dtype != gamma->dtype || x2d->dtype != beta->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64) {
-    return ERR_DTYPE_MISMATCH;
-  }
+  PANIC_IF (x2d->dtype != gamma->dtype || x2d->dtype != beta->dtype, ERR_DTYPE_MISMATCH); 
+  PANIC_IF (x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64, ERR_DTYPE_MISMATCH); 
 
   dim_t batchSize = x2d->shape.dims[0];
   dim_t numFeatures = x2d->shape.dims[1];
-  if (gamma->shape.dims[0] != numFeatures || beta->shape.dims[0] != numFeatures) {
-    return ERR_DIM_MISMATCH;
-  }
+  PANIC_IF (gamma->shape.dims[0] != numFeatures || beta->shape.dims[0] != numFeatures, ERR_DIM_MISMATCH); 
 
   Tensor *xContig = materializeTensorOnContext(ctx, x2d);
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
   Tensor *betaContig = materializeTensorOnContext(ctx, beta);
 
   Result res = OK;
-  Tensor *createdOut = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
-  if (createdOut == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *out = *createdOut;
-  freeAlloc(ctx->memory, createdOut);
-
-  Tensor *createdMean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
-  if (createdMean == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *mean = *createdMean;
-  freeAlloc(ctx->memory, createdMean);
-
-  Tensor *createdVariance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
-  if (createdVariance == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *variance = *createdVariance;
-  freeAlloc(ctx->memory, createdVariance);
+  Tensor *out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
+  Tensor *mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  Tensor *variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
@@ -72,10 +40,7 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     f64 *varianceAcrossBatch = variance->values;
 
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * numFeatures);
-    if (invStd == NULL) {
-      res = ERR_OUT_OF_MEMORY;
-      goto cleanup;
-    }
+    PANIC_IF (invStd == NULL, ALLOCATION_FAILED); 
 
     // Initialize per-feature accumulators.
     for (tensor_size_t j = 0; j < numFeatures; j++) {
@@ -128,10 +93,7 @@ Result BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor
     f32 *meanAcrossBatch = mean->values;
     f32 *varianceAcrossBatch = variance->values;
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * numFeatures);
-    if (invStd == NULL) {
-      res = ERR_OUT_OF_MEMORY;
-      goto cleanup;
-    }
+    PANIC_IF (invStd == NULL, ERR_OUT_OF_MEMORY); 
 
     // Initialize per-feature accumulators.
     for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
@@ -182,36 +144,23 @@ cleanup:
   freeIfContingousCopy(ctx, xContig);
   freeIfContingousCopy(ctx, gammaContig);
   freeIfContingousCopy(ctx, betaContig);
-  return res;
+
+
+  return (BatchNormFowardResult) {.out = out, .mean = mean, .variance = variance};
 }
 
-Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
-                         Tensor *dX, Tensor *dGamma, Tensor *dBeta) {
+BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon) {
   // Backward uses the same flattened [m, n] layout:
   // grad2d is dL/dy, gamma is [n], outputs are dX [m, n], dGamma [n], dBeta [n].
-  if (isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (x2d->shape.numOfDims != 2 || grad2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (x2d->dtype != grad2d->dtype || x2d->dtype != gamma->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64) {
-    return ERR_DTYPE_MISMATCH;
-  }
+  PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma),  ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF (x2d->shape.numOfDims != 2 || grad2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1,  ERR_DIM_MISMATCH); 
+  PANIC_IF(x2d->dtype != grad2d->dtype || x2d->dtype != gamma->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64, ERR_DTYPE_MISMATCH); 
 
   dim_t m = x2d->shape.dims[0];
   dim_t n = x2d->shape.dims[1];
 
-  if (grad2d->shape.dims[0] != m || grad2d->shape.dims[1] != n || gamma->shape.dims[0] != n) {
-    return ERR_DIM_MISMATCH;
-  }
-
+  PANIC_IF(grad2d->shape.dims[0] != m || grad2d->shape.dims[1] != n || gamma->shape.dims[0] != n, ERR_DIM_MISMATCH); 
   // Keep backward math on packed memory for predictable stride-1 access.
   Tensor *xContig = materializeTensorOnContext(ctx, x2d);
   Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
@@ -220,29 +169,9 @@ Result BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamm
 
 
   Result res = OK;
-  Tensor *createdDX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
-  if (createdDX == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *dX = *createdDX;
-  freeAlloc(ctx->memory, createdDX);
-
-  Tensor *createdDGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
-  if (createdDGamma == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *dGamma = *createdDGamma;
-  freeAlloc(ctx->memory, createdDGamma);
-
-  Tensor *createdDBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
-  if (createdDBeta == NULL) {
-    res = ERR_OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  *dBeta = *createdDBeta;
-  freeAlloc(ctx->memory, createdDBeta);
+  Tensor *dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
+  Tensor *dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  Tensor *dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
@@ -469,5 +398,5 @@ cleanup:
   freeIfContingousCopy(ctx, gammaContig);
   freeIfContingousCopy(ctx, gradContig);
 
-  return res;
+  return (BatchNormBackwardResult) {.dBeta = dBeta, .dGamma = dGamma, .dx2d = dX};
 }

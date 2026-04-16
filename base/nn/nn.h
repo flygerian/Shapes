@@ -10,6 +10,7 @@ typedef struct Layer {
 } Layer;
 
 typedef struct FowardPassOp {
+  Context *ctx;
   OpType type;
   void* op;
 } FowardPassOp;
@@ -22,12 +23,13 @@ typedef struct Optimzer {
 } Optimizer;
 
 
-Tensor* Forward(Context *ctx, FowardPassOp *op, Tensor *input);
+Tensor* Forward(FowardPassOp *op, Tensor *input);
 Array* Parameters(Context *ctx, FowardPassOp *op);
 
 FowardPassOp nn_Dense(Context *ctx, size_t inputSize, size_t outputSize);
 Optimizer nn_SGD(f32 learningRate);
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
+FowardPassOp layer_BatchNorm(Context *ctx, size_t numFeatures);
 
 Array *Backward(Context *ctx, Tensor *tensor);
 void ZeroGrad(Context *ctx, Array *graph);

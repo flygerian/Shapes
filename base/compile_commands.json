@@ -265,6 +265,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/nn/batchnorm.c.o -c /home/olabode/repos/Shapes/base/nn/batchnorm.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/batchnorm.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/batchnorm.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes.dir/cmd/main/main.c.o -c /home/olabode/repos/Shapes/base/cmd/main/main.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/main/main.c",
   "output": "CMakeFiles/shapes.dir/cmd/main/main.c.o"

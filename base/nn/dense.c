@@ -70,6 +70,6 @@ FowardPassOp nn_Dense(Context *ctx, size_t inputSize, size_t outputSize) {
   layer->bias = b;
   layer->weights = w;
 
-  FowardPassOp denseLayer = {.type = OP_DENSE, .op = layer};
+  FowardPassOp denseLayer = {.ctx = ctx, .type = OP_DENSE, .op = layer};
   return denseLayer;
 }

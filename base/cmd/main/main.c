@@ -25,13 +25,16 @@ int main(int argc, char *argv[]) {
   Tensor *ys = MakeFromContigousArray(&ctx, SHAPE1D(4), &yData, 4, F32);
 
   FowardPassOp dense = nn_Dense(&ctx, 3, 10);
+  FowardPassOp bn1 = layer_BatchNorm(&ctx, 10);
   FowardPassOp dense2 = nn_Dense(&ctx, 10, 1);
 
   Optimizer sgd = nn_SGD(1e-3);
 
+  ctx.isTraining = true;
   for (u8 epoch = 1; epoch <= 50; epoch++) {
-    Tensor *out = Forward(&ctx, &dense, xs);
-    Tensor *logits = Forward(&ctx, &dense2, out);
+    Tensor *out = Forward(&dense, xs);
+    out = Forward(&bn1, out);
+    Tensor *logits = Forward(&dense2, out);
 
     Tensor *logitsSqueezed = Squeeze(&ctx, logits);
     Tensor loss = loss_Mse(&ctx, ys, logitsSqueezed);
@@ -41,12 +44,13 @@ int main(int argc, char *argv[]) {
 
     fprintf(stdout, "Loss: %f \n", lossValue.as.f32);
 
-    Array *graph = Backward(&ctx, &loss);
+    Backward(&ctx, &loss);
 
-    Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 4);
+    Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 6);
 
     Array_AppendTensorArray(parameters, Parameters(&ctx, &dense));
     Array_AppendTensorArray(parameters, Parameters(&ctx, &dense2));
+    Array_AppendTensorArray(parameters, Parameters(&ctx, &bn1));
 
     OptimizerStep(&ctx, &sgd, parameters);
     ZeroGrad(&ctx, parameters);

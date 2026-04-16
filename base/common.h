@@ -56,6 +56,7 @@ typedef enum {
   OP_DENSE,
   OP_MSE,
   OP_SGD,
+  OP_BATCH_NORM,
 } OpType;
 
 typedef enum {
@@ -113,6 +114,7 @@ typedef struct {
 typedef struct Context {
   Memory *memory;
   Device *device;
+  bool isTraining;
   cublasHandle_t handle;
 } Context;
 

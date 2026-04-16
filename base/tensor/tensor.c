@@ -16,10 +16,9 @@ void PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value val;
-  GetAt(t, zeroIdx, &val);
+  Value *val = GetAt(t, zeroIdx);
 
-  PRINT_VALUE(val);
+  PRINT_VALUE(*val);
 }
 
 
@@ -27,12 +26,11 @@ char *GetItem(Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value val;
-  GetAt(t, zeroIdx, &val);
+  Value* val = GetAt(t, zeroIdx);
 
   size_t size = sizeof(char) * 32;
   char *valueStr = allocate(ctx->memory, size);
-  VALUE_TO_STRING(val, valueStr, size);
+  VALUE_TO_STRING(*val, valueStr, size);
 
   return valueStr;
 }
@@ -190,9 +188,8 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   for (tensor_size_t i = 0; i < source->size; i++) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
-    Value val;
-    GetAt(source, idx, &val);
-    writeTensorValueAtFlatIndex(copy, i, val);
+    Value* val = GetAt(source, idx);
+    writeTensorValueAtFlatIndex(copy, i, *val);
 
     for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
       indices[d]++;

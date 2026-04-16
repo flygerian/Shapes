@@ -102,6 +102,7 @@ add_library(shapes_core
     nn/mse.c
     nn/sgd.c
     nn/training.c
+    nn/batchnorm.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
