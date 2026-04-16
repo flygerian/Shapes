@@ -24,6 +24,8 @@ static inline Result ensureAllocated(const void *ptr) {
   return ptr != NULL ? OK : ERR_OUT_OF_MEMORY;
 }
 
+#define NUM_DIMS(tensor) ((tensor)->shape.numOfDims)
+
 static inline Tensor singleValueTensor(Context *ctx, Value value) {
   size_t valueBytes = getBytesForDtype(value.dtype);
   void *values = allocateOnCtx(ctx, valueBytes);
