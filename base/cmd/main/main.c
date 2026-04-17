@@ -24,11 +24,11 @@ int main(int argc, char *argv[]) {
   Tensor *xs = MakeFromContigousArray(&ctx, SHAPE2D(4, 3), &xData, 12, F32);
   Tensor *ys = MakeFromContigousArray(&ctx, SHAPE1D(4), &yData, 4, F32);
 
-  FowardPassOp dense = nn_Dense(&ctx, 3, 10);
+  FowardPassOp dense = layer_Dense(&ctx, 3, 10);
   FowardPassOp bn1 = layer_BatchNorm(&ctx, 10);
-  FowardPassOp dense2 = nn_Dense(&ctx, 10, 1);
+  FowardPassOp dense2 = layer_Dense(&ctx, 10, 1);
 
-  Optimizer sgd = nn_SGD(1e-3);
+  Optimizer sgd = activation_SGD(1e-2);
 
   ctx.isTraining = true;
   for (u8 epoch = 1; epoch <= 50; epoch++) {

@@ -13,3 +13,4 @@ Result sgdStep(Context *ctx, Optimizer *opts, Array *parameters);
 void denseBackward(Context *ctx, Tensor *tensor);
 void mseBackward(Context *ctx, Tensor *tensor);
 void batchnormBackward(Context *ctx, Tensor *output);
+void crossEnthropyBackward(Context *ctx, Tensor *tensor);

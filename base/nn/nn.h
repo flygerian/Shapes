@@ -26,9 +26,10 @@ typedef struct Optimzer {
 Tensor* Forward(FowardPassOp *op, Tensor *input);
 Array* Parameters(Context *ctx, FowardPassOp *op);
 
-FowardPassOp nn_Dense(Context *ctx, size_t inputSize, size_t outputSize);
-Optimizer nn_SGD(f32 learningRate);
+FowardPassOp layer_Dense(Context *ctx, size_t inputSize, size_t outputSize);
+Optimizer activation_SGD(f32 learningRate);
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
+Tensor loss_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits);
 FowardPassOp layer_BatchNorm(Context *ctx, size_t numFeatures);
 
 Array *Backward(Context *ctx, Tensor *tensor);

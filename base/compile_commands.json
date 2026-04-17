@@ -19,93 +19,87 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/common.c.o -c /home/olabode/repos/Shapes/base/common.c",
-  "file": "/home/olabode/repos/Shapes/base/common.c",
-  "output": "CMakeFiles/shapes_core.dir/common.c.o"
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/access.cu -o CMakeFiles/shapes_cuda.dir/cuda/access.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/access.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/access.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/binary_op.cu -o CMakeFiles/shapes_cuda.dir/cuda/binary_op.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/binary_op.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/binary_op.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/cast.cu -o CMakeFiles/shapes_cuda.dir/cuda/cast.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/cast.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/cast.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/creation.cu -o CMakeFiles/shapes_cuda.dir/cuda/creation.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/creation.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/creation.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/conv_bias.cu -o CMakeFiles/shapes_cuda.dir/cuda/conv_bias.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/conv_bias.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/conv_bias.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/accumulate.cu -o CMakeFiles/shapes_cuda.dir/cuda/accumulate.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/accumulate.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/accumulate.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/cross_entropy.cu -o CMakeFiles/shapes_cuda.dir/cuda/cross_entropy.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/cross_entropy.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/cross_entropy.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/gemm.cu -o CMakeFiles/shapes_cuda.dir/cuda/gemm.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/gemm.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/gemm.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/im2col.cu -o CMakeFiles/shapes_cuda.dir/cuda/im2col.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/im2col.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/im2col.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/optimizer.cu -o CMakeFiles/shapes_cuda.dir/cuda/optimizer.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/optimizer.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/optimizer.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/pool.cu -o CMakeFiles/shapes_cuda.dir/cuda/pool.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/pool.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/pool.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/reduction.cu -o CMakeFiles/shapes_cuda.dir/cuda/reduction.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/reduction.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/reduction.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/unary.cu -o CMakeFiles/shapes_cuda.dir/cuda/unary.cu.o",
+  "file": "/home/olabode/repos/Shapes/base/cuda/unary.cu",
+  "output": "CMakeFiles/shapes_cuda.dir/cuda/unary.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/context.c.o -c /home/olabode/repos/Shapes/base/context.c",
   "file": "/home/olabode/repos/Shapes/base/context.c",
   "output": "CMakeFiles/shapes_core.dir/context.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/access.cu -o CMakeFiles/shapes_core.dir/cuda/access.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/access.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/access.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/binary_op.cu -o CMakeFiles/shapes_core.dir/cuda/binary_op.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/binary_op.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/binary_op.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/cast.cu -o CMakeFiles/shapes_core.dir/cuda/cast.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/cast.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/cast.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/creation.cu -o CMakeFiles/shapes_core.dir/cuda/creation.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/creation.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/creation.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/conv_bias.cu -o CMakeFiles/shapes_core.dir/cuda/conv_bias.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/conv_bias.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/conv_bias.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/accumulate.cu -o CMakeFiles/shapes_core.dir/cuda/accumulate.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/accumulate.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/accumulate.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/cross_entropy.cu -o CMakeFiles/shapes_core.dir/cuda/cross_entropy.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/cross_entropy.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/cross_entropy.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/gemm.cu -o CMakeFiles/shapes_core.dir/cuda/gemm.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/gemm.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/gemm.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/im2col.cu -o CMakeFiles/shapes_core.dir/cuda/im2col.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/im2col.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/im2col.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/optimizer.cu -o CMakeFiles/shapes_core.dir/cuda/optimizer.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/optimizer.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/optimizer.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/pool.cu -o CMakeFiles/shapes_core.dir/cuda/pool.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/pool.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/pool.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/reduction.cu -o CMakeFiles/shapes_core.dir/cuda/reduction.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/reduction.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/reduction.cu.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_core.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -c -O0 -x cu -c /home/olabode/repos/Shapes/base/cuda/unary.cu -o CMakeFiles/shapes_core.dir/cuda/unary.cu.o",
-  "file": "/home/olabode/repos/Shapes/base/cuda/unary.cu",
-  "output": "CMakeFiles/shapes_core.dir/cuda/unary.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
@@ -268,6 +262,12 @@
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/nn/batchnorm.c.o -c /home/olabode/repos/Shapes/base/nn/batchnorm.c",
   "file": "/home/olabode/repos/Shapes/base/nn/batchnorm.c",
   "output": "CMakeFiles/shapes_core.dir/nn/batchnorm.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o -c /home/olabode/repos/Shapes/base/nn/cross_enthropy.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/cross_enthropy.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",

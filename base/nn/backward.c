@@ -28,7 +28,9 @@ void backward(Context *ctx, Tensor *node) {
     case OP_BATCH_NORM:
       batchnormBackward(ctx, node);
       return;
-
+    case OP_CROSS_ENTHROPY:
+      crossEnthropyBackward(ctx, node); 
+      return;
   }
 
   PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);
@@ -49,7 +51,6 @@ Array *Backward(Context *ctx, Tensor *tensor) {
 
   return graph;
 }
-
 
 Array *buildGraph(Context *ctx, Tensor *tensor) {
   Array *graph = MakeDynamicArray(ctx->memory, sizeof(Tensor *));

@@ -12,6 +12,24 @@
 #include "value.h"
 #include <stdlib.h>
 
+size_t getBytesForDtype(Dtype type) {
+  switch (type) {
+    case BOOL: return sizeof(bool);
+    case U8: return sizeof(u8);
+    case U16: return sizeof(u16);
+    case U32: return sizeof(u32);
+    case U64: return sizeof(u64);
+    case I8: return sizeof(i8);
+    case I16: return sizeof(i16);
+    case I32: return sizeof(i32);
+    case I64: return sizeof(i64);
+    case F16:
+    case F32: return sizeof(float);
+    case F64: return sizeof(double);
+    default: return 0;
+  }
+}
+
 void PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
@@ -57,7 +75,7 @@ sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 num
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   if (dims == NULL || numOfDims == 0) {
-    return (sizeAndMultipliers) {.size = 0, .multipliers = NULL};
+    return (sizeAndMultipliers) {.size = 1, .multipliers = NULL};
   }
 
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);

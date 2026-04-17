@@ -61,7 +61,7 @@ Array *denseLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
-FowardPassOp nn_Dense(Context *ctx, size_t inputSize, size_t outputSize) {
+FowardPassOp layer_Dense(Context *ctx, size_t inputSize, size_t outputSize) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
   Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, F32);
   Tensor *b = MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, F32);

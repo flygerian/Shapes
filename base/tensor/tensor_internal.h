@@ -7,13 +7,7 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "utils_lib/array.h"
-#include "value.h"
 #include <stddef.h>
-
-typedef struct {
-  Tensor *a;
-  Tensor *b;
-} TensorPair;
 
 typedef struct {
   Tensor *tensor;

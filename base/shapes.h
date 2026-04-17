@@ -9,18 +9,6 @@
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
 
-typedef struct BatchNormFowardResult {
-  Tensor *out;
-  Tensor *mean;
-  Tensor *variance;
-} BatchNormFowardResult;
-
-typedef struct BatchNormBackwardResult {
-  Tensor *dx2d;
-  Tensor *dGamma;
-  Tensor *dBeta;
-} BatchNormBackwardResult;
-
 // Context
 Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
 Context *CreateContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
@@ -127,10 +115,8 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
                                  Tensor *dX);
 
 // Loss ops
-Result CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits, Tensor *loss,
-                           Tensor *probs);
-Result CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut,
-                            Tensor *dLogits);
+TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits);
+Tensor* CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut);
 
 // Optimizer ops
 Result Sgd(Context *ctx, Array *parameters, f32 learningRate);
@@ -148,6 +134,7 @@ Tensor* T_Zeros(Context *ctx, Dim shape);
 Tensor* T_Int(Context *ctx, Dim shape, i8 initialValues);
 Tensor* T_UInt(Context *ctx, Dim shape, u8 initialValue);
 Tensor* T_Float(Context *ctx, Dim shape, f32 initialValues);
+Tensor* T_Float64(Context *ctx, Dim shape, f64 initialValue);
 Tensor* MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
                                Dtype dtype);
 Tensor* MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype);

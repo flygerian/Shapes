@@ -1,6 +1,9 @@
 #ifndef shapes_error_h
 #define shapes_error_h
+
 #include "stdlib.h"
+#include <stddef.h>
+#include "stdio.h"
 
 typedef enum {
   OK,

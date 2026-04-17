@@ -56,13 +56,9 @@ add_library(utils_lib
   utils_lib/array.c
   utils_lib/set.c
 )
-
 target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
 
-# Core library
-add_library(shapes_core
-    common.c
-    context.c
+add_library(shapes_cuda
     cuda/access.cu
     cuda/binary_op.cu
     cuda/cast.cu
@@ -76,6 +72,13 @@ add_library(shapes_core
     cuda/pool.cu
     cuda/reduction.cu
     cuda/unary.cu
+)
+target_include_directories(shapes_cuda PUBLIC ${CMAKE_SOURCE_DIR}) 
+
+
+# Core library
+add_library(shapes_core
+    context.c
     layer/dense.c
     layer/batch_norm.c
     layer/im2col.c
@@ -103,10 +106,11 @@ add_library(shapes_core
     nn/sgd.c
     nn/training.c
     nn/batchnorm.c
+    nn/cross_enthropy
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
-target_link_libraries(shapes_core utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
+target_link_libraries(shapes_core shapes_cuda utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
 
 # Main executable
 add_executable(shapes

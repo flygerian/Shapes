@@ -174,6 +174,7 @@ Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type) {
 
   dim_t *dims = NULL;
   if (source->shape.numOfDims > 0) {
+
     dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
     PANIC_IF(dims == NULL, ALLOCATION_FAILED);
     memcpy(dims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
@@ -288,6 +289,13 @@ Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue) {
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, F32);
   Value v = (Value){.dtype = F32, .as.f32 = initialValue};
+  SetValues(init, v);
+  return init;
+}
+
+Tensor *T_Float64(Context *ctx, Dim shape, f64 initialValue) {
+  Tensor *init = t_Zeros(ctx, shape, F64);
+  Value v = (Value){.dtype = F64, .as.f64 = initialValue};
   SetValues(init, v);
   return init;
 }
