@@ -18,7 +18,6 @@ int main(int argc, char *argv[]) {
   Context ctx = {.memory = mem};
 
   f32 xData[12] = {2.0, 3.0, -1.0, 3.0, -1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, -1.0f};
-
   f32 yData[4] = {1.0, -1.0, -1.0, 1.0};
 
   Tensor *xs = MakeFromContigousArray(&ctx, SHAPE2D(4, 3), &xData, 12, F32);
@@ -28,7 +27,7 @@ int main(int argc, char *argv[]) {
   FowardPassOp bn1 = layer_BatchNorm(&ctx, 10);
   FowardPassOp dense2 = layer_Dense(&ctx, 10, 1);
 
-  Optimizer sgd = activation_SGD(1e-2);
+  Optimizer sgd = optimizer_Adam(&ctx, 1e-2);
 
   ctx.isTraining = true;
   for (u8 epoch = 1; epoch <= 50; epoch++) {

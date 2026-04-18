@@ -8,6 +8,6 @@ void sgdStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PANIC_IF(res != OK, res);
 }
 
-Optimizer activation_SGD(f32 learningRate) {
+Optimizer optimizer_SGD(f32 learningRate) {
   return (Optimizer){.learningRate = learningRate, .opType = OP_SGD};
 }

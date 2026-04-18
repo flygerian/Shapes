@@ -21,6 +21,7 @@ Array *contructNewArray(Memory *memory, size_t elemSize, size_t capacity) {
   alloc->isCapacityFixed = true;
   alloc->size = 0;
   alloc->memory = memory;
+  memset(alloc->items, 0, elemSize * capacity);
 
   return alloc;
 }
@@ -36,14 +37,14 @@ static inline void expandCapacity(Array *slice) {
   slice->items = newItemsAllocation;
 }
 
-Array *MakeDynamicArray(Memory *memory, const size_t elemSize) {
+Array* MakeDynamicArray(Memory *memory, const size_t elemSize) {
   Array *arr = contructNewArray(memory, elemSize, INITIAL_SLICE_CAPACITY);
   arr->isCapacityFixed = false;
 
   return arr;
 }
 
-Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity) {
+Array* MakeArray(Memory *memory, const size_t elemSize, size_t capacity) {
   return contructNewArray(memory, elemSize, capacity);
 }
 
@@ -70,8 +71,24 @@ void Array_Append(Array *array, void *ptr) {
 
 void *Array_Idx(Array *slice, size_t idx) {
   PANIC_IF(slice == NULL, ERR_NULL_PTR);
-  PANIC_IF(idx >= slice->size, ERR_OUT_OF_BOUNDS);
   PANIC_IF(idx < 0, ERR_OUT_OF_BOUNDS);
 
+  if (idx >= slice->capacity) {
+    return NULL;
+  }
+
   return ARRAY_PTR_AT_IDX(slice, idx);
+}
+
+void Array_AppendStructPtr(Array *array, void* ptr) {
+  Array_Append(array, (void*) &ptr);
+}
+
+void* Array_StructPtrIdx(Array *array, size_t idx) {
+  void** item = (void**) Array_Idx(array, idx);
+  if (item == NULL) {
+    return NULL;
+  }
+
+  return *item;
 }

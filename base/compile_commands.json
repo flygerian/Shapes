@@ -13,9 +13,9 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/utils_lib.dir/utils_lib/set.c.o -c /home/olabode/repos/Shapes/base/utils_lib/set.c",
-  "file": "/home/olabode/repos/Shapes/base/utils_lib/set.c",
-  "output": "CMakeFiles/utils_lib.dir/utils_lib/set.c.o"
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/utils_lib.dir/utils_lib/map.c.o -c /home/olabode/repos/Shapes/base/utils_lib/map.c",
+  "file": "/home/olabode/repos/Shapes/base/utils_lib/map.c",
+  "output": "CMakeFiles/utils_lib.dir/utils_lib/map.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
@@ -268,6 +268,12 @@
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o -c /home/olabode/repos/Shapes/base/nn/cross_enthropy.c",
   "file": "/home/olabode/repos/Shapes/base/nn/cross_enthropy.c",
   "output": "CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/nn/adam.c.o -c /home/olabode/repos/Shapes/base/nn/adam.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/adam.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/adam.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",

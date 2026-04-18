@@ -60,6 +60,10 @@ void OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters) {
     case OP_SGD:
       sgdStep(ctx, optimizer, parameters);
       return;
+    case OP_ADAM:
+      adamStep(ctx, optimizer, parameters);
+      return;
+      
   }
 
   PANIC_IF(true, OPTIMIZER_OP_NOT_FOUND);

@@ -12,10 +12,12 @@ typedef struct Array {
   Memory *memory;
 } Array;
 
-Array *MakeDynamicArray(Memory *memory, const size_t elemSize);
-Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity);
-void *Array_Idx(Array *slice, size_t idx);
+Array* MakeDynamicArray(Memory *memory, const size_t elemSize);
+Array* MakeArray(Memory *memory, const size_t elemSize, size_t capacity);
+void*  Array_Idx(Array *slice, size_t idx);
 void Array_SetAt(Array *array, size_t idx, void *ptr);
 void Array_Append(Array *array, void *ptr);
+void Array_AppendStructPtr(Array *array, void *ptr);
+void* Array_StructPtrIdx(Array *array, size_t idx);
 
 #endif

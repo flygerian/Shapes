@@ -54,7 +54,7 @@ include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 add_library(utils_lib
   utils_lib/memory.c
   utils_lib/array.c
-  utils_lib/set.c
+  utils_lib/map.c
 )
 target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
 
@@ -106,7 +106,8 @@ add_library(shapes_core
     nn/sgd.c
     nn/training.c
     nn/batchnorm.c
-    nn/cross_enthropy
+    nn/cross_enthropy.c
+    nn/adam.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 

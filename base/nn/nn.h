@@ -22,12 +22,18 @@ typedef struct Optimzer {
   OpType opType;
 } Optimizer;
 
+typedef PtrMap TensorPtrMap;
+
+TensorPtrMap* Make_TensorPtrMap(Memory *memory);
+void TensorPtrMap_Put(TensorPtrMap *map, void *key, Tensor *t);
+Tensor* TensorPtrMap_Get(TensorPtrMap *map, void *key);
 
 Tensor* Forward(FowardPassOp *op, Tensor *input);
 Array* Parameters(Context *ctx, FowardPassOp *op);
 
 FowardPassOp layer_Dense(Context *ctx, size_t inputSize, size_t outputSize);
-Optimizer activation_SGD(f32 learningRate);
+Optimizer optimizer_SGD(f32 learningRate);
+Optimizer optimizer_Adam(Context *ctx, f32 learningRate);
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
 Tensor loss_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits);
 FowardPassOp layer_BatchNorm(Context *ctx, size_t numFeatures);

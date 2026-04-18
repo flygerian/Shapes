@@ -36,7 +36,6 @@ Tensor* embeddingForward(Context *ctx, LayerState *layerState, Tensor *indices) 
   return out;
 }
 
-
 Layer nn_Embedding(Context *ctx, size_t vocabSize, dim_t embeddingDim) {
   Tensor *embedding = MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -1.0, 1.0, F32);
 

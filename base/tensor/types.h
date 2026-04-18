@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
+#include "utils_lib/map.h"
 #include "utils_lib/utils_lib.h"
 
 typedef size_t tensor_size_t;
@@ -35,6 +36,7 @@ typedef enum {
   OP_MSE,
   OP_CROSS_ENTHROPY,
   OP_SGD,
+  OP_ADAM,
   OP_BATCH_NORM,
 } OpType;
 
@@ -123,7 +125,6 @@ typedef struct Tensor {
 
 typedef struct {
   Tensor *param;
-  Tensor *paramGrad;
   Tensor *m;
   Tensor *v;
 } AdamData;
@@ -146,3 +147,4 @@ typedef struct {
 } TensorPair;
 
 size_t getBytesForDtype(Dtype type);
+

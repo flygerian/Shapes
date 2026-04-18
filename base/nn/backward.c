@@ -3,10 +3,11 @@
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
-#include "utils_lib/set.h"
+#include "utils_lib/map.h"
 #include <sched.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 #include "nn_internal.h"
@@ -26,6 +27,7 @@ void backward(Context *ctx, Tensor *node) {
       mseBackward(ctx, node);
       return;
     case OP_BATCH_NORM:
+
       batchnormBackward(ctx, node);
       return;
     case OP_CROSS_ENTHROPY:
@@ -54,7 +56,7 @@ Array *Backward(Context *ctx, Tensor *tensor) {
 
 Array *buildGraph(Context *ctx, Tensor *tensor) {
   Array *graph = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  PtrSet *visited = MakePtrSet(ctx->memory);
+  PtrSet *visited = Make_PtrSet(ctx->memory);
   topoSort(graph, visited, tensor);
   return graph;
 }

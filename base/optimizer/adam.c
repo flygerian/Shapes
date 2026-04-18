@@ -2,13 +2,13 @@
 #include "result/result.h"
 #include "tensor/tensor_internal.h"
 
-Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step,
+Result Adam(Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step,
             f32 a, f32 epsilon) {
   if (triplets == NULL) {
     return ERR_ADAM_NULL_TRIPLETS;
   }
 
-  for (size_t tripletIdx = 0; tripletIdx < numTriplets; tripletIdx++) {
+  for (size_t tripletIdx = 0; tripletIdx < numParameters; tripletIdx++) {
     AdamData trip = triplets[tripletIdx];
 
     if (trip.m == NULL) {
@@ -23,26 +23,25 @@ Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2
       return ERR_ADAM_NULL_PARAM;
     }
 
-    if (trip.paramGrad == NULL) {
+    if (trip.param->grad == NULL) {
       return ERR_ADAM_NULL_GRAD;
     }
 
     if (isNotFloatType(trip.m) || isNotFloatType(trip.param) || isNotFloatType(trip.v) ||
-        isNotFloatType(trip.paramGrad)) {
+        isNotFloatType(trip.param->grad)) {
       return ERR_ADAM_ONLY_FLOAT_TENSORS;
     }
 
-    if (trip.param->size != trip.m->size || trip.param->size != trip.v->size ||
-        trip.param->size != trip.paramGrad->size) {
+    if (trip.param->size != trip.m->size || trip.param->size != trip.v->size) {
       return ERR_ADAM_PARAMS_SIZE_MISMATCH;
     }
 
-    if (!trip.param->isContigous || !trip.paramGrad->isContigous || !trip.m->isContigous ||
+    if (!trip.param->isContigous || !trip.param->grad->isContigous || !trip.m->isContigous ||
         !trip.v->isContigous) {
       return ERR_ADAM_PARAMS_MUST_BE_CONTIGUOUS;
     }
 
-    f32 *gradVals = trip.paramGrad->values;
+    f32 *gradVals = trip.param->grad->values;
     f32 *pVals = trip.param->values;
 
     f32 *mVals = trip.m->values;
