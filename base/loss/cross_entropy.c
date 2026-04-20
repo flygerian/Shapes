@@ -64,19 +64,20 @@ static void logHostOpTiming(Context *ctx, const char *opName, const char *phase,
 }
 
 TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
-  PANIC_IF (isInvalidTensor(yGround) || isInvalidTensor(logits), ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF (yGround->shape.numOfDims != logits->shape.numOfDims, ERR_DIM_MISMATCH); 
-  PANIC_IF (yGround->dtype != logits->dtype, ERR_DTYPE_MISMATCH); 
-  PANIC_IF (logits->dtype != F16 && logits->dtype != F32 && logits->dtype != F64, ERR_DTYPE_MISMATCH); 
+  PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(logits), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(yGround->shape.numOfDims != logits->shape.numOfDims, ERR_DIM_MISMATCH);
+  PANIC_IF(yGround->dtype != logits->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(logits->dtype != F16 && logits->dtype != F32 && logits->dtype != F64,
+           ERR_DTYPE_MISMATCH);
 
   for (u8 i = 0; i < logits->shape.numOfDims; i++) {
-    PANIC_IF (yGround->shape.dims[i] != logits->shape.dims[i], ERR_DIM_MISMATCH);   
+    PANIC_IF(yGround->shape.dims[i] != logits->shape.dims[i], ERR_DIM_MISMATCH);
   }
 
-  PANIC_IF (logits->shape.numOfDims == 0, ERR_DIM_MISMATCH); 
+  PANIC_IF(logits->shape.numOfDims == 0, ERR_DIM_MISMATCH);
 
   dim_t classCount = logits->shape.dims[logits->shape.numOfDims - 1];
-  PANIC_IF (classCount == 0 || logits->size % classCount != 0, ERR_DIM_MISMATCH); 
+  PANIC_IF(classCount == 0 || logits->size % classCount != 0, ERR_DIM_MISMATCH);
 
   tensor_size_t rows = logits->size / classCount;
 
@@ -159,7 +160,7 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
       phaseStartMs = opTimingNowMs();
     }
 
-    loss = T_Float64(ctx, SCALAR,  totalLoss / (double)rows);
+    loss = T_Float64(ctx, SCALAR, totalLoss / (double)rows);
   } else {
     float *yVals = yContig->values;
     float *logitVals = logitsContig->values;
@@ -214,26 +215,27 @@ cleanup:
   logHostOpTiming(ctx, "CrossEntropyForward", "cleanup", phaseStartMs);
   logHostOpTiming(ctx, "CrossEntropyForward", "total_host", totalStartMs);
 
-  return (TensorPair) {.a = loss, .b = probs};
+  return (TensorPair){.a = loss, .b = probs};
 }
 
-Tensor* CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
-  PANIC_IF (isInvalidTensor(yGround) || isInvalidTensor(probs) || isInvalidTensor(gradOut),  ERR_NULL_TENSOR_PROVIDED); 
-  PANIC_IF (yGround->shape.numOfDims != probs->shape.numOfDims, ERR_DIM_MISMATCH); 
-  PANIC_IF (yGround->dtype != probs->dtype || yGround->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH); 
-  PANIC_IF (probs->dtype != F16 && probs->dtype != F32 && probs->dtype != F64, ERR_DTYPE_MISMATCH); 
+Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
+  PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(probs) || isInvalidTensor(gradOut),
+           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(yGround->shape.numOfDims != probs->shape.numOfDims, ERR_DIM_MISMATCH);
+  PANIC_IF(yGround->dtype != probs->dtype || yGround->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(probs->dtype != F16 && probs->dtype != F32 && probs->dtype != F64, ERR_DTYPE_MISMATCH);
 
   for (u8 i = 0; i < probs->shape.numOfDims; i++) {
-    PANIC_IF(yGround->shape.dims[i] != probs->shape.dims[i], ERR_DIM_MISMATCH); 
+    PANIC_IF(yGround->shape.dims[i] != probs->shape.dims[i], ERR_DIM_MISMATCH);
   }
 
-  PANIC_IF (probs->shape.numOfDims == 0, ERR_DIM_MISMATCH);
+  PANIC_IF(probs->shape.numOfDims == 0, ERR_DIM_MISMATCH);
 
   dim_t classCount = probs->shape.dims[probs->shape.numOfDims - 1];
-  PANIC_IF (classCount == 0 || probs->size % classCount != 0, ERR_DIM_MISMATCH);
+  PANIC_IF(classCount == 0 || probs->size % classCount != 0, ERR_DIM_MISMATCH);
 
   bool scalarGradOut = gradOut->size == 1;
-  PANIC_IF (!scalarGradOut && gradOut->size != probs->size, ERR_DIM_MISMATCH); 
+  PANIC_IF(!scalarGradOut && gradOut->size != probs->size, ERR_DIM_MISMATCH);
 
   tensor_size_t rows = probs->size / classCount;
 
@@ -245,8 +247,8 @@ Tensor* CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tenso
 
   if (isCudaContext(ctx)) {
     Result res = runCudaCrossEntropyBackward(ctx, pContig->dtype, yContig->values, pContig->values,
-                                      gContig->values, rows, classCount, scalarGradOut,
-                                      dLogits->values);
+                                             gContig->values, rows, classCount, scalarGradOut,
+                                             dLogits->values);
     PANIC_IF(res != OK, res);
     goto cleanup;
   }

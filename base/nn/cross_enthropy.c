@@ -24,11 +24,11 @@ Tensor loss_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
   PANIC_IF(logits == NULL, ERR_NULL_PTR);
 
   TensorPair crossEnthropyResult = CrossEntropyForward(ctx, yGround, logits);
-  
+
   Tensor *loss = crossEnthropyResult.a;
   Tensor *probs = crossEnthropyResult.b;
 
-  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor*), 2);
+  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
   Array_AppendTensor(loss->inputs, yGround);
   Array_AppendTensor(loss->inputs, logits);
 

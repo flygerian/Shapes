@@ -13,7 +13,7 @@
 
 #define SHAPE(dimensions, numberOfDimensions)                                                      \
   ((Dim){.dims = (dimensions), .numOfDims = (numberOfDimensions)})
-#define SCALAR                    ((Dim){.dims =  (dim_t[]){1}, .numOfDims = 1})
+#define SCALAR                      ((Dim){.dims = (dim_t[]){1}, .numOfDims = 1})
 #define SHAPE1D(dimSize)            ((Dim){.dims = (dim_t[]){dimSize}, .numOfDims = 1})
 #define SHAPE2D(dim0Size, dim1Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size}, .numOfDims = 2})
 #define SHAPE3D(dim0Size, dim1Size, dim2Size)                                                      \

@@ -15,11 +15,11 @@
 #define PTR_SET_MAX_LOAD_DENOMINATOR 4
 
 void Array_SetPtrMapEntryAt(Array *array, size_t idx, PtrMapEntry *entry) {
-  Array_SetAt(array, idx, (void *) &entry);
+  Array_SetAt(array, idx, (void *)&entry);
 }
 
 PtrMapEntry *Array_PtrMapEntryIdx(Array *array, size_t idx) {
-  PtrMapEntry **item = (PtrMapEntry **) Array_Idx(array, idx);
+  PtrMapEntry **item = (PtrMapEntry **)Array_Idx(array, idx);
   if (item == NULL) {
     return NULL;
   }
@@ -27,7 +27,7 @@ PtrMapEntry *Array_PtrMapEntryIdx(Array *array, size_t idx) {
 }
 
 static inline size_t bucketIndex(void *key, size_t capacity) {
-  uintptr_t addr = (uintptr_t) key;
+  uintptr_t addr = (uintptr_t)key;
   addr ^= addr >> 4;
   return addr % capacity;
 }
@@ -40,7 +40,7 @@ static inline size_t findSlot(Array *entries, size_t capacity, void *key) {
   size_t idx = bucketIndex(key, capacity);
 
   while (Array_PtrMapEntryIdx(entries, idx) != NULL &&
-         Array_PtrMapEntryIdx(entries, idx)->key != (uintptr_t) key) {
+         Array_PtrMapEntryIdx(entries, idx)->key != (uintptr_t)key) {
     idx = (idx + 1) % capacity;
   }
 
@@ -59,7 +59,7 @@ static void growPtrMap(PtrMap *pt) {
       continue;
     }
 
-    size_t idx = findSlot(newEntries, newCapacity, (void *) entry->key);
+    size_t idx = findSlot(newEntries, newCapacity, (void *)entry->key);
     Array_SetPtrMapEntryAt(newEntries, idx, entry);
   }
 
@@ -97,7 +97,7 @@ void PtrMap_Put(PtrMap *pm, void *key, void *value) {
 
   size_t idx = findSlot(pm->entries, pm->capacity, key);
   if (Array_PtrMapEntryIdx(pm->entries, idx) == NULL) {
-    PtrMapEntry *entry = Make_PtrMapEntry(pm->memory, (uintptr_t) key, value);
+    PtrMapEntry *entry = Make_PtrMapEntry(pm->memory, (uintptr_t)key, value);
     Array_SetPtrMapEntryAt(pm->entries, idx, entry);
     pm->entries->size += 1;
     pm->count += 1;
@@ -130,7 +130,7 @@ bool PtrSet_DoesNotContain(PtrSet *pt, void *key) {
 }
 
 void PtrSet_Put(PtrSet *pt, void *key) {
-  PtrMap_Put(pt, key, (void *) key);
+  PtrMap_Put(pt, key, (void *)key);
 }
 
 bool PtrSet_Contains(PtrSet *pt, void *key) {

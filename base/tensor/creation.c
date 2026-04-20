@@ -134,7 +134,10 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
                    .shape = shape,
                    .isView = false,
                    .isContigous = true,
-                   .boundary = NULL};
+                   .boundary = NULL,
+                   .inputs = NULL,
+                   .opType = OP_NONE,
+                   .backward = NULL};
 
   return OK;
 }

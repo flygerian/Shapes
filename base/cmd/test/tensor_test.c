@@ -487,7 +487,8 @@ static void test_slice_basic_2d(void) {
     }
   }
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
   ASSERT_NOT_NULL(slice, "Slice should return a tensor");
   ASSERT(slice->isView, "slice should be a view");
   ASSERT_EQ(slice->shape.numOfDims, 2, "slice should have 2 dimensions");
@@ -508,7 +509,8 @@ static void test_slice_shares_data_with_source(void) {
   Value val = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "Slice should return a tensor");
   ASSERT_EQ(slice->values, tt.tensor.values, "slice should share values pointer with source");
 
@@ -530,7 +532,8 @@ static void test_slice_get_at_correct_values(void) {
     }
   }
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
   dim_t slice_idx[] = {0, 0};
@@ -559,7 +562,8 @@ static void test_slice_single_element_range(void) {
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
   ASSERT_NOT_NULL(slice, "single element slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 1, "slice dim[0] should be 1");
   ASSERT_EQ(slice->shape.dims[1], 1, "slice dim[1] should be 1");
@@ -578,7 +582,8 @@ static void test_slice_full_range(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "full range slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 3, "slice dim[0] should match source");
   ASSERT_EQ(slice->shape.dims[1], 4, "slice dim[1] should match source");
@@ -623,7 +628,8 @@ static void test_slice_modify_reflects_in_source(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
 
   // Modify slice[0,1] which maps to source[1,2]
   dim_t slice_idx[] = {0, 1};
@@ -655,11 +661,13 @@ static void test_slice_of_slice(void) {
   }
 
   // First slice: rows 1-5 (exclusive), cols 1-5 (exclusive) -> 4x4 region
-  Tensor *slice1 = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+  Tensor *slice1 =
+      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
 
   // Second slice of first slice: rows 1-3 (exclusive), cols 1-3 (exclusive) -> 2x2 region
   // This maps to source rows 2-3, cols 2-3
-  Tensor *slice2 = Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  Tensor *slice2 =
+      Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
   ASSERT_NOT_NULL(slice2, "slice of slice should return a tensor");
   ASSERT_EQ(slice2->shape.dims[0], 2, "nested slice dim[0] should be 2");
   ASSERT_EQ(slice2->shape.dims[1], 2, "nested slice dim[1] should be 2");
@@ -693,7 +701,8 @@ static void test_slice_large_4d_tensor(void) {
     }
   }
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8},
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8},
             (Range){.start = 4, .end = 10}, (Range){.start = 1, .end = 5});
 
   ASSERT_NOT_NULL(slice, "4D slice should return a tensor");
@@ -892,7 +901,8 @@ static void test_reshape_view(void) {
 
   // Create a slice: rows 1-4 (exclusive), cols 0-6 (exclusive) -> 3x6 = 18 elements
   // Note: This slice is contiguous in memory
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
 
   // Reshape the slice to 1D (18 elements)
   dim_t new_dims[] = {18};
@@ -924,8 +934,8 @@ static void test_reshape_3d_view(void) {
   }
 
   // Slice: [1:3, 0:5, 0:6] (exclusive) -> 2x5x6 = 60 elements
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5},
-        (Range){.start = 0, .end = 6});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3},
+                        (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice->shape.dims[0], 2, "3D slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 5, "3D slice dim[1] should be 5");
@@ -971,8 +981,9 @@ static void test_reshape_4d_view(void) {
   }
 
   // Slice: [0:2, 1:4, 0:5, 0:6] (exclusive) -> 2x3x5x6 = 180 elements
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4},
-        (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4},
+            (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice->shape.dims[0], 2, "4D slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 3, "4D slice dim[1] should be 3");
@@ -1015,8 +1026,9 @@ static void test_reshape_4d_view_to_1d(void) {
   }
 
   // Slice: [0:1, 0:3, 0:4, 0:5] (exclusive) -> 1x3x4x5 = 60 elements
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3},
-        (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3},
+            (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
 
   // Reshape to 1D: 60 elements
   dim_t new_dims[] = {60};
@@ -3124,7 +3136,8 @@ static void test_slice_boundary_access(void) {
     }
   }
 
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
+  Tensor *slice =
+      Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
 
   // Test all 4 corners of the slice
   Value result;

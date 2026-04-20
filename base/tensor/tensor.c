@@ -44,7 +44,7 @@ char *GetItem(Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value* val = GetAt(t, zeroIdx);
+  Value *val = GetAt(t, zeroIdx);
 
   size_t size = sizeof(char) * 32;
   char *valueStr = allocate(ctx->memory, size);
@@ -75,7 +75,7 @@ sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 num
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   if (dims == NULL || numOfDims == 0) {
-    return (sizeAndMultipliers) {.size = 1, .multipliers = NULL};
+    return (sizeAndMultipliers){.size = 1, .multipliers = NULL};
   }
 
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
@@ -206,7 +206,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   for (tensor_size_t i = 0; i < source->size; i++) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
-    Value* val = GetAt(source, idx);
+    Value *val = GetAt(source, idx);
     writeTensorValueAtFlatIndex(copy, i, *val);
 
     for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
@@ -226,8 +226,12 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
 Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
   PANIC_IF(ctx == NULL || src == NULL, ERR_NULL_TENSOR_PROVIDED);
-  bool isNotSameContext = !isSameContext(ctx, src->context);
-  PANIC_IF(isNotSameContext, ERR_DIFFERENT_CTX_TENSORS_PASSED);
+
+  // Check if tensors are on the same device (both NULL = CPU, or same device pointer)
+  bool sameDevice = (ctx->device == NULL && src->context->device == NULL) ||
+                    (ctx->device != NULL && src->context->device != NULL &&
+                     ctx->device->type == src->context->device->type);
+  PANIC_IF(!sameDevice, ERR_DIFFERENT_CTX_TENSORS_PASSED);
 
   Tensor *working = src;
   if (!src->isContigous) {
@@ -236,7 +240,6 @@ Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
     PANIC_IF(working == NULL, ALLOCATION_FAILED);
   }
 
-  // Tensor **moved = MoveTensors(ctx, 1, working);
   return working;
 }
 
@@ -498,13 +501,13 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
   return OK;
 }
 
-void Array_AppendTensor(Array *array, Tensor* tensor) {
-  Array_Append(array, (void*) &tensor);
+void Array_AppendTensor(Array *array, Tensor *tensor) {
+  Array_Append(array, (void *)&tensor);
 }
 
 void Array_AppendTensorArray(Array *array, Array *tensorArray) {
   PANIC_IF(array == NULL, ERR_NULL_PTR);
-  
+
   for (size_t i = 0; i < tensorArray->size; i++) {
     Tensor *tensor = Array_TensorIdx(tensorArray, i);
     PANIC_IF(tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -513,14 +516,14 @@ void Array_AppendTensorArray(Array *array, Array *tensorArray) {
   }
 }
 
-Tensor* Array_TensorIdx(Array *array, size_t idx) {
-  return *( (Tensor**) Array_Idx(array, idx) );
+Tensor *Array_TensorIdx(Array *array, size_t idx) {
+  return *((Tensor **)Array_Idx(array, idx));
 }
 
 void Array_AppendLayer(Array *array, Layer *layer) {
-  Array_Append(array, (void*) &layer);
+  Array_Append(array, (void *)&layer);
 }
 
-Layer* Array_LayerIdx(Array *array, size_t idx) {
-  return *(Layer**) Array_Idx(array, idx);
+Layer *Array_LayerIdx(Array *array, size_t idx) {
+  return *(Layer **)Array_Idx(array, idx);
 }

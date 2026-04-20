@@ -33,6 +33,8 @@ typedef enum {
   OP_LESS,
   OP_LESS_OR_EQUAL,
   OP_DENSE,
+  OP_EMBEDDING,
+  OP_RESHAPE,
   OP_MSE,
   OP_CROSS_ENTHROPY,
   OP_SGD,
@@ -119,7 +121,7 @@ typedef struct Tensor {
   struct Tensor *grad;
   Array *inputs;
   OpType opType;
-  void* opMetadata; 
+  void *opMetadata;
   void (*backward)(Context *ctx, struct Tensor *tensor);
 } Tensor;
 
@@ -147,4 +149,3 @@ typedef struct {
 } TensorPair;
 
 size_t getBytesForDtype(Dtype type);
-

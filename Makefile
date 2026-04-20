@@ -79,7 +79,7 @@ build: build-base build-go
 
 build-base: $(OPENBLAS_LIB)
 	@echo "==> Configuring C library..."
-	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug
+	cmake -S $(BASE_DIR) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=OFF
 	@echo "==> Building C library..."
 	$(MAKE) -C $(BUILD_DIR) -j$(NPROC)
 	@echo "==> C build complete!"

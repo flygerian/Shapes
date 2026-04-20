@@ -113,9 +113,32 @@ Tensor *Reshape(Context *ctx, Tensor *source, Dim newShape) {
                             .boundary = boundary,
                             .size = source->size,
                             .isContigous = true};
+
+  dim_t *copiedDims = allocate(ctx->memory, sizeof(dim_t) * newShape.numOfDims);
+  PANIC_IF(copiedDims == NULL, ALLOCATION_FAILED);
+  memcpy(copiedDims, newShape.dims, sizeof(dim_t) * newShape.numOfDims);
+
   dest->shape =
-      (Dim){.dims = newShape.dims, .numOfDims = newShape.numOfDims, .multipliers = snm.multipliers};
+      (Dim){.dims = copiedDims, .numOfDims = newShape.numOfDims, .multipliers = snm.multipliers};
+
+  dest->opType = OP_RESHAPE;
+  dest->backward = ReshapeBackward;
+  dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
+  Array_AppendTensor(dest->inputs, source);
+
+  dest->grad = T_Zeros(ctx, dest->shape);
+
   return dest;
+}
+
+void ReshapeBackward(Context *ctx, Tensor *node) {
+  PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(node == NULL || node->inputs == NULL || node->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+
+  Tensor *input = Array_TensorIdx(node->inputs, 0);
+
+  Tensor *gradReshaped = Reshape(ctx, node->grad, input->shape);
+  AddInPlace(ctx, input->grad, gradReshaped);
 }
 
 Tensor *Transpose(Context *ctx, Tensor *source, ...) {
@@ -443,7 +466,8 @@ Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
   Tensor *workingTarget = materializeTensorOnContext(ctx, target);
 
   tensor_size_t numElementsBeforeTargetDim;
-  Result result = calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
+  Result result =
+      calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
   PANIC_IF(result != OK, result);
 
   tensor_size_t numElementsAfterTargetDim;

@@ -37,14 +37,14 @@ static inline void expandCapacity(Array *slice) {
   slice->items = newItemsAllocation;
 }
 
-Array* MakeDynamicArray(Memory *memory, const size_t elemSize) {
+Array *MakeDynamicArray(Memory *memory, const size_t elemSize) {
   Array *arr = contructNewArray(memory, elemSize, INITIAL_SLICE_CAPACITY);
   arr->isCapacityFixed = false;
 
   return arr;
 }
 
-Array* MakeArray(Memory *memory, const size_t elemSize, size_t capacity) {
+Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity) {
   return contructNewArray(memory, elemSize, capacity);
 }
 
@@ -69,6 +69,10 @@ void Array_Append(Array *array, void *ptr) {
   array->size += 1;
 }
 
+void Array_AppendString(Array *array, String str) {
+  Array_Append(array, (void *)&str);
+}
+
 void *Array_Idx(Array *slice, size_t idx) {
   PANIC_IF(slice == NULL, ERR_NULL_PTR);
   PANIC_IF(idx < 0, ERR_OUT_OF_BOUNDS);
@@ -80,15 +84,19 @@ void *Array_Idx(Array *slice, size_t idx) {
   return ARRAY_PTR_AT_IDX(slice, idx);
 }
 
-void Array_AppendStructPtr(Array *array, void* ptr) {
-  Array_Append(array, (void*) &ptr);
+String Array_StringIdx(Array *array, size_t idx) {
+  return *((String *)Array_Idx(array, idx));
 }
 
-void* Array_StructPtrIdx(Array *array, size_t idx) {
-  void** item = (void**) Array_Idx(array, idx);
-  if (item == NULL) {
-    return NULL;
-  }
+// Only meant for string literals
+String MakeString(Memory *memory, char *stringData) {
+  size_t len = strlen(stringData);
+  return MakeStringN(memory, stringData, len);
+}
 
-  return *item;
+String MakeStringN(Memory *memory, char *stringData, size_t len) {
+  String str = MakeArray(memory, sizeof(char), len);
+  memcpy(str->items, stringData, len);
+  str->size = len;
+  return str;
 }

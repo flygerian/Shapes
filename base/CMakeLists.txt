@@ -55,6 +55,7 @@ add_library(utils_lib
   utils_lib/memory.c
   utils_lib/array.c
   utils_lib/map.c
+  utils_lib/bitset.c
 )
 target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
 
@@ -102,12 +103,15 @@ add_library(shapes_core
     tensor/gemm.c
     nn/backward.c
     nn/dense.c
+    nn/embedding.c
     nn/mse.c
     nn/sgd.c
     nn/training.c
     nn/batchnorm.c
     nn/cross_enthropy.c
     nn/adam.c
+    cmd/examples/makemore_3.c
+    cmd/examples/makemore_5.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
@@ -119,27 +123,24 @@ add_executable(shapes
 )
 target_link_libraries(shapes shapes_core)
 
-# Test executable
-add_executable(shapes_test
-    cmd/test/main.c
-    cmd/test/memory_test.c
-    cmd/test/tensor_test.c
-    cmd/test/unary_test.c
-    cmd/test/cast_test.c
-    cmd/test/sgd_test.c
-    cmd/test/adam_test.c
-    cmd/test/layer_test.c
-)
-target_link_libraries(shapes_test shapes_core utils_lib)
-
-add_executable(gemm_bench
-  cmd/cuda/gemm_bench.cu
-)
-target_link_libraries(gemm_bench CUDA::cudart -lcublas)
-
 # Enable CTest
 enable_testing()
-add_test(NAME shapes_tests COMMAND shapes_test)
+
+option(BUILD_TESTS "Build test executables" OFF)
+if(BUILD_TESTS)
+  add_executable(shapes_test
+      cmd/test/main.c
+      cmd/test/memory_test.c
+      cmd/test/tensor_test.c
+      cmd/test/unary_test.c
+      cmd/test/cast_test.c
+      cmd/test/sgd_test.c
+      cmd/test/adam_test.c
+      cmd/test/layer_test.c
+  )
+  target_link_libraries(shapes_test shapes_core utils_lib)
+  add_test(NAME shapes_tests COMMAND shapes_test)
+endif()
 
 # ---------- Linting & Formatting ----------
 

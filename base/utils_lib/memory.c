@@ -25,6 +25,30 @@ Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
   return head;
 }
 
+Memory *initializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize) {
+  assert(buffer != NULL);
+  assert(bufferSize > sizeof(Memory));
+
+  Memory *head = (Memory *)buffer;
+  head->capacity = bufferSize - sizeof(Memory);
+  head->allocated = 0;
+  head->numBlocks = 0;
+  head->numFreeBlocks = 0;
+  head->minBlockSize = minBlockSize;
+  head->freeHeadOffset = INVALID_OFFSET;
+
+  return head;
+}
+
+void resetArena(Memory *memory) {
+  assert(memory != NULL);
+
+  memory->allocated = 0;
+  memory->numBlocks = 0;
+  memory->numFreeBlocks = 0;
+  memory->freeHeadOffset = INVALID_OFFSET;
+}
+
 Memory *initializeMemory() {
   return initializeArena((size_t)DEFAULT_ALLOCATION, 1);
 }

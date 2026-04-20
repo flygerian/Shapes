@@ -40,12 +40,12 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
 
   Tensor *inputRef = tensor;
   Tensor *weightRef = layer->weights;
-  Array_AppendTensor(out->inputs,inputRef);
+  Array_AppendTensor(out->inputs, inputRef);
   Array_AppendTensor(out->inputs, weightRef);
 
   if (layer->bias != NULL) {
     Tensor *biasRef = layer->bias;
-    Array_Append(out->inputs, (void*) &biasRef);
+    Array_Append(out->inputs, (void *)&biasRef);
   }
 
   out->opType = OP_DENSE;
@@ -55,8 +55,8 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
 
 Array *denseLayerParameters(Context *ctx, Layer *state) {
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_AppendTensor(params, (void*) state->weights);
-  Array_AppendTensor(params, (void*) state->bias);
+  Array_AppendTensor(params, (void *)state->weights);
+  Array_AppendTensor(params, (void *)state->bias);
 
   return params;
 }

@@ -13,7 +13,7 @@
 
 #define ARENA(memory) ((uint8_t *)(memory + 1))
 
-#define BLOCK_HEADER(ptr)                       ((blockheader *)((uint8_t *)(ptr) - sizeof(blockheader)))
+#define BLOCK_HEADER(ptr) ((blockheader *)((uint8_t *)(ptr) - sizeof(blockheader)))
 #define BLOCK_HEADER_OFFSET(arena, blockHeader) ((uint8_t *)blockHeader - arena)
 
 
@@ -53,6 +53,8 @@ typedef struct {
 
 Memory *initializeMemory();
 Memory *initializeArena(size_t arenaSize, size_t minBlockSize);
+Memory *initializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize);
+void resetArena(Memory *memory);
 void *allocate(Memory *memory, size_t size);
 void *reallocate(Memory *memory, void *ptr, size_t size);
 void freeAlloc(Memory *memory, void *ptr);

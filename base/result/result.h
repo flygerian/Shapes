@@ -82,7 +82,7 @@ typedef enum {
   LAYER_OP_NOT_FOUND,
   BACKWARD_TENSOR_OP_NOT_FOUND,
   BATCH_NORM_ZERO_DIM_NOT_ALLOWED,
-
+  FILE_OPEN_FAILED
 } Result;
 
 #define PANIC_IF(cond, errCode)                                                                    \

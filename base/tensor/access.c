@@ -32,12 +32,12 @@ static Result indexValueToDim(Value idxVal, dim_t *idx) {
   }
 }
 
-Value* GetAt(Tensor *t, Dim dim) {
-  PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH); 
-  PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS); 
+Value *GetAt(Tensor *t, Dim dim) {
+  PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH);
+  PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS);
 
   u64 idx = getContigousIdxFromCoord(t, dim.dims);
-  
+
   Value *result = allocate(t->context->memory, sizeof(Value));
 
   readTensorValueAtFlatIndex(t, idx, result);
@@ -83,8 +83,8 @@ Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
 
   if (isCudaCtx) {
     Result result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
-                                        workingIndices->values, workingIndices->dtype, dest->values,
-                                        workingIndices->size, sliceSize);
+                                         workingIndices->values, workingIndices->dtype,
+                                         dest->values, workingIndices->size, sliceSize);
     PANIC_IF(result != OK, result);
   }
 
@@ -158,10 +158,10 @@ Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tens
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   if (isCudaCtx) {
-    Result result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values,
-                                        workingSource->shape.dims[1], workingRows->values,
-                                        workingRows->dtype, workingCols->values, workingCols->dtype,
-                                        dest->values, workingRows->size, sliceSize);
+    Result result = runCudaIndexSelect2d(
+        ctx, workingSource->dtype, workingSource->values, workingSource->shape.dims[1],
+        workingRows->values, workingRows->dtype, workingCols->values, workingCols->dtype,
+        dest->values, workingRows->size, sliceSize);
     PANIC_IF(result != OK, result);
   }
 

@@ -20,19 +20,12 @@ void backward(Context *ctx, Tensor *node) {
   PANIC_IF(node == NULL, NULL_CONTEXT);
 
   switch (node->opType) {
-    case OP_DENSE:
-      denseBackward(ctx, node);
-      return;
-    case OP_MSE:
-      mseBackward(ctx, node);
-      return;
-    case OP_BATCH_NORM:
-
-      batchnormBackward(ctx, node);
-      return;
-    case OP_CROSS_ENTHROPY:
-      crossEnthropyBackward(ctx, node); 
-      return;
+    case OP_DENSE: denseBackward(ctx, node); return;
+    case OP_EMBEDDING: embeddingBackward(ctx, node); return;
+    case OP_RESHAPE: ReshapeBackward(ctx, node); return;
+    case OP_MSE: mseBackward(ctx, node); return;
+    case OP_BATCH_NORM: batchnormBackward(ctx, node); return;
+    case OP_CROSS_ENTHROPY: crossEnthropyBackward(ctx, node); return;
   }
 
   PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);
