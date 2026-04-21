@@ -38,6 +38,7 @@ Optimizer optimizer_Adam(Context *ctx, f32 learningRate);
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
 Tensor loss_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits);
 FowardPassOp layer_BatchNorm(Context *ctx, size_t numFeatures);
+FowardPassOp layer_Tanh(Context *ctx);
 
 Array *Backward(Context *ctx, Tensor *tensor);
 void ZeroGrad(Context *ctx, Array *graph);

@@ -42,6 +42,8 @@ __device__ static T applyUnaryOp(T value, UnaryOpType opType, float param) {
     return (T)log((double)value);
   case UNARY_OP_ABS:
     return value < (T)0 ? -value : value;
+  case UNARY_OP_SQRT:
+    return (T)sqrt((double)value);
   default:
     return value;
   }

@@ -69,6 +69,8 @@ void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tenso
 Tensor *Negate(Context *ctx, Tensor *t);
 Tensor *Log(Context *ctx, Tensor *t);
 Tensor *Abs(Context *ctx, Tensor *t);
+Tensor *Sqrt(Context *ctx, Tensor *t);
+void SqrtBackward(Context *ctx, Tensor *node);
 
 // Reduction
 Tensor *Sum(Context *ctx, Tensor *t, dim_t dim);

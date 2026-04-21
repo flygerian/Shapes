@@ -110,6 +110,7 @@ add_library(shapes_core
     nn/batchnorm.c
     nn/cross_enthropy.c
     nn/adam.c
+    nn/tanh.c
     cmd/examples/makemore_3.c
     cmd/examples/makemore_5.c
 )

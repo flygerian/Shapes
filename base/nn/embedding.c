@@ -13,7 +13,7 @@ void embeddingBackward(Context *ctx, Tensor *out) {
   Tensor *input = Array_TensorIdx(out->inputs, 0);
   Tensor *indices = (Tensor *)out->opMetadata;
 
-  IndexAccumulate1d(ctx, input, indices, out->grad);
+  IndexAccumulate1d(ctx, input->grad, indices, out->grad);
 }
 
 Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
@@ -45,7 +45,7 @@ Array *embeddingParameters(Context *ctx, Layer *layer) {
 }
 
 FowardPassOp layer_Embedding(Context *ctx, size_t vocabSize, dim_t embeddingDim) {
-  Tensor *embedding = MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -1.0, 1.0, F32);
+  Tensor *embedding = MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, F32);
 
   Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
   layer->weights = embedding;

@@ -289,6 +289,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/nn/tanh.c.o -c /home/olabode/repos/Shapes/base/nn/tanh.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/tanh.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/tanh.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -c -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o -c /home/olabode/repos/Shapes/base/cmd/examples/makemore_3.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/examples/makemore_3.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o"

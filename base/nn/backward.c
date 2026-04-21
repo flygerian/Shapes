@@ -26,6 +26,8 @@ void backward(Context *ctx, Tensor *node) {
     case OP_MSE: mseBackward(ctx, node); return;
     case OP_BATCH_NORM: batchnormBackward(ctx, node); return;
     case OP_CROSS_ENTHROPY: crossEnthropyBackward(ctx, node); return;
+    case OP_TANH: tanhBackward(ctx, node); return;
+    case OP_SQRT: SqrtBackward(ctx, node); return;
   }
 
   PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);

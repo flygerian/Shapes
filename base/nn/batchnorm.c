@@ -139,21 +139,21 @@ Tensor *batchNormForward(Context *ctx, Layer *layer, Tensor *input) {
 
   Tensor *bnOut2d;
   if (ctx->isTraining) {
-      BatchNormFowardResult bnResult =
-          BatchNormForwardTraining(ctx, x2d, layerData->gamma, layerData->beta, layerData->epsilon);
-      bnOut2d = bnResult.out;
-      if (layerData->runningStatsInitialised) {
-        updateRunningStats(ctx, layerData, bnResult.mean, bnResult.variance);
-      }
+    BatchNormFowardResult bnResult =
+        BatchNormForwardTraining(ctx, x2d, layerData->gamma, layerData->beta, layerData->epsilon);
+    bnOut2d = bnResult.out;
+    if (layerData->runningStatsInitialised) {
+      updateRunningStats(ctx, layerData, bnResult.mean, bnResult.variance);
+    }
   } else {
-      Tensor *mean = layerData->runningMean;
-      Tensor *variance = layerData->runningVar;
-      Tensor *centered = Subtract(ctx, x2d, mean);
-      Tensor *eps = T_Float(ctx, SHAPE1D(1), layerData->epsilon);
-      Tensor *invStd = Pow(ctx, Add(ctx, variance, eps), -0.5);
-      Tensor *xHat = Multiply(ctx, centered, invStd);
-      Tensor *addRes = Add(ctx, Multiply(ctx, xHat, layerData->gamma), layerData->beta);
-      bnOut2d = addRes;
+    Tensor *mean = layerData->runningMean;
+    Tensor *variance = layerData->runningVar;
+    Tensor *centered = Subtract(ctx, x2d, mean);
+    Tensor *eps = T_Float(ctx, SHAPE1D(1), layerData->epsilon);
+    Tensor *invStd = Pow(ctx, Add(ctx, variance, eps), -0.5);
+    Tensor *xHat = Multiply(ctx, centered, invStd);
+    Tensor *addRes = Add(ctx, Multiply(ctx, xHat, layerData->gamma), layerData->beta);
+    bnOut2d = addRes;
   }
 
   PANIC_IF(bnOut2d == NULL, ERR_NULL_PTR);
@@ -180,7 +180,7 @@ FowardPassOp layer_BatchNorm(Context *ctx, size_t numFeatures) {
   data->epsilon = 1e-5;
   data->momentum = 0.1;
   data->runningMean = T_Zeros(ctx, SHAPE1D(numFeatures));
-  data->runningVar = T_Zeros(ctx, SHAPE1D(numFeatures));
+  data->runningVar = T_Float(ctx, SHAPE1D(numFeatures), 1);
   data->runningStatsInitialised = true;
   data->dims = 1;
 

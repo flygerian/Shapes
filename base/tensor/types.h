@@ -40,6 +40,8 @@ typedef enum {
   OP_SGD,
   OP_ADAM,
   OP_BATCH_NORM,
+  OP_TANH,
+  OP_SQRT,
 } OpType;
 
 typedef enum {
@@ -49,7 +51,8 @@ typedef enum {
   UNARY_OP_NEGATE,
   UNARY_OP_EXP,
   UNARY_OP_LOG,
-  UNARY_OP_ABS
+  UNARY_OP_ABS,
+  UNARY_OP_SQRT
 } UnaryOpType;
 
 typedef enum {

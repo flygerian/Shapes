@@ -31,6 +31,7 @@ Tensor *Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
     case OP_DENSE: return denseForward(ctx, (Layer *)fwdOp->op, input); break;
     case OP_EMBEDDING: return embeddingForward(ctx, (Layer *)fwdOp->op, input);
     case OP_BATCH_NORM: return batchNormForward(ctx, (Layer *)fwdOp->op, input);
+    case OP_TANH: return tanhForward(ctx, (Layer *)fwdOp->op, input);
   }
 
   PANIC_IF(true, LAYER_OP_NOT_FOUND);
@@ -44,6 +45,7 @@ Array *Parameters(Context *ctx, FowardPassOp *op) {
     case OP_DENSE: return denseLayerParameters(ctx, (Layer *)op->op);
     case OP_EMBEDDING: return embeddingParameters(ctx, (Layer *)op->op);
     case OP_BATCH_NORM: return batchNormLayerParameters(ctx, (Layer *)op->op);
+    case OP_TANH: return tanhLayerParameters(ctx, (Layer *)op->op);
   }
 
   PANIC_IF(true, LAYER_OP_NOT_FOUND);

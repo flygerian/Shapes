@@ -249,6 +249,7 @@ static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
     case UNARY_OP_EXP: return expValue(value);
     case UNARY_OP_LOG: return logValue(value);
     case UNARY_OP_ABS: return absValue(value);
+    case UNARY_OP_SQRT: return sqrtValue(value);
     default: return ERR_NO_OP;
   }
 }
@@ -457,4 +458,33 @@ Tensor *Abs(Context *ctx, Tensor *t) {
   Result result = validateAbsTensor(t);
   PANIC_IF(result != OK, result);
   return dispatchUnaryOp(ctx, t, UNARY_OP_ABS, 0.0f);
+}
+
+void SqrtBackward(Context *ctx, Tensor *tensor) {
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
+           ERR_NULL_TENSOR_PROVIDED);
+
+  Tensor *input = Array_TensorIdx(tensor->inputs, 0);
+  PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+
+  Tensor *two = T_Float(ctx, SHAPE1D(1), 2.0f);
+  Tensor *twoTimesOutput = Multiply(ctx, two, tensor);
+  Tensor *gradInput = Divide(ctx, tensor->grad, twoTimesOutput);
+
+  Tensor *reducedGrad = ReduceBroadcast(ctx, input, gradInput);
+  AddInPlace(ctx, input->grad, reducedGrad);
+}
+
+Tensor *Sqrt(Context *ctx, Tensor *t) {
+  Result result = validateFloatUnaryTensor(t, ERR_SQRT_VALUE_NOT_FLOAT);
+  PANIC_IF(result != OK, result);
+
+  Tensor *out = dispatchUnaryOp(ctx, t, UNARY_OP_SQRT, 0.0f);
+
+  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
+  Array_AppendTensor(out->inputs, t);
+  out->opType = OP_SQRT;
+  out->grad = T_Zeros(ctx, out->shape);
+
+  return out;
 }

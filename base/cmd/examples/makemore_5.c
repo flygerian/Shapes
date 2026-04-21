@@ -7,13 +7,14 @@
 #include "utils_lib/array.h"
 #include "utils_lib/bitset.h"
 #include "utils_lib/memory.h"
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define BATCH_SIZE 64
-#define NUM_EPOCHS 5000
+#define BATCH_SIZE 32
+#define NUM_EPOCHS 20
 
 Array *getNames(Context *ctx) {
   FILE *f = fopen("names.txt", "r");
@@ -216,7 +217,10 @@ typedef struct {
   FowardPassOp l3;
   FowardPassOp bn1;
   FowardPassOp bn2;
+  FowardPassOp tanh1;
+  FowardPassOp tanh2;
   Optimizer optimizer;
+  Dtype datatype;
 } Model;
 
 Model Make_Model(Context *ctx) {
@@ -228,7 +232,10 @@ Model Make_Model(Context *ctx) {
   model.l3 = layer_Dense(ctx, 100, 27);
   model.bn1 = layer_BatchNorm(ctx, 200);
   model.bn2 = layer_BatchNorm(ctx, 100);
-  model.optimizer = optimizer_Adam(ctx, 0.00001f);
+  model.tanh1 = layer_Tanh(ctx);
+  model.tanh2 = layer_Tanh(ctx);
+  model.optimizer = optimizer_Adam(ctx, 0.001f);
+  model.datatype = F32;
 
   return model;
 }
@@ -238,9 +245,11 @@ Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input, dim_t batchSize
   out = Reshape(ctx, out, SHAPE2D(batchSize, 30));
 
   out = Forward(ctx, &model->l1, out);
-  out = Forward(ctx, &model->bn1, out);
+  // out = Forward(ctx, &model->bn1, out);
+  out = Forward(ctx, &model->tanh1, out);
   out = Forward(ctx, &model->l2, out);
-  out = Forward(ctx, &model->bn2, out);
+  // out = Forward(ctx, &model->bn2, out);
+  out = Forward(ctx, &model->tanh2, out);
   out = Forward(ctx, &model->l3, out);
 
   return out;
@@ -257,6 +266,25 @@ Array *Model_Parameters(Context *ctx, Model *model) {
   Array_AppendTensorArray(params, Parameters(ctx, &model->bn2));
 
   return params;
+}
+
+Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
+  Array *params = Model_Parameters(ctx, model);
+  Array *gradNorms = MakeArray(ctx->memory, sizeof(Value), params->size);
+
+  for (size_t i = 0; i < params->size; i++) {
+    Tensor *p = Array_TensorIdx(params, i);
+    Tensor *squared = Pow(ctx, p->grad, 2);
+    Tensor *flat = Reshape(ctx, squared, SHAPE1D(p->grad->size));
+    Tensor *totalSum = Sum(ctx, flat, 0);
+    Tensor *norm = Sqrt(ctx, totalSum);
+
+    Value normValue;
+    VALUE_GET_FROM_ARR(norm->values, 0, &normValue, norm->dtype);
+    Array_Append(gradNorms, &normValue);
+  }
+
+  return gradNorms;
 }
 
 static Tensor *softmax(Context *ctx, Tensor *logits, dim_t dim) {
@@ -357,6 +385,7 @@ void makemore_5() {
   for (size_t epoch = 0; epoch < NUM_EPOCHS; epoch++) {
     f32 totalLoss = 0.0f;
     size_t totalSamples = 0;
+    f32 wsumAvg = 0;
 
     for (size_t b = 0; b < batchedData.numBatches; b++) {
       Tensor *input = *(Tensor **)Array_Idx(batchedData.inputs, b);
@@ -378,16 +407,38 @@ void makemore_5() {
 
       Backward(&scratchCtx, &loss);
 
+      if (epoch == 0 && b == 0) {
+        printf("\nGradient norms after first batch:\n");
+        Array *gradNorms = Model_ParameterGradNorms(&ctx, &model);
+        for (size_t i = 0; i < gradNorms->size; i++) {
+          Value *norm = Array_Idx(gradNorms, i);
+          printf("  Param %zu grad norm: ", i);
+          PRINT_VALUE(*norm);
+          printf("\n");
+        }
+      }
+
       OptimizerStep(&ctx, &model.optimizer, params);
       ZeroGrad(&ctx, params);
 
       resetArena(scratchMem);
 
-      if (b % 500 == 0) {
-        printf("Epoch %zu: Batch %zu / %zu\n", epoch, b, batchedData.numBatches);
+      Tensor *embeddingWeights = Array_TensorIdx(params, 0);
+
+      f32 wsum = 0;
+      for (tensor_size_t i = 0; i < embeddingWeights->size; i++) {
+        f32 w = ((f32*) embeddingWeights->values)[i];
+        wsum += w * w;
       }
+
+      wsumAvg += wsum;
+
+      // if (b % 500 == 0) {
+      //   printf("Epoch %zu: Batch %zu / %zu\n", epoch, b, batchedData.numBatches);
+      // }
     }
 
+    printf("Embedding weight norm: %f\n", sqrt(wsumAvg / batchedData.numBatches));
     printf("Epoch %zu: Loss = %f\n", epoch, totalLoss / totalSamples);
   }
 
