@@ -59,7 +59,6 @@ Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result);
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value);
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
-void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords);
 Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type);
 Tensor *t_Empty(Context *ctx, Dim shape, Dtype type);
 Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type);

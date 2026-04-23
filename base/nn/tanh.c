@@ -33,7 +33,6 @@ Tensor *tanhForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Array_AppendTensor(out->inputs, inputRef);
 
   out->opType = OP_TANH;
-  out->backward = tanhBackward;
   return out;
 }
 

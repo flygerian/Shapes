@@ -113,7 +113,7 @@ Result clearTensorValues(Tensor *t) {
 }
 
 
-u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx) {
+u64 getContigousIdxFromCoord(Tensor *restrict t, dim_t *restrict idx) {
   u64 result = 0;
 
   for (u8 x = 0; x < t->shape.numOfDims; x++) {
@@ -147,12 +147,6 @@ bool isNotFloatType(Tensor *t) {
   return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
 }
 
-void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {
-  for (int d = shape->numOfDims - 1; d >= 0; d--) {
-    destCoords[d] = flatIdx % shape->dims[d];
-    flatIdx /= shape->dims[d];
-  }
-}
 
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result) {
   if (isInvalidTensor(t)) {

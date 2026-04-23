@@ -8,13 +8,14 @@
 #include "utils_lib/bitset.h"
 #include "utils_lib/memory.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define BATCH_SIZE 32
-#define NUM_EPOCHS 20
+#define NUM_EPOCHS 5
 
 Array *getNames(Context *ctx) {
   FILE *f = fopen("names.txt", "r");
@@ -227,9 +228,9 @@ Model Make_Model(Context *ctx) {
   Model model;
 
   model.embedding = layer_Embedding(ctx, 27, 10);
-  model.l1 = layer_Dense(ctx, 30, 200);
-  model.l2 = layer_Dense(ctx, 200, 100);
-  model.l3 = layer_Dense(ctx, 100, 27);
+  model.l1 = layer_Dense(ctx, 30, 200, false);
+  model.l2 = layer_Dense(ctx, 200, 100, false);
+  model.l3 = layer_Dense(ctx, 100, 27, false);
   model.bn1 = layer_BatchNorm(ctx, 200);
   model.bn2 = layer_BatchNorm(ctx, 100);
   model.tanh1 = layer_Tanh(ctx);
@@ -245,10 +246,10 @@ Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input, dim_t batchSize
   out = Reshape(ctx, out, SHAPE2D(batchSize, 30));
 
   out = Forward(ctx, &model->l1, out);
-  // out = Forward(ctx, &model->bn1, out);
+  out = Forward(ctx, &model->bn1, out);
   out = Forward(ctx, &model->tanh1, out);
   out = Forward(ctx, &model->l2, out);
-  // out = Forward(ctx, &model->bn2, out);
+  out = Forward(ctx, &model->bn2, out);
   out = Forward(ctx, &model->tanh2, out);
   out = Forward(ctx, &model->l3, out);
 
@@ -423,22 +424,11 @@ void makemore_5() {
 
       resetArena(scratchMem);
 
-      Tensor *embeddingWeights = Array_TensorIdx(params, 0);
-
-      f32 wsum = 0;
-      for (tensor_size_t i = 0; i < embeddingWeights->size; i++) {
-        f32 w = ((f32*) embeddingWeights->values)[i];
-        wsum += w * w;
-      }
-
-      wsumAvg += wsum;
-
       // if (b % 500 == 0) {
       //   printf("Epoch %zu: Batch %zu / %zu\n", epoch, b, batchedData.numBatches);
       // }
     }
 
-    printf("Embedding weight norm: %f\n", sqrt(wsumAvg / batchedData.numBatches));
     printf("Epoch %zu: Loss = %f\n", epoch, totalLoss / totalSamples);
   }
 

@@ -65,6 +65,7 @@ void batchnormBackward(Context *ctx, Tensor *output) {
     default: PANIC_IF(true, ERR_NO_OP);
   }
 
+
   BatchNormBackwardResult backwardResult =
       BatchNormBackward(ctx, x2d, grad2d, layerData->gamma, layerData->epsilon);
 

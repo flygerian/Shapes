@@ -2477,7 +2477,6 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
   t->inputs = MakeArray(ctx.memory, sizeof(Tensor *), 1);
   Array_Append(t->inputs, &input);
   t->opType = OP_DENSE;
-  t->backward = squeezeTestBackward;
 
   Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
@@ -2485,7 +2484,6 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
   ASSERT_EQ(squeezed->grad, t->grad, "Squeeze should preserve grad pointer");
   ASSERT_EQ(squeezed->inputs, t->inputs, "Squeeze should preserve graph inputs");
   ASSERT_EQ(squeezed->opType, t->opType, "Squeeze should preserve op type");
-  ASSERT_EQ(squeezed->backward, t->backward, "Squeeze should preserve backward callback");
 
   freeMemory(mem);
 }

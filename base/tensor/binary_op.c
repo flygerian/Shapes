@@ -373,6 +373,13 @@ static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
   return ERR_NOT_A_BINOP;
 }
 
+static inline void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {
+  for (int d = shape->numOfDims - 1; d >= 0; d--) {
+    destCoords[d] = flatIdx % shape->dims[d];
+    flatIdx /= shape->dims[d];
+  }
+}
+
 static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *output,
                              OpType opType) {
   dim_t currentCoord[output->shape.numOfDims];
@@ -560,6 +567,102 @@ Tensor *Add(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_ADD);
 }
 
+static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, tensor_size_t idx, dim_t* currentCoord, dim_t* bCoords) {
+    unravel_index(idx, &a->shape, currentCoord);
+
+    // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
+    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
+
+    for (u8 d = 0; d < a->shape.numOfDims; d++) {
+      bCoords[d] = currentCoord[d] % opB->shape.dims[d];
+    }
+
+    Value aVal;
+    VALUE_GET_FROM_ARR(a->values, aStorageIdx, &aVal, a->dtype);
+
+    Value bVal;
+    u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
+    VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
+    
+    return (ValuePair) {.a = aVal, .b = bVal};
+}
+
+static inline void inPlaceBinopAdd(Tensor *a, Tensor *opB) {
+  dim_t currentCoord[a->shape.numOfDims];
+  dim_t bCoords[a->shape.numOfDims];
+  for (tensor_size_t x = 0; x < a->size; x++) {
+    ValuePair pair = getValueOperandsForInplaceBinop(
+        a, 
+        opB, 
+        x, 
+        currentCoord, 
+        bCoords
+    );
+
+    Value result;
+    VALUE_BINOP(result, pair.a, pair.b, +);
+    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
+    VALUE_SET(a->values, aStorageIdx, result);
+  }
+}
+
+static inline void inPlaceBinopMultiply(Tensor *a, Tensor *opB) {
+  dim_t currentCoord[a->shape.numOfDims];
+  dim_t bCoords[a->shape.numOfDims];
+  for (tensor_size_t x = 0; x < a->size; x++) {
+    ValuePair pair = getValueOperandsForInplaceBinop(
+        a, 
+        opB, 
+        x, 
+        currentCoord, 
+        bCoords
+    );
+
+    Value result;
+    VALUE_BINOP(result, pair.a, pair.b, *);
+    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
+    VALUE_SET(a->values, aStorageIdx, result);
+  }
+}
+
+static inline void inPlaceBinopSubtract(Tensor *a, Tensor *opB) {
+  dim_t currentCoord[a->shape.numOfDims];
+  dim_t bCoords[a->shape.numOfDims];
+  for (tensor_size_t x = 0; x < a->size; x++) {
+    ValuePair pair = getValueOperandsForInplaceBinop(
+        a, 
+        opB, 
+        x, 
+        currentCoord, 
+        bCoords
+    );
+
+    Value result;
+    VALUE_BINOP(result, pair.a, pair.b, -);
+    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
+    VALUE_SET(a->values, aStorageIdx, result);
+  }
+}
+
+static inline void inPlaceBinopDivide(Tensor *a, Tensor *opB) {
+  dim_t currentCoord[a->shape.numOfDims];
+  dim_t bCoords[a->shape.numOfDims];
+  for (tensor_size_t x = 0; x < a->size; x++) {
+    ValuePair pair = getValueOperandsForInplaceBinop(
+        a, 
+        opB, 
+        x, 
+        currentCoord, 
+        bCoords
+    );
+
+    Value result;
+    VALUE_BINOP(result, pair.a, pair.b, /);
+    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
+    VALUE_SET(a->values, aStorageIdx, result);
+  }
+}
+
 static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Tensor *opB = b;
   Tensor *paddedB = NULL;
@@ -589,37 +692,33 @@ static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
     return;
   }
 
-  dim_t currentCoord[a->shape.numOfDims];
-  dim_t bCoords[a->shape.numOfDims];
-
-  for (tensor_size_t x = 0; x < a->size; x++) {
-    // Unravel using a's logical shape (ignoring boundary).
-    unravel_index(x, &a->shape, currentCoord);
-
-    // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
-    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
-
-    for (u8 d = 0; d < a->shape.numOfDims; d++) {
-      bCoords[d] = currentCoord[d] % opB->shape.dims[d];
-    }
-
-    Value aVal;
-    VALUE_GET_FROM_ARR(a->values, aStorageIdx, &aVal, a->dtype);
-
-    Value bVal;
-    u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
-    VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
-
-    Value result;
-    switch (opType) {
-      case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
-      case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
-      case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      default: PANIC_IF(true, ERR_NOT_A_BINOP);
-    }
-
-    VALUE_SET(a->values, aStorageIdx, result);
+  switch (opType) {
+    case OP_ADD:
+      inPlaceBinopAdd(a, opB);
+      break;
+    case OP_MULTIPLY:
+      inPlaceBinopMultiply(a, opB);
+      break;
+    case OP_SUBTRACT:
+      inPlaceBinopSubtract(a, opB);
+      break;
   }
+
+  // dim_t currentCoord[a->shape.numOfDims];
+  // dim_t bCoords[a->shape.numOfDims];
+  //
+  // for (tensor_size_t x = 0; x < a->size; x++) {
+  //   // Unravel using a's logical shape (ignoring boundary).
+  //   Value result;
+  //   switch (opType) {
+  //     case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
+  //     case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
+  //     case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
+  //     default: PANIC_IF(true, ERR_NOT_A_BINOP);
+  //   }
+  //
+  //   VALUE_SET(a->values, aStorageIdx, result);
+  // }
 
   freeIfContingousCopy(ctx, opB);
   if (paddedB != NULL) {

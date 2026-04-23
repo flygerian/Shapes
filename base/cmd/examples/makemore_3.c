@@ -21,9 +21,9 @@ void makemore_3() {
   Tensor *xs = MakeFromContigousArray(&ctx, SHAPE2D(4, 3), &xData, 12, F32);
   Tensor *ys = MakeFromContigousArray(&ctx, SHAPE1D(4), &yData, 4, F32);
 
-  FowardPassOp dense = layer_Dense(&ctx, 3, 10);
+  FowardPassOp dense = layer_Dense(&ctx, 3, 10, false);
   FowardPassOp bn1 = layer_BatchNorm(&ctx, 10);
-  FowardPassOp dense2 = layer_Dense(&ctx, 10, 1);
+  FowardPassOp dense2 = layer_Dense(&ctx, 10, 1, true);
 
   Optimizer sgd = optimizer_Adam(&ctx, 1e-2);
 

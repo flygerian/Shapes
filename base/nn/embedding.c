@@ -32,7 +32,6 @@ Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
 
   out->opMetadata = indices;
   out->opType = OP_EMBEDDING;
-  out->backward = embeddingBackward;
   out->grad = T_Zeros(ctx, out->shape);
   return out;
 }

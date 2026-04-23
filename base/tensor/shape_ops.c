@@ -122,7 +122,6 @@ Tensor *Reshape(Context *ctx, Tensor *source, Dim newShape) {
       (Dim){.dims = copiedDims, .numOfDims = newShape.numOfDims, .multipliers = snm.multipliers};
 
   dest->opType = OP_RESHAPE;
-  dest->backward = ReshapeBackward;
   dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   Array_AppendTensor(dest->inputs, source);
 
@@ -263,7 +262,6 @@ Tensor *Squeeze(Context *ctx, Tensor *t) {
     dest->grad = t->grad;
     dest->inputs = t->inputs;
     dest->opType = t->opType;
-    dest->backward = t->backward;
     return dest;
   }
 
@@ -331,7 +329,6 @@ Tensor *Squeeze(Context *ctx, Tensor *t) {
   dest->grad = t->grad;
   dest->inputs = t->inputs;
   dest->opType = t->opType;
-  dest->backward = t->backward;
 
   return dest;
 }

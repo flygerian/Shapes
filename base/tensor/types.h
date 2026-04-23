@@ -84,6 +84,11 @@ typedef struct {
   } as;
 } Value;
 
+typedef struct ValuePair {
+  Value a;
+  Value b;
+} ValuePair;
+
 typedef struct CudaCachedBlock {
   void *ptr;
   size_t size;
@@ -125,7 +130,6 @@ typedef struct Tensor {
   Array *inputs;
   OpType opType;
   void *opMetadata;
-  void (*backward)(Context *ctx, struct Tensor *tensor);
 } Tensor;
 
 typedef struct {
