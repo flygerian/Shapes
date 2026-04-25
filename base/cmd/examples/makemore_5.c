@@ -410,6 +410,11 @@ void makemore_5() {
           printf("\n");
         }
       }
+
+      OptimizerStep(&ctx, &model.optimizer, params);
+      ZeroGrad(&ctx, params);
+
+      resetArena(scratchMem);
     }
 
     printf("Epoch %zu: Loss = %f\n", epoch, totalLoss / totalSamples);
