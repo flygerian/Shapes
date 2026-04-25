@@ -126,17 +126,18 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
     return allocRes;
   }
 
-  *dest = (Tensor){.context = ctx,
-                   .metadataMemory = ctx != NULL ? ctx->memory : NULL,
-                   .dtype = dtype,
-                   .values = values,
-                   .size = snm.size,
-                   .shape = shape,
-                   .isView = false,
-                   .isContigous = true,
-                   .boundary = NULL,
-                   .inputs = NULL,
-                   .opType = OP_NONE,
+  *dest = (Tensor){
+      .context = ctx,
+      .metadataMemory = ctx != NULL ? ctx->memory : NULL,
+      .dtype = dtype,
+      .values = values,
+      .size = snm.size,
+      .shape = shape,
+      .isView = false,
+      .isContigous = true,
+      .boundary = NULL,
+      .inputs = NULL,
+      .opType = OP_NONE,
   };
 
   return OK;

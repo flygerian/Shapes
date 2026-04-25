@@ -1,22 +1,14 @@
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
+#include "tensor/types.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include "binary_op_helpers.h"
 
-#define STRAIGHT_CMP_LOOP(TYPE, op)                                                                \
-  do {                                                                                             \
-    TYPE *pa = a->values;                                                                          \
-    TYPE *pb = b->values;                                                                          \
-    bool *po = dest->values;                                                                       \
-    for (tensor_size_t i = 0; i < dest->size; i++) {                                               \
-      po[i] = pa[i] op pb[i];                                                                      \
-    }                                                                                              \
-    return OK;                                                                                     \
-  } while (0)
 
 static bool isComparisonOp(OpType opType) {
   return opType == OP_GREATER || opType == OP_GREATER_OR_EQUAL || opType == OP_LESS ||
@@ -44,75 +36,6 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
 
   return true;
 }
-
-#define SWITCH_ARITH_OP(OP_TYPE, ADD_EXPR, SUB_EXPR, MUL_EXPR)                                     \
-  switch (OP_TYPE) {                                                                               \
-    case OP_ADD: ADD_EXPR; break;                                                                  \
-    case OP_SUBTRACT: SUB_EXPR; break;                                                             \
-    case OP_MULTIPLY: MUL_EXPR; break;                                                             \
-    default: return ERR_NOT_A_BINOP;                                                               \
-  }
-
-#define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                           \
-  static inline void add_##NAME(const TYPE *restrict a, const TYPE *restrict b,                    \
-                                TYPE *restrict out, tensor_size_t n) {                             \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      out[i] = a[i] + b[i];                                                                        \
-    }                                                                                              \
-  }                                                                                                \
-  static inline void subtract_##NAME(const TYPE *restrict a, const TYPE *restrict b,               \
-                                     TYPE *restrict out, tensor_size_t n) {                        \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      out[i] = a[i] - b[i];                                                                        \
-    }                                                                                              \
-  }                                                                                                \
-  static inline void multiply_##NAME(const TYPE *restrict a, const TYPE *restrict b,               \
-                                     TYPE *restrict out, tensor_size_t n) {                        \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      out[i] = a[i] * b[i];                                                                        \
-    }                                                                                              \
-  }
-
-DEFINE_ARITH_HELPERS(bool, bool)
-DEFINE_ARITH_HELPERS(u8, u8)
-DEFINE_ARITH_HELPERS(u16, u16)
-DEFINE_ARITH_HELPERS(u32, u32)
-DEFINE_ARITH_HELPERS(u64, u64)
-DEFINE_ARITH_HELPERS(i8, i8)
-DEFINE_ARITH_HELPERS(i16, i16)
-DEFINE_ARITH_HELPERS(i32, i32)
-DEFINE_ARITH_HELPERS(i64, i64)
-DEFINE_ARITH_HELPERS(f32, f32)
-DEFINE_ARITH_HELPERS(f64, f64)
-
-#define DEFINE_INPLACE_ARITH_HELPERS(TYPE, NAME)                                                   \
-  static inline void add_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {                 \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      a[i] += b[i];                                                                                \
-    }                                                                                              \
-  }                                                                                                \
-  static inline void subtract_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {            \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      a[i] -= b[i];                                                                                \
-    }                                                                                              \
-  }                                                                                                \
-  static inline void multiply_inplace_##NAME(TYPE *a, const TYPE *b, tensor_size_t n) {            \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      a[i] *= b[i];                                                                                \
-    }                                                                                              \
-  }
-
-DEFINE_INPLACE_ARITH_HELPERS(bool, bool)
-DEFINE_INPLACE_ARITH_HELPERS(u8, u8)
-DEFINE_INPLACE_ARITH_HELPERS(u16, u16)
-DEFINE_INPLACE_ARITH_HELPERS(u32, u32)
-DEFINE_INPLACE_ARITH_HELPERS(u64, u64)
-DEFINE_INPLACE_ARITH_HELPERS(i8, i8)
-DEFINE_INPLACE_ARITH_HELPERS(i16, i16)
-DEFINE_INPLACE_ARITH_HELPERS(i32, i32)
-DEFINE_INPLACE_ARITH_HELPERS(i64, i64)
-DEFINE_INPLACE_ARITH_HELPERS(f32, f32)
-DEFINE_INPLACE_ARITH_HELPERS(f64, f64)
 
 static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
   tensor_size_t n = dest->size;
@@ -211,92 +134,6 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
   }
 }
 
-static Result straightInPlaceBinop(Tensor *a, Tensor *b, OpType opType) {
-  tensor_size_t n = a->size;
-
-  switch (a->dtype) {
-    case BOOL: {
-      bool *pa = a->values;
-      const bool *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_bool(pa, pb, n), subtract_inplace_bool(pa, pb, n),
-                      multiply_inplace_bool(pa, pb, n));
-      return OK;
-    }
-    case U8: {
-      u8 *pa = a->values;
-      const u8 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_u8(pa, pb, n), subtract_inplace_u8(pa, pb, n),
-                      multiply_inplace_u8(pa, pb, n));
-      return OK;
-    }
-    case U16: {
-      u16 *pa = a->values;
-      const u16 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_u16(pa, pb, n), subtract_inplace_u16(pa, pb, n),
-                      multiply_inplace_u16(pa, pb, n));
-      return OK;
-    }
-    case U32: {
-      u32 *pa = a->values;
-      const u32 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_u32(pa, pb, n), subtract_inplace_u32(pa, pb, n),
-                      multiply_inplace_u32(pa, pb, n));
-      return OK;
-    }
-    case U64: {
-      u64 *pa = a->values;
-      const u64 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_u64(pa, pb, n), subtract_inplace_u64(pa, pb, n),
-                      multiply_inplace_u64(pa, pb, n));
-      return OK;
-    }
-    case I8: {
-      i8 *pa = a->values;
-      const i8 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_i8(pa, pb, n), subtract_inplace_i8(pa, pb, n),
-                      multiply_inplace_i8(pa, pb, n));
-      return OK;
-    }
-    case I16: {
-      i16 *pa = a->values;
-      const i16 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_i16(pa, pb, n), subtract_inplace_i16(pa, pb, n),
-                      multiply_inplace_i16(pa, pb, n));
-      return OK;
-    }
-    case I32: {
-      i32 *pa = a->values;
-      const i32 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_i32(pa, pb, n), subtract_inplace_i32(pa, pb, n),
-                      multiply_inplace_i32(pa, pb, n));
-      return OK;
-    }
-    case I64: {
-      i64 *pa = a->values;
-      const i64 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_i64(pa, pb, n), subtract_inplace_i64(pa, pb, n),
-                      multiply_inplace_i64(pa, pb, n));
-      return OK;
-    }
-    case F16:
-    case F32: {
-      f32 *pa = a->values;
-      const f32 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_f32(pa, pb, n), subtract_inplace_f32(pa, pb, n),
-                      multiply_inplace_f32(pa, pb, n));
-      return OK;
-    }
-    case F64: {
-      f64 *pa = a->values;
-      const f64 *pb = b->values;
-      SWITCH_ARITH_OP(opType, add_inplace_f64(pa, pb, n), subtract_inplace_f64(pa, pb, n),
-                      multiply_inplace_f64(pa, pb, n));
-      return OK;
-    }
-    default: return ERR_NOT_A_BINOP;
-  }
-}
-
 static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
   if (opType == OP_ADD || opType == OP_SUBTRACT || opType == OP_MULTIPLY) {
     return straightArithBinop(a, b, dest, opType);
@@ -386,39 +223,104 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
   dim_t aCoords[output->shape.numOfDims];
   dim_t bCoords[output->shape.numOfDims];
 
-  for (tensor_size_t x = 0; x < output->size; x++) {
-    // unravel index into output shape
-    // eg 7 -> (2, 2, 1)
-    unravel_index(x, &outputShape, currentCoord);
+  PANIC_IF(!areBroadcastable(opA, opB), TENSORS_CANNOT_BE_BROADCASTED);
 
-    for (u8 d = 0; d < output->shape.numOfDims; d++) {
-      aCoords[d] = currentCoord[d] % opA->shape.dims[d];
-      bCoords[d] = currentCoord[d] % opB->shape.dims[d];
+  dim_t broadcastDim = 0;
+  dim_t broadcastDimNumIterations = 0;
+  Tensor *widerOperand = opA->size > opB->size ? opA : opB;
+  Tensor *smallerOperand = opA->size < opB->size ? opA : opB;
+  Tensor *broadcastOperand = NULL;
+  Tensor *nonBroadcastOperand = NULL;
+
+  for (dim_t i = widerOperand->shape.numOfDims - 1; i >= 0; i--) {
+    dim_t widerOpDim = widerOperand->shape.dims[i];
+    dim_t smallerOpDim = smallerOperand->shape.dims[i];
+
+    if (widerOpDim != smallerOpDim) {
+      broadcastDim = i;
+      broadcastDimNumIterations = widerOpDim > smallerOpDim ? widerOpDim : smallerOpDim;
+      broadcastOperand = widerOpDim < smallerOpDim ? widerOperand : smallerOperand;
+      nonBroadcastOperand = widerOpDim > smallerOpDim ? widerOperand : smallerOperand;
+      break;
     }
-
-    Value aVal;
-    u64 idx = getContigousIdxFromCoord(opA, aCoords);
-    VALUE_GET_FROM_ARR(opA->values, idx, &aVal, opA->dtype);
-
-    Value bVal;
-    idx = getContigousIdxFromCoord(opB, bCoords);
-    VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
-
-    Value result;
-    switch (opType) {
-      case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
-      case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
-      case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-      case OP_GREATER: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >, opA->dtype)); break;
-      case OP_GREATER_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >=, opA->dtype)); break;
-      case OP_LESS: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <, opA->dtype)); break;
-      case OP_LESS_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <=, opA->dtype)); break;
-
-      default: return ERR_NOT_A_BINOP;
-    }
-
-    VALUE_SET(output->values, x, result);
   }
+
+  tensor_size_t numOuterIterations;
+  calculateNumElementsBeforeDim(widerOperand, broadcastDim, &numOuterIterations);
+
+  tensor_size_t broadcastOperandOuterSize;
+  calculateNumElementsBeforeDim(broadcastOperand, broadcastDim, &broadcastOperandOuterSize);
+
+  tensor_size_t nonBroadcastOperandOuterSize;
+  calculateNumElementsBeforeDim(nonBroadcastOperand, broadcastDim, &nonBroadcastOperandOuterSize);
+
+  tensor_size_t numInnerIterations;
+  calculateNumElementsAfterDim(widerOperand, broadcastDim, &numInnerIterations);
+
+  size_t elemBytes = getBytesForDtype(opA->dtype);
+  binopFn doBinaryOperation = getBinopFn(binopTable[opType], opA->dtype);
+
+  for (tensor_size_t outerIdx = 0; outerIdx < numOuterIterations; outerIdx++) {
+    for (dim_t broadcastDimIdx = 0; broadcastDimIdx < broadcastDimNumIterations;
+         broadcastDimIdx++) {
+      tensor_size_t bOuterIdxPresenceMultiplier =
+          broadcastOperandOuterSize == numOuterIterations ? 1 : 0;
+      tensor_size_t broadcastOperandIdx =
+          bOuterIdxPresenceMultiplier * outerIdx * numInnerIterations;
+      void *broadcastOperandPos = (u8 *)broadcastOperand->values + broadcastOperandIdx * elemBytes;
+
+      tensor_size_t nbOuterIdxPresenceMultiplier =
+          nonBroadcastOperandOuterSize == numOuterIterations ? 1 : 0;
+      tensor_size_t nonBroadcastOperandIdx =
+          nbOuterIdxPresenceMultiplier *
+              (outerIdx * broadcastDimNumIterations * numInnerIterations) +
+          (broadcastDimIdx * numInnerIterations);
+      void *nonBroadcastOperandPos =
+          (u8 *)nonBroadcastOperand->values + nonBroadcastOperandIdx * elemBytes;
+
+      tensor_size_t outputIdx =
+          (outerIdx * broadcastDimNumIterations + broadcastDimIdx) * numInnerIterations;
+      void *aPos = broadcastOperand == opA ? broadcastOperandPos : nonBroadcastOperandPos;
+      void *bPos = broadcastOperand == opA ? nonBroadcastOperandPos : broadcastOperandPos;
+      doBinaryOperation(aPos, bPos, (u8 *)output->values + outputIdx * elemBytes,
+                        numInnerIterations);
+    }
+  }
+
+
+  // for (tensor_size_t x = 0; x < output->size; x++) {
+  //   // unravel index into output shape
+  //   // eg 7 -> (2, 2, 1)
+  //   unravel_index(x, &outputShape, currentCoord);
+  //
+  //   for (u8 d = 0; d < output->shape.numOfDims; d++) {
+  //     aCoords[d] = currentCoord[d] % opA->shape.dims[d];
+  //     bCoords[d] = currentCoord[d] % opB->shape.dims[d];
+  //   }
+  //
+  //   Value aVal;
+  //   u64 idx = getContigousIdxFromCoord(opA, aCoords);
+  //   VALUE_GET_FROM_ARR(opA->values, idx, &aVal, opA->dtype);
+  //
+  //   Value bVal;
+  //   idx = getContigousIdxFromCoord(opB, bCoords);
+  //   VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
+  //
+  //   Value result;
+  //   switch (opType) {
+  //     case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
+  //     case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
+  //     case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
+  //     case OP_GREATER: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >, opA->dtype)); break;
+  //     case OP_GREATER_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >=, opA->dtype));
+  //     break; case OP_LESS: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <, opA->dtype)); break;
+  //     case OP_LESS_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <=, opA->dtype)); break;
+  //
+  //     default: return ERR_NOT_A_BINOP;
+  //   }
+  //
+  //   VALUE_SET(output->values, x, result);
+  // }
 
   return OK;
 }
@@ -455,8 +357,8 @@ static Result copyContiguousTensorIntoTensor(Context *srcCtx, Tensor *src, Tenso
     unravel_index(x, &dest->shape, currentCoord);
     u64 destStorageIdx = getContigousIdxFromCoord(dest, currentCoord);
 
-    void *srcPtr = (char *)src->values + x * elemBytes;
-    void *destPtr = (char *)dest->values + destStorageIdx * elemBytes;
+    void *srcPtr = (u8 *)src->values + x * elemBytes;
+    void *destPtr = (u8 *)dest->values + destStorageIdx * elemBytes;
 
     Result copyResult = copyBetweenContexts(srcCtx, destCtx, srcPtr, destPtr, elemBytes);
     if (copyResult != OK) {
@@ -469,7 +371,6 @@ static Result copyContiguousTensorIntoTensor(Context *srcCtx, Tensor *src, Tenso
 
 static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
-  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   TensorPair ops = {.a = a, .b = b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -552,7 +453,6 @@ static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 static Tensor *binaryOp(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
-  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   DeviceType deviceType = ctx->device == NULL ? CPU : ctx->device->type;
 
@@ -567,37 +467,32 @@ Tensor *Add(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_ADD);
 }
 
-static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, tensor_size_t idx, dim_t* currentCoord, dim_t* bCoords) {
-    unravel_index(idx, &a->shape, currentCoord);
+static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, tensor_size_t idx,
+                                                        dim_t *currentCoord, dim_t *bCoords) {
+  unravel_index(idx, &a->shape, currentCoord);
 
-    // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
-    u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
+  // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
+  u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
 
-    for (u8 d = 0; d < a->shape.numOfDims; d++) {
-      bCoords[d] = currentCoord[d] % opB->shape.dims[d];
-    }
+  for (u8 d = 0; d < a->shape.numOfDims; d++) {
+    bCoords[d] = currentCoord[d] % opB->shape.dims[d];
+  }
 
-    Value aVal;
-    VALUE_GET_FROM_ARR(a->values, aStorageIdx, &aVal, a->dtype);
+  Value aVal;
+  VALUE_GET_FROM_ARR(a->values, aStorageIdx, &aVal, a->dtype);
 
-    Value bVal;
-    u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
-    VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
-    
-    return (ValuePair) {.a = aVal, .b = bVal};
+  Value bVal;
+  u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
+  VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
+
+  return (ValuePair){.a = aVal, .b = bVal};
 }
 
 static inline void inPlaceBinopAdd(Tensor *a, Tensor *opB) {
   dim_t currentCoord[a->shape.numOfDims];
   dim_t bCoords[a->shape.numOfDims];
   for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(
-        a, 
-        opB, 
-        x, 
-        currentCoord, 
-        bCoords
-    );
+    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     Value result;
     VALUE_BINOP(result, pair.a, pair.b, +);
@@ -610,13 +505,7 @@ static inline void inPlaceBinopMultiply(Tensor *a, Tensor *opB) {
   dim_t currentCoord[a->shape.numOfDims];
   dim_t bCoords[a->shape.numOfDims];
   for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(
-        a, 
-        opB, 
-        x, 
-        currentCoord, 
-        bCoords
-    );
+    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     Value result;
     VALUE_BINOP(result, pair.a, pair.b, *);
@@ -629,13 +518,7 @@ static inline void inPlaceBinopSubtract(Tensor *a, Tensor *opB) {
   dim_t currentCoord[a->shape.numOfDims];
   dim_t bCoords[a->shape.numOfDims];
   for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(
-        a, 
-        opB, 
-        x, 
-        currentCoord, 
-        bCoords
-    );
+    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     Value result;
     VALUE_BINOP(result, pair.a, pair.b, -);
@@ -648,13 +531,7 @@ static inline void inPlaceBinopDivide(Tensor *a, Tensor *opB) {
   dim_t currentCoord[a->shape.numOfDims];
   dim_t bCoords[a->shape.numOfDims];
   for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(
-        a, 
-        opB, 
-        x, 
-        currentCoord, 
-        bCoords
-    );
+    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     Value result;
     VALUE_BINOP(result, pair.a, pair.b, /);
@@ -664,6 +541,7 @@ static inline void inPlaceBinopDivide(Tensor *a, Tensor *opB) {
 }
 
 static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+  Tensor *opA = a;
   Tensor *opB = b;
   Tensor *paddedB = NULL;
   PANIC_IF(NUM_DIMS(a) != NUM_DIMS(b) && NUM_DIMS(b) != 1, ERR_DIM_MISMATCH);
@@ -680,49 +558,20 @@ static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
     // paddedB = ops.b;
   }
 
+  if (!a->isContigous) {
+    opA = copyToContiguous(ctx, a);
+  }
+
   opB = materializeTensorOnContext(ctx, opB);
 
-  if (a->isContigous && opB->isContigous && areTensorsSameShape(a, opB)) {
-    Result res = straightInPlaceBinop(a, opB, opType);
-    freeIfContingousCopy(ctx, opB);
-    if (paddedB != NULL) {
-      FreeViewTensor(ctx, paddedB);
-    }
-    PANIC_IF(res != OK, res);
-    return;
-  }
+  binopFn fn = getBinopFn(binopTable[opType], opA->dtype);
+  PANIC_IF(fn == NULL, ERR_NOT_A_BINOP);
 
-  switch (opType) {
-    case OP_ADD:
-      inPlaceBinopAdd(a, opB);
-      break;
-    case OP_MULTIPLY:
-      inPlaceBinopMultiply(a, opB);
-      break;
-    case OP_SUBTRACT:
-      inPlaceBinopSubtract(a, opB);
-      break;
-  }
-
-  // dim_t currentCoord[a->shape.numOfDims];
-  // dim_t bCoords[a->shape.numOfDims];
-  //
-  // for (tensor_size_t x = 0; x < a->size; x++) {
-  //   // Unravel using a's logical shape (ignoring boundary).
-  //   Value result;
-  //   switch (opType) {
-  //     case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
-  //     case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
-  //     case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-  //     default: PANIC_IF(true, ERR_NOT_A_BINOP);
-  //   }
-  //
-  //   VALUE_SET(a->values, aStorageIdx, result);
-  // }
-
-  freeIfContingousCopy(ctx, opB);
-  if (paddedB != NULL) {
-    FreeViewTensor(ctx, paddedB);
+  if (opA->isContigous && opB->isContigous && areTensorsSameShape(opA, opB)) {
+    fn(opA->values, opB->values, opA->values, opA->size);
+  } else {
+    Dim outputShape = opA->size > opB->size ? opA->shape : opB->shape;
+    broadcastBinop(outputShape, opA, opB, opA, opType);
   }
 }
 
@@ -757,7 +606,6 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) 
 
 static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
-  PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:
       PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims,

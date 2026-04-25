@@ -230,21 +230,6 @@ static Result validateAbsTensor(Tensor *t) {
 
 static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
   switch (opType) {
-    case UNARY_OP_POW: return powValue(value, param);
-    case UNARY_OP_TANH:
-      switch (value->dtype) {
-        case F16: value->as.f16 = (f16)tanh((double)value->as.f16); return OK;
-        case F32: value->as.f32 = (f32)tanh((double)value->as.f32); return OK;
-        case F64: value->as.f64 = (f64)tanh((double)value->as.f64); return OK;
-        default: return ERR_TANH_VALUE_NOT_FLOAT;
-      }
-    case UNARY_OP_RELU:
-      switch (value->dtype) {
-        case F16: value->as.f16 = value->as.f16 > 0 ? value->as.f16 : 0; return OK;
-        case F32: value->as.f32 = value->as.f32 > 0 ? value->as.f32 : 0; return OK;
-        case F64: value->as.f64 = value->as.f64 > 0 ? value->as.f64 : 0; return OK;
-        default: return ERR_RELU_VALUE_NOT_FLOAT;
-      }
     case UNARY_OP_NEGATE: return negateValue(value);
     case UNARY_OP_EXP: return expValue(value);
     case UNARY_OP_LOG: return logValue(value);
@@ -252,6 +237,94 @@ static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
     case UNARY_OP_SQRT: return sqrtValue(value);
     default: return ERR_NO_OP;
   }
+}
+
+static void tanhCpuF32(const f32 *src, f32 *dst, tensor_size_t n) {
+  for (tensor_size_t i = 0; i < n; i++) {
+    dst[i] = tanhf(src[i]);
+  }
+}
+
+static void tanhCpuF64(const f64 *src, f64 *dst, tensor_size_t n) {
+  for (tensor_size_t i = 0; i < n; i++) {
+    dst[i] = tanh(src[i]);
+  }
+}
+
+static Tensor *tanhCpu(Context *ctx, Tensor *t) {
+  Tensor *input = materializeTensorOnContext(ctx, t);
+
+  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
+  PANIC_IF(output == NULL, ALLOCATION_FAILED);
+
+  switch (input->dtype) {
+    case F16:
+    case F32: tanhCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
+    case F64: tanhCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    default: PANIC_IF(true, ERR_TANH_VALUE_NOT_FLOAT);
+  }
+
+  return output;
+}
+
+static void reluCpuF32(const f32 *src, f32 *dst, tensor_size_t n) {
+  for (tensor_size_t i = 0; i < n; i++) {
+    dst[i] = src[i] > 0.0f ? src[i] : 0.0f;
+  }
+}
+
+static void reluCpuF64(const f64 *src, f64 *dst, tensor_size_t n) {
+  for (tensor_size_t i = 0; i < n; i++) {
+    dst[i] = src[i] > 0.0 ? src[i] : 0.0;
+  }
+}
+
+static Tensor *reluCpu(Context *ctx, Tensor *t) {
+  Tensor *input = materializeTensorOnContext(ctx, t);
+
+  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
+  PANIC_IF(output == NULL, ALLOCATION_FAILED);
+
+  switch (input->dtype) {
+    case F16:
+    case F32: reluCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
+    case F64: reluCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    default: PANIC_IF(true, ERR_RELU_VALUE_NOT_FLOAT);
+  }
+
+  return output;
+}
+
+static void powCpuF32(const f32 *src, f32 *dst, tensor_size_t n, f32 power) {
+  for (tensor_size_t i = 0; i < n; i++) {
+    dst[i] = powf(src[i], power);
+  }
+}
+
+static void powCpuF64(const f64 *src, f64 *dst, tensor_size_t n, f64 power) {
+  for (tensor_size_t i = 0; i < n; i++) {
+    dst[i] = pow(src[i], power);
+  }
+}
+
+static Tensor *powCpu(Context *ctx, Tensor *t, f32 power) {
+  Tensor *input = materializeTensorOnContext(ctx, t);
+
+  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
+  PANIC_IF(output == NULL, ALLOCATION_FAILED);
+
+  switch (input->dtype) {
+    case F16:
+    case F32:
+      powCpuF32((const f32 *)input->values, (f32 *)output->values, input->size, power);
+      break;
+    case F64:
+      powCpuF64((const f64 *)input->values, (f64 *)output->values, input->size, (f64)power);
+      break;
+    default: PANIC_IF(true, ERR_POW_VALUE_NOT_FLOAT);
+  }
+
+  return output;
 }
 
 static Tensor *unaryOpCpu(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
@@ -309,20 +382,37 @@ static Tensor *dispatchUnaryOp(Context *ctx, Tensor *t, UnaryOpType opType, f32 
 Tensor *Pow(Context *ctx, Tensor *t, f32 power) {
   Result result = validatePowTensor(t);
   PANIC_IF(result != OK, result);
-  return dispatchUnaryOp(ctx, t, UNARY_OP_POW, power);
+
+  switch (getUnaryDispatchDevice(ctx)) {
+    case CUDA: return unaryOpCuda(ctx, t, UNARY_OP_POW, power);
+    case CPU:
+    default: return powCpu(ctx, t, power);
+  }
 }
 
 Tensor *Tanh(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_TANH_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
-  return dispatchUnaryOp(ctx, t, UNARY_OP_TANH, 0.0f);
+
+  switch (getUnaryDispatchDevice(ctx)) {
+    case CUDA: return unaryOpCuda(ctx, t, UNARY_OP_TANH, 0.0f);
+    case CPU:
+    default: return tanhCpu(ctx, t);
+  }
 }
 
 Tensor *Relu(Context *ctx, Tensor *t) {
   logReluTensorState("entry", ctx, t, OK);
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
-  Tensor *out = dispatchUnaryOp(ctx, t, UNARY_OP_RELU, 0.0f);
+
+  Tensor *out;
+  switch (getUnaryDispatchDevice(ctx)) {
+    case CUDA: out = unaryOpCuda(ctx, t, UNARY_OP_RELU, 0.0f); break;
+    case CPU:
+    default: out = reluCpu(ctx, t); break;
+  }
+
   if (shouldLogRelu()) {
     fprintf(stderr, "[Relu] phase=return result=OK(0)\n");
   }

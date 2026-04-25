@@ -1,9 +1,11 @@
+#ifndef shapes_types_h
+#define shapes_types_h
+
 #include <cublas_api.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
-#include "utils_lib/map.h"
 #include "utils_lib/utils_lib.h"
 
 typedef size_t tensor_size_t;
@@ -156,3 +158,5 @@ typedef struct {
 } TensorPair;
 
 size_t getBytesForDtype(Dtype type);
+
+#endif

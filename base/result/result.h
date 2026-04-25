@@ -83,7 +83,8 @@ typedef enum {
   LAYER_OP_NOT_FOUND,
   BACKWARD_TENSOR_OP_NOT_FOUND,
   BATCH_NORM_ZERO_DIM_NOT_ALLOWED,
-  FILE_OPEN_FAILED
+  FILE_OPEN_FAILED,
+  TENSORS_CANNOT_BE_BROADCASTED
 } Result;
 
 #define PANIC_IF(cond, errCode)                                                                    \
@@ -92,6 +93,12 @@ typedef enum {
       fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                  \
       abort();                                                                                     \
     }                                                                                              \
+  } while (0)
+
+#define PANIC(errCode)                                                                             \
+  do {                                                                                             \
+    fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                    \
+    abort();                                                                                       \
   } while (0)
 
 

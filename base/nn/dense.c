@@ -84,10 +84,10 @@ FowardPassOp layer_Dense(Context *ctx, size_t inputSize, size_t outputSize, bool
   Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, F32);
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));
-  *layerData = (denseLayerData) {.withBias = withBias};
+  *layerData = (denseLayerData){.withBias = withBias};
 
   Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
-  *layer = (Layer) {.weights = w, .layerData = layerData};
+  *layer = (Layer){.weights = w, .layerData = layerData};
 
   if (withBias) {
     Tensor *b = MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, F32);

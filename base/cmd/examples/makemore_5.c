@@ -228,13 +228,10 @@ Model Make_Model(Context *ctx) {
   Model model;
 
   model.embedding = layer_Embedding(ctx, 27, 10);
-  model.l1 = layer_Dense(ctx, 30, 200, false);
-  model.l2 = layer_Dense(ctx, 200, 100, false);
-  model.l3 = layer_Dense(ctx, 100, 27, false);
-  model.bn1 = layer_BatchNorm(ctx, 200);
-  model.bn2 = layer_BatchNorm(ctx, 100);
+  model.l1 = layer_Dense(ctx, 30, 100, false);
+  model.l2 = layer_Dense(ctx, 100, 27, false);
+  model.bn1 = layer_BatchNorm(ctx, 100);
   model.tanh1 = layer_Tanh(ctx);
-  model.tanh2 = layer_Tanh(ctx);
   model.optimizer = optimizer_Adam(ctx, 0.001f);
   model.datatype = F32;
 
@@ -249,9 +246,6 @@ Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input, dim_t batchSize
   out = Forward(ctx, &model->bn1, out);
   out = Forward(ctx, &model->tanh1, out);
   out = Forward(ctx, &model->l2, out);
-  out = Forward(ctx, &model->bn2, out);
-  out = Forward(ctx, &model->tanh2, out);
-  out = Forward(ctx, &model->l3, out);
 
   return out;
 }
@@ -262,9 +256,7 @@ Array *Model_Parameters(Context *ctx, Model *model) {
   Array_AppendTensorArray(params, Parameters(ctx, &model->embedding));
   Array_AppendTensorArray(params, Parameters(ctx, &model->l1));
   Array_AppendTensorArray(params, Parameters(ctx, &model->l2));
-  Array_AppendTensorArray(params, Parameters(ctx, &model->l3));
   Array_AppendTensorArray(params, Parameters(ctx, &model->bn1));
-  Array_AppendTensorArray(params, Parameters(ctx, &model->bn2));
 
   return params;
 }
@@ -418,15 +410,6 @@ void makemore_5() {
           printf("\n");
         }
       }
-
-      OptimizerStep(&ctx, &model.optimizer, params);
-      ZeroGrad(&ctx, params);
-
-      resetArena(scratchMem);
-
-      // if (b % 500 == 0) {
-      //   printf("Epoch %zu: Batch %zu / %zu\n", epoch, b, batchedData.numBatches);
-      // }
     }
 
     printf("Epoch %zu: Loss = %f\n", epoch, totalLoss / totalSamples);

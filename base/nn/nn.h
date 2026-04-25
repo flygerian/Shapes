@@ -1,7 +1,8 @@
 #ifndef shapes_nn_h
 #define shapes_nn_h
 
-#include "../common.h"
+#include "tensor/types.h"
+#include "utils_lib/map.h"
 
 typedef struct Layer {
   Tensor *weights;

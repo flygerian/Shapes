@@ -23,7 +23,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_compile_options(
-  -march=native -c
+  -march=native
   $<$<CONFIG:Debug>:-O0>
   $<$<CONFIG:Release>:-O3>
   $<$<CONFIG:RelWithDebInfo>:-O2>

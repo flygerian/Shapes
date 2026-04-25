@@ -3,8 +3,6 @@
 #include <string.h>
 #include <cuda_runtime_api.h>
 #include "../shapes.h"
-#include "common.h"
-#include "memory.h"
 #include "nn/nn.h"
 #include "result/result.h"
 #include "tensor_internal.h"
@@ -259,6 +257,7 @@ void releaseTensorArg(Context *fallbackCtx, TensorArg *arg) {
 bool areBroadcastable(Tensor *a, Tensor *b) {
   u8 maxDims = a->shape.numOfDims > b->shape.numOfDims ? a->shape.numOfDims : b->shape.numOfDims;
 
+  bool pastBroadcastRegion = false;
   for (int d = 0; d < maxDims; d++) {
     int aIdx = a->shape.numOfDims - 1 - d;
     int bIdx = b->shape.numOfDims - 1 - d;
@@ -266,7 +265,16 @@ bool areBroadcastable(Tensor *a, Tensor *b) {
     dim_t aDim = aIdx >= 0 ? a->shape.dims[aIdx] : 1;
     dim_t bDim = bIdx >= 0 ? b->shape.dims[bIdx] : 1;
 
-    if (aDim != bDim && aDim != 1 && bDim != 1) {
+    if (aDim == bDim) {
+      pastBroadcastRegion = true;
+      continue;
+    }
+
+    if (aDim != 1 && bDim != 1) {
+      return false;
+    }
+
+    if (pastBroadcastRegion) {
       return false;
     }
   }
