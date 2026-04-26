@@ -111,6 +111,12 @@ add_library(shapes_core
     nn/cross_enthropy.c
     nn/adam.c
     nn/tanh.c
+    nn/relu.c
+    nn/maxpool2d.c
+    nn/adaptive_avg_pool2d.c
+    nn/conv2d.c
+    nn/sequential.c
+    nn/utils.c
     cmd/examples/makemore_3.c
     cmd/examples/makemore_5.c
 )

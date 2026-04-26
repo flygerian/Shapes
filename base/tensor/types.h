@@ -44,6 +44,11 @@ typedef enum {
   OP_BATCH_NORM,
   OP_TANH,
   OP_SQRT,
+  OP_RELU,
+  OP_MAXPOOL2D,
+  OP_ADAPTIVE_AVG_POOL2D,
+  OP_CONV2D,
+  OP_SEQUENTIAL,
 } OpType;
 
 typedef enum {

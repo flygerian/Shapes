@@ -1,13 +1,14 @@
 #include "common.h"
 #include "nn/nn.h"
+#include "nn/nn_internal.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
+#include "tensor/types.h"
 #include "tensor/value.h"
 #include "utils_lib/array.h"
 #include "utils_lib/bitset.h"
 #include "utils_lib/memory.h"
-#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -15,7 +16,7 @@
 #include <string.h>
 
 #define BATCH_SIZE 32
-#define NUM_EPOCHS 5
+#define NUM_EPOCHS 10
 
 Array *getNames(Context *ctx) {
   FILE *f = fopen("names.txt", "r");
@@ -166,7 +167,7 @@ Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
     Tensor *context = MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, 3, I32);
     Tensor *target = MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target, 1, I32);
 
-    TensorPair tp = {.a = context, .b = target};
+    TensorPair tp = {.a = Cast(ctx, context, F32), .b = Cast(ctx, target, F32)};
     Array_Append(tensorPairs, &tp);
   }
 
@@ -212,53 +213,36 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
 }
 
 typedef struct {
-  FowardPassOp embedding;
-  FowardPassOp l1;
-  FowardPassOp l2;
-  FowardPassOp l3;
-  FowardPassOp bn1;
-  FowardPassOp bn2;
-  FowardPassOp tanh1;
-  FowardPassOp tanh2;
-  Optimizer optimizer;
+  FowardPassOp *embedding;
+  FowardPassOp *layers;
+  Optimizer *optimizer;
   Dtype datatype;
 } Model;
 
 Model Make_Model(Context *ctx) {
   Model model;
 
-  model.embedding = layer_Embedding(ctx, 27, 10);
-  model.l1 = layer_Dense(ctx, 30, 100, false);
-  model.l2 = layer_Dense(ctx, 100, 27, false);
-  model.bn1 = layer_BatchNorm(ctx, 100);
-  model.tanh1 = layer_Tanh(ctx);
+  model.embedding = layer_Embedding(ctx, F32, 27, 10);
+
+  FowardPassOp *layers[] = {
+      layer_Dense(ctx, F32, 30, 100, false),
+      layer_BatchNorm(ctx, F32, 100),
+      layer_Tanh(ctx, F32),
+      layer_Dense(ctx, F32, 100, 27, false),
+  };
+
+  model.layers = Make_Sequential(ctx, layers, 4, F32);
   model.optimizer = optimizer_Adam(ctx, 0.001f);
-  model.datatype = F32;
 
   return model;
 }
 
 Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input, dim_t batchSize) {
-  Tensor *out = Forward(ctx, &model->embedding, input);
-  out = Reshape(ctx, out, SHAPE2D(batchSize, 30));
-
-  out = Forward(ctx, &model->l1, out);
-  out = Forward(ctx, &model->bn1, out);
-  out = Forward(ctx, &model->tanh1, out);
-  out = Forward(ctx, &model->l2, out);
-
-  return out;
+  return sequentialModelForward(ctx, model->layers, input);
 }
 
 Array *Model_Parameters(Context *ctx, Model *model) {
-  Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 12);
-
-  Array_AppendTensorArray(params, Parameters(ctx, &model->embedding));
-  Array_AppendTensorArray(params, Parameters(ctx, &model->l1));
-  Array_AppendTensorArray(params, Parameters(ctx, &model->l2));
-  Array_AppendTensorArray(params, Parameters(ctx, &model->bn1));
-
-  return params;
+  return sequentialModelParameters(ctx, model->layers);
 }
 
 Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
@@ -317,7 +301,9 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
       i32 inputData[3] = {context[0], context[1], context[2]};
       Tensor *input = MakeFromContigousArray(ctx, SHAPE2D(1, 3), inputData, 3, I32);
 
-      Tensor *logits = Model_Forward(ctx, model, input, 1);
+      Tensor *embeddings = Forward(ctx, model->embedding, input);
+      Tensor *reshapedEmbeddings = Reshape(ctx, embeddings, SHAPE2D(1, 30));
+      Tensor *logits = Model_Forward(ctx, model, reshapedEmbeddings, 1);
       Tensor *probs = softmax(ctx, logits, 1);
 
       int nextIdx = sampleFromProbs(probs, vocabSize);
@@ -389,7 +375,9 @@ void makemore_5() {
 
       Context scratchCtx = {.memory = scratchMem, .isTraining = true};
 
-      Tensor *logits = Model_Forward(&scratchCtx, &model, input, batchSize);
+      Tensor *embeddings = Forward(&scratchCtx, model.embedding, input);
+      Tensor *reshapedEmbeddings = Reshape(&scratchCtx, embeddings, SHAPE2D(batchSize, 30));
+      Tensor *logits = Model_Forward(&scratchCtx, &model, reshapedEmbeddings, batchSize);
 
       Tensor *targetOneHot = T_OneHot(&scratchCtx, target, 27);
       Tensor loss = loss_CrossEnthropy(&scratchCtx, targetOneHot, logits);
@@ -411,7 +399,7 @@ void makemore_5() {
         }
       }
 
-      OptimizerStep(&ctx, &model.optimizer, params);
+      OptimizerStep(&ctx, model.optimizer, params);
       ZeroGrad(&ctx, params);
 
       resetArena(scratchMem);

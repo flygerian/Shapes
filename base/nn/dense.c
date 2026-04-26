@@ -79,9 +79,10 @@ Array *denseLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
-FowardPassOp layer_Dense(Context *ctx, size_t inputSize, size_t outputSize, bool withBias) {
+FowardPassOp *layer_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize,
+                          bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
-  Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, F32);
+  Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
@@ -90,10 +91,11 @@ FowardPassOp layer_Dense(Context *ctx, size_t inputSize, size_t outputSize, bool
   *layer = (Layer){.weights = w, .layerData = layerData};
 
   if (withBias) {
-    Tensor *b = MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, F32);
+    Tensor *b = MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
     layer->bias = b;
   }
 
-  FowardPassOp denseLayer = {.ctx = ctx, .type = OP_DENSE, .op = layer};
+  FowardPassOp *denseLayer = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  *denseLayer = (FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};
   return denseLayer;
 }

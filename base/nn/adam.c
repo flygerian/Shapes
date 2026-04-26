@@ -51,7 +51,7 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PANIC_IF(res != OK, res);
 }
 
-Optimizer optimizer_Adam(Context *ctx, f32 learningRate) {
+Optimizer *optimizer_Adam(Context *ctx, f32 learningRate) {
   adamState state = {
       .episolon = 1e-8,
       .m = Make_PtrSet(ctx->memory),
@@ -63,5 +63,8 @@ Optimizer optimizer_Adam(Context *ctx, f32 learningRate) {
 
   adamState *aState = allocateOnCtx(ctx, sizeof(adamState));
   *aState = state;
-  return (Optimizer){.learningRate = learningRate, .state = aState, .opType = OP_ADAM};
+
+  Optimizer *opt = allocate(ctx->memory, sizeof(Optimizer));
+  *opt = (Optimizer){.learningRate = learningRate, .state = aState, .opType = OP_ADAM};
+  return opt;
 }

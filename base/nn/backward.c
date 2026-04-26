@@ -27,6 +27,10 @@ void backward(Context *ctx, Tensor *node) {
     case OP_BATCH_NORM: batchnormBackward(ctx, node); return;
     case OP_CROSS_ENTHROPY: crossEnthropyBackward(ctx, node); return;
     case OP_TANH: tanhBackward(ctx, node); return;
+    case OP_RELU: reluBackward(ctx, node); return;
+    case OP_MAXPOOL2D: maxPool2dBackward(ctx, node); return;
+    case OP_ADAPTIVE_AVG_POOL2D: adaptiveAvgPool2dBackward(ctx, node); return;
+    case OP_CONV2D: conv2dBackward(ctx, node); return;
     case OP_SQRT: SqrtBackward(ctx, node); return;
   }
 

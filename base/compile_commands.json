@@ -295,6 +295,42 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/nn/relu.c.o -c /home/olabode/repos/Shapes/base/nn/relu.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/relu.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/relu.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/nn/maxpool2d.c.o -c /home/olabode/repos/Shapes/base/nn/maxpool2d.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/maxpool2d.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/maxpool2d.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/nn/adaptive_avg_pool2d.c.o -c /home/olabode/repos/Shapes/base/nn/adaptive_avg_pool2d.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/adaptive_avg_pool2d.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/adaptive_avg_pool2d.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/nn/conv2d.c.o -c /home/olabode/repos/Shapes/base/nn/conv2d.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/conv2d.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/conv2d.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/nn/sequential.c.o -c /home/olabode/repos/Shapes/base/nn/sequential.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/sequential.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/sequential.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/nn/utils.c.o -c /home/olabode/repos/Shapes/base/nn/utils.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/utils.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/utils.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o -c /home/olabode/repos/Shapes/base/cmd/examples/makemore_3.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/examples/makemore_3.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o"

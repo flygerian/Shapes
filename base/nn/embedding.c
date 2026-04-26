@@ -43,12 +43,14 @@ Array *embeddingParameters(Context *ctx, Layer *layer) {
   return params;
 }
 
-FowardPassOp layer_Embedding(Context *ctx, size_t vocabSize, dim_t embeddingDim) {
-  Tensor *embedding = MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, F32);
+FowardPassOp *layer_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
+  Tensor *embedding = MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
 
   Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
   layer->weights = embedding;
   layer->bias = NULL;
 
-  return (FowardPassOp){.ctx = ctx, .type = OP_EMBEDDING, .op = layer};
+  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  *op = (FowardPassOp){.ctx = ctx, .type = OP_EMBEDDING, .dtype = dtype, .op = layer};
+  return op;
 }

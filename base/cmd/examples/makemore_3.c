@@ -21,17 +21,17 @@ void makemore_3() {
   Tensor *xs = MakeFromContigousArray(&ctx, SHAPE2D(4, 3), &xData, 12, F32);
   Tensor *ys = MakeFromContigousArray(&ctx, SHAPE1D(4), &yData, 4, F32);
 
-  FowardPassOp dense = layer_Dense(&ctx, 3, 10, false);
-  FowardPassOp bn1 = layer_BatchNorm(&ctx, 10);
-  FowardPassOp dense2 = layer_Dense(&ctx, 10, 1, true);
+  FowardPassOp *dense = layer_Dense(&ctx, F32, 3, 10, false);
+  FowardPassOp *bn1 = layer_BatchNorm(&ctx, F32, 10);
+  FowardPassOp *dense2 = layer_Dense(&ctx, F32, 10, 1, true);
 
-  Optimizer sgd = optimizer_Adam(&ctx, 1e-2);
+  Optimizer *sgd = optimizer_Adam(&ctx, 1e-2);
 
   ctx.isTraining = true;
   for (u8 epoch = 1; epoch <= 50; epoch++) {
-    Tensor *out = Forward(&ctx, &dense, xs);
-    out = Forward(&ctx, &bn1, out);
-    Tensor *logits = Forward(&ctx, &dense2, out);
+    Tensor *out = Forward(&ctx, dense, xs);
+    out = Forward(&ctx, bn1, out);
+    Tensor *logits = Forward(&ctx, dense2, out);
 
     Tensor *logitsSqueezed = Squeeze(&ctx, logits);
     Tensor loss = loss_Mse(&ctx, ys, logitsSqueezed);
@@ -45,11 +45,11 @@ void makemore_3() {
 
     Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 6);
 
-    Array_AppendTensorArray(parameters, Parameters(&ctx, &dense));
-    Array_AppendTensorArray(parameters, Parameters(&ctx, &dense2));
-    Array_AppendTensorArray(parameters, Parameters(&ctx, &bn1));
+    Array_AppendTensorArray(parameters, Parameters(&ctx, dense));
+    Array_AppendTensorArray(parameters, Parameters(&ctx, dense2));
+    Array_AppendTensorArray(parameters, Parameters(&ctx, bn1));
 
-    OptimizerStep(&ctx, &sgd, parameters);
+    OptimizerStep(&ctx, sgd, parameters);
     ZeroGrad(&ctx, parameters);
   }
 

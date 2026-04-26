@@ -3,6 +3,7 @@
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/tensor_internal.h"
+#include "tensor/types.h"
 #include "tensor/value.h"
 #include "utils_lib/array.h"
 #include <sched.h>
@@ -32,6 +33,11 @@ Tensor *Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
     case OP_EMBEDDING: return embeddingForward(ctx, (Layer *)fwdOp->op, input);
     case OP_BATCH_NORM: return batchNormForward(ctx, (Layer *)fwdOp->op, input);
     case OP_TANH: return tanhForward(ctx, (Layer *)fwdOp->op, input);
+    case OP_RELU: return reluForward(ctx, (Layer *)fwdOp->op, input);
+    case OP_MAXPOOL2D: return maxPool2dForward(ctx, (Layer *)fwdOp->op, input);
+    case OP_ADAPTIVE_AVG_POOL2D: return adaptiveAvgPool2dForward(ctx, (Layer *)fwdOp->op, input);
+    case OP_CONV2D: return conv2dForward(ctx, (Layer *)fwdOp->op, input);
+    case OP_SEQUENTIAL: return sequentialModelForward(ctx, fwdOp, input);
   }
 
   PANIC_IF(true, LAYER_OP_NOT_FOUND);
@@ -46,6 +52,11 @@ Array *Parameters(Context *ctx, FowardPassOp *op) {
     case OP_EMBEDDING: return embeddingParameters(ctx, (Layer *)op->op);
     case OP_BATCH_NORM: return batchNormLayerParameters(ctx, (Layer *)op->op);
     case OP_TANH: return tanhLayerParameters(ctx, (Layer *)op->op);
+    case OP_RELU: return reluLayerParameters(ctx, (Layer *)op->op);
+    case OP_MAXPOOL2D: return maxPool2dLayerParameters(ctx, (Layer *)op->op);
+    case OP_ADAPTIVE_AVG_POOL2D: return adaptiveAvgPool2dLayerParameters(ctx, (Layer *)op->op);
+    case OP_CONV2D: return conv2dLayerParameters(ctx, (Layer *)op->op);
+    case OP_SEQUENTIAL: return sequentialModelParameters(ctx, op);
   }
 
   PANIC_IF(true, LAYER_OP_NOT_FOUND);

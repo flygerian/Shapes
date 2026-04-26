@@ -157,8 +157,6 @@ void *findAvailableSpace(Memory *memory, size_t size) {
 }
 
 void *allocate(Memory *memory, size_t size) {
-  PANIC_IF(size == 0, ALLOCATING_ZERO);
-
   void *reused = findAvailableSpace(memory, size);
   if (reused != NULL) {
     return reused;
