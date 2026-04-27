@@ -49,8 +49,6 @@ static void test_pow_scalar_power_of_2(void) {
   ASSERT_NOT_NULL(result, "Pow should return a tensor");
   f32 *output = (f32 *)result->values;
   ASSERT(fabsf(output[0] - 9.0f) < 1e-6, "3^2 should be 9");
-
-  freeMemory(mem);
 }
 
 static void test_pow_scalar_power_of_3(void) {
@@ -66,8 +64,6 @@ static void test_pow_scalar_power_of_3(void) {
   ASSERT_NOT_NULL(result, "Pow should return a tensor");
   f32 *output = (f32 *)result->values;
   ASSERT(fabsf(output[0] - 8.0f) < 1e-6, "2^3 should be 8");
-
-  freeMemory(mem);
 }
 
 static void test_pow_power_of_0(void) {
@@ -89,8 +85,6 @@ static void test_pow_power_of_0(void) {
   ASSERT(fabsf(output[0] - 1.0f) < 1e-6, "any number^0 should be 1");
   ASSERT(fabsf(output[1] - 1.0f) < 1e-6, "any number^0 should be 1");
   ASSERT(fabsf(output[2] - 1.0f) < 1e-6, "any number^0 should be 1");
-
-  freeMemory(mem);
 }
 
 static void test_pow_power_of_1(void) {
@@ -112,8 +106,6 @@ static void test_pow_power_of_1(void) {
   ASSERT(fabsf(output[0] - 2.5f) < 1e-6, "x^1 should be x");
   ASSERT(fabsf(output[1] - (-7.3f)) < 1e-6, "x^1 should be x");
   ASSERT(fabsf(output[2] - 0.0f) < 1e-6, "x^1 should be x");
-
-  freeMemory(mem);
 }
 
 static void test_pow_negative_power(void) {
@@ -133,8 +125,6 @@ static void test_pow_negative_power(void) {
   // x^-1 = 1/x
   ASSERT(fabsf(output[0] - 0.5f) < 1e-6, "2^-1 should be 0.5");
   ASSERT(fabsf(output[1] - 0.25f) < 1e-6, "4^-1 should be 0.25");
-
-  freeMemory(mem);
 }
 
 static void test_pow_fractional_power(void) {
@@ -156,8 +146,6 @@ static void test_pow_fractional_power(void) {
   ASSERT(fabsf(output[0] - 2.0f) < 1e-6, "4^0.5 should be 2");
   ASSERT(fabsf(output[1] - 3.0f) < 1e-6, "9^0.5 should be 3");
   ASSERT(fabsf(output[2] - 4.0f) < 1e-6, "16^0.5 should be 4");
-
-  freeMemory(mem);
 }
 
 static void test_pow_2d_tensor(void) {
@@ -185,8 +173,6 @@ static void test_pow_2d_tensor(void) {
     f32 expected = values[i] * values[i];
     ASSERT(fabsf(output[i] - expected) < 1e-6, "each element should be squared");
   }
-
-  freeMemory(mem);
 }
 
 static void test_pow_f64_dtype(void) {
@@ -204,8 +190,6 @@ static void test_pow_f64_dtype(void) {
   f64 *output = (f64 *)result->values;
   ASSERT(fabs(output[0] - 8.0) < 1e-10, "2^3 should be 8 (F64)");
   ASSERT(fabs(output[1] - 27.0) < 1e-10, "3^3 should be 27 (F64)");
-
-  freeMemory(mem);
 }
 
 static void test_relu_forward(void) {
@@ -225,8 +209,6 @@ static void test_relu_forward(void) {
   ASSERT(fabsf(output[0] - 0.0f) < 1e-6, "relu(-1) should be 0");
   ASSERT(fabsf(output[1] - 0.0f) < 1e-6, "relu(0) should be 0");
   ASSERT(fabsf(output[2] - 2.5f) < 1e-6, "relu(2.5) should be 2.5");
-
-  freeMemory(mem);
 }
 
 static void test_negate_cuda_dispatch_i32(void) {

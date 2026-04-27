@@ -24,14 +24,12 @@ Tensor *Slice(Context *ctx, Tensor *source, ...) {
 
     if (ranges[x].end < ranges[x].start) {
       va_end(args);
-      freeAlloc(ctx->memory, ranges);
       PANIC_IF(true, ERR_INVALID_RANGE);
     }
 
     if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 ||
         ranges[x].end > source->shape.dims[x]) {
       va_end(args);
-      freeAlloc(ctx->memory, ranges);
       PANIC_IF(true, ERR_DIM_MISMATCH);
     }
   }
@@ -63,7 +61,6 @@ Tensor *Slice(Context *ctx, Tensor *source, ...) {
   memcpy(newShape.multipliers, source->shape.multipliers,
          sizeof(multiplier_t) * source->shape.numOfDims);
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newShape.dims, newShape.numOfDims);
-  freeAlloc(ctx->memory, ranges);
 
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
@@ -89,9 +86,6 @@ Tensor *Reshape(Context *ctx, Tensor *source, Dim newShape) {
     PANIC_IF(contiguous == NULL, ERR_OUT_OF_MEMORY);
     values = contiguous->values;
     isView = false;
-    freeAlloc(contiguous->metadataMemory, contiguous->shape.dims);
-    freeAlloc(contiguous->metadataMemory, contiguous->shape.multipliers);
-    freeAlloc(contiguous->metadataMemory, contiguous);
   } else {
     values = source->values;
     if (source->boundary != NULL) {
@@ -209,7 +203,6 @@ Tensor *Permute(Context *ctx, Tensor *source, Dim order) {
   for (u8 i = 0; i < order.numOfDims; i++) {
     dim_t sourceDim = order.dims[i];
     if (sourceDim >= source->shape.numOfDims || seen[sourceDim]) {
-      freeAlloc(ctx->memory, seen);
       PANIC_IF(true, ERR_DIM_MISMATCH);
     }
     seen[sourceDim] = true;
@@ -235,8 +228,6 @@ Tensor *Permute(Context *ctx, Tensor *source, Dim order) {
       newBoundary[i] = source->boundary[sourceDim];
     }
   }
-
-  freeAlloc(ctx->memory, seen);
 
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
@@ -528,12 +519,9 @@ Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
     tensor_size_t destSliceOffset = inb * newDimSize * numElementsAfterTargetDim;
     tensor_size_t srcSliceOffset = inb * currDimSize * numElementsAfterTargetDim;
 
-    result = copyBetweenContexts(workingTarget->context, dest->context,
-                                 (char *)workingTarget->values + srcSliceOffset * bytesPerElem,
-                                 (char *)dest->values + destSliceOffset * bytesPerElem,
-                                 currDimSize * numElementsAfterTargetDim * bytesPerElem);
-
-    PANIC_IF(result != OK, result);
+    memcpy((char *)dest->values + destSliceOffset * bytesPerElem,
+           (char *)workingTarget->values + srcSliceOffset * bytesPerElem,
+           currDimSize * numElementsAfterTargetDim * bytesPerElem);
 
     dim_t dimOffset = currDimSize;
     for (dim_t ist = 0; ist < numTensorsToAdd; ist++) {
@@ -541,21 +529,12 @@ Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
       dim_t currTargetDimSize = curr->shape.dims[targetDim];
       tensor_size_t currDestOffset = destSliceOffset + (dimOffset * numElementsAfterTargetDim);
       tensor_size_t currSrcOffset = inb * currTargetDimSize * numElementsAfterTargetDim;
-      result = copyBetweenContexts(curr->context, dest->context,
-                                   (char *)curr->values + currSrcOffset * bytesPerElem,
-                                   (char *)dest->values + currDestOffset * bytesPerElem,
-                                   currTargetDimSize * numElementsAfterTargetDim * bytesPerElem);
-      PANIC_IF(result != OK, result);
+      memcpy((char *)dest->values + currDestOffset * bytesPerElem,
+             (char *)curr->values + currSrcOffset * bytesPerElem,
+             currTargetDimSize * numElementsAfterTargetDim * bytesPerElem);
       dimOffset += currTargetDimSize;
     }
   }
 
-  if (tensorsContig != NULL) {
-    for (tensor_size_t it = 0; it < numTensorsToAdd; it++) {
-      freeIfContingousCopy(ctx, tensorsContig[it]);
-    }
-  }
-
-  freeIfContingousCopy(ctx, target);
   return dest;
 }

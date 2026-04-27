@@ -233,9 +233,6 @@ Tensor *Clone(Context *ctx, Tensor *t) {
                    .shape = {.dims = newDims,
                              .numOfDims = source->shape.numOfDims,
                              .multipliers = newMultipliers}};
-  if (!t->isContigous) {
-    FreeTensor(ctx, source);
-  }
   return dest;
 }
 
@@ -257,10 +254,6 @@ void Copy(Context *ctx, Tensor *src, Tensor *dest) {
       copyBetweenContexts(srcContigous->context, dest->context, srcContigous->values, dest->values,
                           srcContigous->size * getBytesForDtype(srcContigous->dtype));
   PANIC_IF(copyRes != OK, copyRes);
-
-  if (!src->isContigous) {
-    FreeTensor(ctx, srcContigous);
-  }
 }
 
 void SetValues(Tensor *t, Value value) {
@@ -413,7 +406,6 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result =
         runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);
-    freeIfContingousCopy(ctx, source);
     PANIC_IF(result != OK, result);
     return out;
   }
@@ -451,6 +443,5 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     PANIC_IF(writeResult != OK, ERR_NO_OP);
   }
 
-  freeIfContingousCopy(ctx, source);
   return out;
 }

@@ -209,8 +209,6 @@ cleanup:
     phaseStartMs = opTimingNowMs();
   }
 
-  freeIfContingousCopy(ctx, yContig);
-  freeIfContingousCopy(ctx, logitsContig);
 
   logHostOpTiming(ctx, "CrossEntropyForward", "cleanup", phaseStartMs);
   logHostOpTiming(ctx, "CrossEntropyForward", "total_host", totalStartMs);
@@ -280,9 +278,6 @@ Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tenso
   }
 
 cleanup:
-  freeIfContingousCopy(ctx, yContig);
-  freeIfContingousCopy(ctx, pContig);
-  freeIfContingousCopy(ctx, gContig);
 
   return dLogits;
 }

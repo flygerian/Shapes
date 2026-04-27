@@ -161,8 +161,8 @@ Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result) {
 
   result->dtype = t->dtype;
   size_t valueBytes = getBytesForDtype(t->dtype);
-  return copyBetweenContexts(NULL, NULL, (char *)t->values + idx * valueBytes, &result->as,
-                             valueBytes);
+  memcpy(&result->as, (char *)t->values + idx * valueBytes, valueBytes);
+  return OK;
 }
 
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value) {
@@ -179,8 +179,8 @@ Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value) {
   }
 
   size_t valueBytes = getBytesForDtype(t->dtype);
-  return copyBetweenContexts(NULL, NULL, &value.as, (char *)t->values + idx * valueBytes,
-                             valueBytes);
+  memcpy((char *)t->values + idx * valueBytes, &value.as, valueBytes);
+  return OK;
 }
 
 Tensor *copyToContiguous(Context *ctx, Tensor *source) {
@@ -191,7 +191,6 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   size_t *indices = allocate(ctx->memory, sizeof(size_t) * source->shape.numOfDims);
   if (indices == NULL) {
-    FreeTensor(ctx, copy);
     return NULL;
   }
   memset(indices, 0, sizeof(size_t) * source->shape.numOfDims);
@@ -212,7 +211,6 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   copy->isContigousCopy = true;
 
-  freeAlloc(ctx->memory, indices);
   return copy;
 }
 
@@ -233,25 +231,6 @@ Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
   }
 
   return working;
-}
-
-void freeIfContingousCopy(Context *ctx, Tensor *tensor) {
-  if (!tensor->isContigousCopy) {
-    return;
-  }
-
-  FreeTensor(ctx, tensor);
-}
-
-void releaseTensorArg(Context *fallbackCtx, TensorArg *arg) {
-  if (arg == NULL || !arg->ownsTensor || arg->tensor == NULL) {
-    return;
-  }
-
-  Context *freeCtx = arg->tensor->context != NULL ? arg->tensor->context : fallbackCtx;
-  FreeTensor(freeCtx, arg->tensor);
-  arg->tensor = NULL;
-  arg->ownsTensor = false;
 }
 
 bool areBroadcastable(Tensor *a, Tensor *b) {

@@ -97,8 +97,6 @@ Tensor *MatMul(Context *ctx, Tensor *a, Tensor *b) {
             B_batch, (int)n, false, C_batch, (int)n);
   }
 
-  freeIfContingousCopy(ctx, opA);
-  freeIfContingousCopy(ctx, opB);
   return result;
 }
 
@@ -137,8 +135,6 @@ Tensor *Dot(Context *ctx, Tensor *a, Tensor *b) {
                      .values = resVal,
                      .shape = (Dim){.dims = resDims, .numOfDims = 1, .multipliers = resMult}};
 
-  freeIfContingousCopy(ctx, opA);
-  freeIfContingousCopy(ctx, opB);
 
   return result;
 }

@@ -114,7 +114,7 @@ static Tensor *sumCpu(Context *ctx, Tensor *t, dim_t dim) {
     }
   }
 
-  freeIfContingousCopy(ctx, workingTensor);
+
   return dest;
 }
 
@@ -132,8 +132,6 @@ static Tensor *meanCpu(Context *ctx, Tensor *t) {
   PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
   VALUE_SET(dest->values, 0, mean);
 
-  freeAlloc(ctx->memory, tensorSum);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -177,7 +175,7 @@ static Tensor *meanDimCpu(Context *ctx, Tensor *t, dim_t dim) {
     }
   }
 
-  freeIfContingousCopy(ctx, workingTensor);
+
   return dest;
 }
 
@@ -224,8 +222,6 @@ static Tensor *stdCpu(Context *ctx, Tensor *t) {
     default: break;
   }
 
-  freeAlloc(ctx->memory, tensorSum);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -262,7 +258,7 @@ static Tensor *maxCpu(Context *ctx, Tensor *t, dim_t dim) {
     }
   }
 
-  freeIfContingousCopy(ctx, workingTensor);
+
   return dest;
 }
 
@@ -301,7 +297,7 @@ static Tensor *argMaxCpu(Context *ctx, Tensor *t, dim_t dim) {
     }
   }
 
-  freeIfContingousCopy(ctx, workingTensor);
+
   return dest;
 }
 
@@ -320,7 +316,6 @@ static Tensor *sumCuda(Context *ctx, Tensor *t, dim_t dim) {
   result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_SUM, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -335,7 +330,6 @@ static Tensor *meanCuda(Context *ctx, Tensor *t) {
   Result result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
                                    dest->values, input->size);
   PANIC_IF(result != OK, result);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -354,7 +348,6 @@ static Tensor *meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
   result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MEAN, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -368,7 +361,6 @@ static Tensor *stdCuda(Context *ctx, Tensor *t) {
 
   Result result = runCudaStd(ctx, input->dtype, input->values, dest->values, input->size);
   PANIC_IF(result != OK, result);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -387,7 +379,6 @@ static Tensor *maxCuda(Context *ctx, Tensor *t, dim_t dim) {
   result = runCudaReduceDim(ctx, input->dtype, input->dtype, REDUCTION_OP_MAX, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 
@@ -407,7 +398,6 @@ static Tensor *argMaxCuda(Context *ctx, Tensor *t, dim_t dim) {
   result = runCudaReduceDim(ctx, input->dtype, I64, REDUCTION_OP_ARGMAX, input->values,
                             dest->values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
-  freeIfContingousCopy(ctx, input);
   return dest;
 }
 

@@ -67,9 +67,6 @@ Result Sgd(Context *ctx, Array *parameters, f32 learningRate) {
         }
       }
     }
-
-    freeIfContingousCopy(ctx, pWork);
-    freeIfContingousCopy(ctx, gWork);
   }
 
   return OK;

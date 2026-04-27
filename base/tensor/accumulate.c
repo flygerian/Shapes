@@ -83,8 +83,6 @@ static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, 
     }
   }
 
-  freeIfContingousCopy(ctx, indicesContig);
-  freeIfContingousCopy(ctx, srcContig);
   return OK;
 }
 
@@ -128,9 +126,6 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
     }
   }
 
-  freeIfContingousCopy(ctx, rowContig);
-  freeIfContingousCopy(ctx, colContig);
-  freeIfContingousCopy(ctx, srcContig);
   return OK;
 }
 
@@ -156,7 +151,6 @@ static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tens
   }
 
   if (innerCount == 0 || outerCount == 0) {
-    freeIfContingousCopy(ctx, srcGradContig);
     return OK;
   }
 
@@ -180,7 +174,6 @@ static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tens
     }
   }
 
-  freeIfContingousCopy(ctx, srcGradContig);
   return OK;
 }
 
@@ -201,8 +194,6 @@ static Result indexAccumulate1dCuda(Context *ctx, Tensor *dest, Tensor *indices,
                                            indicesContig->dtype, srcContig->values,
                                            indicesContig->size, sliceSize);
 
-  freeIfContingousCopy(ctx, indicesContig);
-  freeIfContingousCopy(ctx, srcContig);
   return result;
 }
 
@@ -225,9 +216,6 @@ static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndic
       ctx, dest->dtype, dest->values, dest->shape.dims[1], rowContig->values, rowContig->dtype,
       colConfig->values, colConfig->dtype, srcGradContig->values, rowContig->size, sliceSize);
 
-  freeIfContingousCopy(ctx, rowContig);
-  freeIfContingousCopy(ctx, colConfig);
-  freeIfContingousCopy(ctx, srcGradContig);
   return result;
 }
 
@@ -242,7 +230,6 @@ static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, Range *ranges, Ten
       ctx, dest->dtype, dest->values, dest->shape.numOfDims, dest->shape.multipliers, ranges,
       srcContig->values, srcContig->shape.dims, srcContig->shape.numOfDims, srcContig->size);
 
-  freeIfContingousCopy(ctx, srcContig);
   return result;
 }
 

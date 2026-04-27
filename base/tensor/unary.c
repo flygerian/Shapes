@@ -343,7 +343,6 @@ static Tensor *unaryOpCpu(Context *ctx, Tensor *t, UnaryOpType opType, f32 param
     VALUE_SET(output->values, i, value);
   }
 
-  freeIfContingousCopy(ctx, input);
   return output;
 }
 
@@ -362,7 +361,6 @@ static Tensor *unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 para
 
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
-  freeIfContingousCopy(ctx, input);
   return output;
 }
 
@@ -461,8 +459,6 @@ Tensor *ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
     }
   }
 
-  freeIfContingousCopy(ctx, outputWork);
-  freeIfContingousCopy(ctx, gradWork);
   return dInput;
 }
 
@@ -499,8 +495,6 @@ void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tenso
     result = runCudaReluBackwardAccumulate(ctx, outputWork->dtype, outputWork->values,
                                            gradWork->values, dest->values, outputWork->size);
     PANIC_IF(result != OK, CUDA_OP_FAILED);
-    freeIfContingousCopy(ctx, outputWork);
-    freeIfContingousCopy(ctx, gradWork);
     return;
   }
 
@@ -521,9 +515,6 @@ void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tenso
       destValues[i] += outputValues[i] > 0.0f ? gradValues[i] : 0.0f;
     }
   }
-
-  freeIfContingousCopy(ctx, outputWork);
-  freeIfContingousCopy(ctx, gradWork);
 }
 
 Tensor *Negate(Context *ctx, Tensor *t) {

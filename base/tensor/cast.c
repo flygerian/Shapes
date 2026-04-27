@@ -145,7 +145,6 @@ static Tensor *castOnCpu(Context *ctx, Tensor *source, Dtype target) {
     VALUE_SET(dest->values, i, converted);
   }
 
-  freeIfContingousCopy(ctx, src);
   return dest;
 }
 
@@ -157,7 +156,6 @@ static Tensor *castOnCuda(Context *ctx, Tensor *source, Dtype target) {
   Result result = runCudaCast(ctx, src->dtype, src->values, target, dest->values, src->size);
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
-  freeIfContingousCopy(ctx, src);
   return dest;
 }
 

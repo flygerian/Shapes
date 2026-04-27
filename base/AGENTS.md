@@ -68,7 +68,6 @@ static void test_my_feature(void) {
   Context ctx = {.memory = mem};
   // ... setup and operations ...
   ASSERT_EQ(actual, expected, "descriptive failure message");
-  freeMemory(mem);
 }
 
 void run_my_tests(void) {
@@ -173,8 +172,10 @@ Result MyOp(Context *ctx, Tensor *t, Tensor *dest) {
 - All allocations go through the custom arena allocator: `allocate(ctx->memory, size)`
 - Never use `malloc`/`calloc`/`free` directly except in `memory.c` itself
 - The `Context` struct carries a `Memory*` pointer -- pass `Context*` to all allocating functions
-- `initializeMemory()` creates a 1MB arena; `freeMemory()` releases it
+- `initializeMemory()` creates a 1MB arena; `DestroyContext()` / `freeMemory()` releases it
 - Use `GROW_ARRAY` macro for dynamic array resizing
+- Do not manually free individual allocations (no `freeAlloc`, `FreeTensor`, `freeIfContingousCopy`).
+  The arena is freed wholesale when the context is destroyed or reset via `resetArena()`.
 
 ### Tensor Patterns
 - Tensor creation functions return `Tensor*` (heap-allocated via arena): `T_Zeros`, `T_Int`

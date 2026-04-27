@@ -101,30 +101,3 @@ Result FreeViewTensor(Context *ctx, Tensor *t) {
 Result FreeTensor(Context *ctx, Tensor *t) {
   return freeTensorInternal(ctx, t);
 }
-
-Result freeTensorBuffers(Context *ctx, Tensor *t) {
-  Memory *metadataMemory = getTensorMetadataMemory(ctx, t);
-
-  if (!t->isView && t->values) {
-    freeOnCtx(t->context != NULL ? t->context : ctx, t->values);
-  }
-
-  if (t->shape.dims) {
-    freeAlloc(metadataMemory, t->shape.dims);
-  }
-
-  if (t->shape.multipliers) {
-    freeAlloc(metadataMemory, t->shape.multipliers);
-  }
-
-  if (t->boundary) {
-    freeAlloc(metadataMemory, t->boundary);
-  }
-
-  t->values = NULL;
-  t->shape.dims = NULL;
-  t->shape.multipliers = NULL;
-  t->boundary = NULL;
-
-  return OK;
-}

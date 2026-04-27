@@ -63,13 +63,11 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
   Tensor *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
   PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
   *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
 
   if (indices != NULL) {
     Tensor *createdIndices = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), U64);
     PANIC_IF(createdIndices == NULL, ERR_OUT_OF_MEMORY);
     *indices = *createdIndices;
-    freeAlloc(ctx->memory, createdIndices);
   }
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
@@ -81,7 +79,6 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
                              dest->values);
     }
 
-    freeIfContingousCopy(ctx, xContig);
     return res;
   }
 
@@ -151,7 +148,6 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
     }
   }
 
-  freeIfContingousCopy(ctx, xContig);
   return OK;
 }
 
@@ -214,7 +210,6 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
   Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *dX = *createdDX;
-  freeAlloc(ctx->memory, createdDX);
   Result res = OK;
 
   res = clearPoolTarget(ctx, dX);
@@ -223,8 +218,6 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaMaxPool2dBackward(ctx, x->dtype, xContig->values, gradContig->values, batch,
                                    channels, h, w, kH, kW, stride, dX->values);
-    freeIfContingousCopy(ctx, xContig);
-    freeIfContingousCopy(ctx, xContig);
     return res;
   }
 
@@ -286,8 +279,6 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
     }
   }
 
-  freeIfContingousCopy(ctx, xContig);
-  freeIfContingousCopy(ctx, gradContig);
   return OK;
 }
 
@@ -329,7 +320,6 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *dX = *createdDX;
-  freeAlloc(ctx->memory, createdDX);
   Result res = OK;
 
   res = clearPoolTarget(ctx, dX);
@@ -338,8 +328,6 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaMaxPool2dBackwardWithIndices(ctx, x->dtype, gradContig->values,
                                               indicesContig->values, gradContig->size, dX->values);
-    freeIfContingousCopy(ctx, gradContig);
-    freeIfContingousCopy(ctx, indicesContig);
     return res;
   }
 
@@ -359,8 +347,6 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
     }
   }
 
-  freeIfContingousCopy(ctx, gradContig);
-  freeIfContingousCopy(ctx, indicesContig);
   return OK;
 }
 
@@ -392,12 +378,10 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
   Tensor *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
   PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
   *dest = *createdDest;
-  freeAlloc(ctx->memory, createdDest);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaAdaptiveAvgPool2d(ctx, x->dtype, xContig->values, batch, channels, h, w, outH,
                                    outW, dest->values);
-    freeIfContingousCopy(ctx, xContig);
     return res;
   }
 
@@ -453,7 +437,6 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
     }
   }
 
-  freeIfContingousCopy(ctx, xContig);
   return OK;
 }
 
@@ -490,7 +473,6 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
   Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *dX = *createdDX;
-  freeAlloc(ctx->memory, createdDX);
   Result res = OK;
 
   res = clearPoolTarget(ctx, dX);
@@ -499,7 +481,6 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     res = runCudaAdaptiveAvgPool2dBackward(ctx, x->dtype, gradContig->values, batch, channels, h, w,
                                            outH, outW, dX->values);
-    freeIfContingousCopy(ctx, gradContig);
     return res;
   }
 
@@ -551,6 +532,5 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
     }
   }
 
-  freeIfContingousCopy(ctx, gradContig);
   return OK;
 }

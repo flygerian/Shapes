@@ -31,8 +31,6 @@ static void test_cast_i8_to_i16(void) {
     i16 val = ((i16 *)dest->values)[i];
     ASSERT_EQ(val, 5, "Cast I8 -> I16 element should be 5");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cast_i8_to_i32(void) {
@@ -51,8 +49,6 @@ static void test_cast_i8_to_i32(void) {
     i32 val = ((i32 *)dest->values)[i];
     ASSERT_EQ(val, -3, "Cast I8 -> I32 element should be -3");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cast_i8_to_i64(void) {
@@ -71,8 +67,6 @@ static void test_cast_i8_to_i64(void) {
     i64 val = ((i64 *)dest->values)[i];
     ASSERT_EQ(val, 7, "Cast I8 -> I64 element should be 7");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cast_i16_to_i32(void) {
@@ -93,8 +87,6 @@ static void test_cast_i16_to_i32(void) {
   ASSERT_NOT_NULL(dest, "Cast I16 -> I32 should succeed");
   ASSERT_EQ(((i32 *)dest->values)[0], 1000, "Cast I16 -> I32 element 0 should be 1000");
   ASSERT_EQ(((i32 *)dest->values)[1], -500, "Cast I16 -> I32 element 1 should be -500");
-
-  freeMemory(mem);
 }
 
 static void test_cast_f32_to_f64(void) {
@@ -117,8 +109,6 @@ static void test_cast_f32_to_f64(void) {
     f64 val = ((f64 *)dest->values)[i];
     ASSERT(val > 3.13 && val < 3.15, "Cast F32 -> F64 element should be ~3.14");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cast_u8_to_u16(void) {
@@ -142,8 +132,6 @@ static void test_cast_u8_to_u16(void) {
   ASSERT_EQ(((u16 *)dest->values)[0], 0, "Cast U8 -> U16 element 0 should be 0");
   ASSERT_EQ(((u16 *)dest->values)[1], 128, "Cast U8 -> U16 element 1 should be 128");
   ASSERT_EQ(((u16 *)dest->values)[2], 255, "Cast U8 -> U16 element 2 should be 255");
-
-  freeMemory(mem);
 }
 
 static void test_cast_u8_to_u32(void) {
@@ -163,8 +151,6 @@ static void test_cast_u8_to_u32(void) {
   ASSERT_NOT_NULL(dest, "Cast U8 -> U32 should succeed");
   ASSERT_EQ(((u32 *)dest->values)[0], 42, "Cast U8 -> U32 element 0 should be 42");
   ASSERT_EQ(((u32 *)dest->values)[1], 200, "Cast U8 -> U32 element 1 should be 200");
-
-  freeMemory(mem);
 }
 
 static void test_cast_i8_to_f32(void) {
@@ -183,8 +169,6 @@ static void test_cast_i8_to_f32(void) {
     f32 val = ((f32 *)dest->values)[i];
     ASSERT(val > -2.01f && val < -1.99f, "Cast I8 -> F32 element should be -2.0");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cast_i32_to_f64(void) {
@@ -206,8 +190,6 @@ static void test_cast_i32_to_f64(void) {
          "Cast I32 -> F64 element 0 should be 100000.0");
   ASSERT(((f64 *)dest->values)[1] > -100000.0 && ((f64 *)dest->values)[1] < -99998.0,
          "Cast I32 -> F64 element 1 should be -99999.0");
-
-  freeMemory(mem);
 }
 
 static void test_cast_i8_to_bool(void) {
@@ -227,8 +209,6 @@ static void test_cast_i8_to_bool(void) {
   ASSERT_EQ(((bool *)dest->values)[0], false, "Cast I8 0 -> BOOL should be false");
   ASSERT_EQ(((bool *)dest->values)[1], true, "Cast I8 -2 -> BOOL should be true");
   ASSERT_EQ(((bool *)dest->values)[2], true, "Cast I8 5 -> BOOL should be true");
-
-  freeMemory(mem);
 }
 
 static void test_cast_u8_to_bool(void) {
@@ -249,8 +229,6 @@ static void test_cast_u8_to_bool(void) {
   ASSERT_EQ(dest->dtype, BOOL, "Cast U8 -> BOOL dest dtype should be BOOL");
   ASSERT_EQ(((bool *)dest->values)[0], false, "Cast U8 0 -> BOOL should be false");
   ASSERT_EQ(((bool *)dest->values)[1], true, "Cast U8 1 -> BOOL should be true");
-
-  freeMemory(mem);
 }
 
 static void test_cast_f32_to_bool(void) {
@@ -270,8 +248,6 @@ static void test_cast_f32_to_bool(void) {
   ASSERT_EQ(((bool *)dest->values)[0], false, "Cast F32 0.0 -> BOOL should be false");
   ASSERT_EQ(((bool *)dest->values)[1], true, "Cast F32 0.1 -> BOOL should be true");
   ASSERT_EQ(((bool *)dest->values)[2], true, "Cast F32 -0.2 -> BOOL should be true");
-
-  freeMemory(mem);
 }
 
 static void test_cast_bool_to_f32(void) {
@@ -293,8 +269,6 @@ static void test_cast_bool_to_f32(void) {
   ASSERT_EQ(((f32 *)dest->values)[0], 0.0f, "Cast BOOL false -> F32 should be 0");
   ASSERT_EQ(((f32 *)dest->values)[1], 1.0f, "Cast BOOL true -> F32 should be 1");
   ASSERT_EQ(((f32 *)dest->values)[2], 1.0f, "Cast BOOL true -> F32 should be 1");
-
-  freeMemory(mem);
 }
 
 static void test_cast_same_dtype_clones(void) {
@@ -314,8 +288,6 @@ static void test_cast_same_dtype_clones(void) {
     f32 val = ((f32 *)dest->values)[i];
     ASSERT(val > 2.49f && val < 2.51f, "Cast same dtype element should be 2.5");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cast_f32_to_i32(void) {
@@ -335,8 +307,6 @@ static void test_cast_f32_to_i32(void) {
   ASSERT_EQ(((i32 *)dest->values)[0], 1, "Cast F32 1.5 -> I32 should truncate to 1");
   ASSERT_EQ(((i32 *)dest->values)[1], -3, "Cast F32 -3.9 -> I32 should truncate to -3");
   ASSERT_EQ(((i32 *)dest->values)[2], 42, "Cast F32 42.0 -> I32 should be 42");
-
-  freeMemory(mem);
 }
 
 static void test_cast_f64_to_i64(void) {
@@ -356,8 +326,6 @@ static void test_cast_f64_to_i64(void) {
   ASSERT_NOT_NULL(dest, "Cast F64 -> I64 should succeed");
   ASSERT_EQ(((i64 *)dest->values)[0], 99, "Cast F64 99.9 -> I64 should truncate to 99");
   ASSERT_EQ(((i64 *)dest->values)[1], -50, "Cast F64 -50.1 -> I64 should truncate to -50");
-
-  freeMemory(mem);
 }
 
 static void test_cast_preserves_2d_shape(void) {
@@ -374,8 +342,6 @@ static void test_cast_preserves_2d_shape(void) {
   ASSERT_EQ(dest->shape.dims[0], 3, "Cast 2D should preserve dim 0");
   ASSERT_EQ(dest->shape.dims[1], 4, "Cast 2D should preserve dim 1");
   ASSERT_EQ(dest->size, 12, "Cast 2D should preserve total size");
-
-  freeMemory(mem);
 }
 
 static void test_cast_same_dtype_cuda_clone(void) {

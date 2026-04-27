@@ -158,15 +158,8 @@ Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
   logOpTiming(ctx, "DenseLinear", "gemm", phaseStartMs);
 
   if (withBias) {
-    phaseStartMs = opTimingNowMs();
     AddInPlace(ctx, out, b);
-    logOpTiming(ctx, "DenseLinear", "bias_add", phaseStartMs);
   }
-
-  freeIfContingousCopy(ctx, xContig);
-  freeIfContingousCopy(ctx, wContig);
-
-  logOpTiming(ctx, "DenseLinear", "total", totalStartMs);
 
   return out;
 }
@@ -245,13 +238,11 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   Tensor *createdDX2d = t_Empty(ctx, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
   PANIC_IF(createdDX2d == NULL, ALLOCATION_FAILED);
   dX2d = *createdDX2d;
-  freeAlloc(ctx->memory, createdDX2d);
 
   Tensor dWRaw = {0};
   Tensor *createdDWRaw = t_Empty(ctx, swapLastDim(ctx, w->shape, inputSize), w->dtype);
   PANIC_IF(createdDWRaw == NULL, ALLOCATION_FAILED);
   dWRaw = *createdDWRaw;
-  freeAlloc(ctx->memory, createdDWRaw);
 
   logOpTiming(ctx, "DenseBackward", "alloc_outputs", phaseStartMs);
 
@@ -285,8 +276,5 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);
   logOpTiming(ctx, "DenseBackward", "total", totalStartMs);
 
-  freeIfContingousCopy(ctx, xContig);
-  freeIfContingousCopy(ctx, wContig);
-  freeIfContingousCopy(ctx, gContig);
   return OK;
 }

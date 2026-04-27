@@ -31,8 +31,6 @@ static void test_sgd_updates_f32_parameters(void) {
   ASSERT(fabsf(pVals[0] - 0.95f) < 1e-6f, "p[0] should be updated");
   ASSERT(fabsf(pVals[1] - 1.9f) < 1e-6f, "p[1] should be updated");
   ASSERT(fabsf(pVals[2] - 2.85f) < 1e-6f, "p[2] should be updated");
-
-  freeMemory(mem);
 }
 
 static void test_sgd_updates_f64_parameters(void) {
@@ -61,8 +59,6 @@ static void test_sgd_updates_f64_parameters(void) {
   ASSERT_EQ(r, OK, "SGD should return OK for valid F64 tensors");
   ASSERT(fabs(pVals[0] - expected0) < 1e-12, "F64 p[0] should be updated");
   ASSERT(fabs(pVals[1] - expected1) < 1e-12, "F64 p[1] should be updated");
-
-  freeMemory(mem);
 }
 
 static void test_sgd_null_inputs(void) {
@@ -71,7 +67,6 @@ static void test_sgd_null_inputs(void) {
   Result r = Sgd(&ctx, NULL, 0.1f);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED,
             "NULL parameter array should return ERR_NULL_TENSOR_PROVIDED");
-  freeMemory(mem);
 }
 
 static void test_sgd_invalid_learning_rate(void) {
@@ -88,8 +83,6 @@ static void test_sgd_invalid_learning_rate(void) {
   Result r = Sgd(&ctx, params, 0.0f);
   ASSERT_EQ(r, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE,
             "zero learning rate should return dedicated error");
-
-  freeMemory(mem);
 }
 
 static void test_sgd_dtype_mismatch(void) {
@@ -105,8 +98,6 @@ static void test_sgd_dtype_mismatch(void) {
 
   Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_GRAD_DTYPE_MISMATCH, "dtype mismatch should return SGD dtype error");
-
-  freeMemory(mem);
 }
 
 static void test_sgd_size_mismatch(void) {
@@ -122,8 +113,6 @@ static void test_sgd_size_mismatch(void) {
 
   Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_NUMBER_MISMATCH, "size mismatch should return SGD size error");
-
-  freeMemory(mem);
 }
 
 static void test_sgd_requires_float_tensors(void) {
@@ -139,8 +128,6 @@ static void test_sgd_requires_float_tensors(void) {
 
   Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_HAVE_TO_BE_FLOAT, "non-float tensors should be rejected");
-
-  freeMemory(mem);
 }
 
 void run_sgd_tests(void) {

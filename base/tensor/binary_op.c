@@ -325,49 +325,6 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
   return OK;
 }
 
-static void cleanupPaddedPair(Context *ctx, Tensor *originalA, Tensor *originalB, TensorPair *ops) {
-  if (ops->a != originalA) {
-    FreeViewTensor(ctx, ops->a);
-  }
-  if (ops->b != originalB) {
-    FreeViewTensor(ctx, ops->b);
-  }
-}
-
-static Result copyContiguousTensorIntoTensor(Context *srcCtx, Tensor *src, Tensor *dest) {
-  if (src == NULL || dest == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (src->size != dest->size || src->dtype != dest->dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  Context *destCtx = dest->context != NULL ? dest->context : srcCtx;
-  size_t valueBytes = src->size * getBytesForDtype(src->dtype);
-
-  if (dest->isContigous && !dest->isView) {
-    return copyBetweenContexts(srcCtx, destCtx, src->values, dest->values, valueBytes);
-  }
-
-  size_t elemBytes = getBytesForDtype(dest->dtype);
-  dim_t currentCoord[dest->shape.numOfDims];
-
-  for (tensor_size_t x = 0; x < dest->size; x++) {
-    unravel_index(x, &dest->shape, currentCoord);
-    u64 destStorageIdx = getContigousIdxFromCoord(dest, currentCoord);
-
-    void *srcPtr = (u8 *)src->values + x * elemBytes;
-    void *destPtr = (u8 *)dest->values + destStorageIdx * elemBytes;
-
-    Result copyResult = copyBetweenContexts(srcCtx, destCtx, srcPtr, destPtr, elemBytes);
-    if (copyResult != OK) {
-      return copyResult;
-    }
-  }
-
-  return OK;
-}
 
 static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
@@ -404,9 +361,6 @@ static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 
   PANIC_IF(res != OK, res);
 
-  freeIfContingousCopy(ctx, opA);
-  freeIfContingousCopy(ctx, opB);
-  cleanupPaddedPair(ctx, a, b, &ops);
   return output;
 }
 
@@ -437,16 +391,9 @@ static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
                                output->size);
   if (res != OK) {
-    FreeTensor(ctx, output);
-    freeIfContingousCopy(ctx, opA);
-    freeIfContingousCopy(ctx, opB);
-    cleanupPaddedPair(ctx, a, b, &ops);
     return binaryOpViaCpuFallback(ctx, a, b, opType);
   }
 
-  freeIfContingousCopy(ctx, opA);
-  freeIfContingousCopy(ctx, opB);
-  cleanupPaddedPair(ctx, a, b, &ops);
   return output;
 }
 
@@ -596,11 +543,6 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) 
 
   Result res = runCudaBinaryOp(ctx, a->dtype, opType, a->values, opB->values, a->values, a->size);
   PANIC_IF(res != OK, res);
-
-  freeIfContingousCopy(ctx, opB);
-  if (paddedB != NULL) {
-    FreeViewTensor(ctx, paddedB);
-  }
 }
 
 
@@ -642,9 +584,7 @@ Tensor *Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
   // This automatically gets correct gradients through the computation graph!
 
   Tensor *denom_inv = Pow(ctx, denominator, -1.0f);
-  Tensor *result = Multiply(ctx, numerator, denom_inv);
-  FreeTensor(ctx, denom_inv);
-  return result;
+  return Multiply(ctx, numerator, denom_inv);
 }
 
 Tensor *GreaterThan(Context *ctx, Tensor *a, Tensor *b) {

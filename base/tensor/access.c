@@ -106,11 +106,8 @@ Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
     }
     u64 srcOffset = getContigousIdxFromCoord(workingSource, srcCoords);
 
-    result = copyBetweenContexts(workingSource->context, dest->context,
-                                 (char *)workingSource->values + srcOffset * bytesPerElem,
-                                 (char *)dest->values + destOffset * bytesPerElem,
-                                 sliceSize * bytesPerElem);
-    PANIC_IF(result != OK, result);
+    memcpy((char *)dest->values + destOffset * bytesPerElem,
+           (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
     destOffset += sliceSize;
   }
 
@@ -192,17 +189,11 @@ Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tens
     }
     u64 srcOffset = getContigousIdxFromCoord(workingSource, srcCoords);
 
-    result = copyBetweenContexts(workingSource->context, dest->context,
-                                 (char *)workingSource->values + srcOffset * bytesPerElem,
-                                 (char *)dest->values + destOffset * bytesPerElem,
-                                 sliceSize * bytesPerElem);
-    PANIC_IF(result != OK, result);
+    memcpy((char *)dest->values + destOffset * bytesPerElem,
+           (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
     destOffset += sliceSize;
   }
 
-  freeIfContingousCopy(ctx, workingCols);
-  freeIfContingousCopy(ctx, workingRows);
-  freeIfContingousCopy(ctx, workingSource);
 
   return dest;
 }

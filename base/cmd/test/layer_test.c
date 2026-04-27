@@ -88,8 +88,6 @@ static void test_dense_linear_forward_with_bias_f32(void) {
   ASSERT(fabsf(outVals[1] - 2.3f) < 1e-5f, "Dense out[0,1] mismatch");
   ASSERT(fabsf(outVals[2] - -1.9f) < 1e-5f, "Dense out[1,0] mismatch");
   ASSERT(fabsf(outVals[3] - 6.8f) < 1e-5f, "Dense out[1,1] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_dense_backward_f32(void) {
@@ -149,8 +147,6 @@ static void test_dense_backward_f32(void) {
 
   ASSERT(fabsf(dbVals[0] - 4.0f) < 1e-5f, "dB[0] mismatch");
   ASSERT(fabsf(dbVals[1] - 6.0f) < 1e-5f, "dB[1] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_backward_graph_preserves_tensor_pointers(void) {
@@ -179,8 +175,6 @@ static void test_backward_graph_preserves_tensor_pointers(void) {
   ASSERT_EQ(first, yGround, "Backward graph should preserve first input pointer");
   ASSERT_EQ(second, yPred, "Backward graph should preserve second input pointer");
   ASSERT_EQ(third, &loss, "Backward graph should preserve loss pointer");
-
-  freeMemory(mem);
 }
 
 static void test_batch_norm_forward_training_f32(void) {
@@ -221,8 +215,6 @@ static void test_batch_norm_forward_training_f32(void) {
   ASSERT(fabsf(outVals[1] - -1.0f) < 1e-5f, "out[0,1] mismatch");
   ASSERT(fabsf(outVals[2] - 1.0f) < 1e-5f, "out[1,0] mismatch");
   ASSERT(fabsf(outVals[3] - 1.0f) < 1e-5f, "out[1,1] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_batch_norm_backward_f32(void) {
@@ -266,8 +258,6 @@ static void test_batch_norm_backward_f32(void) {
   ASSERT(fabsf(dxVals[1] - 0.0f) < 1e-5f, "dX[0,1] mismatch");
   ASSERT(fabsf(dxVals[2] - 0.0f) < 1e-5f, "dX[1,0] mismatch");
   ASSERT(fabsf(dxVals[3] - 0.0f) < 1e-5f, "dX[1,1] mismatch");
-
-  freeMemory(mem);
 }
 
 
@@ -305,8 +295,6 @@ static void test_conv2d_forward_f32_single_channel(void) {
   ASSERT(fabsf(o[1] - 8.0f) < 1e-5f, "Conv out[0,0,0,1] mismatch");
   ASSERT(fabsf(o[2] - 12.0f) < 1e-5f, "Conv out[0,0,1,0] mismatch");
   ASSERT(fabsf(o[3] - 14.0f) < 1e-5f, "Conv out[0,0,1,1] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_forward_f32_single_channel_with_bias(void) {
@@ -339,8 +327,6 @@ static void test_conv2d_forward_f32_single_channel_with_bias(void) {
   ASSERT(fabsf(o[1] - 10.5f) < 1e-5f, "Conv with bias out[1] mismatch");
   ASSERT(fabsf(o[2] - 14.5f) < 1e-5f, "Conv with bias out[2] mismatch");
   ASSERT(fabsf(o[3] - 16.5f) < 1e-5f, "Conv with bias out[3] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_returns_col_buffer_f32(void) {
@@ -382,8 +368,6 @@ static void test_conv2d_returns_col_buffer_f32(void) {
   ASSERT(fabsf(o[1] - 8.0f) < 1e-5f, "Conv out[0,0,0,1] mismatch");
   ASSERT(fabsf(o[2] - 12.0f) < 1e-5f, "Conv out[0,0,1,0] mismatch");
   ASSERT(fabsf(o[3] - 14.0f) < 1e-5f, "Conv out[0,0,1,1] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_forward_f32_multi_channel(void) {
@@ -421,8 +405,6 @@ static void test_conv2d_forward_f32_multi_channel(void) {
   ASSERT(fabsf(o[1] - 42.0f) < 1e-5f, "Conv multi out[1] mismatch");
   ASSERT(fabsf(o[2] - 54.0f) < 1e-5f, "Conv multi out[2] mismatch");
   ASSERT(fabsf(o[3] - 60.0f) < 1e-5f, "Conv multi out[3] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_forward_f32_with_batch_dimension(void) {
@@ -461,8 +443,6 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
   ASSERT(fabsf(o[5] - 26.0f) < 1e-5f, "Batched conv out[5] mismatch");
   ASSERT(fabsf(o[6] - 30.0f) < 1e-5f, "Batched conv out[6] mismatch");
   ASSERT(fabsf(o[7] - 32.0f) < 1e-5f, "Batched conv out[7] mismatch");
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_restores_openblas_threads_after_local_override(void) {
@@ -497,7 +477,6 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
             "Conv2d should restore the previous OpenBLAS thread count");
 
   unsetenv("SHAPES_CONV_THREADS");
-  freeMemory(mem);
 }
 
 static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
@@ -535,8 +514,6 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
   for (int i = 0; i < 8; i++) {
     ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "Conv2d stride-two output mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_forward_f64_single_channel(void) {
@@ -567,8 +544,6 @@ static void test_conv2d_forward_f64_single_channel(void) {
   for (int i = 0; i < 4; i++) {
     ASSERT(fabs(o[i] - want[i]) < 1e-9, "Conv2d f64 output mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_backward_f32_single_channel(void) {
@@ -617,9 +592,6 @@ static void test_conv2d_backward_f32_single_channel(void) {
   for (int i = 0; i < 4; i++) {
     ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "Conv2dBackward dKernels mismatch");
   }
-
-  freeAlloc(ctx.memory, colBuffer);
-  freeMemory(mem);
 }
 
 static void test_conv2d_backward_f32_bias_grad(void) {
@@ -658,9 +630,6 @@ static void test_conv2d_backward_f32_bias_grad(void) {
 
   ASSERT_EQ(r, OK, "Conv2dBackward with bias grad should succeed");
   ASSERT(fabsf(((f32 *)dBias->values)[0] - 10.0f) < 1e-5f, "Conv2dBackward dBias mismatch");
-
-  freeAlloc(ctx.memory, colBuffer);
-  freeMemory(mem);
 }
 
 static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
@@ -710,8 +679,6 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
     ASSERT(fabsf(dKernelVals[i]) < 1e-5f,
            "Conv2dBackward should use the provided col buffer for dKernels");
   }
-
-  freeMemory(mem);
 }
 
 static void test_conv2d_backward_f32_stride_two_single_channel(void) {
@@ -760,9 +727,6 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
     ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
            "Conv2dBackward stride-two dKernels mismatch");
   }
-
-  freeAlloc(ctx.memory, colBuffer);
-  freeMemory(mem);
 }
 
 static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
@@ -816,9 +780,6 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
     ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
            "Conv2dBackward multi-batch dKernels mismatch");
   }
-
-  freeAlloc(ctx.memory, colBuffer);
-  freeMemory(mem);
 }
 
 
@@ -855,8 +816,6 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
   for (int i = 0; i < 9; i++) {
     ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "ConvTranspose2d output mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_conv_transpose2d_backward_f32_single_channel(void) {
@@ -899,8 +858,6 @@ static void test_conv_transpose2d_backward_f32_single_channel(void) {
   for (int i = 0; i < 4; i++) {
     ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "ConvTranspose2dBackward dKernels mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_max_pool2d_forward_f32(void) {
@@ -926,8 +883,6 @@ static void test_max_pool2d_forward_f32(void) {
   for (int i = 0; i < 4; i++) {
     ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "MaxPool2d output mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_max_pool2d_backward_f32(void) {
@@ -961,8 +916,6 @@ static void test_max_pool2d_backward_f32(void) {
   for (int i = 0; i < 16; i++) {
     ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "MaxPool2dBackward dX mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_adaptive_avg_pool2d_forward_f32(void) {
@@ -984,8 +937,6 @@ static void test_adaptive_avg_pool2d_forward_f32(void) {
   for (int i = 0; i < 4; i++) {
     ASSERT(fabsf(o[i] - want[i]) < 1e-5f, "AdaptiveAvgPool2d output mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_adaptive_avg_pool2d_backward_f32(void) {
@@ -1015,8 +966,6 @@ static void test_adaptive_avg_pool2d_backward_f32(void) {
   for (int i = 0; i < 16; i++) {
     ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "AdaptiveAvgPool2dBackward dX mismatch");
   }
-
-  freeMemory(mem);
 }
 
 static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {

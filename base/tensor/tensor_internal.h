@@ -65,8 +65,6 @@ Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type);
 Tensor *copyToContiguous(Context *ctx, Tensor *source);
 bool isSameContext(Context *a, Context *b);
 Tensor *materializeTensorOnContext(Context *ctx, Tensor *src);
-void releaseTensorArg(Context *fallbackCtx, TensorArg *arg);
-void freeIfContingousCopy(Context *ctx, Tensor *tensor);
 Result clearTensorValues(Tensor *t);
 bool areBroadcastable(Tensor *a, Tensor *b);
 TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
@@ -94,7 +92,6 @@ Tensor *Array_TensorIdx(Array *array, size_t idx);
 void Array_AppendLayer(Array *array, Layer *layer);
 Layer *Array_LayerIdx(Array *array, size_t idx);
 
-Result freeTensorBuffers(Context *ctx, Tensor *t);
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m,
              int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
              int ldc);

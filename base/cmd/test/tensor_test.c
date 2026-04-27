@@ -36,8 +36,6 @@ static void test_zeros_creates_tensor_with_correct_shape(void) {
   ASSERT_EQ(tt.tensor.shape.numOfDims, 2, "tensor should have 2 dimensions");
   ASSERT_EQ(tt.tensor.dtype, F32, "T_Zeros should create F32 tensor");
   ASSERT_NOT_NULL(tt.tensor.values, "tensor values should be allocated");
-
-  freeMemory(tt.mem);
 }
 
 static void test_zeros_values_are_zero(void) {
@@ -53,8 +51,6 @@ static void test_zeros_values_are_zero(void) {
     }
   }
   ASSERT(all_zero, "all tensor values should be zero");
-
-  freeMemory(tt.mem);
 }
 
 static void test_int_creates_tensor_with_value(void) {
@@ -76,8 +72,6 @@ static void test_int_creates_tensor_with_value(void) {
     }
   }
   ASSERT(all_match, "all tensor values should be 5");
-
-  freeMemory(mem);
 }
 
 static void test_make_random_tensor_respects_float_range_and_dtype(void) {
@@ -99,8 +93,6 @@ static void test_make_random_tensor_respects_float_range_and_dtype(void) {
   }
 
   ASSERT(allInRange, "MakeRandomTensor should keep float values inside the requested range");
-
-  freeMemory(mem);
 }
 
 static void test_make_random_tensor_uses_constant_range_value(void) {
@@ -122,8 +114,6 @@ static void test_make_random_tensor_uses_constant_range_value(void) {
   }
 
   ASSERT(allMatch, "MakeRandomTensor should fill constant ranges with that exact value");
-
-  freeMemory(mem);
 }
 
 static void test_make_random_tensor_generates_varied_int_values(void) {
@@ -150,8 +140,6 @@ static void test_make_random_tensor_generates_varied_int_values(void) {
 
   ASSERT(allInRange, "MakeRandomTensor should keep integer values inside the requested range");
   ASSERT(!allSame, "MakeRandomTensor should not collapse a non-constant range to one value");
-
-  freeMemory(mem);
 }
 
 static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
@@ -171,8 +159,6 @@ static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
   ASSERT_EQ(tensorValues[1], -2.0f, "tensor[1] should match source array");
   ASSERT_EQ(tensorValues[2], 3.25f, "tensor[2] should match source array");
   ASSERT_EQ(tensorValues[3], 4.0f, "tensor[3] should match source array");
-
-  freeMemory(mem);
 }
 
 static void test_zeros_1d_tensor(void) {
@@ -181,8 +167,6 @@ static void test_zeros_1d_tensor(void) {
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 1, "should be 1D tensor");
   ASSERT_NOT_NULL(tt.tensor.values, "values should be allocated");
-
-  freeMemory(tt.mem);
 }
 
 static void test_zeros_3d_tensor(void) {
@@ -201,8 +185,6 @@ static void test_zeros_3d_tensor(void) {
     }
   }
   ASSERT(all_zero, "all 3D tensor values should be zero");
-
-  freeMemory(tt.mem);
 }
 
 // For shape [rows, cols], multipliers should be [cols, 1]
@@ -213,8 +195,6 @@ static void test_multipliers_2d_tensor(void) {
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
   ASSERT_EQ(tt.tensor.shape.multipliers[0], 4, "2D: multiplier[0] should be 4");
   ASSERT_EQ(tt.tensor.shape.multipliers[1], 1, "2D: multiplier[1] should be 1");
-
-  freeMemory(tt.mem);
 }
 
 // For shape [d0, d1, d2], multipliers should be [d1*d2, d2, 1]
@@ -226,8 +206,6 @@ static void test_multipliers_3d_tensor(void) {
   ASSERT_EQ(tt.tensor.shape.multipliers[0], 12, "3D: multiplier[0] should be 12");
   ASSERT_EQ(tt.tensor.shape.multipliers[1], 4, "3D: multiplier[1] should be 4");
   ASSERT_EQ(tt.tensor.shape.multipliers[2], 1, "3D: multiplier[2] should be 1");
-
-  freeMemory(tt.mem);
 }
 
 // For shape [d0, d1, d2, d3], multipliers should be [d1*d2*d3, d2*d3, d3, 1]
@@ -240,8 +218,6 @@ static void test_multipliers_4d_tensor(void) {
   ASSERT_EQ(tt.tensor.shape.multipliers[1], 20, "4D: multiplier[1] should be 20");
   ASSERT_EQ(tt.tensor.shape.multipliers[2], 5, "4D: multiplier[2] should be 5");
   ASSERT_EQ(tt.tensor.shape.multipliers[3], 1, "4D: multiplier[3] should be 1");
-
-  freeMemory(tt.mem);
 }
 
 // For shape [1, 512, 1], multipliers should preserve the full 512 stride.
@@ -253,8 +229,6 @@ static void test_multipliers_support_large_strides(void) {
   ASSERT_EQ(tt.tensor.shape.multipliers[0], 512, "3D: multiplier[0] should preserve large stride");
   ASSERT_EQ(tt.tensor.shape.multipliers[1], 1, "3D: multiplier[1] should be 1");
   ASSERT_EQ(tt.tensor.shape.multipliers[2], 1, "3D: multiplier[2] should be 1");
-
-  freeMemory(tt.mem);
 }
 
 // AssignValue tests
@@ -273,8 +247,6 @@ static void test_assign_value_success(void) {
 
   f32 *values = (f32 *)tt.tensor.values;
   ASSERT_EQ(values[1 * 4 + 2], 42.0f, "value at [1,2] should be 42");
-
-  freeMemory(mem);
 }
 
 static void test_assign_value_dtype_mismatch(void) {
@@ -289,8 +261,6 @@ static void test_assign_value_dtype_mismatch(void) {
 
   Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_DTYPE_MISMATCH, "should return ERR_DTYPE_MISMATCH");
-
-  freeMemory(mem);
 }
 
 static void test_assign_value_dim_mismatch(void) {
@@ -305,8 +275,6 @@ static void test_assign_value_dim_mismatch(void) {
 
   Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH");
-
-  freeMemory(mem);
 }
 
 static void test_assign_value_out_of_bounds(void) {
@@ -321,8 +289,6 @@ static void test_assign_value_out_of_bounds(void) {
 
   Result r = AssignValueAt(&ctx, &tt.tensor, idx, val);
   ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "should return ERR_OUT_OF_BOUNDS");
-
-  freeMemory(mem);
 }
 
 static void test_assign_value_null_tensor(void) {
@@ -335,8 +301,6 @@ static void test_assign_value_null_tensor(void) {
 
   Result r = AssignValueAt(&ctx, NULL, idx, val);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "should return ERR_NULL_TENSOR_PROVIDED for null tensor");
-
-  freeMemory(mem);
 }
 
 static void test_assign_value_only_modifies_target_index(void) {
@@ -368,8 +332,6 @@ static void test_assign_value_only_modifies_target_index(void) {
     }
   }
   ASSERT(only_target_modified, "only index [1,2] should be modified");
-
-  freeMemory(mem);
 }
 
 static void test_assign_value_multiple_indices(void) {
@@ -396,8 +358,6 @@ static void test_assign_value_multiple_indices(void) {
   ASSERT_EQ(values[1 * 3 + 0], 0.0f, "[1,0] should remain 0");
   ASSERT_EQ(values[1 * 3 + 1], 30.0f, "[1,1] should be 30");
   ASSERT_EQ(values[1 * 3 + 2], 0.0f, "[1,2] should remain 0");
-
-  freeMemory(mem);
 }
 
 // GetAt tests
@@ -417,8 +377,6 @@ static void test_get_at_success(void) {
   ASSERT_EQ(r, OK, "GetAt should return OK");
   ASSERT_EQ(result.dtype, F32, "result dtype should be F32");
   ASSERT_EQ(result.as.f32, 99.0f, "result value should be 99");
-
-  freeMemory(mem);
 }
 
 static void test_get_at_dim_mismatch(void) {
@@ -431,8 +389,6 @@ static void test_get_at_dim_mismatch(void) {
 
   Result r = GetAt(&tt.tensor, idx, &result);
   ASSERT_EQ(r, ERR_DIM_MISMATCH, "should return ERR_DIM_MISMATCH");
-
-  freeMemory(tt.mem);
 }
 
 static void test_get_at_out_of_bounds(void) {
@@ -445,8 +401,6 @@ static void test_get_at_out_of_bounds(void) {
 
   Result r = GetAt(&tt.tensor, idx, &result);
   ASSERT_EQ(r, ERR_OUT_OF_BOUNDS, "should return ERR_OUT_OF_BOUNDS");
-
-  freeMemory(tt.mem);
 }
 
 static void test_get_at_null_tensor(void) {
@@ -467,8 +421,6 @@ static void test_get_at_null_result(void) {
 
   Result r = GetAt(&tt.tensor, idx, NULL);
   ASSERT_EQ(r, ERR_NULL_PTR, "should return ERR_NULL_PTR for null result");
-
-  freeMemory(tt.mem);
 }
 
 // Slice tests
@@ -494,8 +446,6 @@ static void test_slice_basic_2d(void) {
   ASSERT_EQ(slice->shape.numOfDims, 2, "slice should have 2 dimensions");
   ASSERT_EQ(slice->shape.dims[0], 2, "slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 3, "slice dim[1] should be 3");
-
-  freeMemory(mem);
 }
 
 static void test_slice_shares_data_with_source(void) {
@@ -513,8 +463,6 @@ static void test_slice_shares_data_with_source(void) {
       Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "Slice should return a tensor");
   ASSERT_EQ(slice->values, tt.tensor.values, "slice should share values pointer with source");
-
-  freeMemory(mem);
 }
 
 static void test_slice_get_at_correct_values(void) {
@@ -547,8 +495,6 @@ static void test_slice_get_at_correct_values(void) {
   r = GetAt(slice, (Dim){.dims = slice_idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 14.0f, "slice[1,2] should be 14 (source[2,4])");
-
-  freeMemory(mem);
 }
 
 static void test_slice_single_element_range(void) {
@@ -572,8 +518,6 @@ static void test_slice_single_element_range(void) {
   Value result;
   GetAt(slice, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 99.0f, "single element slice value should be 99");
-
-  freeMemory(mem);
 }
 
 static void test_slice_full_range(void) {
@@ -587,8 +531,6 @@ static void test_slice_full_range(void) {
   ASSERT_NOT_NULL(slice, "full range slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 3, "slice dim[0] should match source");
   ASSERT_EQ(slice->shape.dims[1], 4, "slice dim[1] should match source");
-
-  freeMemory(mem);
 }
 
 static void test_slice_1d_tensor(void) {
@@ -618,8 +560,6 @@ static void test_slice_1d_tensor(void) {
   dim_t slice_idx2[] = {4};
   GetAt(slice, (Dim){.dims = slice_idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "slice[4] should be 7");
-
-  freeMemory(mem);
 }
 
 static void test_slice_modify_reflects_in_source(void) {
@@ -641,8 +581,6 @@ static void test_slice_modify_reflects_in_source(void) {
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = src_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 77.0f, "modifying slice should reflect in source");
-
-  freeMemory(mem);
 }
 
 static void test_slice_of_slice(void) {
@@ -677,8 +615,6 @@ static void test_slice_of_slice(void) {
   Value result;
   GetAt(slice2, (Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "nested slice[0,0] should be 14 (source[2,2])");
-
-  freeMemory(mem);
 }
 
 static void test_slice_large_4d_tensor(void) {
@@ -749,8 +685,6 @@ static void test_slice_large_4d_tensor(void) {
     }
   }
   ASSERT(all_correct, "all 480 elements in 4D slice should be correct");
-
-  freeMemory(mem);
 }
 
 // Reshape tests
@@ -767,8 +701,6 @@ static void test_reshape_basic_2d_to_1d(void) {
   ASSERT_NOT_NULL(reshaped, "Reshape 2D to 1D should return a tensor");
   ASSERT_EQ(reshaped->shape.numOfDims, 1, "reshaped should have 1 dimension");
   ASSERT_EQ(reshaped->shape.dims[0], 12, "reshaped dim[0] should be 12");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_1d_to_2d(void) {
@@ -785,8 +717,6 @@ static void test_reshape_1d_to_2d(void) {
   ASSERT_EQ(reshaped->shape.numOfDims, 2, "reshaped should have 2 dimensions");
   ASSERT_EQ(reshaped->shape.dims[0], 4, "reshaped dim[0] should be 4");
   ASSERT_EQ(reshaped->shape.dims[1], 6, "reshaped dim[1] should be 6");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_preserves_data(void) {
@@ -816,8 +746,6 @@ static void test_reshape_preserves_data(void) {
     GetAt(reshaped, (Dim){.dims = idx, .numOfDims = 1}, &result);
     ASSERT_EQ(result.as.f32, i, "reshaped data should be preserved");
   }
-
-  freeMemory(mem);
 }
 
 static void test_reshape_shares_data_with_source(void) {
@@ -842,8 +770,6 @@ static void test_reshape_shares_data_with_source(void) {
   Value result;
   GetAt(&tt.tensor, (Dim){.dims = s_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 55.0f, "modification via reshaped should reflect in source");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_3d_to_2d(void) {
@@ -880,8 +806,6 @@ static void test_reshape_3d_to_2d(void) {
   dim_t idx2[] = {5, 3};
   GetAt(reshaped, (Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "reshaped[5,3] should be 23");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_view(void) {
@@ -912,8 +836,6 @@ static void test_reshape_view(void) {
   ASSERT_NOT_NULL(reshaped, "Reshape of view should return a tensor");
   ASSERT(!reshaped->isView, "reshaped view should be copied to contiguous array");
   ASSERT_EQ(reshaped->shape.dims[0], 18, "reshaped should have 18 elements");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_3d_view(void) {
@@ -956,8 +878,6 @@ static void test_reshape_3d_view(void) {
   Value result;
   GetAt(reshaped, (Dim){.dims = r_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 30.0f, "reshaped[0,0] should be 30");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_4d_view(void) {
@@ -1001,8 +921,6 @@ static void test_reshape_4d_view(void) {
   ASSERT_EQ(reshaped->shape.dims[0], 6, "reshaped dim[0] should be 6");
   ASSERT_EQ(reshaped->shape.dims[1], 5, "reshaped dim[1] should be 5");
   ASSERT_EQ(reshaped->shape.dims[2], 6, "reshaped dim[2] should be 6");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_4d_view_to_1d(void) {
@@ -1044,8 +962,6 @@ static void test_reshape_4d_view_to_1d(void) {
   Value result;
   GetAt(reshaped, (Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_then_access_elements(void) {
@@ -1089,8 +1005,6 @@ static void test_reshape_then_access_elements(void) {
     }
   }
   ASSERT(all_correct, "all reshaped elements should be accessible with correct values");
-
-  freeMemory(mem);
 }
 
 // Transpose tests
@@ -1106,8 +1020,6 @@ static void test_transpose_basic_2d(void) {
   ASSERT(!transposed->isContigous, "transposed should not be contiguous");
   ASSERT_EQ(transposed->shape.dims[0], 4, "transposed dim[0] should be 4");
   ASSERT_EQ(transposed->shape.dims[1], 3, "transposed dim[1] should be 3");
-
-  freeMemory(mem);
 }
 
 static void test_transpose_swaps_dims_and_multipliers(void) {
@@ -1123,8 +1035,6 @@ static void test_transpose_swaps_dims_and_multipliers(void) {
 
   ASSERT_EQ(transposed->shape.multipliers[0], orig_mult_1, "multiplier[0] should be swapped");
   ASSERT_EQ(transposed->shape.multipliers[1], orig_mult_0, "multiplier[1] should be swapped");
-
-  freeMemory(mem);
 }
 
 static void test_transpose_shares_data(void) {
@@ -1136,8 +1046,6 @@ static void test_transpose_shares_data(void) {
   Tensor *transposed = Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
 
   ASSERT_EQ(transposed->values, tt.tensor.values, "transposed should share values pointer");
-
-  freeMemory(mem);
 }
 
 static void test_transpose_access_elements(void) {
@@ -1181,8 +1089,6 @@ static void test_transpose_access_elements(void) {
   dim_t idx4[] = {2, 1};
   GetAt(transposed, (Dim){.dims = idx4, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "transposed[2,1] should be 5");
-
-  freeMemory(mem);
 }
 
 static void test_transpose_3d(void) {
@@ -1221,8 +1127,6 @@ static void test_transpose_3d(void) {
   dim_t idx2[] = {3, 2, 1};
   GetAt(transposed, (Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "transposed[3,2,1] should be 23");
-
-  freeMemory(mem);
 }
 
 static void test_reshape_after_transpose_copies(void) {
@@ -1272,8 +1176,6 @@ static void test_reshape_after_transpose_copies(void) {
   dim_t idx3[] = {3};
   GetAt(reshaped, (Dim){.dims = idx3, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "reshaped[3] should be 1 (transposed[1,0])");
-
-  freeMemory(mem);
 }
 
 // Add tests
@@ -1305,8 +1207,6 @@ static void test_add_basic_same_shape(void) {
   ASSERT_EQ(values[0], 11.0f, "result[0,0] should be 11");
   ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
   ASSERT_EQ(values[5], 66.0f, "result[1,2] should be 66");
-
-  freeMemory(mem);
 }
 
 
@@ -1347,8 +1247,6 @@ static void test_add_broadcast_row_vector(void) {
   ASSERT_EQ(values[3], 14.0f, "result[1,0] should be 14");
   ASSERT_EQ(values[4], 25.0f, "result[1,1] should be 25");
   ASSERT_EQ(values[5], 36.0f, "result[1,2] should be 36");
-
-  freeMemory(mem);
 }
 
 static void test_add_broadcast_col_vector(void) {
@@ -1388,8 +1286,6 @@ static void test_add_broadcast_col_vector(void) {
   ASSERT_EQ(values[3], 24.0f, "result[1,0] should be 24");
   ASSERT_EQ(values[4], 25.0f, "result[1,1] should be 25");
   ASSERT_EQ(values[5], 26.0f, "result[1,2] should be 26");
-
-  freeMemory(mem);
 }
 
 static void test_add_broadcast_scalar(void) {
@@ -1423,8 +1319,6 @@ static void test_add_broadcast_scalar(void) {
   f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 101.0f, "result[0,0] should be 101");
   ASSERT_EQ(values[5], 106.0f, "result[1,2] should be 106");
-
-  freeMemory(mem);
 }
 
 static void test_add_1d_tensors(void) {
@@ -1452,8 +1346,6 @@ static void test_add_1d_tensors(void) {
   ASSERT_EQ(values[1], 22.0f, "result[1] should be 22");
   ASSERT_EQ(values[2], 33.0f, "result[2] should be 33");
   ASSERT_EQ(values[3], 44.0f, "result[3] should be 44");
-
-  freeMemory(mem);
 }
 
 // Subtract tests
@@ -1485,8 +1377,6 @@ static void test_subtract_basic_same_shape(void) {
   ASSERT_EQ(values[0], 9.0f, "result[0,0] should be 9");
   ASSERT_EQ(values[1], 18.0f, "result[0,1] should be 18");
   ASSERT_EQ(values[5], 54.0f, "result[1,2] should be 54");
-
-  freeMemory(mem);
 }
 
 static void test_subtract_broadcast(void) {
@@ -1521,8 +1411,6 @@ static void test_subtract_broadcast(void) {
   f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 9.0f, "result[0,0] should be 9");
   ASSERT_EQ(values[3], 39.0f, "result[1,0] should be 39");
-
-  freeMemory(mem);
 }
 
 // Multiply tests
@@ -1555,8 +1443,6 @@ static void test_multiply_basic_same_shape(void) {
   ASSERT_EQ(values[2], 6.0f, "result[0,2] should be 6");
   ASSERT_EQ(values[3], 12.0f, "result[1,0] should be 12");
   ASSERT_EQ(values[5], 18.0f, "result[1,2] should be 18");
-
-  freeMemory(mem);
 }
 
 static void test_multiply_broadcast_scalar(void) {
@@ -1590,8 +1476,6 @@ static void test_multiply_broadcast_scalar(void) {
   ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
   ASSERT_EQ(values[2], 15.0f, "result[0,2] should be 15");
   ASSERT_EQ(values[5], 30.0f, "result[1,2] should be 30");
-
-  freeMemory(mem);
 }
 
 // Divide tests
@@ -1622,8 +1506,6 @@ static void test_divide_basic_same_shape(void) {
   f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 5.0f, "result[0,0] should be 5");
   ASSERT_EQ(values[5], 5.0f, "result[1,2] should be 5");
-
-  freeMemory(mem);
 }
 
 static void test_divide_broadcast(void) {
@@ -1663,8 +1545,6 @@ static void test_divide_broadcast(void) {
   ASSERT_EQ(values[3], 20.0f, "result[1,0] should be 20");
   ASSERT_EQ(values[4], 10.0f, "result[1,1] should be 10");
   ASSERT_EQ(values[5], 6.0f, "result[1,2] should be 6");
-
-  freeMemory(mem);
 }
 
 static void test_add_non_contiguous_transposed(void) {
@@ -1712,8 +1592,6 @@ static void test_add_non_contiguous_transposed(void) {
   ASSERT_EQ(values[3], 24.0f, "result[1,0] should be 24");
   ASSERT_EQ(values[4], 45.0f, "result[1,1] should be 45");
   ASSERT_EQ(values[5], 66.0f, "result[1,2] should be 66");
-
-  freeMemory(mem);
 }
 
 static void test_add_2d_plus_1d_broadcast(void) {
@@ -1753,8 +1631,6 @@ static void test_add_2d_plus_1d_broadcast(void) {
   ASSERT_EQ(values[3], 14.0f, "result[1,0] should be 14");
   ASSERT_EQ(values[4], 25.0f, "result[1,1] should be 25");
   ASSERT_EQ(values[5], 36.0f, "result[1,2] should be 36");
-
-  freeMemory(mem);
 }
 
 // Comparison binary op tests
@@ -1782,8 +1658,6 @@ static void test_greater_than_basic_same_shape(void) {
   ASSERT_EQ(vals[3], false, "2 > 3 should be false");
   ASSERT_EQ(vals[4], true, "8 > 7 should be true");
   ASSERT_EQ(vals[5], false, "0 > 0 should be false");
-
-  freeMemory(mem);
 }
 
 static void test_greater_or_equal_and_less_or_equal(void) {
@@ -1816,8 +1690,6 @@ static void test_greater_or_equal_and_less_or_equal(void) {
   ASSERT_EQ(leVals[0], true, "1 <= 2 should be true");
   ASSERT_EQ(leVals[1], true, "4 <= 4 should be true");
   ASSERT_EQ(leVals[2], false, "5 <= 3 should be false");
-
-  freeMemory(mem);
 }
 
 static void test_less_than_broadcast_row_vector(void) {
@@ -1850,8 +1722,6 @@ static void test_less_than_broadcast_row_vector(void) {
   ASSERT_EQ(vals[3], false, "result[1,0] should be false");
   ASSERT_EQ(vals[4], false, "result[1,1] should be false");
   ASSERT_EQ(vals[5], false, "result[1,2] should be false");
-
-  freeMemory(mem);
 }
 
 
@@ -1884,8 +1754,6 @@ static void test_sum_dim0_2d(void) {
   ASSERT_EQ(values[0], 5.0f, "result[0] should be 5");
   ASSERT_EQ(values[1], 7.0f, "result[1] should be 7");
   ASSERT_EQ(values[2], 9.0f, "result[2] should be 9");
-
-  freeMemory(mem);
 }
 
 static void test_sum_dim1_2d(void) {
@@ -1915,8 +1783,6 @@ static void test_sum_dim1_2d(void) {
   f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 6.0f, "result[0] should be 6");
   ASSERT_EQ(values[1], 15.0f, "result[1] should be 15");
-
-  freeMemory(mem);
 }
 
 static void test_sum_3d_middle_dim(void) {
@@ -1954,8 +1820,6 @@ static void test_sum_3d_middle_dim(void) {
   ASSERT_EQ(values[1], 12.0f, "result[0,0,1] should be 12");
   ASSERT_EQ(values[2], 27.0f, "result[1,0,0] should be 27");
   ASSERT_EQ(values[3], 30.0f, "result[1,0,1] should be 30");
-
-  freeMemory(mem);
 }
 
 static void test_sum_non_contiguous(void) {
@@ -1986,8 +1850,6 @@ static void test_sum_non_contiguous(void) {
   f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 9.0f, "result[0] should be 9");
   ASSERT_EQ(values[1], 12.0f, "result[1] should be 12");
-
-  freeMemory(mem);
 }
 
 static void test_sum_1d_tensor(void) {
@@ -2013,8 +1875,6 @@ static void test_sum_1d_tensor(void) {
 
   f32 *values = (f32 *)dest->values;
   ASSERT_EQ(values[0], 15.0f, "result should be 15");
-
-  freeMemory(mem);
 }
 
 static void test_sum_4d_dim0(void) {
@@ -2056,8 +1916,6 @@ static void test_sum_4d_dim0(void) {
   ASSERT_EQ(values[1], 16.0f, "result[0,0,0,1] should be 16");
   ASSERT_EQ(values[2], 18.0f, "result[0,0,0,2] should be 18");
   ASSERT_EQ(values[11], 36.0f, "result[0,1,1,2] should be 36");
-
-  freeMemory(mem);
 }
 
 static void test_sum_4d_dim1(void) {
@@ -2099,8 +1957,6 @@ static void test_sum_4d_dim1(void) {
   ASSERT_EQ(values[1], 18.0f, "result[0,0,0,1] should be 18");
   ASSERT_EQ(values[2], 21.0f, "result[0,0,1,0] should be 21");
   ASSERT_EQ(values[3], 24.0f, "result[0,0,1,1] should be 24");
-
-  freeMemory(mem);
 }
 
 static void test_sum_4d_dim3(void) {
@@ -2142,8 +1998,6 @@ static void test_sum_4d_dim3(void) {
   ASSERT_EQ(values[0], 10.0f, "result[0,0,0,0] should be 10");
   ASSERT_EQ(values[1], 26.0f, "result[0,0,1,0] should be 26");
   ASSERT_EQ(values[2], 42.0f, "result[0,1,0,0] should be 42");
-
-  freeMemory(mem);
 }
 
 static void test_sum_multiple_reduces_3d(void) {
@@ -2190,8 +2044,6 @@ static void test_sum_multiple_reduces_3d(void) {
   // Total sum of 1+2+...+24 = 300
   f32 *values = (f32 *)after_dim0->values;
   ASSERT_EQ(values[0], 300.0f, "final sum should be 300");
-
-  freeMemory(mem);
 }
 
 static void test_sum_multiple_reduces_4d(void) {
@@ -2231,8 +2083,6 @@ static void test_sum_multiple_reduces_4d(void) {
 
   // Verify size
   ASSERT_EQ(r2->size, 6, "r2 size should be 6");
-
-  freeMemory(mem);
 }
 
 static void test_sum_reduce_to_scalar_2d(void) {
@@ -2264,8 +2114,6 @@ static void test_sum_reduce_to_scalar_2d(void) {
   // Sum of 1-12 = 78
   f32 *values = (f32 *)r2->values;
   ASSERT_EQ(values[0], 78.0f, "total sum should be 78");
-
-  freeMemory(mem);
 }
 
 static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
@@ -2287,8 +2135,6 @@ static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
   ASSERT_EQ(values[0], 5.0f, "column 0 should sum both broadcast rows");
   ASSERT_EQ(values[1], 7.0f, "column 1 should sum both broadcast rows");
   ASSERT_EQ(values[2], 9.0f, "column 2 should sum both broadcast rows");
-
-  freeMemory(mem);
 }
 
 static void test_reduce_broadcast_sums_singleton_input_dims(void) {
@@ -2315,8 +2161,6 @@ static void test_reduce_broadcast_sums_singleton_input_dims(void) {
   ASSERT_EQ(values[1], 12.0f, "first batch, channel 1 should sum singleton broadcast");
   ASSERT_EQ(values[2], 27.0f, "second batch, channel 0 should sum singleton broadcast");
   ASSERT_EQ(values[3], 30.0f, "second batch, channel 1 should sum singleton broadcast");
-
-  freeMemory(mem);
 }
 
 static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void) {
@@ -2341,8 +2185,6 @@ static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void
   ASSERT_EQ(values[0], 92.0f, "feature 0 should sum across both broadcast dimensions");
   ASSERT_EQ(values[1], 100.0f, "feature 1 should sum across both broadcast dimensions");
   ASSERT_EQ(values[2], 108.0f, "feature 2 should sum across both broadcast dimensions");
-
-  freeMemory(mem);
 }
 
 // Squeeze tests
@@ -2361,8 +2203,6 @@ static void test_squeeze_removes_single_dims(void) {
   ASSERT_EQ(squeezed->shape.dims[0], 3, "dim 0 should be 3");
   ASSERT_EQ(squeezed->shape.dims[1], 4, "dim 1 should be 4");
   ASSERT_EQ(squeezed->size, 12, "size should remain 12");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_middle_dim(void) {
@@ -2379,8 +2219,6 @@ static void test_squeeze_middle_dim(void) {
   ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
   ASSERT_EQ(squeezed->shape.dims[0], 2, "dim 0 should be 2");
   ASSERT_EQ(squeezed->shape.dims[1], 3, "dim 1 should be 3");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_no_single_dims(void) {
@@ -2398,8 +2236,6 @@ static void test_squeeze_no_single_dims(void) {
   ASSERT_EQ(squeezed->shape.dims[0], 2, "dim 0 should be 2");
   ASSERT_EQ(squeezed->shape.dims[1], 3, "dim 1 should be 3");
   ASSERT_EQ(squeezed->shape.dims[2], 4, "dim 2 should be 4");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_all_ones(void) {
@@ -2416,8 +2252,6 @@ static void test_squeeze_all_ones(void) {
   ASSERT_EQ(squeezed->shape.numOfDims, 1, "squeezed should have 1 dim");
   ASSERT_EQ(squeezed->shape.dims[0], 1, "dim 0 should be 1");
   ASSERT_EQ(squeezed->size, 1, "size should be 1");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_scalar_preserves_zero_dims(void) {
@@ -2434,8 +2268,6 @@ static void test_squeeze_scalar_preserves_zero_dims(void) {
   ASSERT_EQ(squeezed->shape.multipliers, NULL, "scalar squeeze multipliers should remain NULL");
   ASSERT_EQ(squeezed->size, 1, "scalar squeeze size should remain 1");
   ASSERT_EQ(squeezed->values, scalar.values, "scalar squeeze should share data");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_shares_data(void) {
@@ -2457,8 +2289,6 @@ static void test_squeeze_shares_data(void) {
   Value result;
   GetAt(squeezed, (Dim){.dims = sq_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "squeezed should share data with source");
-
-  freeMemory(mem);
 }
 
 static void squeezeTestBackward(Context *ctx, Tensor *tensor) {
@@ -2484,8 +2314,6 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
   ASSERT_EQ(squeezed->grad, t->grad, "Squeeze should preserve grad pointer");
   ASSERT_EQ(squeezed->inputs, t->inputs, "Squeeze should preserve graph inputs");
   ASSERT_EQ(squeezed->opType, t->opType, "Squeeze should preserve op type");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_dim_specific(void) {
@@ -2510,8 +2338,6 @@ static void test_squeeze_dim_specific(void) {
   ASSERT_EQ(squeezed2->shape.dims[0], 1, "dim 0 should be 1");
   ASSERT_EQ(squeezed2->shape.dims[1], 3, "dim 1 should be 3");
   ASSERT_EQ(squeezed2->shape.dims[2], 4, "dim 2 should be 4");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_after_sum(void) {
@@ -2542,8 +2368,6 @@ static void test_squeeze_after_sum(void) {
   f32 *values = (f32 *)squeezed->values;
   ASSERT_EQ(values[0], 6.0f, "result[0] should be 6");
   ASSERT_EQ(values[1], 15.0f, "result[1] should be 15");
-
-  freeMemory(mem);
 }
 
 // UnSqueeze tests
@@ -2563,8 +2387,6 @@ static void test_unsqueeze_dim0(void) {
   ASSERT_EQ(unsqueezed->shape.dims[1], 3, "dim 1 should be 3");
   ASSERT_EQ(unsqueezed->shape.dims[2], 4, "dim 2 should be 4");
   ASSERT_EQ(unsqueezed->size, 12, "size should remain 12");
-
-  freeMemory(mem);
 }
 
 static void test_unsqueeze_middle(void) {
@@ -2582,8 +2404,6 @@ static void test_unsqueeze_middle(void) {
   ASSERT_EQ(unsqueezed->shape.dims[0], 3, "dim 0 should be 3");
   ASSERT_EQ(unsqueezed->shape.dims[1], 1, "dim 1 should be 1");
   ASSERT_EQ(unsqueezed->shape.dims[2], 4, "dim 2 should be 4");
-
-  freeMemory(mem);
 }
 
 static void test_unsqueeze_end(void) {
@@ -2601,8 +2421,6 @@ static void test_unsqueeze_end(void) {
   ASSERT_EQ(unsqueezed->shape.dims[0], 3, "dim 0 should be 3");
   ASSERT_EQ(unsqueezed->shape.dims[1], 4, "dim 1 should be 4");
   ASSERT_EQ(unsqueezed->shape.dims[2], 1, "dim 2 should be 1");
-
-  freeMemory(mem);
 }
 
 static void test_unsqueeze_1d(void) {
@@ -2619,8 +2437,6 @@ static void test_unsqueeze_1d(void) {
   ASSERT_EQ(unsqueezed->shape.numOfDims, 2, "should have 2 dims");
   ASSERT_EQ(unsqueezed->shape.dims[0], 1, "dim 0 should be 1");
   ASSERT_EQ(unsqueezed->shape.dims[1], 5, "dim 1 should be 5");
-
-  freeMemory(mem);
 }
 
 static void test_unsqueeze_shares_data(void) {
@@ -2641,8 +2457,6 @@ static void test_unsqueeze_shares_data(void) {
   Value result;
   GetAt(unsqueezed, (Dim){.dims = new_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "unsqueezed should share data");
-
-  freeMemory(mem);
 }
 
 static void test_unsqueeze_non_contiguous(void) {
@@ -2692,8 +2506,6 @@ static void test_unsqueeze_non_contiguous(void) {
   dim_t idx4[] = {0, 2, 1};
   GetAt(unsqueezed, (Dim){.dims = idx4, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "unsqueezed[0,2,1] should be 6");
-
-  freeMemory(mem);
 }
 
 static void test_squeeze_unsqueeze_roundtrip(void) {
@@ -2726,8 +2538,6 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   Value result;
   GetAt(unsqueezed, (Dim){.dims = idx, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "data should be preserved");
-
-  freeMemory(mem);
 }
 
 // Clone tests
@@ -2758,8 +2568,6 @@ static void test_clone_basic(void) {
   f32 *values = (f32 *)cloned->values;
   ASSERT_EQ(values[0], 1.0f, "cloned[0] should be 1");
   ASSERT_EQ(values[5], 6.0f, "cloned[5] should be 6");
-
-  freeMemory(mem);
 }
 
 static void test_clone_independent_data(void) {
@@ -2783,8 +2591,6 @@ static void test_clone_independent_data(void) {
   Value result;
   GetAt(cloned, (Dim){.dims = idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 10.0f, "clone should be independent from source");
-
-  freeMemory(mem);
 }
 
 static void test_clone_slice(void) {
@@ -2823,8 +2629,6 @@ static void test_clone_slice(void) {
   ASSERT_EQ(values[1], 6.0f, "cloned[0,1] should be 6");
   ASSERT_EQ(values[2], 9.0f, "cloned[1,0] should be 9");
   ASSERT_EQ(values[3], 10.0f, "cloned[1,1] should be 10");
-
-  freeMemory(mem);
 }
 
 static void test_clone_transposed(void) {
@@ -2858,8 +2662,6 @@ static void test_clone_transposed(void) {
   ASSERT_EQ(values[1], 4.0f, "cloned[0,1] should be 4");
   ASSERT_EQ(values[2], 2.0f, "cloned[1,0] should be 2");
   ASSERT_EQ(values[3], 5.0f, "cloned[1,1] should be 5");
-
-  freeMemory(mem);
 }
 
 // Phase 1 tests: view offset/boundary correctness
@@ -2904,8 +2706,6 @@ static void test_view_slice_boundary_propagation(void) {
   dim_t idx12[] = {1, 2};
   GetAt(s, (Dim){.dims = idx12, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s[1,2] should be x[2,4]=14");
-
-  freeMemory(mem);
 }
 
 // Test 2: Nested slice correctness
@@ -2951,8 +2751,6 @@ static void test_view_nested_slice_correctness(void) {
   dim_t idx11[] = {1, 1};
   GetAt(s2, (Dim){.dims = idx11, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "s2[1,1] should be x[3,3]=21");
-
-  freeMemory(mem);
 }
 
 // Test 3: GetTensorAt on a sliced tensor
@@ -2986,8 +2784,6 @@ static void test_view_get_tensor_at_on_slice(void) {
   dim_t idx2[] = {3};
   GetAt(row, (Dim){.dims = idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "row[3] should be x[3,3]=15");
-
-  freeMemory(mem);
 }
 
 // Test 4: Advanced indexing on view input (read correctness)
@@ -3030,8 +2826,6 @@ static void test_view_advanced_indexing_on_slice(void) {
   ASSERT_EQ(vals[5], 17.0f, "result[1,1] should be x[4,1]=17");
   ASSERT_EQ(vals[6], 18.0f, "result[1,2] should be x[4,2]=18");
   ASSERT_EQ(vals[7], 19.0f, "result[1,3] should be x[4,3]=19");
-
-  freeMemory(mem);
 }
 
 // Test: AddInPlace on a slice view mutates the correct region of the base tensor
@@ -3064,8 +2858,6 @@ static void test_add_in_place_on_slice_view(void) {
   ASSERT_EQ(((f32 *)x->values)[6], 7.0f, "x[1,2] should be 7 after +1");
   ASSERT_EQ(((f32 *)x->values)[9], 10.0f, "x[2,1] should be 10 after +1");
   ASSERT_EQ(((f32 *)x->values)[10], 11.0f, "x[2,2] should be 11 after +1");
-
-  freeMemory(mem);
 }
 
 // Test: Boundary deep-copy safety - each view gets its own boundary array
@@ -3115,8 +2907,6 @@ static void test_view_boundary_deep_copy_transpose(void) {
   // t should still read correctly
   GetAt(t, (Dim){.dims = t00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should still be 4 after corrupting s boundary");
-
-  freeMemory(mem);
 }
 
 static void test_slice_boundary_access(void) {
@@ -3159,8 +2949,6 @@ static void test_slice_boundary_access(void) {
   dim_t br[] = {2, 2};
   GetAt(slice, (Dim){.dims = br, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
-
-  freeMemory(mem);
 }
 
 static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values,
@@ -3471,8 +3259,6 @@ static void test_index_accumulate_1d_basic(void) {
   for (tensor_size_t i = 0; i < 6; i++) {
     ASSERT_EQ(values[i], expected[i], "IndexAccumulate1d CPU result should match");
   }
-
-  freeMemory(mem);
 }
 
 static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
@@ -3646,13 +3432,11 @@ static void test_cuda_allocator_reuses_freed_blocks(void) {
 
   void *first = allocateOnCtx(&ctx, 1024);
   ASSERT_NOT_NULL(first, "CUDA allocator should allocate device memory");
-  freeOnCtx(&ctx, first);
 
   void *second = allocateOnCtx(&ctx, 1024);
   ASSERT_NOT_NULL(second, "CUDA allocator should reuse cached device memory");
   ASSERT_EQ(first, second, "CUDA allocator should reuse a matching freed block");
 
-  freeOnCtx(&ctx, second);
   DestroyContext(&ctx);
 }
 
@@ -3680,8 +3464,6 @@ static void test_matmul_2d_basic(void) {
   ASSERT_EQ((int)vals[1], 28, "[0,1] should be 28");
   ASSERT_EQ((int)vals[2], 49, "[1,0] should be 49");
   ASSERT_EQ((int)vals[3], 64, "[1,1] should be 64");
-
-  freeMemory(mem);
 }
 
 static void test_matmul_2d_non_square(void) {
@@ -3706,8 +3488,6 @@ static void test_matmul_2d_non_square(void) {
   ASSERT_EQ((int)vals[0], 70, "[0,0] should be 70");
   ASSERT_EQ((int)vals[1], 80, "[0,1] should be 80");
   ASSERT_EQ((int)vals[2], 90, "[0,2] should be 90");
-
-  freeMemory(mem);
 }
 
 static void test_matmul_3d_batch(void) {
@@ -3733,8 +3513,6 @@ static void test_matmul_3d_batch(void) {
   float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 22, "batch0[0,0] should be 22");
   ASSERT_EQ((int)vals[1], 28, "batch0[0,1] should be 28");
-
-  freeMemory(mem);
 }
 
 static void test_matmul_broadcast_batch(void) {
@@ -3759,8 +3537,6 @@ static void test_matmul_broadcast_batch(void) {
   float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 22, "batch0[0,0] should be 22");
   ASSERT_EQ((int)vals[4], 76, "batch1[0,0] should be 76");
-
-  freeMemory(mem);
 }
 
 
@@ -3784,8 +3560,6 @@ static void test_dot_basic(void) {
 
   float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 32, "1*4 + 2*5 + 3*6 = 32");
-
-  freeMemory(mem);
 }
 
 static void test_dot_larger_vectors(void) {
@@ -3805,8 +3579,6 @@ static void test_dot_larger_vectors(void) {
 
   float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 15, "1+2+3+4+5 = 15");
-
-  freeMemory(mem);
 }
 
 
@@ -3821,7 +3593,6 @@ static void test_negate_f32(void) {
   for (int i = 0; i < 3; i++) {
     ASSERT_EQ(vals[i], -5.0f, "negated value should be -5.0");
   }
-  freeMemory(mem);
 }
 
 static void test_negate_already_negative(void) {
@@ -3835,7 +3606,6 @@ static void test_negate_already_negative(void) {
   for (int i = 0; i < 2; i++) {
     ASSERT_EQ(vals[i], 3.0f, "negated -3.0 should be 3.0");
   }
-  freeMemory(mem);
 }
 
 // Arange tests
@@ -3855,8 +3625,6 @@ static void test_arange_basic_positive_step(void) {
   ASSERT_EQ(values[2], 2.0f, "arange[2] should be 2");
   ASSERT_EQ(values[3], 3.0f, "arange[3] should be 3");
   ASSERT_EQ(values[4], 4.0f, "arange[4] should be 4");
-
-  freeMemory(mem);
 }
 
 static void test_arange_negative_step(void) {
@@ -3873,8 +3641,6 @@ static void test_arange_negative_step(void) {
   ASSERT_EQ(values[2], 6.0f, "arange[2] should be 6");
   ASSERT_EQ(values[3], 4.0f, "arange[3] should be 4");
   ASSERT_EQ(values[4], 2.0f, "arange[4] should be 2");
-
-  freeMemory(mem);
 }
 
 static void test_arange_non_integer_step(void) {
@@ -3890,8 +3656,6 @@ static void test_arange_non_integer_step(void) {
   ASSERT_EQ(values[1], 1.5f, "arange[1] should be 1.5");
   ASSERT_EQ(values[2], 2.0f, "arange[2] should be 2.0");
   ASSERT_EQ(values[7], 4.5f, "arange[7] should be 4.5");
-
-  freeMemory(mem);
 }
 
 static void test_arange_default_step(void) {
@@ -3907,8 +3671,6 @@ static void test_arange_default_step(void) {
   ASSERT_EQ(values[0], 0.0f, "arange[0] should be 0");
   ASSERT_EQ(values[1], 1.0f, "arange[1] should be 1");
   ASSERT_EQ(values[2], 2.0f, "arange[2] should be 2");
-
-  freeMemory(mem);
 }
 
 static void test_arange_empty_range_positive_step(void) {
@@ -3921,8 +3683,6 @@ static void test_arange_empty_range_positive_step(void) {
 
   t = T_Arange(&ctx, 10.0f, 5.0f, 1.0f);
   ASSERT_NULL(t, "Arange with start > end and positive step should return NULL");
-
-  freeMemory(mem);
 }
 
 static void test_arange_empty_range_negative_step(void) {
@@ -3935,8 +3695,6 @@ static void test_arange_empty_range_negative_step(void) {
 
   t = T_Arange(&ctx, 0.0f, 5.0f, -1.0f);
   ASSERT_NULL(t, "Arange with start < end and negative step should return NULL");
-
-  freeMemory(mem);
 }
 
 static void test_index_with_tensor_2d_basic(void) {
@@ -3971,8 +3729,6 @@ static void test_index_with_tensor_2d_basic(void) {
   ASSERT_EQ(vals[0], 1.0f, "First element should be 1 (source[0,1])");
   ASSERT_EQ(vals[1], 6.0f, "Second element should be 6 (source[1,2])");
   ASSERT_EQ(vals[2], 11.0f, "Third element should be 11 (source[2,3])");
-
-  freeMemory(mem);
 }
 
 static void test_index_with_tensor_2d_3d_source(void) {
@@ -4013,8 +3769,6 @@ static void test_index_with_tensor_2d_3d_source(void) {
   ASSERT_EQ(vals[5], 21.0f, "vals[5] should be 21");
   ASSERT_EQ(vals[6], 22.0f, "vals[6] should be 22");
   ASSERT_EQ(vals[7], 23.0f, "vals[7] should be 23");
-
-  freeMemory(mem);
 }
 
 // Mean tests
@@ -4040,8 +3794,6 @@ static void test_mean_basic(void) {
 
   f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 3.5f, "Mean should be 3.5");
-
-  freeMemory(mem);
 }
 
 
@@ -4065,8 +3817,6 @@ static void test_std_basic(void) {
   // Sample std([1,2,3,4]) = sqrt(5/3) ~= 1.2909944
   f32 got = ((f32 *)dest->values)[0];
   ASSERT(fabsf(got - 1.2909944f) < 1e-5f, "Std should match sample standard deviation");
-
-  freeMemory(mem);
 }
 
 
@@ -4097,8 +3847,6 @@ static void test_log_basic(void) {
   ASSERT(fabs(vals[1] - 1.0f) < tolerance, "ln(e) should be ~1");
   ASSERT(fabs(vals[2] - 2.303f) < tolerance, "ln(10) should be ~2.303");
   ASSERT(fabs(vals[3] - 4.605f) < tolerance, "ln(100) should be ~4.605");
-
-  freeMemory(mem);
 }
 
 // Abs tests
@@ -4125,8 +3873,6 @@ static void test_abs_signed_int(void) {
   ASSERT_EQ(vals[1], 2, "abs(2) should be 2");
   ASSERT_EQ(vals[2], 3, "abs(-3) should be 3");
   ASSERT_EQ(vals[3], 0, "abs(0) should be 0");
-
-  freeMemory(mem);
 }
 
 static void test_abs_float(void) {
@@ -4153,8 +3899,6 @@ static void test_abs_float(void) {
   ASSERT_EQ(vals[1], 2.25f, "abs(2.25) should be 2.25");
   ASSERT_EQ(vals[2], 3.0f, "abs(-3.0) should be 3.0");
   ASSERT_EQ(vals[3], 0.0f, "abs(0.0) should be 0.0");
-
-  freeMemory(mem);
 }
 
 // Max tests
@@ -4183,8 +3927,6 @@ static void test_max_dim0(void) {
   ASSERT_EQ(vals[0], 4.0f, "Max[0,0] should be 4 (max of 1,4)");
   ASSERT_EQ(vals[1], 5.0f, "Max[0,1] should be 5 (max of 5,2)");
   ASSERT_EQ(vals[2], 6.0f, "Max[0,2] should be 6 (max of 3,6)");
-
-  freeMemory(mem);
 }
 
 static void test_max_dim1(void) {
@@ -4211,8 +3953,6 @@ static void test_max_dim1(void) {
   f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 5.0f, "Max[0,0] should be 5 (max of 1,5,3)");
   ASSERT_EQ(vals[1], 6.0f, "Max[1,0] should be 6 (max of 4,2,6)");
-
-  freeMemory(mem);
 }
 
 static void test_max_int_type(void) {
@@ -4234,8 +3974,6 @@ static void test_max_int_type(void) {
   i8 *vals = (i8 *)dest->values;
   ASSERT_EQ(vals[0], 3, "Max[0,0] should be 3 (max of 1,3)");
   ASSERT_EQ(vals[1], 5, "Max[0,1] should be 5 (max of 5,2)");
-
-  freeMemory(mem);
 }
 
 
@@ -4258,8 +3996,6 @@ static void test_max_non_contiguous(void) {
 
   Tensor *dest = Max(&ctx, transposed, 0);
   ASSERT_NOT_NULL(dest, "Max on non-contiguous tensor should return a tensor");
-
-  freeMemory(mem);
 }
 
 // ArgMax tests
@@ -4289,8 +4025,6 @@ static void test_argmax_dim0(void) {
   ASSERT_EQ(vals[0], 1, "ArgMax[0,0] should be 1");
   ASSERT_EQ(vals[1], 0, "ArgMax[0,1] should be 0");
   ASSERT_EQ(vals[2], 1, "ArgMax[0,2] should be 1");
-
-  freeMemory(mem);
 }
 
 static void test_argmax_dim1_with_ties(void) {
@@ -4319,8 +4053,6 @@ static void test_argmax_dim1_with_ties(void) {
   i64 *vals = (i64 *)dest->values;
   ASSERT_EQ(vals[0], 1, "ArgMax row 0 should pick first max index");
   ASSERT_EQ(vals[1], 0, "ArgMax row 1 should pick first max index");
-
-  freeMemory(mem);
 }
 
 
@@ -4344,8 +4076,6 @@ static void test_argmax_non_contiguous(void) {
   Tensor *dest = ArgMax(&ctx, transposed, 0);
   ASSERT_NOT_NULL(dest, "ArgMax on non-contiguous tensor should return a tensor");
   ASSERT_EQ(dest->dtype, I64, "ArgMax output dtype should be I64");
-
-  freeMemory(mem);
 }
 
 // MeanDim tests
@@ -4374,8 +4104,6 @@ static void test_meandim_dim0(void) {
   ASSERT_EQ(vals[0], 2.5f, "MeanDim[0,0] should be 2.5 (mean of 1,4)");
   ASSERT_EQ(vals[1], 3.5f, "MeanDim[0,1] should be 3.5 (mean of 2,5)");
   ASSERT_EQ(vals[2], 4.5f, "MeanDim[0,2] should be 4.5 (mean of 3,6)");
-
-  freeMemory(mem);
 }
 
 static void test_meandim_dim1(void) {
@@ -4402,8 +4130,6 @@ static void test_meandim_dim1(void) {
   f32 *vals = (f32 *)dest->values;
   ASSERT_EQ(vals[0], 2.0f, "MeanDim[0,0] should be 2 (mean of 1,2,3)");
   ASSERT_EQ(vals[1], 5.0f, "MeanDim[1,0] should be 5 (mean of 4,5,6)");
-
-  freeMemory(mem);
 }
 
 
@@ -4433,8 +4159,6 @@ static void test_concat_2d_dim0_basic(void) {
   ASSERT_EQ(dest->size, 15, "size should be 15");
   ASSERT(dest->isContigous, "result should be contiguous");
   ASSERT(!dest->isView, "result should not be a view");
-
-  freeMemory(mem);
 }
 
 static void test_concat_2d_dim1_basic(void) {
@@ -4455,8 +4179,6 @@ static void test_concat_2d_dim1_basic(void) {
   ASSERT_NOT_NULL(dest, "Concat 2D dim1 should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
   ASSERT_EQ(dest->shape.dims[1], 5, "dim[1] should be 2+3=5");
-
-  freeMemory(mem);
 }
 
 static void test_concat_multiple_tensors(void) {
@@ -4480,8 +4202,6 @@ static void test_concat_multiple_tensors(void) {
   ASSERT_NOT_NULL(dest, "Concat multiple tensors should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 6, "dim[0] should be 1+2+3=6");
   ASSERT_EQ(dest->shape.dims[1], 2, "dim[1] should be 2");
-
-  freeMemory(mem);
 }
 
 static void test_concat_1d_tensors(void) {
@@ -4502,8 +4222,6 @@ static void test_concat_1d_tensors(void) {
   ASSERT_NOT_NULL(dest, "Concat 1D should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 1, "result should be 1D");
   ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 3+2=5");
-
-  freeMemory(mem);
 }
 
 static void test_concat_3d_tensors(void) {
@@ -4526,8 +4244,6 @@ static void test_concat_3d_tensors(void) {
   ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 2+3=5");
   ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
   ASSERT_EQ(dest->shape.dims[2], 4, "dim[2] should be 4");
-
-  freeMemory(mem);
 }
 
 static void test_concat_data_correctness(void) {
@@ -4572,8 +4288,6 @@ static void test_concat_data_correctness(void) {
   ASSERT_EQ(destVals[5], 11.0f, "dest[2,1] should be 11");
   ASSERT_EQ(destVals[6], 12.0f, "dest[3,0] should be 12");
   ASSERT_EQ(destVals[7], 13.0f, "dest[3,1] should be 13");
-
-  freeMemory(mem);
 }
 
 static void test_concat_with_non_contiguous_target(void) {
@@ -4605,8 +4319,6 @@ static void test_concat_with_non_contiguous_target(void) {
   ASSERT_NOT_NULL(dest, "Concat with non-contiguous target should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 4, "dim[0] should be 2+2=4");
   ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
-
-  freeMemory(mem);
 }
 
 static void test_concat_single_element_tensors(void) {
@@ -4634,8 +4346,6 @@ static void test_concat_single_element_tensors(void) {
   f32 *destVals = (f32 *)dest->values;
   ASSERT_EQ(destVals[0], 1.0f, "dest[0,0] should be 1");
   ASSERT_EQ(destVals[1], 2.0f, "dest[1,0] should be 2");
-
-  freeMemory(mem);
 }
 
 static void test_concat_no_additional_tensors(void) {
@@ -4659,8 +4369,6 @@ static void test_concat_no_additional_tensors(void) {
   f32 *destVals = (f32 *)dest->values;
   ASSERT_EQ(destVals[0], 5.0f, "dest[0] should be 5");
   ASSERT_EQ(destVals[1], 6.0f, "dest[1] should be 6");
-
-  freeMemory(mem);
 }
 
 void run_tensor_tests(void) {
