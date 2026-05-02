@@ -1,3 +1,6 @@
 [submodule "base/OpenBLAS"]
 	path = base/OpenBLAS
 	url = https://github.com/OpenMathLib/OpenBLAS.git
+[submodule "base/clay"]
+	path = base/clay
+	url = https://github.com/nicbarker/clay

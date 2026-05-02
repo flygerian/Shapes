@@ -7,6 +7,6 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  makemore_5();
+  vgg10();
   return 0;
 }

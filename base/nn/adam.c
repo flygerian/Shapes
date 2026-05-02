@@ -1,4 +1,3 @@
-#include "common.h"
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
@@ -38,9 +37,12 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   for (size_t i = 0; i < parameters->size; i++) {
     Tensor *p = Array_TensorIdx(parameters, i);
     triplets[i] = (AdamData){
-        .m = PtrMap_Get(m, p),
-        .v = PtrMap_Get(v, p),
-        .param = p,
+        .m = ((Tensor *)PtrMap_Get(m, p))->values,
+        .v = ((Tensor *)PtrMap_Get(v, p))->values,
+        .param = p->values,
+        .grad = p->grad->values,
+        .size = p->size,
+        .dtype = p->dtype,
     };
   }
 

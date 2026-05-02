@@ -5,8 +5,10 @@
 #include "../shapes.h"
 #include "nn/nn.h"
 #include "result/result.h"
+#include "tensor/types.h"
 #include "tensor_internal.h"
 #include "utils_lib/array.h"
+#include "utils_lib/memory.h"
 #include "value.h"
 #include <stdlib.h>
 
@@ -480,6 +482,10 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
   t->context = destCtx;
 
   return OK;
+}
+
+Array* Make_DynamicTensorArray(Memory *memory) {
+  return MakeDynamicArray(memory, sizeof(Tensor *)); 
 }
 
 void Array_AppendTensor(Array *array, Tensor *tensor) {

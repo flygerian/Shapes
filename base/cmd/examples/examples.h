@@ -1,2 +1,3 @@
 void makemore_3();
 void makemore_5();
+void vgg10();

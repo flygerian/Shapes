@@ -3,6 +3,7 @@
 #include "shapes.h"
 #include "tensor/value.h"
 #include "tensor_internal.h"
+#include "utils_lib/memory.h"
 #include <complex.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -120,11 +121,7 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, shape.dims, shape.numOfDims);
   shape.multipliers = snm.multipliers;
 
-  void *values = allocateOnCtx(ctx, snm.size * getBytesForDtype(dtype));
-  Result allocRes = ensureAllocated(values);
-  if (allocRes != OK) {
-    return allocRes;
-  }
+  void *values = allocate(ctx->memory, snm.size * getBytesForDtype(dtype));
 
   *dest = (Tensor){
       .context = ctx,
@@ -297,21 +294,17 @@ Tensor *T_Float64(Context *ctx, Dim shape, f64 initialValue) {
   return init;
 }
 
-Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
-                               Dtype dtype) {
+Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtype) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(values == NULL, ERR_NULL_PTR);
-  PANIC_IF(numElements == 0, ERR_NO_OP);
   PANIC_IF(ctx->device != NULL && ctx->device->type == CUDA, ERR_NO_OP);
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, shape.dims, shape.numOfDims);
 
-  PANIC_IF(snm.size != numElements, ERR_RESHAPE_DIM_MISMATCH);
-
   Tensor *tensor = t_Zeros(ctx, shape, dtype);
   PANIC_IF(tensor == NULL, ALLOCATION_FAILED);
 
-  memcpy(tensor->values, values, numElements * getBytesForDtype(dtype));
+  memcpy(tensor->values, values, snm.size * getBytesForDtype(dtype));
 
   return tensor;
 }

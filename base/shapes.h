@@ -140,8 +140,7 @@ Tensor *T_Int(Context *ctx, Dim shape, i8 initialValues);
 Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue);
 Tensor *T_Float(Context *ctx, Dim shape, f32 initialValues);
 Tensor *T_Float64(Context *ctx, Dim shape, f64 initialValue);
-Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, tensor_size_t numElements,
-                               Dtype dtype);
+Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtype);
 Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype);
 Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses);
 Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step);
@@ -152,4 +151,10 @@ Result FreeTensor(Context *ctx, Tensor *t);
 Result FreeViewTensor(Context *ctx, Tensor *t);
 Result FreeTensors(Context *ctx, Tensor **tensors, int numTensors);
 
+// Arrays
+typedef Array* Array_Tensor;
+Array_Tensor Make_DynamicTensorArray(Memory *memory);
+void Array_AppendTensor(Array *array, Tensor *tensor);
+void Array_AppendTensorArray(Array *array, Array *tensorArray);
+Tensor *Array_TensorIdx(Array *array, size_t idx);
 #endif

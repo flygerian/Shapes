@@ -75,35 +75,6 @@ static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
   *dest = *src;
 }
 
-static bool shouldLogOpTiming(void) {
-  const char *value = getenv("SHAPES_LOG_OP_TIMES");
-  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
-}
-
-static double opTimingNowMs(void) {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
-
-static void logOpTiming(Context *ctx, const char *opName, const char *phase, double startMs) {
-  if (!shouldLogOpTiming()) {
-    return;
-  }
-
-  const char *deviceName = "CPU(default)";
-  if (ctx != NULL && ctx->device != NULL) {
-    switch (ctx->device->type) {
-      case CPU: deviceName = "CPU"; break;
-      case CUDA: deviceName = "CUDA"; break;
-      default: deviceName = "UNKNOWN"; break;
-    }
-  }
-
-  fprintf(stderr, "[opTiming] op=%s device=%s phase=%s ms=%.3f\n", opName, deviceName, phase,
-          opTimingNowMs() - startMs);
-}
-
 Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
@@ -128,34 +99,24 @@ Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
            ERR_DIM_MISMATCH);
   // BLAS expects dense row-major buffers. Views/slices from Go can be
   // non-contiguous, so we materialize contiguous copies when needed.
-  double totalStartMs = 0.0;
-  double phaseStartMs = 0.0;
-  if (shouldLogOpTiming()) {
-    totalStartMs = opTimingNowMs();
-  }
 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Tensor *wContig = materializeTensorOnContext(ctx, w);
 
-  logOpTiming(ctx, "DenseLinear", "materialize", totalStartMs);
 
   tensor_size_t rows = x->size / inputSize;
 
-  phaseStartMs = opTimingNowMs();
 
   Dim newDims = swapLastDim(ctx, x->shape, outputSize);
   Tensor *out = T_Zeros(ctx, newDims);
 
-  logOpTiming(ctx, "DenseLinear", "alloc_output", phaseStartMs);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
-  phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
           xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, out->values,
           (int)outputSize);
 
-  logOpTiming(ctx, "DenseLinear", "gemm", phaseStartMs);
 
   if (withBias) {
     AddInPlace(ctx, out, b);
@@ -221,19 +182,12 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   }
 
   // Same contiguous requirement as forward: BLAS kernels consume packed rows.
-  double totalStartMs = 0.0;
-  double phaseStartMs = 0.0;
-  if (shouldLogOpTiming()) {
-    totalStartMs = opTimingNowMs();
-  }
 
   Tensor *xContig = materializeTensorOnContext(ctx, &x2d);
   Tensor *wContig = materializeTensorOnContext(ctx, w);
   Tensor *gContig = materializeTensorOnContext(ctx, &gradOut2d);
 
-  logOpTiming(ctx, "DenseBackward", "materialize", totalStartMs);
 
-  phaseStartMs = opTimingNowMs();
   Tensor dX2d = {0};
   Tensor *createdDX2d = t_Empty(ctx, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
   PANIC_IF(createdDX2d == NULL, ALLOCATION_FAILED);
@@ -244,23 +198,17 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   PANIC_IF(createdDWRaw == NULL, ALLOCATION_FAILED);
   dWRaw = *createdDWRaw;
 
-  logOpTiming(ctx, "DenseBackward", "alloc_outputs", phaseStartMs);
 
-  phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
           gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX2d.values,
           (int)inputSize);
 
-  logOpTiming(ctx, "DenseBackward", "gemm_dx", phaseStartMs);
 
   // dW = gradOut^T * x
-  phaseStartMs = opTimingNowMs();
   runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
           gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dWRaw.values,
           (int)inputSize);
-  logOpTiming(ctx, "DenseBackward", "gemm_dw", phaseStartMs);
 
-  phaseStartMs = opTimingNowMs();
   Tensor *dXReduced = ReduceBroadcast(ctx, x, &dX2d);
   AddInPlace(ctx, dX, dXReduced);
 
@@ -272,9 +220,6 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
     Tensor *dBReduced = ReduceBroadcast(ctx, dB, dBRaw);
     AddInPlace(ctx, dB, dBReduced);
   }
-
-  logOpTiming(ctx, "DenseBackward", "bias_grad", phaseStartMs);
-  logOpTiming(ctx, "DenseBackward", "total", totalStartMs);
 
   return OK;
 }

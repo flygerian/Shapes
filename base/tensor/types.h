@@ -140,9 +140,12 @@ typedef struct Tensor {
 } Tensor;
 
 typedef struct {
-  Tensor *param;
-  Tensor *m;
-  Tensor *v;
+  void *param;
+  void *grad;
+  void *m;
+  void *v;
+  tensor_size_t size;
+  Dtype dtype;
 } AdamData;
 
 typedef struct BatchNormFowardResult {

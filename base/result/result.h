@@ -67,7 +67,7 @@ typedef enum {
   ERR_ADAM_NULL_GRAD,
   ERR_ADAM_ONLY_FLOAT_TENSORS,
   ERR_ADAM_PARAMS_SIZE_MISMATCH,
-  ERR_ADAM_PARAMS_MUST_BE_CONTIGUOUS,
+
   ERR_CONCAT_TENSOR_IS_NULL,
   ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS,
   ERR_CONCAT_TENSOR_DOES_NOT_FIT_IN_TARGET_DIM,
@@ -88,8 +88,13 @@ typedef enum {
   ZERO_LAYERS_PASSED,
   NON_LAYER_OP_PASSED,
   OP_NOT_SEQUENTIAL,
-  ARRAY_ELEM_SIZE_MISMATCH
+  ARRAY_ELEM_SIZE_MISMATCH,
+  ERR_EXPAND_FIXED_ARRAY,
+  ERR_EOF
 } Result;
+
+
+
 
 #define PANIC_IF(cond, errCode)                                                                    \
   do {                                                                                             \
@@ -103,6 +108,14 @@ typedef enum {
   do {                                                                                             \
     if ((var) == NULL) {                                                                           \
       fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, ERR_NULL_PTR);             \
+      abort();                                                                                     \
+    }                                                                                              \
+  } while (0)
+
+#define PANIC_WITH_MSG_IF(cond, msg)                                                                    \
+  do {                                                                                             \
+    if ((cond)) {                                                                                  \
+      fprintf(stderr, "SHAPES FATAL [%s:%d]: %s\n", __FILE__, __LINE__, msg);                  \
       abort();                                                                                     \
     }                                                                                              \
   } while (0)

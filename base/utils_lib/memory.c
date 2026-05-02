@@ -1,19 +1,38 @@
 #include "memory.h"
 #include "result/result.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <time.h>
 
+#define HUGE_PAGE_SIZE (2UL * 1024 * 1024)
+#define ALIGN_TO_HUGE(size) (((size) + HUGE_PAGE_SIZE - 1) & ~(HUGE_PAGE_SIZE - 1))
+
 Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
-  Memory *head;
-  head = malloc(sizeof(Memory) + arenaSize); // return the top of the heap;
-                                             // top of the heap
-  assert(head != NULL);
+  size_t totalSize = sizeof(Memory) + arenaSize;
+  size_t alignedSize = ALIGN_TO_HUGE(totalSize);  // round up to 2MB boundary
+
+  Memory *head = mmap(NULL, alignedSize,
+                      PROT_READ|PROT_WRITE,
+                      MAP_PRIVATE|MAP_ANONYMOUS|MAP_HUGETLB,
+                      -1, 0);
+
+  if (head == MAP_FAILED) {
+    printf("mmap failed: %d", errno);
+    // fall back to regular pages
+    head = mmap(NULL, totalSize,
+                PROT_READ|PROT_WRITE,
+                MAP_PRIVATE|MAP_ANONYMOUS,
+                -1, 0);
+  }
+
+  assert(head != MAP_FAILED);
 
   head->capacity = arenaSize;
   head->allocated = 0;
@@ -56,7 +75,7 @@ Memory *initializeMemory() {
 
 // Writes a block header and footer for a payload of `size` bytes at `header`.
 // Returns header on success, NULL if the block would exceed arena capacity.
-void *adjustBlock(Memory *memory, blockheader *header, size_t size) {
+static inline void *adjustBlock(Memory *memory, blockheader *header, size_t size) {
   uint8_t *arena = ARENA(memory);
   size_t headerOffset = BLOCK_HEADER_OFFSET(arena, header);
 
@@ -157,11 +176,6 @@ void *findAvailableSpace(Memory *memory, size_t size) {
 }
 
 void *allocate(Memory *memory, size_t size) {
-  void *reused = findAvailableSpace(memory, size);
-  if (reused != NULL) {
-    return reused;
-  }
-
   size_t totalBlockSize = TOTAL_BLOCK_SIZE(size);
   // Grow at the end of the arena if there's room; this is the fast path.
   if (memory->allocated + totalBlockSize <= memory->capacity) {

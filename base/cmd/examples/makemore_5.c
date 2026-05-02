@@ -14,8 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-#define BATCH_SIZE 32
+#define BATCH_SIZE 128
 #define NUM_EPOCHS 10
 
 Array *getNames(Context *ctx) {
@@ -164,8 +165,8 @@ Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
   for (size_t i = 0; i < datasetPairs->size; i++) {
     DatasetPair *dp = (DatasetPair *)Array_Idx(datasetPairs, i);
 
-    Tensor *context = MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, 3, I32);
-    Tensor *target = MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target, 1, I32);
+    Tensor *context = MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
+    Tensor *target = MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target,I32);
 
     TensorPair tp = {.a = Cast(ctx, context, F32), .b = Cast(ctx, target, F32)};
     Array_Append(tensorPairs, &tp);
@@ -200,10 +201,9 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
       targetData[i] = pairs[start + i].target;
     }
 
-    Tensor *inputTensor = MakeFromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData,
-                                                 currentBatchSize * 3, I32);
+    Tensor *inputTensor = MakeFromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
     Tensor *targetTensor =
-        MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, currentBatchSize, I32);
+        MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
 
     Array_AppendTensor(batchInputs, inputTensor);
     Array_AppendTensor(batchTargets, targetTensor);
@@ -299,7 +299,7 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
 
     for (int step = 0; step < maxNameLen; step++) {
       i32 inputData[3] = {context[0], context[1], context[2]};
-      Tensor *input = MakeFromContigousArray(ctx, SHAPE2D(1, 3), inputData, 3, I32);
+      Tensor *input = MakeFromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
       Tensor *embeddings = Forward(ctx, model->embedding, input);
       Tensor *reshapedEmbeddings = Reshape(ctx, embeddings, SHAPE2D(1, 30));
@@ -349,7 +349,7 @@ void makemore_5() {
   Array *params = Model_Parameters(&ctx, &model);
   printf("Total parameters: %zu\n\n", params->size);
 
-  size_t scratchBufferSize = (size_t)1024 * 1024 * 1024;
+  size_t scratchBufferSize = (size_t)1024 * 1024 * 10;
   void *scratchBuffer = allocate(mem, scratchBufferSize);
   Memory *scratchMem = initializeArenaWithBuffer(scratchBuffer, scratchBufferSize, 1);
 
@@ -365,6 +365,8 @@ void makemore_5() {
     f32 totalLoss = 0.0f;
     size_t totalSamples = 0;
     f32 wsumAvg = 0;
+
+    clock_t epochStart = clock();
 
     for (size_t b = 0; b < batchedData.numBatches; b++) {
       Tensor *input = *(Tensor **)Array_Idx(batchedData.inputs, b);
@@ -399,13 +401,22 @@ void makemore_5() {
         }
       }
 
+      if (epoch == 0 && b == 0) {
+        printf("Scratch used per batch: %zu KB\n", scratchMem->allocated / 1024);
+      }
+
       OptimizerStep(&ctx, model.optimizer, params);
       ZeroGrad(&ctx, params);
+
+      if (epoch == 0 && b == 0) {
+        printf("Scratch used per batch: %zu KB\n", scratchMem->allocated / 1024);
+      }
 
       resetArena(scratchMem);
     }
 
-    printf("Epoch %zu: Loss = %f\n", epoch, totalLoss / totalSamples);
+    double epochTime = (double)(clock() - epochStart) / CLOCKS_PER_SEC;
+    printf("Epoch %zu: Loss = %f, Time = %.3fs\n", epoch, totalLoss / totalSamples, epochTime);
   }
 
   printf("\nTraining complete. Generating samples...\n");

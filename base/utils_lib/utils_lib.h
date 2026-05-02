@@ -15,3 +15,12 @@ typedef int64_t i64;
 typedef float_t f16;
 typedef float_t f32;
 typedef double_t f64;
+
+typedef u8 byte;
+typedef byte* bytebuffer;
+typedef char* string;
+
+#define RANGE(iterator, bufferSize) \
+  size_t iterator = 0; iterator < (size_t) bufferSize; iterator++
+
+#define F32_(var) (f32) var

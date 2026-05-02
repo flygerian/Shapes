@@ -1,7 +1,6 @@
 #include "../common.h"
 #include "tensor_internal.h"
 #include <sched.h>
-#include <stdlib.h>
 #include <string.h>
 
 static const char *dtypeName(Dtype dtype) {
@@ -30,21 +29,6 @@ static const char *deviceTypeName(DeviceType type) {
   }
 }
 
-static bool shouldLogGemm(void) {
-  const char *value = getenv("SHAPES_LOG_GEMM");
-  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
-}
-
-static void logGemmDispatch(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA,
-                            CBLAS_TRANSPOSE transB, int m, int n, int k, bool accumulate) {
-  if (!shouldLogGemm()) {
-    return;
-  }
-
-  const char *deviceName = ctx->device == NULL ? "CPU(default)" : deviceTypeName(ctx->device->type);
-  fprintf(stderr, "[runGemm] device=%s dtype=%s transA=%d transB=%d m=%d n=%d k=%d accumulate=%d\n",
-          deviceName, dtypeName(dtype), (int)transA, (int)transB, m, n, k, accumulate ? 1 : 0);
-}
 
 static cublasOperation_t toCudaTranspose(CBLAS_TRANSPOSE trans) {
   switch (trans) {
@@ -70,7 +54,6 @@ void runCpuGemm(Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m,
              int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c,
              int ldc) {
-  logGemmDispatch(ctx, dtype, transA, transB, m, n, k, accumulate);
 
   if (ctx->device == NULL) {
     return runCpuGemm(dtype, transA, transB, m, n, k, a, lda, b, ldb, accumulate, c, ldc);

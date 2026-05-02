@@ -16,10 +16,6 @@ static bool isCudaContext(Context *ctx) {
   return ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA;
 }
 
-static bool shouldLogOpTiming(void) {
-  const char *value = getenv("SHAPES_LOG_OP_TIMES");
-  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
-}
 
 static const char *opTimingDeviceName(Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
@@ -54,15 +50,6 @@ typedef PendingCudaOpTiming CudaOpPhase;
 
 static PendingCudaOpTiming pendingCudaOpTimings[MAX_PENDING_CUDA_OP_TIMINGS] = {0};
 
-static void logHostOpTiming(Context *ctx, const char *opName, const char *phase, double startMs) {
-  if (!shouldLogOpTiming()) {
-    return;
-  }
-
-  fprintf(stderr, "[opTiming] op=%s device=%s phase=%s ms=%.3f\n", opName, opTimingDeviceName(ctx),
-          phase, opTimingNowMs() - startMs);
-}
-
 TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
   PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(logits), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(yGround->shape.numOfDims != logits->shape.numOfDims, ERR_DIM_MISMATCH);
@@ -87,25 +74,11 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
   CudaOpPhase cudaPhase = {0};
-  if (shouldLogOpTiming()) {
-    totalStartMs = opTimingNowMs();
-    phaseStartMs = totalStartMs;
-  }
 
-  logHostOpTiming(ctx, "CrossEntropyForward", "materialize_y", phaseStartMs);
-  if (shouldLogOpTiming()) {
-    phaseStartMs = opTimingNowMs();
-  }
-  logHostOpTiming(ctx, "CrossEntropyForward", "materialize_logits", phaseStartMs);
-
-  if (shouldLogOpTiming()) {
-    phaseStartMs = opTimingNowMs();
-  }
 
   Tensor *probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
   Tensor *loss;
   Result res = OK;
-  logHostOpTiming(ctx, "CrossEntropyForward", "init_probs", phaseStartMs);
 
   if (isCudaContext(ctx)) {
     loss = T_Zeros(ctx, SCALAR);
@@ -113,13 +86,6 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
         runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values,
                                    rows, classCount, probs->values, loss->values);
     PANIC_IF(res != OK, res);
-
-    logHostOpTiming(ctx, "CrossEntropyForward", "cuda_forward", phaseStartMs);
-    goto cleanup;
-  }
-
-  if (shouldLogOpTiming()) {
-    phaseStartMs = opTimingNowMs();
   }
 
   if (logitsContig->dtype == F64) {
@@ -153,11 +119,6 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
       }
 
       totalLoss += -rowLoss;
-    }
-
-    logHostOpTiming(ctx, "CrossEntropyForward", "cpu_forward", phaseStartMs);
-    if (shouldLogOpTiming()) {
-      phaseStartMs = opTimingNowMs();
     }
 
     loss = T_Float64(ctx, SCALAR, totalLoss / (double)rows);
@@ -194,24 +155,9 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
       totalLoss += -rowLoss;
     }
 
-    logHostOpTiming(ctx, "CrossEntropyForward", "cpu_forward", phaseStartMs);
-    if (shouldLogOpTiming()) {
-      phaseStartMs = opTimingNowMs();
-    }
-
     loss = T_Float(ctx, SCALAR, totalLoss / (float)rows);
   }
 
-  logHostOpTiming(ctx, "CrossEntropyForward", "init_loss", phaseStartMs);
-
-cleanup:
-  if (shouldLogOpTiming()) {
-    phaseStartMs = opTimingNowMs();
-  }
-
-
-  logHostOpTiming(ctx, "CrossEntropyForward", "cleanup", phaseStartMs);
-  logHostOpTiming(ctx, "CrossEntropyForward", "total_host", totalStartMs);
 
   return (TensorPair){.a = loss, .b = probs};
 }

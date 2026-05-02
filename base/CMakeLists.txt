@@ -26,6 +26,7 @@ add_compile_options(
   -march=native
   $<$<CONFIG:Debug>:-O0>
   $<$<CONFIG:Release>:-O3>
+  $<$<CONFIG:Release>:-ffast-math>
   $<$<CONFIG:RelWithDebInfo>:-O2>
 )
 # Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
@@ -56,6 +57,7 @@ add_library(utils_lib
   utils_lib/array.c
   utils_lib/map.c
   utils_lib/bitset.c
+  utils_lib/file.c
 )
 target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
 
@@ -119,6 +121,7 @@ add_library(shapes_core
     nn/utils.c
     cmd/examples/makemore_3.c
     cmd/examples/makemore_5.c
+    cmd/examples/vgg-10.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 

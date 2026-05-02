@@ -26,15 +26,21 @@ Array *contructNewArray(Memory *memory, size_t elemSize, size_t capacity) {
   return alloc;
 }
 
-static inline void expandCapacity(Array *slice) {
-  PANIC_IF(slice == NULL, ERR_NULL_PTR);
+static inline void expandIfNeeded(Array *array, size_t numItemsToAdd) {
+  PANIC_IF(array == NULL, ERR_NULL_PTR);
+  bool isArrayAtCapacity = array->size + numItemsToAdd > array->capacity;
+  PANIC_IF(isArrayAtCapacity && array->isCapacityFixed, ERR_EXPAND_FIXED_ARRAY);
 
-  const size_t newCapacity = slice->capacity + SLICE_GROW_FACTOR;
+  if(!isArrayAtCapacity) {
+    return;
+  }
+
+  const size_t newCapacity = array->capacity + SLICE_GROW_FACTOR;
   void *newItemsAllocation =
-      reallocate(slice->memory, slice->items, (newCapacity * slice->elemSize));
+      reallocate(array->memory, array->items, (newCapacity * array->elemSize));
 
-  slice->capacity = newCapacity;
-  slice->items = newItemsAllocation;
+  array->capacity = newCapacity;
+  array->items = newItemsAllocation;
 }
 
 Array *MakeDynamicArray(Memory *memory, const size_t elemSize) {
@@ -59,9 +65,7 @@ void Array_SetAt(Array *array, size_t idx, void *ptr) {
 }
 
 void Array_Append(Array *array, void *ptr) {
-  if (array->size + 1 >= array->capacity && !array->isCapacityFixed) {
-    expandCapacity(array);
-  }
+  expandIfNeeded(array, 1);
 
   PANIC_IF(array->size == array->capacity, ERR_OUT_OF_BOUNDS);
 
@@ -84,6 +88,11 @@ void *Array_Idx(Array *slice, size_t idx) {
   return ARRAY_PTR_AT_IDX(slice, idx);
 }
 
+void Array_Reset(Array *array) {
+    memset(array->items, 0, array->size);
+    array->size = 0;
+}
+
 String Array_StringIdx(Array *array, size_t idx) {
   return *((String *)Array_Idx(array, idx));
 }
@@ -95,8 +104,38 @@ String MakeString(Memory *memory, char *stringData) {
 }
 
 String MakeStringN(Memory *memory, char *stringData, size_t len) {
-  String str = MakeArray(memory, sizeof(char), len);
+  String str = MakeArray(memory, sizeof(char), len + 1);
   memcpy(str->items, stringData, len);
+  ((char *)str->items)[len] = '\0';
   str->size = len;
   return str;
+}
+
+Array_F32 Make_DynamicF32Array(Memory *memory) {
+  return MakeDynamicArray(memory, sizeof(f32));
+}
+
+Array_F32 Make_F32Array(Memory *memory, size_t capacity) {
+  return MakeArray(memory, sizeof(f32), capacity);
+}
+
+void Array_AppendF32(Array *array, f32 num) {
+  Array_Append(array, &num);
+}
+
+void Array_AppendF32Buffer(Array *array, f32 *num, size_t numItems) {
+  PANIC_IF_NULL(num);
+  PANIC_IF(array->elemSize != sizeof(f32), ARRAY_ELEM_SIZE_MISMATCH);
+
+  expandIfNeeded(array, numItems);
+
+  f32* items = array->items;
+  f32* arrEnd = items + array->size;
+
+  memcpy(arrEnd, num, numItems * sizeof(f32));
+  array->size += numItems;
+}
+
+f32 Array_F32Idx(Array *array, size_t idx) {
+  return *( (f32*) Array_Idx(array, idx) );
 }

@@ -56,4 +56,7 @@ void ZeroGrad(Context *ctx, Array *graph);
 
 void OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters);
 
+void Array_AppendLayer(Array *array, Layer *layer);
+Layer *Array_LayerIdx(Array *array, size_t idx);
+
 #endif
