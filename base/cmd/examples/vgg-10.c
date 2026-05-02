@@ -9,6 +9,7 @@
 #include "utils_lib/utils_lib.h"
 #include "utils_lib/error.h"
 #include "string.h"
+#include "examples.h"
 
 #define DATASET_PATH "base/cmd/examples/datasets/cifar-10-binary/cifar-10-batches-bin/data_batch_*.bin"
 #define LABELS_FILE_PATH "base/cmd/examples/datasets/cifar-10-binary/cifar-10-batches-bin/batches.meta.txt"
@@ -80,7 +81,7 @@ dataset getDataset(Context *ctx) {
       }
 
       for (RANGE(pixelIdx, CHANNEL_PLANE)) {
-        f32 pixel[3] = {F32_(r[pixelIdx]) / 255,  F32_(r[pixelIdx]) / 255, F32_(r[pixelIdx]) / 255};
+        f32 pixel[3] = {F32_(r[pixelIdx]) / 255,  F32_(g[pixelIdx]) / 255, F32_(b[pixelIdx]) / 255};
         Array_AppendF32Buffer(image, pixel, 3);
       }
 
@@ -108,5 +109,7 @@ void vgg10() {
   Memory *mem = initializeArena((size_t)1024 * 1024 * 1024 * 5, 1); // 5GB
   Context ctx = {.memory = mem};
 
-  getDataset(&ctx);
+  dataset ds = getDataset(&ctx);
+  Tensor *first = Array_TensorIdx(ds.Xs, 234);
+  basicRaylibWindow(first);
 }

@@ -6,7 +6,7 @@
 #include "utils_lib/error.h"
 
 File File_OpenPathInReadMode(string path) {
-  FILE* fileHandle = fopen(path, "r");
+  FILE* fileHandle = fopen(path, "rb");
   PANIC_IF_NULL(fileHandle);
 
   return (File) {.fd = fileHandle, .path = path};
@@ -18,7 +18,7 @@ Error File_ReadBytesToBuffer(File *file, void *buf, size_t numBytesToRead) {
   RETURN_ERROR_IF_NULL(file->fd);
 
   size_t res = fread(buf, 1, numBytesToRead, file->fd);
-  RETURN_ERROR_IF(res <= 0, ERR_EOF, "End of file");
+  RETURN_ERROR_IF(res != numBytesToRead, ERR_EOF, "End of file or incomplete read");
 
   return OK;
 }

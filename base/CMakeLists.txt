@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_subdirectory("raylib")
 # Copy compile_commands.json to root automatically
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
   add_custom_target(copy_compile_commands ALL
@@ -122,10 +123,11 @@ add_library(shapes_core
     cmd/examples/makemore_3.c
     cmd/examples/makemore_5.c
     cmd/examples/vgg-10.c
+    cmd/examples/ui.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
-target_link_libraries(shapes_core shapes_cuda utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
+target_link_libraries(shapes_core shapes_cuda raylib utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
 
 # Main executable
 add_executable(shapes
