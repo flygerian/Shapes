@@ -112,7 +112,6 @@ Result clearTensorValues(Tensor *t) {
   return OK;
 }
 
-
 u64 getContigousIdxFromCoord(Tensor *restrict t, dim_t *restrict idx) {
   u64 result = 0;
 
@@ -126,27 +125,6 @@ u64 getContigousIdxFromCoord(Tensor *restrict t, dim_t *restrict idx) {
 
   return result;
 }
-
-bool isInvalidTensor(Tensor *t) {
-  if (t == NULL || t->values == NULL) {
-    return true;
-  }
-  // 0-dimensional tensors have shape.dims == NULL, which is valid
-  if (t->shape.numOfDims > 0 && t->shape.dims == NULL) {
-    return true;
-  }
-  return false;
-}
-
-bool isIntType(Tensor *t) {
-  return t->dtype != I8 && t->dtype != I16 && t->dtype != I32 && t->dtype != I64 &&
-         t->dtype != U8 && t->dtype != U16 && t->dtype != U32 && t->dtype != U64;
-}
-
-bool isNotFloatType(Tensor *t) {
-  return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
-}
-
 
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result) {
   if (isInvalidTensor(t)) {
@@ -486,6 +464,10 @@ Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
 
 Array* Make_DynamicTensorArray(Memory *memory) {
   return MakeDynamicArray(memory, sizeof(Tensor *)); 
+}
+
+Array* Make_TensorArray(Memory *memory, size_t capacity) {
+  return MakeArray(memory, sizeof(Tensor *), capacity); 
 }
 
 void Array_AppendTensor(Array *array, Tensor *tensor) {

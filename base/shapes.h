@@ -1,13 +1,23 @@
 #ifndef shapes_h
 #define shapes_h
 
-#include "common.h"
 #include "result/result.h"
+#include "tensor/types.h"
+#include "utils_lib/array.h"
 #include <stddef.h>
 #include <stdint.h>
 
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
+
+
+// Arrays
+typedef Array* Array_Tensor;
+Array_Tensor Make_DynamicTensorArray(Memory *memory);
+Array* Make_TensorArray(Memory *memory, size_t capacity);
+void Array_AppendTensor(Array *array, Tensor *tensor);
+void Array_AppendTensorArray(Array *array, Array *tensorArray);
+Tensor *Array_TensorIdx(Array *array, size_t idx);
 
 // Context
 Context InitializeContext(size_t arenaSize, size_t minBlockSize, bool withCuda);
@@ -55,6 +65,7 @@ Tensor *Clone(Context *ctx, Tensor *t);
 void Copy(Context *ctx, Tensor *src, Tensor *dest);
 Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
                u32 numTensorsToAdd);
+Tensor* Stack(Context *ctx, Array_Tensor tensors);
 
 // Cast
 Tensor *Cast(Context *ctx, Tensor *source, Dtype targetDtype);
@@ -151,10 +162,4 @@ Result FreeTensor(Context *ctx, Tensor *t);
 Result FreeViewTensor(Context *ctx, Tensor *t);
 Result FreeTensors(Context *ctx, Tensor **tensors, int numTensors);
 
-// Arrays
-typedef Array* Array_Tensor;
-Array_Tensor Make_DynamicTensorArray(Memory *memory);
-void Array_AppendTensor(Array *array, Tensor *tensor);
-void Array_AppendTensorArray(Array *array, Array *tensorArray);
-Tensor *Array_TensorIdx(Array *array, size_t idx);
 #endif

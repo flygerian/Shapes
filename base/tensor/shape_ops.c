@@ -7,6 +7,7 @@
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
+#include "tensor/types.h"
 #include "tensor_internal.h"
 #include <stdlib.h>
 
@@ -537,4 +538,25 @@ Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
   }
 
   return dest;
+}
+
+Tensor* Stack(Context *ctx, Array_Tensor tensors) {
+  PANIC_IF_NULL(ctx);
+  PANIC_IF_NULL(tensors);
+  PANIC_IF(tensors->size < 2, ERR_STACKING_LESS_THAN_TWO_TENSORS);
+
+  Tensor *firstTensor = Array_TensorIdx(tensors, 0);
+  Array_Tensor unsqueezed = Make_TensorArray(ctx->memory, tensors->size);
+
+  for (RANGE_FROM(1, tensors->size, i)) {
+    Tensor *currentTensor = Array_TensorIdx(tensors, i);
+
+    PANIC_IF_NULL(currentTensor);
+    PANIC_IF(!isSameShape(firstTensor, currentTensor), ERR_DIM_MISMATCH);
+
+    Array_AppendTensor(unsqueezed, UnSqueeze(ctx, currentTensor, 0));
+  }
+
+  Tensor *firstTensorUnsqueezed  = UnSqueeze(ctx, firstTensor, 0);
+  return Concat(ctx, firstTensorUnsqueezed, 0, (Tensor**) unsqueezed->items, tensors->size - 1);
 }

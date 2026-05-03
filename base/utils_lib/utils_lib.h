@@ -23,4 +23,7 @@ typedef char* string;
 #define RANGE(iterator, bufferSize) \
   size_t iterator = 0; iterator < (size_t) bufferSize; iterator++
 
+#define RANGE_FROM(from, bufferSize, iterator) \
+  size_t iterator = from; iterator < (size_t) bufferSize; iterator++
+
 #define F32_(var) (f32) var

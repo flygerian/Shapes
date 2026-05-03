@@ -90,11 +90,9 @@ typedef enum {
   OP_NOT_SEQUENTIAL,
   ARRAY_ELEM_SIZE_MISMATCH,
   ERR_EXPAND_FIXED_ARRAY,
-  ERR_EOF
+  ERR_EOF,
+  ERR_STACKING_LESS_THAN_TWO_TENSORS
 } Result;
-
-
-
 
 #define PANIC_IF(cond, errCode)                                                                    \
   do {                                                                                             \

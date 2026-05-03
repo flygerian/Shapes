@@ -1,7 +1,9 @@
+#include "common.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor/types.h"
 #include "utils_lib/array.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <glob.h>
@@ -18,14 +20,42 @@
 #define IMAGES_HEIGHT 32
 #define NUM_CHANNELS 3
 #define CHANNEL_PLANE IMAGES_WIDTH * IMAGES_HEIGHT
+#define BATCH_SIZE 32
 
 typedef struct dataset {
-  Array_Tensor Xs;
-  Array_Tensor Ys;
+  Array_Tensor Xtrain;
+  Array_Tensor Ytrain;
+  Array_Tensor Xtest;
+  Array_Tensor Ytest;
 } dataset;
 
 int globErrFn(const char* epath, int eerrno) {
   printf("Err in path %s errno %d", epath, eerrno);
+}
+
+static inline Error readNextImageChannelsAndLabel(File imageFile, byte *out_label, byte *out_r, byte *out_g, byte *out_b) {
+  Error readErr = File_ReadBytesToBuffer(imageFile, out_label, 1);
+  RETURN_ON_ERROR(readErr);
+
+  // Read the R channel
+  readErr = File_ReadBytesToBuffer(imageFile, out_r, CHANNEL_PLANE);
+  RETURN_ON_ERROR(readErr);
+
+  // Read the B channel
+  readErr = File_ReadBytesToBuffer(imageFile, out_g, CHANNEL_PLANE);
+  RETURN_ON_ERROR(readErr);
+  // Read the C channel
+  readErr = File_ReadBytesToBuffer(imageFile, out_b,CHANNEL_PLANE);
+  RETURN_ON_ERROR(readErr);
+
+  return OK;
+}
+
+static inline void readAsNCHWIntoArray(Array *image, byte *restrict r, byte *restrict g, byte *restrict b) {
+  for (RANGE(pixelIdx, CHANNEL_PLANE)) {
+    f32 pixel[3] = {F32_(r[pixelIdx]) / 255,  F32_(g[pixelIdx]) / 255, F32_(b[pixelIdx]) / 255};
+    Array_AppendF32Buffer(image, pixel, 3);
+  }
 }
 
 dataset getDataset(Context *ctx) { 
@@ -37,8 +67,10 @@ dataset getDataset(Context *ctx) {
   File labelsDataFile  = File_OpenPathInReadMode(LABELS_FILE_PATH);
   File testBatchFile = File_OpenPathInReadMode( TEST_BATCH_FILE);
 
-  Array_Tensor Xs = Make_DynamicTensorArray(ctx->memory);
-  Array_Tensor Ys = Make_DynamicTensorArray(ctx->memory);
+  Array_Tensor Xtrain = Make_DynamicTensorArray(ctx->memory);
+  Array_Tensor Ytrain = Make_DynamicTensorArray(ctx->memory);
+  Array_Tensor Xtest = Make_DynamicTensorArray(ctx->memory);
+  Array_Tensor Ytest = Make_DynamicTensorArray(ctx->memory);
 
   byte label[1]= {0};
   byte r[CHANNEL_PLANE] = {0};  
@@ -57,40 +89,19 @@ dataset getDataset(Context *ctx) {
     Error readError;
 
     while(true) {
-      Error readErr = File_ReadBytesToBuffer(&bf, &label, 1);
-      if(readErr.code != 0) {
+      Error err = readNextImageChannelsAndLabel(bf, label, r, g, b);
+      if (err.code != 0) {
         break;
-      }
+      } 
 
-      // Read the R channel
-      readErr = File_ReadBytesToBuffer(&bf, r, CHANNEL_PLANE);
-      if(readErr.code != 0) {
-        break;
-      }
-
-      // Read the B channel
-      readErr = File_ReadBytesToBuffer(&bf, g, CHANNEL_PLANE);
-      if(readErr.code != 0) {
-        break;
-      }
-
-      // Read the C channel
-      readErr = File_ReadBytesToBuffer(&bf, b,CHANNEL_PLANE);
-      if(readErr.code != 0) {
-        break;
-      }
-
-      for (RANGE(pixelIdx, CHANNEL_PLANE)) {
-        f32 pixel[3] = {F32_(r[pixelIdx]) / 255,  F32_(g[pixelIdx]) / 255, F32_(b[pixelIdx]) / 255};
-        Array_AppendF32Buffer(image, pixel, 3);
-      }
+      readAsNCHWIntoArray(image, r, g, b);
 
       Tensor* imageTensor = MakeFromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
-      Array_AppendTensor(Xs, imageTensor);
+      Array_AppendTensor(Xtrain, imageTensor);
 
       f32 lbl[1] = {F32_(label[0])}; 
       Tensor* labelTensor =  MakeFromContigousArray(ctx, SCALAR, lbl, F32);
-      Array_AppendTensor(Ys, labelTensor);
+      Array_AppendTensor(Ytrain, labelTensor);
 
       Array_Reset(image);
       numImagesProcessed += 1;
@@ -101,8 +112,70 @@ dataset getDataset(Context *ctx) {
     CloseFile(&bf);
   }
 
-  return (dataset) {.Xs = Xs, .Ys = Ys};
+  while (true) { 
+    Error err = readNextImageChannelsAndLabel(testBatchFile, label, r, g, b);
+    if (err.code != 0) {
+      break;
+    } 
+
+    readAsNCHWIntoArray(image, r, g, b);
+    Tensor* imageTensor = MakeFromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
+    Array_AppendTensor(Xtest, imageTensor);
+
+    f32 lbl[1] = {F32_(label[0])}; 
+    Tensor* labelTensor =  MakeFromContigousArray(ctx, SCALAR, lbl, F32);
+    Array_AppendTensor(Ytest, labelTensor);
+    Array_Reset(image);
+  }
+
+  CloseFile(&labelsDataFile);
+  CloseFile(&testBatchFile);
+  return (dataset) {.Xtrain = Xtrain, .Ytrain = Ytrain, .Xtest = Xtest, .Ytest = Ytest};
 }
+
+static inline dataset toBatches(Context *ctx, dataset ds) {
+  size_t amountProcessed = 0;
+  Array_Tensor currentXBatch = Make_TensorArray(ctx->memory, BATCH_SIZE);
+  Array_Tensor currentYBatch = Make_TensorArray(ctx->memory, BATCH_SIZE);
+
+  dataset batched = (dataset) { 
+    .Xtrain = Make_DynamicTensorArray(ctx->memory), 
+    .Xtest = Make_DynamicTensorArray(ctx->memory), 
+    .Ytrain = ds.Ytrain,
+    .Ytest = ds.Ytest
+  };
+
+  u8 counter = 0;
+  while (true) {
+    Tensor *tXTrain = Array_TensorIdx(ds.Xtrain, counter);
+    Array_AppendTensor(currentXBatch, tXTrain); 
+
+    Tensor *tYTrain = Array_TensorIdx(ds.Ytrain, counter);
+    Array_AppendTensor(currentYBatch, tYTrain); 
+
+    bool isAtEnd = ( amountProcessed + counter ) >= ds.Xtrain->size;
+    if (counter == 31 || isAtEnd) {
+      Tensor* batchedXTensor = Stack(ctx, currentXBatch);
+      Tensor* batchedYTensor = Stack(ctx, currentYBatch);
+
+      Array_AppendTensor(batched.Xtrain, batchedXTensor);
+      Array_AppendTensor(batched.Ytrain, batchedYTensor);
+
+      counter = 0;
+      Array_Reset(currentXBatch);
+      Array_Reset(currentYBatch);
+
+      if (isAtEnd) {
+        break;
+      }
+    }
+
+    counter += 1;
+    amountProcessed += 1;
+  }
+
+  return batched;
+} 
 
 void vgg10() {
 
@@ -110,6 +183,10 @@ void vgg10() {
   Context ctx = {.memory = mem};
 
   dataset ds = getDataset(&ctx);
-  Tensor *first = Array_TensorIdx(ds.Xs, 234);
-  basicRaylibWindow(first);
+  // Tensor *first = Array_TensorIdx(ds.Xtest, 246);
+  // basicRaylibWindow(first);
+  
+  dataset batched = toBatches(&ctx, ds); 
+  printf("\n%zu batches created from dataset %zu size", batched.Xtrain->size, ds.Xtrain->size);
+
 }

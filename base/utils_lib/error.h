@@ -45,4 +45,11 @@ typedef struct {
     } \
   } while (0)
 
+#define RETURN_ON_ERROR(err) \
+  do { \
+    if ((err).code != 0) { \
+      return err;         \
+    } \
+  } while (0)
+
 #endif

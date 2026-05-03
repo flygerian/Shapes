@@ -69,7 +69,6 @@ Result clearTensorValues(Tensor *t);
 bool areBroadcastable(Tensor *a, Tensor *b);
 TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
 
-bool isInvalidTensor(Tensor *t);
 sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 numOfDims);
 Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
@@ -80,14 +79,10 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
 
 Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t);
 
-bool isIntType(Tensor *t);
-bool isNotFloatType(Tensor *t);
 
 Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
-void Array_AppendTensor(Array *array, Tensor *tensor);
-void Array_AppendTensorArray(Array *array, Array *tensorArray);
 Tensor *Array_TensorIdx(Array *array, size_t idx);
 void Array_AppendLayer(Array *array, Layer *layer);
 Layer *Array_LayerIdx(Array *array, size_t idx);
@@ -141,6 +136,42 @@ Result runCudaIndexSelect2d(Context *ctx, Dtype dtype, const void *src, dim_t so
                             tensor_size_t sliceSize);
 Result runCudaSgd(Context *ctx, Dtype dtype, void *param, const void *grad, tensor_size_t n,
                   f32 learningRate);
+
+
+static inline bool isInvalidTensor(Tensor *t) {
+  if (t == NULL || t->values == NULL) {
+    return true;
+  }
+  // 0-dimensional tensors have shape.dims == NULL, which is valid
+  if (t->shape.numOfDims > 0 && t->shape.dims == NULL) {
+    return true;
+  }
+  return false;
+}
+
+static inline bool isIntType(Tensor *t) {
+  return t->dtype != I8 && t->dtype != I16 && t->dtype != I32 && t->dtype != I64 &&
+         t->dtype != U8 && t->dtype != U16 && t->dtype != U32 && t->dtype != U64;
+}
+
+static inline bool isNotFloatType(Tensor *t) {
+  return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
+}
+
+static inline bool isSameShape(Tensor *a, Tensor *b) {
+  if(a->shape.numOfDims != b->shape.numOfDims) {
+    return false;
+  } 
+
+  for (RANGE(i, a->shape.numOfDims)) {
+    if (a->shape.dims[i] != b->shape.dims[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 #ifdef __cplusplus
 }
 #endif
