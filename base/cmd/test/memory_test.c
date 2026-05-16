@@ -84,8 +84,7 @@ static void test_footer_offset_resolves_to_header(void) {
   blockfooter *footer = (blockfooter *)((uint8_t *)ptr + size);
 
   size_t expectedOffset = (uint8_t *)hdr - arena;
-  ASSERT_EQ(footer->headerOffset, expectedOffset,
-            "footer headerOffset should equal header's arena offset");
+  ASSERT_EQ(footer->headerOffset, expectedOffset, "footer headerOffset should equal header's arena offset");
 
   blockheader *hdrFromFooter = (blockheader *)(arena + footer->headerOffset);
   ASSERT_EQ(hdrFromFooter, hdr, "footer headerOffset should resolve back to the same header");
@@ -101,8 +100,7 @@ static void test_allocations_are_contiguous_in_arena(void) {
 
   // ptr2 should start immediately after the footer of the first block.
   uint8_t *expectedPtr2 = (uint8_t *)ptr1 + size1 + sizeof(blockfooter) + sizeof(blockheader);
-  ASSERT_EQ((uint8_t *)ptr2, expectedPtr2,
-            "second allocation payload should start right after first block's footer + header");
+  ASSERT_EQ((uint8_t *)ptr2, expectedPtr2, "second allocation payload should start right after first block's footer + header");
 }
 
 static void test_allocated_bytes_advances_by_total_block_size(void) {
@@ -110,8 +108,7 @@ static void test_allocated_bytes_advances_by_total_block_size(void) {
   size_t sizeBefore = mem->allocated;
   size_t payloadSize = 128;
   allocate(mem, payloadSize);
-  ASSERT_EQ(mem->allocated - sizeBefore, totalBlockSize(payloadSize),
-            "allocated should advance by header + payload + footer");
+  ASSERT_EQ(mem->allocated - sizeBefore, totalBlockSize(payloadSize), "allocated should advance by header + payload + footer");
 }
 
 // ---------------------------------------------------------------------------
@@ -166,8 +163,7 @@ static void test_split_creates_free_remainder(void) {
   ASSERT_EQ(remainderHdr->free, true, "remainder block should be free after split");
 
   size_t expectedRemainderPayload = largeSize - smallSize - totalBlockSize(0);
-  ASSERT_EQ(remainderHdr->blockSize, expectedRemainderPayload,
-            "remainder block payload should be largeSize - smallSize - header/footer overhead");
+  ASSERT_EQ(remainderHdr->blockSize, expectedRemainderPayload, "remainder block payload should be largeSize - smallSize - header/footer overhead");
 }
 
 static void test_split_remainder_footer_offset_is_correct(void) {
@@ -184,12 +180,10 @@ static void test_split_remainder_footer_offset_is_correct(void) {
   uint8_t *remainderStart = (uint8_t *)large + smallSize + sizeof(blockfooter);
   blockheader *remainderHdr = (blockheader *)remainderStart;
 
-  blockfooter *remainderFooter =
-      (blockfooter *)((uint8_t *)(remainderHdr + 1) + remainderHdr->blockSize);
+  blockfooter *remainderFooter = (blockfooter *)((uint8_t *)(remainderHdr + 1) + remainderHdr->blockSize);
   size_t expectedOffset = (uint8_t *)remainderHdr - arena;
 
-  ASSERT_EQ(remainderFooter->headerOffset, expectedOffset,
-            "remainder block footer should point back to remainder header");
+  ASSERT_EQ(remainderFooter->headerOffset, expectedOffset, "remainder block footer should point back to remainder header");
 }
 
 // ---------------------------------------------------------------------------
@@ -212,8 +206,7 @@ static void test_coalesce_backwards_merges_adjacent_free_blocks(void) {
   freeAlloc(mem, ptr2);
 
   size_t expectedMergedPayload = size1 + totalBlockSize(size2);
-  ASSERT_EQ(hdr1->blockSize, expectedMergedPayload,
-            "merged block payload should be size1 + full block size of size2");
+  ASSERT_EQ(hdr1->blockSize, expectedMergedPayload, "merged block payload should be size1 + full block size of size2");
   ASSERT_EQ(hdr1->free, true, "merged block should be marked free");
 }
 
@@ -232,8 +225,7 @@ static void test_coalesce_backwards_footer_points_to_merged_header(void) {
 
   blockfooter *mergedFooter = (blockfooter *)((uint8_t *)(hdr1 + 1) + hdr1->blockSize);
   size_t expectedOffset = (uint8_t *)hdr1 - arena;
-  ASSERT_EQ(mergedFooter->headerOffset, expectedOffset,
-            "merged block footer should point to the first (surviving) header");
+  ASSERT_EQ(mergedFooter->headerOffset, expectedOffset, "merged block footer should point to the first (surviving) header");
 }
 
 static void test_coalesce_does_not_merge_when_prev_allocated(void) {
@@ -271,8 +263,7 @@ static void test_coalesce_three_blocks_into_one(void) {
 
   // Expected: s1 + full(s2) + full(s3)
   size_t expectedPayload = s1 + totalBlockSize(s2) + totalBlockSize(s3);
-  ASSERT_EQ(hdr1->blockSize, expectedPayload,
-            "three consecutive frees should coalesce into one block");
+  ASSERT_EQ(hdr1->blockSize, expectedPayload, "three consecutive frees should coalesce into one block");
   ASSERT_EQ(hdr1->free, true, "fully coalesced block should be free");
 }
 
@@ -392,8 +383,7 @@ static void test_num_free_blocks_decrements_on_reuse(void) {
   // Arena is full so next allocate goes through findAvailableSpace; no split
   // possible because the leftover would be zero-sized.
   allocate(mem, blockSz);
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)0,
-            "numFreeBlocks should be 0 after reusing the free block");
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)0, "numFreeBlocks should be 0 after reusing the free block");
 }
 
 static void test_num_free_blocks_split_adds_free_remainder(void) {
@@ -408,8 +398,7 @@ static void test_num_free_blocks_split_adds_free_remainder(void) {
   // Allocating smaller triggers a split: the reused block becomes allocated and
   // the remainder is a new free block, so numFreeBlocks stays at 1.
   allocate(mem, smallSize);
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)1,
-            "numFreeBlocks should be 1 after split (reused block consumed, remainder free)");
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after split (reused block consumed, remainder free)");
 }
 
 static void test_num_free_blocks_coalesce_reduces_count(void) {
@@ -423,8 +412,7 @@ static void test_num_free_blocks_coalesce_reduces_count(void) {
   // Freeing the adjacent block triggers coalesceBackwards, merging two free
   // blocks into one, so numFreeBlocks goes back to 1 (not 2).
   freeAlloc(mem, ptr2);
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)1,
-            "numFreeBlocks should stay 1 after coalescing two adjacent free blocks");
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should stay 1 after coalescing two adjacent free blocks");
 }
 
 static void test_num_free_blocks_multiple_isolated_free_blocks(void) {
@@ -437,8 +425,7 @@ static void test_num_free_blocks_multiple_isolated_free_blocks(void) {
   freeAlloc(mem, ptr1);
   freeAlloc(mem, ptr3);
 
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)2,
-            "numFreeBlocks should be 2 for two non-adjacent free blocks");
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)2, "numFreeBlocks should be 2 for two non-adjacent free blocks");
 }
 
 // ---------------------------------------------------------------------------

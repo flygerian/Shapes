@@ -20,6 +20,10 @@ typedef u8 byte;
 typedef byte* bytebuffer;
 typedef char* string;
 
+#define KB ((size_t)1024)
+#define MB ((size_t)1024 * KB)
+#define GB ((size_t)1024 * MB) 
+
 #define RANGE(iterator, bufferSize) \
   size_t iterator = 0; iterator < (size_t) bufferSize; iterator++
 

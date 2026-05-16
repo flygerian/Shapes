@@ -1,5 +1,6 @@
 #include "../result/result.h"
-#include "../shapes.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 

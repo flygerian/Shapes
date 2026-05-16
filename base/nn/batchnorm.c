@@ -35,8 +35,7 @@ reshapedFeatures reshapeToBatchFeature2D(Context *ctx, Tensor *tensor, dim_t num
   PANIC_IF(lastDimSize != numFeatures, ERR_DIM_MISMATCH);
 
   if (numDims == 1) {
-    return (reshapedFeatures){.reshaped = UnSqueeze(ctx, tensor, 0),
-                              .originalShape = tensor->shape};
+    return (reshapedFeatures){.reshaped = UnSqueeze(ctx, tensor, 0), .originalShape = tensor->shape};
   }
 
   u8 lastDim = tensor->shape.numOfDims - 1;
@@ -92,9 +91,7 @@ void batchnormBackward(Context *ctx, Tensor *output) {
     default: PANIC_IF(true, ERR_NO_OP);
   }
 
-
-  BatchNormBackwardResult backwardResult =
-      BatchNormBackward(ctx, x2d, grad2d, layerData->gamma, layerData->epsilon);
+  BatchNormBackwardResult backwardResult = BatchNormBackward(ctx, x2d, grad2d, layerData->gamma, layerData->epsilon);
 
   AddInPlace(ctx, layerData->beta->grad, backwardResult.dBeta);
   AddInPlace(ctx, layerData->gamma->grad, backwardResult.dGamma);
@@ -127,9 +124,7 @@ Array *batchNormLayerParameters(Context *ctx, Layer *layer) {
   return params;
 }
 
-
-void updateRunningStats(Context *ctx, batchNormLayerData *layerData, Tensor *mean,
-                        Tensor *variance) {
+void updateRunningStats(Context *ctx, batchNormLayerData *layerData, Tensor *mean, Tensor *variance) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(mean == NULL, ERR_NULL_PTR);
   PANIC_IF(variance == NULL, ERR_NULL_PTR);
@@ -140,12 +135,10 @@ void updateRunningStats(Context *ctx, batchNormLayerData *layerData, Tensor *mea
   Tensor *keep = T_Float(ctx, SHAPE1D(1), 1.0 - layerData->momentum);
   Tensor *tMomentum = T_Float(ctx, SHAPE1D(1), layerData->momentum);
 
-  Tensor *newRunningMean =
-      Add(ctx, Multiply(ctx, layerData->runningMean, keep), Multiply(ctx, mean, tMomentum));
+  Tensor *newRunningMean = Add(ctx, Multiply(ctx, layerData->runningMean, keep), Multiply(ctx, mean, tMomentum));
   Copy(ctx, newRunningMean, layerData->runningMean);
 
-  Tensor *newRunningVar =
-      Add(ctx, Multiply(ctx, layerData->runningVar, keep), Multiply(ctx, variance, tMomentum));
+  Tensor *newRunningVar = Add(ctx, Multiply(ctx, layerData->runningVar, keep), Multiply(ctx, variance, tMomentum));
   Copy(ctx, newRunningVar, layerData->runningVar);
 }
 
@@ -175,8 +168,7 @@ Tensor *batchNormForward(Context *ctx, Layer *layer, Tensor *input) {
 
   Tensor *bnOut2d;
   if (ctx->isTraining) {
-    BatchNormFowardResult bnResult =
-        BatchNormForwardTraining(ctx, x2d, layerData->gamma, layerData->beta, layerData->epsilon);
+    BatchNormFowardResult bnResult = BatchNormForwardTraining(ctx, x2d, layerData->gamma, layerData->beta, layerData->epsilon);
     bnOut2d = bnResult.out;
     if (layerData->runningStatsInitialised) {
       updateRunningStats(ctx, layerData, bnResult.mean, bnResult.variance);
@@ -216,7 +208,7 @@ FowardPassOp *layer_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) {
   SetValues(gamma, VALUE(dtype, 1.0));
   Tensor *beta = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
 
-  batchNormLayerData *data = allocateOnCtx(ctx, sizeof(batchNormLayerData));
+  batchNormLayerData *data = allocate(ctx->memory, sizeof(batchNormLayerData));
   data->beta = beta;
   data->gamma = gamma;
   data->numFeatures = numFeatures;
@@ -228,10 +220,10 @@ FowardPassOp *layer_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) {
   data->runningStatsInitialised = true;
   data->dims = 1;
 
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->layerData = data;
 
-  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
   *op = (FowardPassOp){.ctx = ctx, .type = OP_BATCH_NORM, .dtype = dtype, .op = layer};
   return op;
 }
@@ -241,7 +233,7 @@ FowardPassOp *layer_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures) {
   SetValues(gamma, VALUE(dtype, 1.0));
   Tensor *beta = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
 
-  batchNormLayerData *data = allocateOnCtx(ctx, sizeof(batchNormLayerData));
+  batchNormLayerData *data = allocate(ctx->memory, sizeof(batchNormLayerData));
   data->beta = beta;
   data->gamma = gamma;
   data->numFeatures = numFeatures;
@@ -253,10 +245,10 @@ FowardPassOp *layer_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures) {
   data->runningStatsInitialised = true;
   data->dims = 2;
 
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->layerData = data;
 
-  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
   *op = (FowardPassOp){.ctx = ctx, .type = OP_BATCH_NORM, .dtype = dtype, .op = layer};
   return op;
 }

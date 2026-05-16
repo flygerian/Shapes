@@ -2,7 +2,10 @@
 #define utils_lib_array_h
 
 #include "memory.h"
+#include "result/result.h"
 #include "utils_lib.h"
+
+#define ARRAY_PTR_AT_IDX(slice, idx) ((slice)->items + ((idx) * (slice)->elemSize))
 
 typedef struct Array {
   void *items;
@@ -13,14 +16,34 @@ typedef struct Array {
   Memory *memory;
 } Array;
 
+typedef struct ArrayPair {
+  Array *a;
+  Array *b;
+} ArrayPair;
+
+#define ARRAY_PAIR(aArr, bArr)  (ArrayPair) {.a = ( aArr ), .b = ( bArr )}
+
 typedef Array *String;
 typedef Array *Array_F32;
+
 
 #define STR(stringStruct) ((char*)( stringStruct )->items)
 
 Array *MakeDynamicArray(Memory *memory, const size_t elemSize);
 Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity);
-void *Array_Idx(Array *slice, size_t idx);
+
+// declared in the header file so it can be inlined at the call site
+static inline void *Array_Idx(Array *slice, size_t idx) {
+  PANIC_IF(slice == NULL, ERR_NULL_PTR);
+  PANIC_IF(idx < 0, ERR_OUT_OF_BOUNDS);
+
+  if (idx >= slice->capacity) {
+    return NULL;
+  }
+
+  return ARRAY_PTR_AT_IDX(slice, idx);
+}
+
 void Array_SetAt(Array *array, size_t idx, void *ptr);
 void Array_Append(Array *array, void *ptr);
 void Array_Reset(Array *array);

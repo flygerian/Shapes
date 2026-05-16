@@ -1,33 +1,39 @@
 [
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/memory.c.o -c /home/olabode/repos/Shapes/base/utils_lib/memory.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/memory.c.o -c /home/olabode/repos/Shapes/base/utils_lib/memory.c",
   "file": "/home/olabode/repos/Shapes/base/utils_lib/memory.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/memory.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/array.c.o -c /home/olabode/repos/Shapes/base/utils_lib/array.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/array.c.o -c /home/olabode/repos/Shapes/base/utils_lib/array.c",
   "file": "/home/olabode/repos/Shapes/base/utils_lib/array.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/array.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/map.c.o -c /home/olabode/repos/Shapes/base/utils_lib/map.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/map.c.o -c /home/olabode/repos/Shapes/base/utils_lib/map.c",
   "file": "/home/olabode/repos/Shapes/base/utils_lib/map.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/map.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/bitset.c.o -c /home/olabode/repos/Shapes/base/utils_lib/bitset.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/bitset.c.o -c /home/olabode/repos/Shapes/base/utils_lib/bitset.c",
   "file": "/home/olabode/repos/Shapes/base/utils_lib/bitset.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/bitset.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/file.c.o -c /home/olabode/repos/Shapes/base/utils_lib/file.c",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/file.c.o -c /home/olabode/repos/Shapes/base/utils_lib/file.c",
   "file": "/home/olabode/repos/Shapes/base/utils_lib/file.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/file.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc  -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/cuda_memory.c.o -c /home/olabode/repos/Shapes/base/utils_lib/cuda_memory.c",
+  "file": "/home/olabode/repos/Shapes/base/utils_lib/cuda_memory.c",
+  "output": "CMakeFiles/utils_lib.dir/utils_lib/cuda_memory.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
@@ -115,6 +121,12 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/device.c.o -c /home/olabode/repos/Shapes/base/device.c",
+  "file": "/home/olabode/repos/Shapes/base/device.c",
+  "output": "CMakeFiles/shapes_core.dir/device.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/dense.c.o -c /home/olabode/repos/Shapes/base/layer/dense.c",
   "file": "/home/olabode/repos/Shapes/base/layer/dense.c",
   "output": "CMakeFiles/shapes_core.dir/layer/dense.c.o"
@@ -181,12 +193,6 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/tensor/matrix_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/matrix_ops.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/matrix_ops.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/matrix_ops.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/shape_ops.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/shape_ops.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o"
@@ -208,12 +214,6 @@
   "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/tensor/creation.c.o -c /home/olabode/repos/Shapes/base/tensor/creation.c",
   "file": "/home/olabode/repos/Shapes/base/tensor/creation.c",
   "output": "CMakeFiles/shapes_core.dir/tensor/creation.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/tensor/destruction.c.o -c /home/olabode/repos/Shapes/base/tensor/destruction.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/destruction.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/destruction.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
@@ -337,6 +337,18 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/flatten.c.o -c /home/olabode/repos/Shapes/base/nn/flatten.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/flatten.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/flatten.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/softmax.c.o -c /home/olabode/repos/Shapes/base/nn/softmax.c",
+  "file": "/home/olabode/repos/Shapes/base/nn/softmax.c",
+  "output": "CMakeFiles/shapes_core.dir/nn/softmax.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
   "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o -c /home/olabode/repos/Shapes/base/cmd/examples/makemore_3.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/examples/makemore_3.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o"
@@ -358,6 +370,12 @@
   "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/ui.c.o -c /home/olabode/repos/Shapes/base/cmd/examples/ui.c",
   "file": "/home/olabode/repos/Shapes/base/cmd/examples/ui.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/ui.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/base/build",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/raylib.c.o -c /home/olabode/repos/Shapes/base/cmd/examples/raylib.c",
+  "file": "/home/olabode/repos/Shapes/base/cmd/examples/raylib.c",
+  "output": "CMakeFiles/shapes_core.dir/cmd/examples/raylib.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",

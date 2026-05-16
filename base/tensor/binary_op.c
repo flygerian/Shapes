@@ -12,7 +12,7 @@
 
 static bool isComparisonOp(OpType opType) {
   return opType == OP_GREATER || opType == OP_GREATER_OR_EQUAL || opType == OP_LESS ||
-         opType == OP_LESS_OR_EQUAL;
+         opType == OP_LESS_OR_EQUAL || opType == OP_EQUAL;
 }
 
 static bool isArithmeticOp(OpType opType) {
@@ -204,6 +204,22 @@ static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
         case F64: STRAIGHT_CMP_LOOP(double, <=);
       }
       break;
+    case OP_EQUAL:
+      switch (a->dtype) {
+        case BOOL: STRAIGHT_CMP_LOOP(bool, ==);
+        case U8: STRAIGHT_CMP_LOOP(u8, ==);
+        case U16: STRAIGHT_CMP_LOOP(u16, ==);
+        case U32: STRAIGHT_CMP_LOOP(u32, ==);
+        case U64: STRAIGHT_CMP_LOOP(u64, ==);
+        case I8: STRAIGHT_CMP_LOOP(i8, ==);
+        case I16: STRAIGHT_CMP_LOOP(i16, ==);
+        case I32: STRAIGHT_CMP_LOOP(i32, ==);
+        case I64: STRAIGHT_CMP_LOOP(i64, ==);
+        case F16: STRAIGHT_CMP_LOOP(float, ==);
+        case F32: STRAIGHT_CMP_LOOP(float, ==);
+        case F64: STRAIGHT_CMP_LOOP(double, ==);
+      }
+      break;
     default: return ERR_NOT_A_BINOP;
   }
 
@@ -364,18 +380,8 @@ static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   return output;
 }
 
-static Tensor *binaryOpViaCpuFallback(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  Context cpuCtx = {.memory = ctx->memory};
-  Tensor *result = binaryOpCpu(&cpuCtx, a, b, opType);
-  Result res = moveTensor(&cpuCtx, ctx, result);
-  PANIC_IF(res != OK, res);
-  return result;
-}
 
 static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  if (!isArithmeticOp(opType)) {
-    return binaryOpViaCpuFallback(ctx, a, b, opType);
-  }
 
   TensorPair ops = {.a = a, .b = b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -390,10 +396,6 @@ static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
   Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
                                output->size);
-  if (res != OK) {
-    return binaryOpViaCpuFallback(ctx, a, b, opType);
-  }
-
   return output;
 }
 
@@ -523,9 +525,9 @@ static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 }
 
 static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
-  PANIC_IF(!isArithmeticOp(opType) || !a->isContigous || a->isView ||
-               !isSameContext(a->context, ctx),
-           ERR_NO_OP);
+  PANIC_IF(!isArithmeticOp(opType) || !a->isContigous || a->isView, ERR_NO_OP);
+  PANIC_IF(a->context->device->type != CUDA, ERR_DEVICE_MISMATCH);
+  PANIC_IF(b->context->device->type != CUDA, ERR_DEVICE_MISMATCH);
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
   PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
@@ -593,6 +595,10 @@ Tensor *GreaterThan(Context *ctx, Tensor *a, Tensor *b) {
 
 Tensor *GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_GREATER_OR_EQUAL);
+}
+
+Tensor *Equal(Context *ctx, Tensor *a, Tensor *b) {
+  return binaryOp(ctx, a, b, OP_EQUAL);
 }
 
 Tensor *LessThan(Context *ctx, Tensor *a, Tensor *b) {

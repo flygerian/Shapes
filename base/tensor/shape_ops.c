@@ -485,7 +485,6 @@ Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
   }
 
   dim_t *outputDims = allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
-  result = ensureAllocated(outputDims);
   PANIC_IF(result != OK, result);
   dim_t dimsToAdd = 0;
 
@@ -509,7 +508,7 @@ Tensor *Concat(Context *ctx, Tensor *target, dim_t targetDim, Tensor **tensors,
       calculateSizeAndMultipliers(ctx, outputDims, workingTarget->shape.numOfDims);
   outputShape.multipliers = snm.multipliers;
 
-  Tensor *dest = t_Empty(ctx, outputShape, workingTarget->dtype);
+  Tensor *dest = t_Zeros(ctx, outputShape, workingTarget->dtype);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   dim_t currDimSize = workingTarget->shape.dims[targetDim];

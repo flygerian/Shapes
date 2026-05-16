@@ -166,7 +166,7 @@ Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
     DatasetPair *dp = (DatasetPair *)Array_Idx(datasetPairs, i);
 
     Tensor *context = MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
-    Tensor *target = MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target,I32);
+    Tensor *target = MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
 
     TensorPair tp = {.a = Cast(ctx, context, F32), .b = Cast(ctx, target, F32)};
     Array_Append(tensorPairs, &tp);
@@ -202,8 +202,7 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
     }
 
     Tensor *inputTensor = MakeFromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
-    Tensor *targetTensor =
-        MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
+    Tensor *targetTensor = MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
 
     Array_AppendTensor(batchInputs, inputTensor);
     Array_AppendTensor(batchTargets, targetTensor);
@@ -288,8 +287,7 @@ static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
   return 0;
 }
 
-void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int maxNameLen,
-                    dim_t vocabSize) {
+void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int maxNameLen, dim_t vocabSize) {
   printf("\nGenerated names:\n");
 
   for (int sample = 0; sample < numSamples; sample++) {
@@ -350,16 +348,12 @@ void makemore_5() {
   printf("Total parameters: %zu\n\n", params->size);
 
   size_t scratchBufferSize = (size_t)1024 * 1024 * 10;
-  void *scratchBuffer = allocate(mem, scratchBufferSize);
-  Memory *scratchMem = initializeArenaWithBuffer(scratchBuffer, scratchBufferSize, 1);
-
-  printf("Main arena after scratch alloc: %zu MB\n", mem->allocated / (1024 * 1024));
+  Memory *scratchMem = GetScratchArena(mem, scratchBufferSize);
   printf("Scratch capacity: %zu MB\n", scratchMem->capacity / (1024 * 1024));
 
   ctx.isTraining = true;
 
-  printf("Starting training with %zu samples in %zu batches\n", dataset->size,
-         batchedData.numBatches);
+  printf("Starting training with %zu samples in %zu batches\n", dataset->size, batchedData.numBatches);
 
   for (size_t epoch = 0; epoch < NUM_EPOCHS; epoch++) {
     f32 totalLoss = 0.0f;

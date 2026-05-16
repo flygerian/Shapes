@@ -4,6 +4,7 @@
 
 #include "loss/cross_entropy.h"
 #include "tensor/tensor_internal.h"
+#include "tensor/types.h"
 #include "tensor/value.h"
 #include <math.h>
 #include <sched.h>
@@ -12,82 +13,7 @@
 #include <string.h>
 #include <time.h>
 
-static bool isCudaContext(Context *ctx) {
-  return ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA;
-}
-
-
-static const char *opTimingDeviceName(Context *ctx) {
-  if (ctx == NULL || ctx->device == NULL) {
-    return "CPU(default)";
-  }
-
-  switch (ctx->device->type) {
-    case CPU: return "CPU";
-    case CUDA: return "CUDA";
-    default: return "UNKNOWN";
-  }
-}
-
-static double opTimingNowMs(void) {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
-}
-
-typedef struct {
-  cudaEvent_t start;
-  cudaEvent_t end;
-  const char *opName;
-  const char *phase;
-  const char *deviceName;
-  bool active;
-} PendingCudaOpTiming;
-
-typedef PendingCudaOpTiming CudaOpPhase;
-
-#define MAX_PENDING_CUDA_OP_TIMINGS 32
-
-static PendingCudaOpTiming pendingCudaOpTimings[MAX_PENDING_CUDA_OP_TIMINGS] = {0};
-
-TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
-  PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(logits), ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(yGround->shape.numOfDims != logits->shape.numOfDims, ERR_DIM_MISMATCH);
-  PANIC_IF(yGround->dtype != logits->dtype, ERR_DTYPE_MISMATCH);
-  PANIC_IF(logits->dtype != F16 && logits->dtype != F32 && logits->dtype != F64,
-           ERR_DTYPE_MISMATCH);
-
-  for (u8 i = 0; i < logits->shape.numOfDims; i++) {
-    PANIC_IF(yGround->shape.dims[i] != logits->shape.dims[i], ERR_DIM_MISMATCH);
-  }
-
-  PANIC_IF(logits->shape.numOfDims == 0, ERR_DIM_MISMATCH);
-
-  dim_t classCount = logits->shape.dims[logits->shape.numOfDims - 1];
-  PANIC_IF(classCount == 0 || logits->size % classCount != 0, ERR_DIM_MISMATCH);
-
-  tensor_size_t rows = logits->size / classCount;
-
-  Tensor *yContig = materializeTensorOnContext(ctx, yGround);
-  Tensor *logitsContig = materializeTensorOnContext(ctx, logits);
-
-  double totalStartMs = 0.0;
-  double phaseStartMs = 0.0;
-  CudaOpPhase cudaPhase = {0};
-
-
-  Tensor *probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
-  Tensor *loss;
-  Result res = OK;
-
-  if (isCudaContext(ctx)) {
-    loss = T_Zeros(ctx, SCALAR);
-    res =
-        runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values,
-                                   rows, classCount, probs->values, loss->values);
-    PANIC_IF(res != OK, res);
-  }
-
+static inline Tensor* crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig, Tensor *yContig, Tensor *probs, tensor_size_t rows, dim_t classCount) {
   if (logitsContig->dtype == F64) {
     double *yVals = yContig->values;
     double *logitVals = logitsContig->values;
@@ -121,7 +47,7 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
       totalLoss += -rowLoss;
     }
 
-    loss = T_Float64(ctx, SCALAR, totalLoss / (double)rows);
+    return T_Float64(ctx, SCALAR, totalLoss / (double)rows);
   } else {
     float *yVals = yContig->values;
     float *logitVals = logitsContig->values;
@@ -155,48 +81,49 @@ TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
       totalLoss += -rowLoss;
     }
 
-    loss = T_Float(ctx, SCALAR, totalLoss / (float)rows);
+    return T_Float(ctx, SCALAR, totalLoss / (double)rows);
+  }
+}
+
+TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits) {
+  PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(logits), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(yGround->shape.numOfDims != logits->shape.numOfDims, ERR_DIM_MISMATCH);
+  PANIC_IF(yGround->dtype != logits->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(isNotFloatType(logits), ERR_DTYPE_MISMATCH);
+
+  for (u8 i = 0; i < logits->shape.numOfDims; i++) {
+    PANIC_IF(yGround->shape.dims[i] != logits->shape.dims[i], ERR_DIM_MISMATCH);
   }
 
+  PANIC_IF(logits->shape.numOfDims == 0, ERR_DIM_MISMATCH);
+
+  dim_t classCount = logits->shape.dims[logits->shape.numOfDims - 1];
+  PANIC_IF(classCount == 0 || logits->size % classCount != 0, ERR_DIM_MISMATCH);
+
+  tensor_size_t rows = logits->size / classCount;
+
+  Tensor *yContig = materializeTensorOnContext(ctx, yGround);
+  Tensor *logitsContig = materializeTensorOnContext(ctx, logits);
+
+  Tensor *probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
+  Tensor *loss;
+  Result res = OK;
+
+  switch (ctx->device->type) {
+    case CPU:
+      loss = crossEnthropyFowardCpu(ctx, logitsContig, yContig, probs, rows, classCount);
+      break;
+    case CUDA:
+      loss = T_Zeros(ctx, SCALAR);
+      res = runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values, rows, classCount, probs->values, loss->values);
+      PANIC_IF(res != OK, res);
+    break;
+  }
 
   return (TensorPair){.a = loss, .b = probs};
 }
 
-Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
-  PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(probs) || isInvalidTensor(gradOut),
-           ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(yGround->shape.numOfDims != probs->shape.numOfDims, ERR_DIM_MISMATCH);
-  PANIC_IF(yGround->dtype != probs->dtype || yGround->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH);
-  PANIC_IF(probs->dtype != F16 && probs->dtype != F32 && probs->dtype != F64, ERR_DTYPE_MISMATCH);
-
-  for (u8 i = 0; i < probs->shape.numOfDims; i++) {
-    PANIC_IF(yGround->shape.dims[i] != probs->shape.dims[i], ERR_DIM_MISMATCH);
-  }
-
-  PANIC_IF(probs->shape.numOfDims == 0, ERR_DIM_MISMATCH);
-
-  dim_t classCount = probs->shape.dims[probs->shape.numOfDims - 1];
-  PANIC_IF(classCount == 0 || probs->size % classCount != 0, ERR_DIM_MISMATCH);
-
-  bool scalarGradOut = gradOut->size == 1;
-  PANIC_IF(!scalarGradOut && gradOut->size != probs->size, ERR_DIM_MISMATCH);
-
-  tensor_size_t rows = probs->size / classCount;
-
-  Tensor *yContig = materializeTensorOnContext(ctx, yGround);
-  Tensor *pContig = materializeTensorOnContext(ctx, probs);
-  Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
-
-  Tensor *dLogits = t_Zeros(ctx, pContig->shape, pContig->dtype);
-
-  if (isCudaContext(ctx)) {
-    Result res = runCudaCrossEntropyBackward(ctx, pContig->dtype, yContig->values, pContig->values,
-                                             gContig->values, rows, classCount, scalarGradOut,
-                                             dLogits->values);
-    PANIC_IF(res != OK, res);
-    goto cleanup;
-  }
-
+static inline void crossEnthropyBackwardCpu(Tensor *pContig, Tensor *yContig, Tensor *gContig, Tensor *dLogits, bool scalarGradOut, f32 rows) {
   if (pContig->dtype == F64) {
     double *yVals = yContig->values;
     double *pVals = pContig->values;
@@ -222,8 +149,44 @@ Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tenso
       dVals[i] = localGrad * (scalarGradOut ? scalar : gVals[i]);
     }
   }
+}
 
-cleanup:
+Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
+  PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(probs) || isInvalidTensor(gradOut), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(yGround->shape.numOfDims != probs->shape.numOfDims, ERR_DIM_MISMATCH);
+  PANIC_IF(yGround->dtype != probs->dtype || yGround->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH);
+  PANIC_IF(probs->dtype != F16 && probs->dtype != F32 && probs->dtype != F64, ERR_DTYPE_MISMATCH);
+
+  for (u8 i = 0; i < probs->shape.numOfDims; i++) {
+    PANIC_IF(yGround->shape.dims[i] != probs->shape.dims[i], ERR_DIM_MISMATCH);
+  }
+
+  PANIC_IF(probs->shape.numOfDims == 0, ERR_DIM_MISMATCH);
+
+  dim_t classCount = probs->shape.dims[probs->shape.numOfDims - 1];
+  PANIC_IF(classCount == 0 || probs->size % classCount != 0, ERR_DIM_MISMATCH);
+
+  bool scalarGradOut = gradOut->size == 1;
+  PANIC_IF(!scalarGradOut && gradOut->size != probs->size, ERR_DIM_MISMATCH);
+
+  tensor_size_t rows = probs->size / classCount;
+
+  Tensor *yContig = materializeTensorOnContext(ctx, yGround);
+  Tensor *pContig = materializeTensorOnContext(ctx, probs);
+  Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
+
+  Tensor *dLogits = t_Zeros(ctx, pContig->shape, pContig->dtype);
+
+  switch (ctx->device->type) {
+    case CPU:
+      crossEnthropyBackwardCpu(pContig, yContig, gContig, dLogits, scalarGradOut, rows);
+      break;
+
+    case CUDA:
+      Result res = runCudaCrossEntropyBackward(ctx, pContig->dtype, yContig->values, pContig->values, gContig->values, rows, classCount, scalarGradOut, dLogits->values);
+      PANIC_IF(res != OK, res);
+    break;
+  }
 
   return dLogits;
 }

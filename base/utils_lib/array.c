@@ -11,7 +11,6 @@
 #define INITIAL_SLICE_CAPACITY 16
 #define SLICE_GROW_FACTOR      8
 
-#define ARRAY_PTR_AT_IDX(slice, idx) ((slice)->items + ((idx) * (slice)->elemSize))
 
 Array *contructNewArray(Memory *memory, size_t elemSize, size_t capacity) {
   Array *alloc = allocate(memory, sizeof(Array));
@@ -75,17 +74,6 @@ void Array_Append(Array *array, void *ptr) {
 
 void Array_AppendString(Array *array, String str) {
   Array_Append(array, (void *)&str);
-}
-
-void *Array_Idx(Array *slice, size_t idx) {
-  PANIC_IF(slice == NULL, ERR_NULL_PTR);
-  PANIC_IF(idx < 0, ERR_OUT_OF_BOUNDS);
-
-  if (idx >= slice->capacity) {
-    return NULL;
-  }
-
-  return ARRAY_PTR_AT_IDX(slice, idx);
 }
 
 void Array_Reset(Array *array) {

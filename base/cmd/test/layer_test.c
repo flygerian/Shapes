@@ -16,7 +16,6 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-
 static Tensor createScalarTensor(Context *ctx, Dtype dtype) {
   Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
@@ -30,8 +29,7 @@ static Tensor createScalarTensor(Context *ctx, Dtype dtype) {
   return t;
 }
 
-static void assertMovedF32TensorClose(Context *srcCtx, Tensor *tensor, const f32 *expected,
-                                      tensor_size_t size, f32 tolerance, const char *label) {
+static void assertMovedF32TensorClose(Context *srcCtx, Tensor *tensor, const f32 *expected, tensor_size_t size, f32 tolerance, const char *label) {
   Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
@@ -260,7 +258,6 @@ static void test_batch_norm_backward_f32(void) {
   ASSERT(fabsf(dxVals[3] - 0.0f) < 1e-5f, "dX[1,1] mismatch");
 }
 
-
 static void test_conv2d_forward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -357,8 +354,7 @@ static void test_conv2d_returns_col_buffer_f32(void) {
   ASSERT(colBuffer.isContigous, "Returned col buffer should be contiguous");
 
   f32 *col = colBuffer.values;
-  f32 wantCol[16] = {1.0f, 2.0f, 4.0f, 5.0f, 2.0f, 3.0f, 5.0f, 6.0f,
-                     4.0f, 5.0f, 7.0f, 8.0f, 5.0f, 6.0f, 8.0f, 9.0f};
+  f32 wantCol[16] = {1.0f, 2.0f, 4.0f, 5.0f, 2.0f, 3.0f, 5.0f, 6.0f, 4.0f, 5.0f, 7.0f, 8.0f, 5.0f, 6.0f, 8.0f, 9.0f};
   for (int i = 0; i < 16; i++) {
     ASSERT(fabsf(col[i] - wantCol[i]) < 1e-5f, "Returned col buffer contents mismatch");
   }
@@ -378,8 +374,7 @@ static void test_conv2d_forward_f32_multi_channel(void) {
   Tensor out;
 
   f32 *x = t->values;
-  f32 input[18] = {1.0f,  10.0f, 2.0f,  11.0f, 3.0f,  12.0f, 4.0f,  13.0f, 5.0f,
-                   14.0f, 6.0f,  15.0f, 7.0f,  16.0f, 8.0f,  17.0f, 9.0f,  18.0f};
+  f32 input[18] = {1.0f, 10.0f, 2.0f, 11.0f, 3.0f, 12.0f, 4.0f, 13.0f, 5.0f, 14.0f, 6.0f, 15.0f, 7.0f, 16.0f, 8.0f, 17.0f, 9.0f, 18.0f};
   for (int i = 0; i < 18; i++) {
     x[i] = input[i];
   }
@@ -473,8 +468,7 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
   Result r = Conv2d(&ctx, 1, 1, 1, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d with a local thread override should succeed");
-  ASSERT_EQ(openblas_get_num_threads(), previousThreads,
-            "Conv2d should restore the previous OpenBLAS thread count");
+  ASSERT_EQ(openblas_get_num_threads(), previousThreads, "Conv2d should restore the previous OpenBLAS thread count");
 
   unsetenv("SHAPES_CONV_THREADS");
 }
@@ -670,14 +664,12 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   f32 *dxVals = dX->values;
   f32 wantDX[9] = {1.0f, 1.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 1.0f, 1.0f};
   for (int i = 0; i < 9; i++) {
-    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f,
-           "Conv2dBackward dX mismatch with provided col buffer");
+    ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward dX mismatch with provided col buffer");
   }
 
   f32 *dKernelVals = dKernels->values;
   for (int i = 0; i < 4; i++) {
-    ASSERT(fabsf(dKernelVals[i]) < 1e-5f,
-           "Conv2dBackward should use the provided col buffer for dKernels");
+    ASSERT(fabsf(dKernelVals[i]) < 1e-5f, "Conv2dBackward should use the provided col buffer for dKernels");
   }
 }
 
@@ -724,8 +716,7 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   f32 *dKernelVals = dKernels->values;
   f32 wantDK[4] = {92.0f, 102.0f, 142.0f, 152.0f};
   for (int i = 0; i < 4; i++) {
-    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
-           "Conv2dBackward stride-two dKernels mismatch");
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "Conv2dBackward stride-two dKernels mismatch");
   }
 }
 
@@ -754,8 +745,7 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   kVals[7] = 0.0f;
 
   f32 *gVals = gradOut->values;
-  f32 grads[16] = {1.0f, 5.0f, 2.0f, 6.0f, 3.0f, 7.0f, 4.0f, 8.0f,
-                   2.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f, 3.0f};
+  f32 grads[16] = {1.0f, 5.0f, 2.0f, 6.0f, 3.0f, 7.0f, 4.0f, 8.0f, 2.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f, 3.0f};
   for (int i = 0; i < 16; i++) {
     gVals[i] = grads[i];
   }
@@ -768,8 +758,7 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   ASSERT_EQ(r, OK, "Conv2dBackward multi-batch multi-out should succeed");
 
   f32 *dxVals = dX->values;
-  f32 wantDX[18] = {1.0f, 7.0f, 6.0f, 8.0f, 18.0f, 10.0f, 7.0f, 11.0f, 4.0f,
-                    2.0f, 2.0f, 0.0f, 1.0f, 5.0f,  4.0f,  2.0f, 3.0f,  1.0f};
+  f32 wantDX[18] = {1.0f, 7.0f, 6.0f, 8.0f, 18.0f, 10.0f, 7.0f, 11.0f, 4.0f, 2.0f, 2.0f, 0.0f, 1.0f, 5.0f, 4.0f, 2.0f, 3.0f, 1.0f};
   for (int i = 0; i < 18; i++) {
     ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward multi-batch dX mismatch");
   }
@@ -777,11 +766,9 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   f32 *dKernelVals = dKernels->values;
   f32 wantDK[8] = {82.0f, 96.0f, 124.0f, 138.0f, 163.0f, 195.0f, 259.0f, 291.0f};
   for (int i = 0; i < 8; i++) {
-    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f,
-           "Conv2dBackward multi-batch dKernels mismatch");
+    ASSERT(fabsf(dKernelVals[i] - wantDK[i]) < 1e-5f, "Conv2dBackward multi-batch dKernels mismatch");
   }
 }
-
 
 static void test_conv_transpose2d_forward_f32_single_channel(void) {
   Memory *mem = initializeMemory();
@@ -867,8 +854,7 @@ static void test_max_pool2d_forward_f32(void) {
   Tensor out;
 
   f32 *xVals = x->values;
-  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f,
-                   7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
+  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f, 7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
   for (int i = 0; i < 16; i++) {
     xVals[i] = input[i];
   }
@@ -893,8 +879,7 @@ static void test_max_pool2d_backward_f32(void) {
   Tensor dX;
 
   f32 *xVals = x->values;
-  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f,
-                   7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
+  f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f, 7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
   for (int i = 0; i < 16; i++) {
     xVals[i] = input[i];
   }
@@ -911,8 +896,7 @@ static void test_max_pool2d_backward_f32(void) {
   ASSERT_EQ(r, OK, "MaxPool2dBackward should succeed");
 
   f32 *dxVals = dX.values;
-  f32 wantDX[16] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 0.0f,
-                    0.0f, 3.0f, 4.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+  f32 wantDX[16] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f, 3.0f, 4.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
   for (int i = 0; i < 16; i++) {
     ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "MaxPool2dBackward dX mismatch");
   }
@@ -961,8 +945,7 @@ static void test_adaptive_avg_pool2d_backward_f32(void) {
   ASSERT_EQ(r, OK, "AdaptiveAvgPool2dBackward should succeed");
 
   f32 *dxVals = dX.values;
-  f32 wantDX[16] = {0.25f, 0.25f, 0.50f, 0.50f, 0.25f, 0.25f, 0.50f, 0.50f,
-                    0.75f, 0.75f, 1.00f, 1.00f, 0.75f, 0.75f, 1.00f, 1.00f};
+  f32 wantDX[16] = {0.25f, 0.25f, 0.50f, 0.50f, 0.25f, 0.25f, 0.50f, 0.50f, 0.75f, 0.75f, 1.00f, 1.00f, 0.75f, 0.75f, 1.00f, 1.00f};
   for (int i = 0; i < 16; i++) {
     ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "AdaptiveAvgPool2dBackward dX mismatch");
   }
@@ -986,7 +969,10 @@ static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
   memcpy(yGround->values, yValues, sizeof(yValues));
   memcpy(logits->values, logitValues, sizeof(logitValues));
 
-  MoveTensors(&ctx, 2, yGround, logits);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, yGround);
+  Array_AppendTensor(toMove, logits);
+  MoveToCuda(&ctx, toMove);
 
   Result result = CrossEntropyForward(&ctx, yGround, logits, &loss, &probs);
   ASSERT_EQ(result, OK, "CUDA CrossEntropyForward should succeed");
@@ -994,11 +980,9 @@ static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
   ASSERT(probs.context == &ctx, "CUDA CrossEntropyForward probs should live on target context");
 
   f32 expectedLoss = 0.40760595f;
-  f32 expectedProbs[6] = {0.66524094f, 0.24472848f, 0.09003057f,
-                          0.09003057f, 0.24472848f, 0.66524094f};
+  f32 expectedProbs[6] = {0.66524094f, 0.24472848f, 0.09003057f, 0.09003057f, 0.24472848f, 0.66524094f};
   assertScalarF32Close(&loss, expectedLoss, 1e-5f, "CUDA CrossEntropyForward loss should match");
-  assertMovedF32TensorClose(&ctx, &probs, expectedProbs, 6, 1e-5f,
-                            "CUDA CrossEntropyForward probs should match");
+  assertMovedF32TensorClose(&ctx, &probs, expectedProbs, 6, 1e-5f, "CUDA CrossEntropyForward probs should match");
 
   DestroyContext(&ctx);
 }
@@ -1017,22 +1001,23 @@ static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) 
   Tensor dLogits;
 
   f32 yValues[6] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-  f32 probValues[6] = {0.66524094f, 0.24472848f, 0.09003057f,
-                       0.09003057f, 0.24472848f, 0.66524094f};
+  f32 probValues[6] = {0.66524094f, 0.24472848f, 0.09003057f, 0.09003057f, 0.24472848f, 0.66524094f};
 
   memcpy(yGround->values, yValues, sizeof(yValues));
   memcpy(probs->values, probValues, sizeof(probValues));
   ((f32 *)gradOut->values)[0] = 1.0f;
 
-  MoveTensors(&ctx, 3, yGround, probs, gradOut);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, yGround);
+  Array_AppendTensor(toMove, probs);
+  Array_AppendTensor(toMove, gradOut);
+  MoveToCuda(&ctx, toMove);
   Result result = CrossEntropyBackward(&ctx, yGround, probs, gradOut, &dLogits);
   ASSERT_EQ(result, OK, "CUDA CrossEntropyBackward should succeed");
   ASSERT(dLogits.context == &ctx, "CUDA CrossEntropyBackward result should live on target context");
 
-  f32 expected[6] = {-0.16737953f, 0.12236424f, 0.04501529f,
-                     0.04501529f,  0.12236424f, -0.16737953f};
-  assertMovedF32TensorClose(&ctx, &dLogits, expected, 6, 1e-5f,
-                            "CUDA CrossEntropyBackward result should match");
+  f32 expected[6] = {-0.16737953f, 0.12236424f, 0.04501529f, 0.04501529f, 0.12236424f, -0.16737953f};
+  assertMovedF32TensorClose(&ctx, &dLogits, expected, 6, 1e-5f, "CUDA CrossEntropyBackward result should match");
 
   DestroyContext(&ctx);
 }

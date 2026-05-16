@@ -10,8 +10,7 @@ static inline float rsqrtf(float x) {
 }
 #endif
 
-static Result adamF32(AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a,
-                      f32 epsilon) {
+static Result adamF32(AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
   f32 oneMinusB1 = 1.0f - b1;
   f32 oneMinusB2 = 1.0f - b2;
   f32 inv_bc1 = 1.0f / (1.0f - powf(b1, step));
@@ -41,8 +40,7 @@ static Result adamF32(AdamData *triplets, size_t numParameters, f32 b1, f32 b2, 
   return OK;
 }
 
-static Result adamF64(AdamData *triplets, size_t numParameters, f64 b1, f64 b2, size_t step, f64 a,
-                      f64 epsilon) {
+static Result adamF64(AdamData *triplets, size_t numParameters, f64 b1, f64 b2, size_t step, f64 a, f64 epsilon) {
   f64 oneMinusB1 = 1.0 - b1;
   f64 oneMinusB2 = 1.0 - b2;
   f64 inv_bc1 = 1.0 / (1.0 - pow(b1, step));
@@ -76,8 +74,7 @@ static bool isFloatDtype(Dtype dt) {
   return dt == F16 || dt == F32 || dt == F64;
 }
 
-Result Adam(Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step,
-            f32 a, f32 epsilon) {
+Result Adam(Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
   if (triplets == NULL) {
     return ERR_ADAM_NULL_TRIPLETS;
   }

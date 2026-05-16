@@ -4,21 +4,16 @@
 #include "tensor/tensor_internal.h"
 #include <string.h>
 
-
-BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma,
-                                               Tensor *beta, f32 epsilon) {
-  PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta),
-           ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1,
-           ERR_DIM_MISMATCH);
+BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {
+  PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1, ERR_DIM_MISMATCH);
 
   PANIC_IF(x2d->dtype != gamma->dtype || x2d->dtype != beta->dtype, ERR_DTYPE_MISMATCH);
   PANIC_IF(x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64, ERR_DTYPE_MISMATCH);
 
   dim_t batchSize = x2d->shape.dims[0];
   dim_t numFeatures = x2d->shape.dims[1];
-  PANIC_IF(gamma->shape.dims[0] != numFeatures || beta->shape.dims[0] != numFeatures,
-           ERR_DIM_MISMATCH);
+  PANIC_IF(gamma->shape.dims[0] != numFeatures || beta->shape.dims[0] != numFeatures, ERR_DIM_MISMATCH);
 
   Tensor *xContig = materializeTensorOnContext(ctx, x2d);
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
@@ -93,8 +88,7 @@ BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor
     f32 batchAsFloat = (f32)batchSize;
     for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
       meanAcrossBatch[feature] /= batchAsFloat;
-      varianceAcrossBatch[feature] =
-          sumX2[feature] / batchAsFloat - meanAcrossBatch[feature] * meanAcrossBatch[feature];
+      varianceAcrossBatch[feature] = sumX2[feature] / batchAsFloat - meanAcrossBatch[feature] * meanAcrossBatch[feature];
       invStd[feature] = 1.0f / sqrtf(varianceAcrossBatch[feature] + epsilon);
     }
 
@@ -110,20 +104,16 @@ BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor
   return (BatchNormFowardResult){.out = out, .mean = mean, .variance = variance};
 }
 
-BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma,
-                                          f32 epsilon) {
-  PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma),
-           ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(x2d->shape.numOfDims != 2 || grad2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1,
-           ERR_DIM_MISMATCH);
+BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon) {
+  PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma), ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(x2d->shape.numOfDims != 2 || grad2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1, ERR_DIM_MISMATCH);
   PANIC_IF(x2d->dtype != grad2d->dtype || x2d->dtype != gamma->dtype, ERR_DTYPE_MISMATCH);
   PANIC_IF(x2d->dtype != F16 && x2d->dtype != F32 && x2d->dtype != F64, ERR_DTYPE_MISMATCH);
 
   dim_t m = x2d->shape.dims[0];
   dim_t n = x2d->shape.dims[1];
 
-  PANIC_IF(grad2d->shape.dims[0] != m || grad2d->shape.dims[1] != n || gamma->shape.dims[0] != n,
-           ERR_DIM_MISMATCH);
+  PANIC_IF(grad2d->shape.dims[0] != m || grad2d->shape.dims[1] != n || gamma->shape.dims[0] != n, ERR_DIM_MISMATCH);
 
   Tensor *xContig = materializeTensorOnContext(ctx, x2d);
   Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
@@ -148,9 +138,7 @@ BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *gra
     f64 *sumX2 = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHat = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHatXHat = allocate(ctx->memory, sizeof(f64) * n);
-    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumX2 == NULL || sumDXHat == NULL ||
-                 sumDXHatXHat == NULL,
-             ERR_OUT_OF_MEMORY);
+    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumX2 == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
 
     memset(mean, 0, sizeof(f64) * n);
     memset(sumX2, 0, sizeof(f64) * n);
@@ -215,9 +203,7 @@ BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *gra
     f32 *sumX2 = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHat = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHatXHat = allocate(ctx->memory, sizeof(f32) * n);
-    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumX2 == NULL || sumDXHat == NULL ||
-                 sumDXHatXHat == NULL,
-             ERR_OUT_OF_MEMORY);
+    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumX2 == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
 
     memset(mean, 0, sizeof(f32) * n);
     memset(sumX2, 0, sizeof(f32) * n);

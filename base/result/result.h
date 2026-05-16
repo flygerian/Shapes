@@ -12,6 +12,7 @@ typedef enum {
   CUDA_OP_FAILED,
   NULL_CONTEXT,
   NO_DEVICE_ON_CONTEXT,
+  ERR_DEVICE_MISMATCH,
   ALLOCATING_ZERO,
   ERR_DTYPE_MISMATCH,
   ERR_DIM_MISMATCH,
@@ -123,6 +124,5 @@ typedef enum {
     fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                    \
     abort();                                                                                       \
   } while (0)
-
 
 #endif

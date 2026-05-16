@@ -14,8 +14,7 @@ typedef struct denseLayerData {
 } denseLayerData;
 
 void denseBackward(Context *ctx, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->opType != OP_DENSE, NOT_A_DENSE_LAYER);
 
@@ -30,18 +29,15 @@ void denseBackward(Context *ctx, Tensor *tensor) {
     bias = Array_TensorIdx(tensor->inputs, 2);
   }
 
-  PANIC_IF(input == NULL || weights == NULL || input->grad == NULL || weights->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(input == NULL || weights == NULL || input->grad == NULL || weights->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(bias != NULL && bias->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Result result = DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad,
-                                bias != NULL ? bias->grad : NULL);
+  Result result = DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad, bias != NULL ? bias->grad : NULL);
   PANIC_IF(result != OK, result);
 }
 
 Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   denseLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
@@ -55,7 +51,6 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Tensor *weightRef = layer->weights;
   Array_AppendTensor(out->inputs, inputRef);
   Array_AppendTensor(out->inputs, weightRef);
-
 
   if (layerData->withBias) {
     Tensor *biasRef = layer->bias;
@@ -79,15 +74,14 @@ Array *denseLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
-FowardPassOp *layer_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize,
-                          bool withBias) {
+FowardPassOp *layer_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
   Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
 
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   *layer = (Layer){.weights = w, .layerData = layerData};
 
   if (withBias) {
@@ -95,7 +89,7 @@ FowardPassOp *layer_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t ou
     layer->bias = b;
   }
 
-  FowardPassOp *denseLayer = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *denseLayer = allocate(ctx->memory, sizeof(FowardPassOp));
   *denseLayer = (FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};
   return denseLayer;
 }

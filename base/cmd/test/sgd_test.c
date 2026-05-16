@@ -65,8 +65,7 @@ static void test_sgd_null_inputs(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
   Result r = Sgd(&ctx, NULL, 0.1f);
-  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED,
-            "NULL parameter array should return ERR_NULL_TENSOR_PROVIDED");
+  ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "NULL parameter array should return ERR_NULL_TENSOR_PROVIDED");
 }
 
 static void test_sgd_invalid_learning_rate(void) {
@@ -81,8 +80,7 @@ static void test_sgd_invalid_learning_rate(void) {
   Array_Append(params, &p);
 
   Result r = Sgd(&ctx, params, 0.0f);
-  ASSERT_EQ(r, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE,
-            "zero learning rate should return dedicated error");
+  ASSERT_EQ(r, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE, "zero learning rate should return dedicated error");
 }
 
 static void test_sgd_dtype_mismatch(void) {

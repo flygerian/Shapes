@@ -1,8 +1,10 @@
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
+#include "tensor/types.h"
 #include "tensor/value.h"
 #include "tensor_internal.h"
+#include "utils_lib/cuda_memory.h"
 #include "utils_lib/memory.h"
 #include <complex.h>
 #include <stddef.h>
@@ -113,6 +115,14 @@ static Value randomValueForRange(f32 minValue, f32 maxValue, Dtype dtype) {
   return VALUE(dtype, minValue);
 }
 
+static inline void *allocateTensorValues(Context *ctx, size_t size) {
+  if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
+    CudaBlock *block = AllocateOnCuda(ctx->cudaMemory, ctx->memory, size);
+    return block->ptr;
+  }
+  return allocate(ctx->memory, size);
+}
+
 static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   if (dest == NULL) {
     return ERR_NULL_PTR;
@@ -121,7 +131,7 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, shape.dims, shape.numOfDims);
   shape.multipliers = snm.multipliers;
 
-  void *values = allocate(ctx->memory, snm.size * getBytesForDtype(dtype));
+  void *values = allocateTensorValues(ctx, snm.size * getBytesForDtype(dtype));
 
   *dest = (Tensor){
       .context = ctx,
@@ -201,19 +211,17 @@ Tensor *Clone(Context *ctx, Tensor *t) {
   }
 
   size_t valueBytes = getBytesForDtype(source->dtype) * source->size;
-  void *newValues = allocateOnCtx(ctx, valueBytes);
+  void *newValues = allocateTensorValues(ctx, valueBytes);
   PANIC_IF(newValues == NULL, ALLOCATION_FAILED);
 
-  Result valueCopyRes =
-      copyBetweenContexts(source->context, ctx, source->values, newValues, valueBytes);
+  Result valueCopyRes = CopyBetweenDevices(source->context->device->type, ctx->device->type, source->values, newValues, valueBytes);
   PANIC_IF(valueCopyRes != OK, valueCopyRes);
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
 
-  multiplier_t *newMultipliers =
-      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
@@ -227,9 +235,7 @@ Tensor *Clone(Context *ctx, Tensor *t) {
                    .isContigous = true,
                    .isView = false,
                    .boundary = NULL,
-                   .shape = {.dims = newDims,
-                             .numOfDims = source->shape.numOfDims,
-                             .multipliers = newMultipliers}};
+                   .shape = {.dims = newDims, .numOfDims = source->shape.numOfDims, .multipliers = newMultipliers}};
   return dest;
 }
 
@@ -247,9 +253,8 @@ void Copy(Context *ctx, Tensor *src, Tensor *dest) {
     srcContigous = src;
   }
 
-  Result copyRes =
-      copyBetweenContexts(srcContigous->context, dest->context, srcContigous->values, dest->values,
-                          srcContigous->size * getBytesForDtype(srcContigous->dtype));
+  Result copyRes = CopyBetweenDevices(srcContigous->context->device->type, dest->context->device->type, srcContigous->values, dest->values,
+                                       srcContigous->size * getBytesForDtype(srcContigous->dtype));
   PANIC_IF(copyRes != OK, copyRes);
 }
 
@@ -297,28 +302,42 @@ Tensor *T_Float64(Context *ctx, Dim shape, f64 initialValue) {
 Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtype) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(values == NULL, ERR_NULL_PTR);
-  PANIC_IF(ctx->device != NULL && ctx->device->type == CUDA, ERR_NO_OP);
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, shape.dims, shape.numOfDims);
 
   Tensor *tensor = t_Zeros(ctx, shape, dtype);
   PANIC_IF(tensor == NULL, ALLOCATION_FAILED);
 
-  memcpy(tensor->values, values, snm.size * getBytesForDtype(dtype));
+  size_t valueBytes = snm.size * getBytesForDtype(dtype);
+
+  // Assume the values buffer is created on the host then copy it to the devices on the context, which is where the tensor will get created as well
+  Result copyRes = CopyBetweenDevices(CPU, ctx->device->type, values, tensor->values, valueBytes);
+  PANIC_IF(copyRes != OK, copyRes);
 
   return tensor;
 }
 
 Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype) {
   PANIC_IF(minValue > maxValue, ERR_INVALID_RANGE);
-  PANIC_IF(ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA, ERR_NO_OP);
 
   Tensor *tensor = t_Zeros(ctx, shape, dtype);
   PANIC_IF(tensor == NULL, ALLOCATION_FAILED);
 
   seedRandomOnce();
-  for (tensor_size_t i = 0; i < tensor->size; i++) {
-    VALUE_SET(tensor->values, i, randomValueForRange(minValue, maxValue, dtype));
+
+  size_t valueBytes = tensor->size * getBytesForDtype(dtype);
+  if (ctx->device != NULL && ctx->device->type == CUDA) {
+    void *tempValues = allocate(ctx->memory, valueBytes);
+    PANIC_IF(tempValues == NULL, ALLOCATION_FAILED);
+    for (tensor_size_t i = 0; i < tensor->size; i++) {
+      VALUE_SET(tempValues, i, randomValueForRange(minValue, maxValue, dtype));
+    }
+    Result copyRes = CopyBetweenDevices(CPU, ctx->device->type, tempValues, tensor->values, valueBytes);
+    PANIC_IF(copyRes != OK, copyRes);
+  } else {
+    for (tensor_size_t i = 0; i < tensor->size; i++) {
+      VALUE_SET(tensor->values, i, randomValueForRange(minValue, maxValue, dtype));
+    }
   }
 
   return tensor;
@@ -387,7 +406,6 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   dim_t *outDims = allocate(ctx->memory, sizeof(dim_t) * outNumDims);
   PANIC_IF(outDims == NULL, ALLOCATION_FAILED);
 
-
   for (u8 i = 0; i < source->shape.numOfDims; i++) {
     outDims[i] = source->shape.dims[i];
   }
@@ -397,8 +415,7 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   Tensor *out = T_Zeros(ctx, SHAPE(outDims, outNumDims));
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    Result result =
-        runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);
+    Result result = runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);
     PANIC_IF(result != OK, result);
     return out;
   }
@@ -431,8 +448,7 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
     }
 
     tensor_size_t outIdx = i * lastDimStride + (tensor_size_t)classIdx;
-    Result writeResult =
-        writeTensorValueAtFlatIndex(out, outIdx, (Value){.dtype = F32, .as.f32 = 1.0f});
+    Result writeResult = writeTensorValueAtFlatIndex(out, outIdx, (Value){.dtype = F32, .as.f32 = 1.0f});
     PANIC_IF(writeResult != OK, ERR_NO_OP);
   }
 

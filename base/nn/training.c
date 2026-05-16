@@ -38,6 +38,7 @@ Tensor *Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
     case OP_ADAPTIVE_AVG_POOL2D: return adaptiveAvgPool2dForward(ctx, (Layer *)fwdOp->op, input);
     case OP_CONV2D: return conv2dForward(ctx, (Layer *)fwdOp->op, input);
     case OP_SEQUENTIAL: return sequentialModelForward(ctx, fwdOp, input);
+    case OP_FLATTEN: return flattenFoward(ctx, fwdOp->op, input);
   }
 
   PANIC_IF(true, LAYER_OP_NOT_FOUND);
@@ -57,6 +58,7 @@ Array *Parameters(Context *ctx, FowardPassOp *op) {
     case OP_ADAPTIVE_AVG_POOL2D: return adaptiveAvgPool2dLayerParameters(ctx, (Layer *)op->op);
     case OP_CONV2D: return conv2dLayerParameters(ctx, (Layer *)op->op);
     case OP_SEQUENTIAL: return sequentialModelParameters(ctx, op);
+    case OP_FLATTEN: return flattenParameters(ctx);
   }
 
   PANIC_IF(true, LAYER_OP_NOT_FOUND);

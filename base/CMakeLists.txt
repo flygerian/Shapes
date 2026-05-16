@@ -59,8 +59,11 @@ add_library(utils_lib
   utils_lib/map.c
   utils_lib/bitset.c
   utils_lib/file.c
+  utils_lib/cuda_memory.c
 )
+
 target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(utils_lib CUDA::cublas CUDA::cudart stdc++ m)
 
 add_library(shapes_cuda
     cuda/access.cu
@@ -79,10 +82,10 @@ add_library(shapes_cuda
 )
 target_include_directories(shapes_cuda PUBLIC ${CMAKE_SOURCE_DIR}) 
 
-
 # Core library
 add_library(shapes_core
     context.c
+    device.c
     layer/dense.c
     layer/batch_norm.c
     layer/im2col.c
@@ -94,12 +97,10 @@ add_library(shapes_core
     optimizer/adam.c
     tensor/tensor.c
     tensor/binary_op.c
-    tensor/matrix_ops.c
     tensor/shape_ops.c
     tensor/access.c
     tensor/reduction.c
     tensor/creation.c
-    tensor/destruction.c
     tensor/unary.c
     tensor/cast.c
     tensor/accumulate.c
@@ -120,10 +121,13 @@ add_library(shapes_core
     nn/conv2d.c
     nn/sequential.c
     nn/utils.c
+    nn/flatten.c
+    nn/softmax.c
     cmd/examples/makemore_3.c
     cmd/examples/makemore_5.c
     cmd/examples/vgg-10.c
     cmd/examples/ui.c
+    cmd/examples/raylib.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 

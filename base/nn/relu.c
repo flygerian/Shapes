@@ -1,4 +1,3 @@
-#include "../common.h"
 #include "../shapes.h"
 #include "nn.h"
 #include "result/result.h"
@@ -6,8 +5,7 @@
 #include "utils_lib/array.h"
 
 void reluBackward(Context *ctx, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *input = Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -38,12 +36,12 @@ Array *reluLayerParameters(Context *ctx, Layer *state) {
 }
 
 FowardPassOp *layer_Relu(Context *ctx, Dtype dtype) {
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = NULL;
   layer->bias = NULL;
   layer->layerData = NULL;
 
-  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
   *op = (FowardPassOp){.ctx = ctx, .type = OP_RELU, .dtype = dtype, .op = layer};
   return op;
 }

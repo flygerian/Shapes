@@ -1,7 +1,10 @@
 #include "result/result.h"
+#include "shapes.h"
+#include "tensor/types.h"
 #include "tensor_internal.h"
 #include "../common.h"
 #include "utils_lib/memory.h"
+#include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -40,7 +43,17 @@ Value *GetAt(Tensor *t, Dim dim) {
 
   Value *result = allocate(t->context->memory, sizeof(Value));
 
-  readTensorValueAtFlatIndex(t, idx, result);
+  byte* values;
+  if (t->context->device != CPU) {
+    size_t size = sizeof(t->size * getBytesForDtype(t->dtype));
+    values = allocate(t->context->memory, size);
+    CopyBetweenDevices(t->context->device->type, CPU, t->values, values, size);
+  } else {
+    values = t->values;
+  }
+
+  size_t valueBytes = getBytesForDtype(t->dtype);
+  memcpy(&result->as, values + idx * valueBytes, valueBytes);
   return result;
 }
 
@@ -59,7 +72,6 @@ Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   dim_t *newDims = NULL;
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-    PANIC_IF(ensureAllocated(newDims) != OK, ALLOCATION_FAILED);
   }
 
   for (u8 i = 0; i < workingIndices->shape.numOfDims; i++) {
@@ -132,7 +144,6 @@ Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tens
   dim_t *newDims = NULL;
   if (newNumDims > 0) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-    PANIC_IF(ensureAllocated(newDims) != OK, ALLOCATION_FAILED);
   }
 
   for (u8 i = 0; i < workingRows->shape.numOfDims; i++) {
@@ -196,87 +207,6 @@ Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tens
 
 
   return dest;
-}
-
-Tensor *GetTensorAt(Context *ctx, Tensor *source, dim_t index) {
-  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(source->shape.numOfDims == 0, ERR_DIM_MISMATCH);
-  PANIC_IF(!isSameContext(source->context, ctx), ERR_NO_OP);
-  PANIC_IF(index >= source->shape.dims[0], ERR_OUT_OF_BOUNDS);
-
-  u8 newNumDims = source->shape.numOfDims - 1;
-  size_t bytesPerElem = getBytesForDtype(source->dtype);
-
-  // Determine the dim0 base offset in the underlying storage (accounting for any
-  // existing per-dim boundary on a view source).
-  u64 baseDim0Start = (source->isView && source->boundary) ? source->boundary[0].start : 0;
-  u64 selected = baseDim0Start + index;
-  u64 offsetElems = selected * source->shape.multipliers[0];
-
-  // Advance the values pointer so the result tensor starts at the correct row.
-  void *newValues = (char *)source->values + offsetElems * bytesPerElem;
-
-  // Handle case where we're reducing to 0-dim (scalar tensor)
-  if (newNumDims == 0) {
-    Value scalar;
-    Result result = copyBetweenContexts(source->context, NULL, newValues, &scalar.as, bytesPerElem);
-    PANIC_IF(result != OK, result);
-    scalar.dtype = source->dtype;
-    Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-    *dest = singleValueTensor(ctx, scalar);
-    PANIC_IF(dest->values == NULL, ERR_OUT_OF_MEMORY);
-    return dest;
-  }
-
-  // Allocate new dims and copy source dims[1:]
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-  PANIC_IF(ensureAllocated(newDims) != OK, ALLOCATION_FAILED);
-  for (u8 i = 0; i < newNumDims; i++) {
-    newDims[i] = source->shape.dims[i + 1];
-  }
-
-  // Copy source multipliers[1:] — do NOT recompute; preserves transposed strides.
-  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
-  PANIC_IF(ensureAllocated(newMultipliers) != OK, ALLOCATION_FAILED);
-  for (u8 i = 0; i < newNumDims; i++) {
-    newMultipliers[i] = source->shape.multipliers[i + 1];
-  }
-
-  // Copy remaining per-dim boundary entries [1:] if source was a view.
-  Range *boundary = NULL;
-  if (source->isView && source->boundary) {
-    boundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
-    PANIC_IF(ensureAllocated(boundary) != OK, ALLOCATION_FAILED);
-    for (u8 i = 0; i < newNumDims; i++) {
-      boundary[i] = source->boundary[i + 1];
-    }
-  }
-
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = tensorView(source->context, ctx->memory, newValues, source->size / source->shape.dims[0],
-                     source->dtype,
-                     (Dim){.dims = newDims, .numOfDims = newNumDims, .multipliers = newMultipliers},
-                     boundary, false);
-
-  return dest;
-}
-
-Result GetScalar(Tensor *t, Value *result) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (t->shape.numOfDims != 0) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (result == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  return readTensorValueAtFlatIndex(t, 0, result);
 }
 
 Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {

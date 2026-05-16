@@ -1,12 +1,10 @@
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor_internal.h"
 #include "value.h"
-#include <stdlib.h>
 
 static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype dtype) {
   tensor_size_t x = 0;
@@ -126,11 +124,8 @@ static Tensor *meanCpu(Context *ctx, Tensor *t) {
   Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
 
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dest = T_Zeros(ctx, SCALAR);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
-  PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
-  VALUE_SET(dest->values, 0, mean);
 
   return dest;
 }
@@ -210,10 +205,8 @@ static Tensor *stdCpu(Context *ctx, Tensor *t) {
 
   f64 std = sqrt(deviationSquaredSum / (f64)(input->size - 1));
 
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *dest = T_Zeros(ctx, SCALAR);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
-  PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
 
   switch (input->dtype) {
     case F16: ((f16 *)dest->values)[0] = (f16)std; break;
@@ -322,11 +315,7 @@ static Tensor *sumCuda(Context *ctx, Tensor *t, dim_t dim) {
 static Tensor *meanCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
-  PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
-
+  Tensor *dest = T_Zeros(ctx, SCALAR);
   Result result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
                                    dest->values, input->size);
   PANIC_IF(result != OK, result);
@@ -354,10 +343,7 @@ static Tensor *meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
 static Tensor *stdCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = singleValueTensor(ctx, VALUE(input->dtype, 0));
-  PANIC_IF(dest->values == NULL, ALLOCATION_FAILED);
+  Tensor *dest = T_Zeros(ctx, SCALAR);
 
   Result result = runCudaStd(ctx, input->dtype, input->values, dest->values, input->size);
   PANIC_IF(result != OK, result);

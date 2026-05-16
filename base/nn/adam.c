@@ -47,8 +47,7 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   }
 
   state->step++;
-  Result res = Adam(ctx, triplets, parameters->size, state->b1, state->b2, state->step,
-                    opts->learningRate, state->episolon);
+  Result res = Adam(ctx, triplets, parameters->size, state->b1, state->b2, state->step, opts->learningRate, state->episolon);
 
   PANIC_IF(res != OK, res);
 }
@@ -63,7 +62,7 @@ Optimizer *optimizer_Adam(Context *ctx, f32 learningRate) {
       .step = 0,
   };
 
-  adamState *aState = allocateOnCtx(ctx, sizeof(adamState));
+  adamState *aState = allocate(ctx->memory, sizeof(adamState));
   *aState = state;
 
   Optimizer *opt = allocate(ctx->memory, sizeof(Optimizer));

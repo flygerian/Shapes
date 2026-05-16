@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
+#include "utils_lib/cuda_memory.h"
 #include "utils_lib/utils_lib.h"
 
 typedef size_t tensor_size_t;
@@ -34,6 +35,7 @@ typedef enum {
   OP_GREATER_OR_EQUAL,
   OP_LESS,
   OP_LESS_OR_EQUAL,
+  OP_EQUAL,
   OP_DENSE,
   OP_EMBEDDING,
   OP_RESHAPE,
@@ -49,6 +51,7 @@ typedef enum {
   OP_ADAPTIVE_AVG_POOL2D,
   OP_CONV2D,
   OP_SEQUENTIAL,
+  OP_FLATTEN
 } OpType;
 
 typedef enum {
@@ -96,24 +99,18 @@ typedef struct ValuePair {
   Value b;
 } ValuePair;
 
-typedef struct CudaCachedBlock {
-  void *ptr;
-  size_t size;
-  struct CudaCachedBlock *next;
-} CudaCachedBlock;
-
 typedef struct {
   DeviceType type;
   char *id;
-  CudaCachedBlock *activeBlocks;
-  CudaCachedBlock *cachedBlocks;
 } Device;
 
 typedef struct Context {
   Memory *memory;
+  CudaMemory cudaMemory;
   Device *device;
   bool isTraining;
   cublasHandle_t handle;
+  struct Context *parent;
 } Context;
 
 typedef struct sizeAndMultipliers {

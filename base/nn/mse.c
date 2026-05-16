@@ -6,8 +6,7 @@
 #include "utils_lib/array.h"
 
 void mseBackward(Context *ctx, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *yGround = Array_TensorIdx(tensor->inputs, 0);

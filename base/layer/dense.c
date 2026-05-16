@@ -81,8 +81,7 @@ Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
   // w: [outputSize, inputSize]
   // b: [outputSize] (optional)
   // out: [..., outputSize]
-  PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || (withBias && isInvalidTensor(b)),
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || (withBias && isInvalidTensor(b)), ERR_NULL_TENSOR_PROVIDED);
 
   PANIC_IF(x->shape.numOfDims < 2 || w->shape.numOfDims != 2, ERR_MATMUL_MIN_2D);
 
@@ -95,28 +94,22 @@ Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
 
   PANIC_IF(w->shape.dims[1] != inputSize, ERR_MATMUL_INNER_DIM_MISMATCH);
 
-  PANIC_IF(withBias && (b->shape.numOfDims != 1 || b->shape.dims[0] != outputSize),
-           ERR_DIM_MISMATCH);
+  PANIC_IF(withBias && (b->shape.numOfDims != 1 || b->shape.dims[0] != outputSize), ERR_DIM_MISMATCH);
   // BLAS expects dense row-major buffers. Views/slices from Go can be
   // non-contiguous, so we materialize contiguous copies when needed.
 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Tensor *wContig = materializeTensorOnContext(ctx, w);
 
-
   tensor_size_t rows = x->size / inputSize;
-
 
   Dim newDims = swapLastDim(ctx, x->shape, outputSize);
   Tensor *out = T_Zeros(ctx, newDims);
 
-
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
-  runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize,
-          xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, out->values,
-          (int)outputSize);
-
+  runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize, xContig->values, (int)inputSize, wContig->values,
+          (int)inputSize, false, out->values, (int)outputSize);
 
   if (withBias) {
     AddInPlace(ctx, out, b);
@@ -125,13 +118,11 @@ Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
   return out;
 }
 
-Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW,
-                     Tensor *dB) {
+Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
   // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL
-  if (ctx == NULL || isInvalidTensor(x) || isInvalidTensor(w) || isInvalidTensor(gradOut) ||
-      isInvalidTensor(dX) || isInvalidTensor(dW)) {
+  if (ctx == NULL || isInvalidTensor(x) || isInvalidTensor(w) || isInvalidTensor(gradOut) || isInvalidTensor(dX) || isInvalidTensor(dW)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
@@ -187,7 +178,6 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   Tensor *wContig = materializeTensorOnContext(ctx, w);
   Tensor *gContig = materializeTensorOnContext(ctx, &gradOut2d);
 
-
   Tensor dX2d = {0};
   Tensor *createdDX2d = t_Empty(ctx, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
   PANIC_IF(createdDX2d == NULL, ALLOCATION_FAILED);
@@ -198,16 +188,12 @@ Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor
   PANIC_IF(createdDWRaw == NULL, ALLOCATION_FAILED);
   dWRaw = *createdDWRaw;
 
-
-  runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize,
-          gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX2d.values,
-          (int)inputSize);
-
+  runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize, gContig->values, (int)outputSize, wContig->values,
+          (int)inputSize, false, dX2d.values, (int)inputSize);
 
   // dW = gradOut^T * x
-  runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows,
-          gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dWRaw.values,
-          (int)inputSize);
+  runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows, gContig->values, (int)outputSize, xContig->values,
+          (int)inputSize, false, dWRaw.values, (int)inputSize);
 
   Tensor *dXReduced = ReduceBroadcast(ctx, x, &dX2d);
   AddInPlace(ctx, dX, dXReduced);

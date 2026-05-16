@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 #include "tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
+#include "utils_lib/cuda_memory.h"
 #include "value.h"
 #include <stdlib.h>
 
@@ -38,7 +40,6 @@ void PrintItem(Tensor *t) {
 
   PRINT_VALUE(*val);
 }
-
 
 char *GetItem(Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
@@ -199,8 +200,7 @@ Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
 
   // Check if tensors are on the same device (both NULL = CPU, or same device pointer)
   bool sameDevice = (ctx->device == NULL && src->context->device == NULL) ||
-                    (ctx->device != NULL && src->context->device != NULL &&
-                     ctx->device->type == src->context->device->type);
+                    (ctx->device != NULL && src->context->device != NULL && ctx->device->type == src->context->device->type);
   PANIC_IF(!sameDevice, ERR_DIFFERENT_CTX_TENSORS_PASSED);
 
   Tensor *working = src;
@@ -326,8 +326,7 @@ Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result)
   return OK;
 }
 
-void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep,
-                              void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
+void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
   switch (dtype) {
     case BOOL: {
       bool *d = (bool *)destValues;
@@ -428,49 +427,16 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
   }
 }
 
-Result moveTensor(Context *srcCtx, Context *destCtx, Tensor *t) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (destCtx == NULL) {
-    return ERR_COPY_CTX_DEVICE_IS_NULL;
-  }
-
-  Context *tensorCtx = t->context != NULL ? t->context : srcCtx;
-  if (tensorCtx == NULL) {
-    return ERR_COPY_CTX_DEVICE_IS_NULL;
-  }
-
-  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
-  void *locationOnTarget = allocateOnCtx(destCtx, valueBytes);
-  Result allocRes = ensureAllocated(locationOnTarget);
-  if (allocRes != OK) {
-    return allocRes;
-  }
-
-  Result copyResult =
-      copyBetweenContexts(tensorCtx, destCtx, t->values, locationOnTarget, valueBytes);
-  if (copyResult != OK) {
-    return copyResult;
-  }
-
-  freeOnCtx(tensorCtx, t->values);
-  t->values = locationOnTarget;
-  t->context = destCtx;
-
-  return OK;
+Array *Make_DynamicTensorArray(Memory *memory) {
+  return MakeDynamicArray(memory, sizeof(Tensor *));
 }
 
-Array* Make_DynamicTensorArray(Memory *memory) {
-  return MakeDynamicArray(memory, sizeof(Tensor *)); 
-}
-
-Array* Make_TensorArray(Memory *memory, size_t capacity) {
-  return MakeArray(memory, sizeof(Tensor *), capacity); 
+Array *Make_TensorArray(Memory *memory, size_t capacity) {
+  return MakeArray(memory, sizeof(Tensor *), capacity);
 }
 
 void Array_AppendTensor(Array *array, Tensor *tensor) {
+  PANIC_IF(array->elemSize != sizeof(Tensor *), ARRAY_ELEM_SIZE_MISMATCH);
   Array_Append(array, (void *)&tensor);
 }
 
@@ -485,14 +451,119 @@ void Array_AppendTensorArray(Array *array, Array *tensorArray) {
   }
 }
 
-Tensor *Array_TensorIdx(Array *array, size_t idx) {
-  return *((Tensor **)Array_Idx(array, idx));
-}
-
 void Array_AppendLayer(Array *array, Layer *layer) {
   Array_Append(array, (void *)&layer);
 }
 
 Layer *Array_LayerIdx(Array *array, size_t idx) {
   return *(Layer **)Array_Idx(array, idx);
+}
+
+static void printTensorDim(Tensor *t, size_t *flatIdx, u8 dim, u8 indent) {
+  printf("[");
+  for (dim_t i = 0; i < t->shape.dims[dim]; i++) {
+    if (i > 0) {
+      if (dim == t->shape.numOfDims - 1) {
+        printf(", ");
+      } else {
+        printf(",\n");
+        for (u8 s = 0; s < indent + 1; s++) {
+          printf(" ");
+        }
+      }
+    }
+
+    if (dim == t->shape.numOfDims - 1) {
+      Value val;
+      (void)readTensorValueAtFlatIndex(t, (*flatIdx)++, &val);
+      switch (t->dtype) {
+        case BOOL: printf("%s", val.as.boolean ? "true" : "false"); break;
+        case U8: printf("%u", (unsigned int)val.as.u8); break;
+        case U16: printf("%u", (unsigned int)val.as.u16); break;
+        case U32: printf("%u", (unsigned int)val.as.u32); break;
+        case U64: printf("%llu", (unsigned long long)val.as.u64); break;
+        case I8: printf("%d", (int)val.as.i8); break;
+        case I16: printf("%d", (int)val.as.i16); break;
+        case I32: printf("%d", (int)val.as.i32); break;
+        case I64: printf("%lld", (long long)val.as.i64); break;
+        case F16: printf("%.4f", (double)val.as.f16); break;
+        case F32: printf("%.4f", (double)val.as.f32); break;
+        case F64: printf("%.4f", (double)val.as.f64); break;
+      }
+    } else {
+      printTensorDim(t, flatIdx, dim + 1, indent + 1);
+    }
+  }
+  printf("]");
+}
+
+void PrintTensor(Tensor *tensor) {
+  if (tensor == NULL || tensor->values == NULL) {
+    printf("tensor([])\n");
+    return;
+  }
+
+  if (tensor->shape.numOfDims == 0) {
+    printf("tensor(");
+    Value val;
+    (void)readTensorValueAtFlatIndex(tensor, 0, &val);
+    switch (tensor->dtype) {
+      case BOOL: printf("%s", val.as.boolean ? "true" : "false"); break;
+      case U8: printf("%u", (unsigned int)val.as.u8); break;
+      case U16: printf("%u", (unsigned int)val.as.u16); break;
+      case U32: printf("%u", (unsigned int)val.as.u32); break;
+      case U64: printf("%llu", (unsigned long long)val.as.u64); break;
+      case I8: printf("%d", (int)val.as.i8); break;
+      case I16: printf("%d", (int)val.as.i16); break;
+      case I32: printf("%d", (int)val.as.i32); break;
+      case I64: printf("%lld", (long long)val.as.i64); break;
+      case F16: printf("%.4f", (double)val.as.f16); break;
+      case F32: printf("%.4f", (double)val.as.f32); break;
+      case F64: printf("%.4f", (double)val.as.f64); break;
+    }
+    printf(")\n");
+    return;
+  }
+
+  printf("tensor<");
+  for (u8 d = 0; d < tensor->shape.numOfDims; d++) {
+    printf("%zu", (size_t)tensor->shape.dims[d]);
+    if (d < tensor->shape.numOfDims - 1) {
+      printf(",");
+    }
+  }
+  printf(">(\n");
+
+  printf("    ");
+  size_t flatIdx = 0;
+  printTensorDim(tensor, &flatIdx, 0, 4);
+  printf("\n)\n");
+}
+
+void moveTensor(Context *destCtx, Tensor *t) {
+  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
+  CudaBlock *block = AllocateOnCuda(destCtx->cudaMemory, destCtx->memory, valueBytes);
+  PANIC_IF(block == NULL, ALLOCATION_FAILED);
+  void *locationOnDest = block->ptr;
+  Result copyResult = CopyBetweenDevices(t->context->device->type, destCtx->device->type, t->values, locationOnDest, valueBytes);
+
+  PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
+
+  t->context = destCtx;
+  t->values = locationOnDest;
+}
+
+void MoveToCuda(Context *destCtx, Array *tensors) {
+  PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA, ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(tensors == NULL, ERR_NULL_PTR);
+
+  for (size_t x = 0; x < tensors->size; x++) {
+    Tensor *t = Array_TensorIdx(tensors, x);
+    PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
+
+    moveTensor(destCtx, t);
+    moveTensor(destCtx, t->grad);
+  }
 }

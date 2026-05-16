@@ -10,7 +10,6 @@
 #define NEXT_BLOCK_OFFSET(blockHeader)                                                             \
   (sizeof(blockheader) + blockHeader->blockSize + sizeof(blockfooter))
 
-
 #define ARENA(memory) ((uint8_t *)(memory + 1))
 
 #define BLOCK_HEADER(ptr) ((blockheader *)((uint8_t *)(ptr) - sizeof(blockheader)))
@@ -32,7 +31,9 @@
   (type *)reallocate(memory, pointer, sizeof(type) * (newcount))
 
 typedef struct {
+  uint8_t blockID;
   bool free;
+  uint8_t *arena;
   size_t blockSize;
   size_t nextFreeOffset;
   size_t prevFreeOffset;
@@ -51,14 +52,21 @@ typedef struct {
   size_t freeHeadOffset;
 } Memory;
 
+typedef struct {
+  void *ptr;
+  size_t size;
+} CudaBlock;
+
 Memory *initializeMemory();
 Memory *initializeArena(size_t arenaSize, size_t minBlockSize);
 Memory *initializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize);
+Memory* GetScratchArena(Memory *memory, size_t scratchBufferSize);
 void resetArena(Memory *memory);
 void *allocate(Memory *memory, size_t size);
 void *reallocate(Memory *memory, void *ptr, size_t size);
 void freeAlloc(Memory *memory, void *ptr);
 void freeMemory(Memory *memory);
+void popScratch(void *ptr);
 void printMemoryFragmentationChart(Memory *memory);
 
 #endif

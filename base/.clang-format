@@ -10,7 +10,7 @@ IndentCaseLabels: true
 IndentGotoLabels: true
 
 # Line length
-ColumnLimit: 100
+ColumnLimit: 150
 
 # Braces (K&R / Attach style)
 BreakBeforeBraces: Attach
@@ -42,7 +42,7 @@ BinPackArguments: true
 BinPackParameters: true
 BreakBeforeBinaryOperators: None
 InsertTrailingCommas: None
-MaxEmptyLinesToKeep: 2
+MaxEmptyLinesToKeep: 1
 ReflowComments: true
 InsertBraces: false
 ...

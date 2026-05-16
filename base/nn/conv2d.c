@@ -16,8 +16,7 @@ typedef struct conv2dLayerData {
 } conv2dLayerData;
 
 void conv2dBackward(Context *ctx, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
   conv2dLayerData *layerData = tensor->opMetadata;
@@ -31,8 +30,7 @@ void conv2dBackward(Context *ctx, Tensor *tensor) {
     bias = Array_TensorIdx(tensor->inputs, 2);
   }
 
-  PANIC_IF(input == NULL || kernels == NULL || input->grad == NULL || kernels->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(input == NULL || kernels == NULL || input->grad == NULL || kernels->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(bias != NULL && bias->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(layerData->colBuffer == NULL, ERR_NULL_PTR);
 
@@ -49,8 +47,7 @@ void conv2dBackward(Context *ctx, Tensor *tensor) {
   }
 
   Result result =
-      Conv2dBackward(ctx, input, dInput, kernels, dKernels, tensor->grad, layerData->colBuffer,
-                     dBias, layerData->withBias, layerData->stride);
+      Conv2dBackward(ctx, input, dInput, kernels, dKernels, tensor->grad, layerData->colBuffer, dBias, layerData->withBias, layerData->stride);
   PANIC_IF(result != OK, result);
 
   Tensor *reducedInputGrad = ReduceBroadcast(ctx, input, dInput);
@@ -66,8 +63,7 @@ void conv2dBackward(Context *ctx, Tensor *tensor) {
 }
 
 Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   conv2dLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
@@ -87,8 +83,8 @@ Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   Tensor colBuffer;
-  Result result = Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride,
-                         kernels, bias, layerData->withBias, tensor, dest, &colBuffer);
+  Result result =
+      Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, dest, &colBuffer);
   PANIC_IF(result != OK, result);
 
   Tensor *colBufferPtr = allocate(ctx->memory, sizeof(Tensor));
@@ -125,20 +121,14 @@ Array *conv2dLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
-FowardPassOp *layer_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels,
-                           dim_t kH, dim_t kW, u8 stride, bool withBias) {
+FowardPassOp *layer_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
-  Tensor *w =
-      MakeRandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
+  Tensor *w = MakeRandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
 
   conv2dLayerData *layerData = allocate(ctx->memory, sizeof(conv2dLayerData));
-  *layerData = (conv2dLayerData){.inChannels = inChannels,
-                                 .outChannels = outChannels,
-                                 .stride = stride,
-                                 .withBias = withBias,
-                                 .colBuffer = NULL};
+  *layerData = (conv2dLayerData){.inChannels = inChannels, .outChannels = outChannels, .stride = stride, .withBias = withBias, .colBuffer = NULL};
 
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   *layer = (Layer){.weights = w, .layerData = layerData};
 
   if (withBias) {
@@ -146,7 +136,7 @@ FowardPassOp *layer_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t 
     layer->bias = b;
   }
 
-  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
   *op = (FowardPassOp){.ctx = ctx, .type = OP_CONV2D, .dtype = dtype, .op = layer};
   return op;
 }

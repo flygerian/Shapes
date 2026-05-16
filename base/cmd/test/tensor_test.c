@@ -344,12 +344,9 @@ static void test_assign_value_multiple_indices(void) {
   dim_t idx1[] = {0, 2};
   dim_t idx2[] = {1, 1};
 
-  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2},
-                (Value){.dtype = F32, .as.f32 = 10.0f});
-  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2},
-                (Value){.dtype = F32, .as.f32 = 20.0f});
-  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2},
-                (Value){.dtype = F32, .as.f32 = 30.0f});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = F32, .as.f32 = 10.0f});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = F32, .as.f32 = 20.0f});
+  AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx2, .numOfDims = 2}, (Value){.dtype = F32, .as.f32 = 30.0f});
 
   f32 *values = (f32 *)tt.tensor.values;
   ASSERT_EQ(values[0 * 3 + 0], 10.0f, "[0,0] should be 10");
@@ -439,8 +436,7 @@ static void test_slice_basic_2d(void) {
     }
   }
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
   ASSERT_NOT_NULL(slice, "Slice should return a tensor");
   ASSERT(slice->isView, "slice should be a view");
   ASSERT_EQ(slice->shape.numOfDims, 2, "slice should have 2 dimensions");
@@ -459,8 +455,7 @@ static void test_slice_shares_data_with_source(void) {
   Value val = {.dtype = F32, .as.f32 = 42.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "Slice should return a tensor");
   ASSERT_EQ(slice->values, tt.tensor.values, "slice should share values pointer with source");
 }
@@ -480,8 +475,7 @@ static void test_slice_get_at_correct_values(void) {
     }
   }
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
   dim_t slice_idx[] = {0, 0};
@@ -508,8 +502,7 @@ static void test_slice_single_element_range(void) {
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   AssignValueAt(&ctx, &tt.tensor, (Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
   ASSERT_NOT_NULL(slice, "single element slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 1, "slice dim[0] should be 1");
   ASSERT_EQ(slice->shape.dims[1], 1, "slice dim[1] should be 1");
@@ -526,8 +519,7 @@ static void test_slice_full_range(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "full range slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 3, "slice dim[0] should match source");
   ASSERT_EQ(slice->shape.dims[1], 4, "slice dim[1] should match source");
@@ -568,8 +560,7 @@ static void test_slice_modify_reflects_in_source(void) {
   Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
 
   // Modify slice[0,1] which maps to source[1,2]
   dim_t slice_idx[] = {0, 1};
@@ -599,13 +590,11 @@ static void test_slice_of_slice(void) {
   }
 
   // First slice: rows 1-5 (exclusive), cols 1-5 (exclusive) -> 4x4 region
-  Tensor *slice1 =
-      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+  Tensor *slice1 = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
 
   // Second slice of first slice: rows 1-3 (exclusive), cols 1-3 (exclusive) -> 2x2 region
   // This maps to source rows 2-3, cols 2-3
-  Tensor *slice2 =
-      Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  Tensor *slice2 = Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
   ASSERT_NOT_NULL(slice2, "slice of slice should return a tensor");
   ASSERT_EQ(slice2->shape.dims[0], 2, "nested slice dim[0] should be 2");
   ASSERT_EQ(slice2->shape.dims[1], 2, "nested slice dim[1] should be 2");
@@ -637,9 +626,8 @@ static void test_slice_large_4d_tensor(void) {
     }
   }
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8},
-            (Range){.start = 4, .end = 10}, (Range){.start = 1, .end = 5});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8}, (Range){.start = 4, .end = 10},
+                        (Range){.start = 1, .end = 5});
 
   ASSERT_NOT_NULL(slice, "4D slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 4, "4D slice dim[0] should be 4");
@@ -825,8 +813,7 @@ static void test_reshape_view(void) {
 
   // Create a slice: rows 1-4 (exclusive), cols 0-6 (exclusive) -> 3x6 = 18 elements
   // Note: This slice is contiguous in memory
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
 
   // Reshape the slice to 1D (18 elements)
   dim_t new_dims[] = {18};
@@ -856,8 +843,7 @@ static void test_reshape_3d_view(void) {
   }
 
   // Slice: [1:3, 0:5, 0:6] (exclusive) -> 2x5x6 = 60 elements
-  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3},
-                        (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice->shape.dims[0], 2, "3D slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 5, "3D slice dim[1] should be 5");
@@ -901,9 +887,8 @@ static void test_reshape_4d_view(void) {
   }
 
   // Slice: [0:2, 1:4, 0:5, 0:6] (exclusive) -> 2x3x5x6 = 180 elements
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4},
-            (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 5},
+                        (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice->shape.dims[0], 2, "4D slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 3, "4D slice dim[1] should be 3");
@@ -944,9 +929,8 @@ static void test_reshape_4d_view_to_1d(void) {
   }
 
   // Slice: [0:1, 0:3, 0:4, 0:5] (exclusive) -> 1x3x4x5 = 60 elements
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3},
-            (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4},
+                        (Range){.start = 0, .end = 5});
 
   // Reshape to 1D: 60 elements
   dim_t new_dims[] = {60};
@@ -1153,8 +1137,7 @@ static void test_reshape_after_transpose_copies(void) {
 
   Tensor *reshaped = Reshape(&ctx, transposed, newShape);
   ASSERT_NOT_NULL(reshaped, "Reshape after transpose should return a tensor");
-  ASSERT(!reshaped->isContigous || reshaped->values != transposed->values,
-         "reshape should copy non-contiguous data");
+  ASSERT(!reshaped->isContigous || reshaped->values != transposed->values, "reshape should copy non-contiguous data");
 
   // Verify data is correctly copied in transposed order
   // Original source: 3x4, source[i,j] = i*4+j
@@ -1208,7 +1191,6 @@ static void test_add_basic_same_shape(void) {
   ASSERT_EQ(values[1], 22.0f, "result[0,1] should be 22");
   ASSERT_EQ(values[5], 66.0f, "result[1,2] should be 66");
 }
-
 
 static void test_add_broadcast_row_vector(void) {
   Memory *mem = initializeMemory();
@@ -1723,7 +1705,6 @@ static void test_less_than_broadcast_row_vector(void) {
   ASSERT_EQ(vals[4], false, "result[1,1] should be false");
   ASSERT_EQ(vals[5], false, "result[1,2] should be false");
 }
-
 
 // Sum tests
 static void test_sum_dim0_2d(void) {
@@ -2881,8 +2862,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
   ASSERT_NOT_NULL(t, "Transpose of slice should succeed");
 
   // Verify s and t have DIFFERENT boundary pointers (deep-copy)
-  ASSERT_NEQ((uintptr_t)s->boundary, (uintptr_t)t->boundary,
-             "s and t should have independent boundary arrays");
+  ASSERT_NEQ((uintptr_t)s->boundary, (uintptr_t)t->boundary, "s and t should have independent boundary arrays");
 
   // Verify correct values through both views
   // s[0,0] = x[1,0] = 4
@@ -2924,8 +2904,7 @@ static void test_slice_boundary_access(void) {
     }
   }
 
-  Tensor *slice =
-      Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
+  Tensor *slice = Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
 
   // Test all 4 corners of the slice
   Value result;
@@ -2951,8 +2930,7 @@ static void test_slice_boundary_access(void) {
   ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
 }
 
-static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values,
-                              tensor_size_t size) {
+static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values, tensor_size_t size) {
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
   tensor_size_t mult = 1;
   for (int i = numOfDims - 1; i >= 0; i--) {
@@ -2978,22 +2956,19 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static Tensor *createHostF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, const float *values,
-                                   tensor_size_t size) {
+static Tensor *createHostF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, const float *values, tensor_size_t size) {
   Tensor *tensor = T_Zeros(ctx, (Dim){.dims = dims, .numOfDims = numOfDims});
   memcpy(tensor->values, values, sizeof(float) * size);
   return tensor;
 }
 
-static Tensor *createHostI32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, const i32 *values,
-                                   tensor_size_t size) {
+static Tensor *createHostI32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, const i32 *values, tensor_size_t size) {
   Tensor *tensor = t_Zeros(ctx, (Dim){.dims = dims, .numOfDims = numOfDims}, I32);
   memcpy(tensor->values, values, sizeof(i32) * size);
   return tensor;
 }
 
-static void assertF32TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const float *expected,
-                                        tensor_size_t size, const char *label) {
+static void assertF32TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const float *expected, tensor_size_t size, const char *label) {
   Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
@@ -3004,8 +2979,7 @@ static void assertF32TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const f
   }
 }
 
-static void assertI64TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const i64 *expected,
-                                        tensor_size_t size, const char *label) {
+static void assertI64TensorMatchesOnCpu(Context *srcCtx, Tensor *tensor, const i64 *expected, tensor_size_t size, const char *label) {
   Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
@@ -3050,8 +3024,7 @@ static void test_get_tensor_at_gpu_scalar_result_lives_on_ctx(void) {
   Tensor *tensor = T_Float(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   for (dim_t i = 0; i < 3; i++) {
     dim_t idx[] = {i};
-    Result assignResult = AssignValueAt(&ctx, tensor, (Dim){.dims = idx, .numOfDims = 1},
-                                        (Value){.dtype = F32, .as.f32 = (float)(i + 1)});
+    Result assignResult = AssignValueAt(&ctx, tensor, (Dim){.dims = idx, .numOfDims = 1}, (Value){.dtype = F32, .as.f32 = (float)(i + 1)});
     ASSERT_EQ(assignResult, OK, "AssignValueAt should populate CUDA tensor");
   }
 
@@ -3084,7 +3057,10 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  MoveTensors(&cudaCtx, 2, a, b);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, a);
+  Array_AppendTensor(toMove, b);
+  MoveToCuda(&cudaCtx, toMove);
 
   Tensor *dest = Add(&cudaCtx, a, b);
   ASSERT_NOT_NULL(dest, "CUDA Add should succeed with CPU inputs");
@@ -3110,7 +3086,10 @@ static void test_subtract_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  MoveTensors(&cudaCtx, 2, a, b);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, a);
+  Array_AppendTensor(toMove, b);
+  MoveToCuda(&cudaCtx, toMove);
 
   Tensor *dest = Subtract(&cudaCtx, a, b);
   ASSERT_NOT_NULL(dest, "CUDA Subtract should succeed");
@@ -3135,7 +3114,10 @@ static void test_multiply_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  MoveTensors(&cudaCtx, 2, a, b);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, a);
+  Array_AppendTensor(toMove, b);
+  MoveToCuda(&cudaCtx, toMove);
 
   Tensor *dest = Multiply(&cudaCtx, a, b);
   ASSERT_NOT_NULL(dest, "CUDA Multiply should succeed");
@@ -3160,7 +3142,10 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  MoveTensors(&cudaCtx, 2, a, b);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, a);
+  Array_AppendTensor(toMove, b);
+  MoveToCuda(&cudaCtx, toMove);
 
   AddInPlace(&cudaCtx, a, b);
   assertF32TensorMatchesOnCpu(&cudaCtx, a, expected, 6, "CUDA AddInPlace result should match");
@@ -3181,7 +3166,9 @@ static void test_sum_gpu_dispatch_basic(void) {
   float expected[] = {5, 7, 9};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
-  MoveTensors(&cudaCtx, 1, t);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, t);
+  MoveToCuda(&cudaCtx, toMove);
 
   Tensor *dest = Sum(&cudaCtx, t, 0);
   ASSERT_NOT_NULL(dest, "CUDA Sum should succeed");
@@ -3205,7 +3192,9 @@ static void test_mean_gpu_dispatch_basic(void) {
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
 
-  MoveTensors(&cudaCtx, 1, t);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, t);
+  MoveToCuda(&cudaCtx, toMove);
 
   Tensor *dest = Mean(&cudaCtx, t);
   ASSERT_NOT_NULL(dest, "CUDA Mean should succeed");
@@ -3228,8 +3217,10 @@ static void test_argmax_gpu_dispatch_basic(void) {
   i64 expected[] = {1, 0, 1};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  Array_AppendTensor(toMove, t);
+  MoveToCuda(&cudaCtx, toMove);
 
-  MoveTensors(&cudaCtx, 1, t);
   Tensor *dest = ArgMax(&cudaCtx, t, 0);
   ASSERT_NOT_NULL(dest, "CUDA ArgMax should succeed");
   ASSERT(dest->context == &cudaCtx, "CUDA ArgMax result should live on the CUDA context");
@@ -3280,10 +3271,12 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 2);
   Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
 
-  MoveTensors(&ctx, 2, indices, srcGrad);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, indices);
+  Array_AppendTensor(toMove, srcGrad);
+  MoveToCuda(&ctx, toMove);
   IndexAccumulate1d(&ctx, dest, indices, srcGrad);
-  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6,
-                              "CUDA IndexAccumulate1d result should match");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6, "CUDA IndexAccumulate1d result should match");
 
   DestroyContext(&ctx);
 }
@@ -3305,7 +3298,10 @@ static void test_index_with_tensor_gpu_dispatch_basic(void) {
   Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 2, sourceValues, 6);
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
 
-  MoveTensors(&ctx, 2, source, indices);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, source);
+  Array_AppendTensor(toMove, indices);
+  MoveToCuda(&ctx, toMove);
   Tensor *dest = IndexWithTensor(&ctx, source, indices);
   ASSERT_NOT_NULL(dest, "CUDA IndexWithTensor should succeed with CPU inputs");
   ASSERT(dest->context == &ctx, "CUDA IndexWithTensor result should live on CUDA");
@@ -3333,12 +3329,15 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   Tensor *rowIndices = createHostI32Tensor(&hostCtx, indexDims, 1, rowValues, 2);
   Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
 
-  MoveTensors(&ctx, 3, rowIndices, colIndices, source);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, rowIndices);
+  Array_AppendTensor(toMove, colIndices);
+  Array_AppendTensor(toMove, source);
+  MoveToCuda(&ctx, toMove);
   Tensor *dest = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
   ASSERT_NOT_NULL(dest, "CUDA IndexWithTensor2d should succeed with CPU inputs");
   ASSERT(dest->context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
-  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 4,
-                              "CUDA IndexWithTensor2d result should match");
+  assertF32TensorMatchesOnCpu(&ctx, dest, expected, 4, "CUDA IndexWithTensor2d result should match");
 
   DestroyContext(&ctx);
 }
@@ -3361,7 +3360,10 @@ static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *toAdd = createHostF32Tensor(&hostCtx, addDims, 2, addValues, 2);
   Tensor *tensors[] = {toAdd};
 
-  MoveTensors(&ctx, 2, target, toAdd);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, target);
+  Array_AppendTensor(toMove, toAdd);
+  MoveToCuda(&ctx, toMove);
 
   Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "CUDA Concat should succeed with CPU inputs");
@@ -3430,10 +3432,10 @@ static void test_cuda_allocator_reuses_freed_blocks(void) {
 
   Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
-  void *first = allocateOnCtx(&ctx, 1024);
+  void *first = allocate(ctx.memory, 1024);
   ASSERT_NOT_NULL(first, "CUDA allocator should allocate device memory");
 
-  void *second = allocateOnCtx(&ctx, 1024);
+  void *second = allocate(ctx.memory, 1024);
   ASSERT_NOT_NULL(second, "CUDA allocator should reuse cached device memory");
   ASSERT_EQ(first, second, "CUDA allocator should reuse a matching freed block");
 
@@ -3539,7 +3541,6 @@ static void test_matmul_broadcast_batch(void) {
   ASSERT_EQ((int)vals[4], 76, "batch1[0,0] should be 76");
 }
 
-
 static void test_dot_basic(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -3580,7 +3581,6 @@ static void test_dot_larger_vectors(void) {
   float *vals = (float *)result->values;
   ASSERT_EQ((int)vals[0], 15, "1+2+3+4+5 = 15");
 }
-
 
 static void test_negate_f32(void) {
   Memory *mem = initializeMemory();
@@ -3796,7 +3796,6 @@ static void test_mean_basic(void) {
   ASSERT_EQ(vals[0], 3.5f, "Mean should be 3.5");
 }
 
-
 // Std tests
 static void test_std_basic(void) {
   Memory *mem = initializeMemory();
@@ -3818,7 +3817,6 @@ static void test_std_basic(void) {
   f32 got = ((f32 *)dest->values)[0];
   ASSERT(fabsf(got - 1.2909944f) < 1e-5f, "Std should match sample standard deviation");
 }
-
 
 // Log tests
 static void test_log_basic(void) {
@@ -3976,7 +3974,6 @@ static void test_max_int_type(void) {
   ASSERT_EQ(vals[1], 5, "Max[0,1] should be 5 (max of 5,2)");
 }
 
-
 static void test_max_non_contiguous(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -4055,7 +4052,6 @@ static void test_argmax_dim1_with_ties(void) {
   ASSERT_EQ(vals[1], 0, "ArgMax row 1 should pick first max index");
 }
 
-
 static void test_argmax_non_contiguous(void) {
   Memory *mem = initializeMemory();
   Context ctx = {.memory = mem};
@@ -4131,7 +4127,6 @@ static void test_meandim_dim1(void) {
   ASSERT_EQ(vals[0], 2.0f, "MeanDim[0,0] should be 2 (mean of 1,2,3)");
   ASSERT_EQ(vals[1], 5.0f, "MeanDim[1,0] should be 5 (mean of 4,5,6)");
 }
-
 
 // ============================================================================
 // Concat Tests

@@ -12,8 +12,7 @@ typedef struct maxPool2dLayerData {
 } maxPool2dLayerData;
 
 void maxPool2dBackward(Context *ctx, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *input = Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -22,8 +21,7 @@ void maxPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
   Tensor dX;
-  Result result =
-      MaxPool2dBackward(ctx, input, tensor->grad, layerData->kernel, layerData->stride, &dX);
+  Result result = MaxPool2dBackward(ctx, input, tensor->grad, layerData->kernel, layerData->stride, &dX);
   PANIC_IF(result != OK, result);
 
   Tensor *reducedGrad = ReduceBroadcast(ctx, input, &dX);
@@ -76,12 +74,12 @@ FowardPassOp *layer_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t kW
       .stride = stride,
   };
 
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = NULL;
   layer->bias = NULL;
   layer->layerData = layerData;
 
-  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
   *op = (FowardPassOp){.ctx = ctx, .type = OP_MAXPOOL2D, .dtype = dtype, .op = layer};
   return op;
 }

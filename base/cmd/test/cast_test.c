@@ -186,10 +186,8 @@ static void test_cast_i32_to_f64(void) {
 
   Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "Cast I32 -> F64 should succeed");
-  ASSERT(((f64 *)dest->values)[0] > 99999.0 && ((f64 *)dest->values)[0] < 100001.0,
-         "Cast I32 -> F64 element 0 should be 100000.0");
-  ASSERT(((f64 *)dest->values)[1] > -100000.0 && ((f64 *)dest->values)[1] < -99998.0,
-         "Cast I32 -> F64 element 1 should be -99999.0");
+  ASSERT(((f64 *)dest->values)[0] > 99999.0 && ((f64 *)dest->values)[0] < 100001.0, "Cast I32 -> F64 element 0 should be 100000.0");
+  ASSERT(((f64 *)dest->values)[1] > -100000.0 && ((f64 *)dest->values)[1] < -99998.0, "Cast I32 -> F64 element 1 should be -99999.0");
 }
 
 static void test_cast_i8_to_bool(void) {
@@ -381,7 +379,9 @@ static void test_cast_cuda_dtype_change(void) {
   dim_t dims[] = {2};
   Tensor *src = T_Float(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
 
-  MoveTensors(&ctx, 1, src);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, src);
+  MoveToCuda(&ctx, toMove);
 
   Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support dtype-changing casts");
@@ -417,7 +417,9 @@ static void test_cast_cuda_f32_to_i64(void) {
     ASSERT_EQ(assignResult, OK, "AssignValueAt should populate the source tensor");
   }
 
-  MoveTensors(&ctx, 1, src);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, src);
+  MoveToCuda(&ctx, toMove);
   Tensor *dest = Cast(&ctx, src, I64);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support F32 -> I64");
   ASSERT(dest->context == &ctx, "CUDA F32 -> I64 Cast result should live on CUDA");
@@ -449,7 +451,9 @@ static void test_cast_cuda_bool_to_f32(void) {
   ((bool *)src->values)[0] = false;
   ((bool *)src->values)[1] = true;
 
-  MoveTensors(&ctx, 1, src);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, src);
+  MoveToCuda(&ctx, toMove);
   Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support BOOL -> F32");
   ASSERT(dest->context == &ctx, "CUDA BOOL -> F32 Cast result should live on CUDA");

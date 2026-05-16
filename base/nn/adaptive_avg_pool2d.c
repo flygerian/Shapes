@@ -12,8 +12,7 @@ typedef struct adaptiveAvgPool2dLayerData {
 } adaptiveAvgPool2dLayerData;
 
 void adaptiveAvgPool2dBackward(Context *ctx, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *input = Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -22,8 +21,7 @@ void adaptiveAvgPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
   Tensor dX;
-  Result result =
-      AdaptiveAvgPool2dBackward(ctx, input, tensor->grad, layerData->outH, layerData->outW, &dX);
+  Result result = AdaptiveAvgPool2dBackward(ctx, input, tensor->grad, layerData->outH, layerData->outW, &dX);
   PANIC_IF(result != OK, result);
 
   Tensor *reducedGrad = ReduceBroadcast(ctx, input, &dX);
@@ -39,8 +37,7 @@ Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t batch = tensor->shape.dims[0];
   dim_t channels = tensor->shape.dims[3];
 
-  Tensor *dest =
-      t_Zeros(ctx, SHAPE4D(batch, layerData->outH, layerData->outW, channels), tensor->dtype);
+  Tensor *dest = t_Zeros(ctx, SHAPE4D(batch, layerData->outH, layerData->outW, channels), tensor->dtype);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   Result result = AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, dest);
@@ -65,12 +62,12 @@ FowardPassOp *layer_AdaptiveAvgPool2d(Context *ctx, Dtype dtype, dim_t outH, dim
   adaptiveAvgPool2dLayerData *layerData = allocate(ctx->memory, sizeof(adaptiveAvgPool2dLayerData));
   *layerData = (adaptiveAvgPool2dLayerData){.outH = outH, .outW = outW};
 
-  Layer *layer = allocateOnCtx(ctx, sizeof(Layer));
+  Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = NULL;
   layer->bias = NULL;
   layer->layerData = layerData;
 
-  FowardPassOp *op = allocateOnCtx(ctx, sizeof(FowardPassOp));
+  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
   *op = (FowardPassOp){.ctx = ctx, .type = OP_ADAPTIVE_AVG_POOL2D, .dtype = dtype, .op = layer};
   return op;
 }

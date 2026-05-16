@@ -10,8 +10,7 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static void assertMovedF32Values(Context *srcCtx, Tensor *tensor, const f32 *expected,
-                                 tensor_size_t size, const char *msg) {
+static void assertMovedF32Values(Context *srcCtx, Tensor *tensor, const f32 *expected, tensor_size_t size, const char *msg) {
   Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, msg);
@@ -22,8 +21,7 @@ static void assertMovedF32Values(Context *srcCtx, Tensor *tensor, const f32 *exp
   }
 }
 
-static void assertMovedI32Values(Context *srcCtx, Tensor *tensor, const i32 *expected,
-                                 tensor_size_t size, const char *msg) {
+static void assertMovedI32Values(Context *srcCtx, Tensor *tensor, const i32 *expected, tensor_size_t size, const char *msg) {
   Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, msg);
@@ -227,7 +225,9 @@ static void test_negate_cuda_dispatch_i32(void) {
   values[2] = 0;
   values[3] = 7;
 
-  MoveTensors(&ctx, 1, t);
+  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  Array_AppendTensor(toMove, t);
+  MoveToCuda(&ctx, toMove);
 
   Tensor *result = Negate(&ctx, t);
   ASSERT_NOT_NULL(result, "CUDA Negate should return a tensor on I32");

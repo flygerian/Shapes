@@ -220,8 +220,7 @@ static void test_adam_non_float_type(void) {
 
   AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
-  ASSERT_EQ(r, ERR_ADAM_ONLY_FLOAT_TENSORS,
-            "Integer tensors should return ERR_ADAM_ONLY_FLOAT_TENSORS");
+  ASSERT_EQ(r, ERR_ADAM_ONLY_FLOAT_TENSORS, "Integer tensors should return ERR_ADAM_ONLY_FLOAT_TENSORS");
 }
 
 // Test 7: Size mismatch
@@ -236,8 +235,7 @@ static void test_adam_size_mismatch(void) {
 
   AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
-  ASSERT_EQ(r, ERR_ADAM_PARAMS_SIZE_MISMATCH,
-            "Size mismatch should return ERR_ADAM_PARAMS_SIZE_MISMATCH");
+  ASSERT_EQ(r, ERR_ADAM_PARAMS_SIZE_MISMATCH, "Size mismatch should return ERR_ADAM_PARAMS_SIZE_MISMATCH");
 }
 
 // Test 8: Multiple triplets in one call
@@ -278,8 +276,7 @@ static void test_adam_multiple_triplets(void) {
   v2v[0] = 0.0f;
   v2v[1] = 0.0f;
 
-  AdamData triplets[2] = {{.param = &param1, .paramGrad = &grad1, .m = &m1, .v = &v1},
-                          {.param = &param2, .paramGrad = &grad2, .m = &m2, .v = &v2}};
+  AdamData triplets[2] = {{.param = &param1, .paramGrad = &grad1, .m = &m1, .v = &v1}, {.param = &param2, .paramGrad = &grad2, .m = &m2, .v = &v2}};
 
   Result r = Adam(&ctx, triplets, 2, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, OK, "Multiple triplets should work");

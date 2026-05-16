@@ -1,5 +1,6 @@
 #include "nn/nn.h"
 #include "result/result.h"
+#include "shapes.h"
 #include "tensor/tensor_internal.h"
 #include "tensor/types.h"
 #include "utils_lib/array.h"
@@ -13,13 +14,12 @@ typedef struct sequentialModelData {
   Array *parameters;
 } sequentialModel;
 
-FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numLayers,
-                              Dtype dtype) {
+FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numLayers, Dtype dtype) {
   PANIC_IF(numLayers == 0, ZERO_LAYERS_PASSED);
   PANIC_IF_NULL(layerOps);
 
   Array *layers = MakeArray(ctx->memory, sizeof(FowardPassOp *), numLayers);
-  Array *parameters = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  Array *parameters = Make_DynamicTensorArray(ctx->memory);
 
   for (size_t i = 0; i < numLayers; i++) {
     FowardPassOp *op = layerOps[i];
@@ -27,11 +27,15 @@ FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numL
     PANIC_IF(op->dtype != dtype, ERR_DTYPE_MISMATCH);
 
     bool isFowardPassOp = false;
-    for (size_t j = 0; j < NUM_LAYER_OPS; j++) {
-      if (op->type == LayerOps[j]) {
+    u8 counter = 0;
+    while (true) {
+      if (op->type == LayerOps[counter]) {
         isFowardPassOp = true;
         break;
+      } else if (LayerOps[counter] == OP_NONE) {
+        break;
       }
+      counter += 1;
     }
 
     PANIC_IF(!isFowardPassOp, NON_LAYER_OP_PASSED);
@@ -61,7 +65,7 @@ Tensor *sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *inpu
   Array *layers = model->layers;
 
   Tensor *out = input;
-  for (size_t i = 0; i < layers->size; i++) {
+  for (RANGE(i, layers->size)) {
     FowardPassOp *layer = array_FowardPassOpIdx(layers, i);
     out = Forward(ctx, layer, out);
   }
