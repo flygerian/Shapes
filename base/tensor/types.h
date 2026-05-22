@@ -6,8 +6,8 @@
 #include <stddef.h>
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
-#include "utils_lib/cuda_memory.h"
 #include "utils_lib/utils_lib.h"
+#include "../shapes_internal.h"
 
 typedef size_t tensor_size_t;
 typedef size_t dim_t;
@@ -72,7 +72,6 @@ typedef enum {
   REDUCTION_OP_ARGMAX
 } ReductionOpType;
 
-typedef enum { CPU, CUDA } DeviceType;
 
 typedef struct {
   Dtype dtype;
@@ -99,19 +98,7 @@ typedef struct ValuePair {
   Value b;
 } ValuePair;
 
-typedef struct {
-  DeviceType type;
-  char *id;
-} Device;
 
-typedef struct Context {
-  Memory *memory;
-  CudaMemory cudaMemory;
-  Device *device;
-  bool isTraining;
-  cublasHandle_t handle;
-  struct Context *parent;
-} Context;
 
 typedef struct sizeAndMultipliers {
   tensor_size_t size;

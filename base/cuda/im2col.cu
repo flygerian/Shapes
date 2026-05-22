@@ -1,6 +1,8 @@
 #include "../common.h"
 #include "../layer/im2col.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 
@@ -205,9 +207,8 @@ extern "C" Result runCudaIm2col(Context *ctx, Dtype dtype, const void *input,
           (f32 *)colBuffer);
 
       cudaError_t launchError = cudaGetLastError();
-      if (launchError != cudaSuccess) {
-        return ERR_NO_OP;
-      }
+      PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                        cudaGetErrorString(launchError));
       return OK;
     }
     return launchIm2colKernel<f32>(input, batch, inChannels, h, w, kH, kW,

@@ -65,17 +65,20 @@ Result CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restric
   }
 
   if (srcType == CPU && destType == CUDA) {
-    cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyHostToDevice);
+    cudaError_t err = cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyHostToDevice);
+    PANIC_WITH_MSG_IF(err != cudaSuccess, cudaGetErrorString(err));
     return OK;
   }
 
   if (srcType == CUDA && destType == CPU) {
-    cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyDeviceToHost);
+    cudaError_t err = cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyDeviceToHost);
+    PANIC_WITH_MSG_IF(err != cudaSuccess, cudaGetErrorString(err));
     return OK;
   }
 
   if (srcType == CUDA && destType == CUDA) {
-    cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyDeviceToDevice);
+    cudaError_t err = cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyDeviceToDevice);
+    PANIC_WITH_MSG_IF(err != cudaSuccess, cudaGetErrorString(err));
     return OK;
   }
 

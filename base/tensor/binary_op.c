@@ -298,49 +298,14 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
           (outerIdx * broadcastDimNumIterations + broadcastDimIdx) * numInnerIterations;
       void *aPos = broadcastOperand == opA ? broadcastOperandPos : nonBroadcastOperandPos;
       void *bPos = broadcastOperand == opA ? nonBroadcastOperandPos : broadcastOperandPos;
+
       doBinaryOperation(aPos, bPos, (u8 *)output->values + outputIdx * elemBytes,
                         numInnerIterations);
     }
   }
 
-
-  // for (tensor_size_t x = 0; x < output->size; x++) {
-  //   // unravel index into output shape
-  //   // eg 7 -> (2, 2, 1)
-  //   unravel_index(x, &outputShape, currentCoord);
-  //
-  //   for (u8 d = 0; d < output->shape.numOfDims; d++) {
-  //     aCoords[d] = currentCoord[d] % opA->shape.dims[d];
-  //     bCoords[d] = currentCoord[d] % opB->shape.dims[d];
-  //   }
-  //
-  //   Value aVal;
-  //   u64 idx = getContigousIdxFromCoord(opA, aCoords);
-  //   VALUE_GET_FROM_ARR(opA->values, idx, &aVal, opA->dtype);
-  //
-  //   Value bVal;
-  //   idx = getContigousIdxFromCoord(opB, bCoords);
-  //   VALUE_GET_FROM_ARR(opB->values, idx, &bVal, opB->dtype);
-  //
-  //   Value result;
-  //   switch (opType) {
-  //     case OP_ADD: VALUE_BINOP(result, aVal, bVal, +); break;
-  //     case OP_SUBTRACT: VALUE_BINOP(result, aVal, bVal, -); break;
-  //     case OP_MULTIPLY: VALUE_BINOP(result, aVal, bVal, *); break;
-  //     case OP_GREATER: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >, opA->dtype)); break;
-  //     case OP_GREATER_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, >=, opA->dtype));
-  //     break; case OP_LESS: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <, opA->dtype)); break;
-  //     case OP_LESS_OR_EQUAL: result = VALUE(BOOL, VALUE_CMP(aVal, bVal, <=, opA->dtype)); break;
-  //
-  //     default: return ERR_NOT_A_BINOP;
-  //   }
-  //
-  //   VALUE_SET(output->values, x, result);
-  // }
-
   return OK;
 }
-
 
 static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
@@ -380,7 +345,6 @@ static Tensor *binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   return output;
 }
 
-
 static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 
   TensorPair ops = {.a = a, .b = b};
@@ -391,11 +355,56 @@ static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   Tensor *opA = materializeTensorOnContext(ctx, ops.a);
   Tensor *opB = materializeTensorOnContext(ctx, ops.b);
 
-  PANIC_IF(!areTensorsSameShape(opA, opB), ERR_DIM_MISMATCH);
+  PANIC_IF(!areBroadcastable(opA, opB), ERR_DIM_MISMATCH);
 
-  Tensor *output = t_Zeros(ctx, opA->shape, opA->dtype);
-  Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values,
-                               output->size);
+  Dim outputShape;
+  tensor_size_t outputSize;
+  if (opA->size > opB->size) {
+    outputShape = opA->shape;
+    outputSize = opA->size;
+  } else {
+    outputShape = opB->shape;
+    outputSize = opB->size;
+  }
+
+  Dtype outputDtype = isComparisonOp(opType) ? BOOL : opA->dtype;
+  Tensor *output = t_Zeros(ctx, outputShape, outputDtype);
+  PANIC_IF(output == NULL, ALLOCATION_FAILED);
+
+  if (areTensorsSameShape(opA, opB)) {
+    Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values,
+                                 output->values, output->size);
+    PANIC_IF(res != OK, res);
+    return output;
+  }
+
+  // Find the leftmost differing dimension (start of broadcast block)
+  dim_t broadcastDim = -1;
+  for (dim_t i = 0; i < opA->shape.numOfDims; i++) {
+    if (opA->shape.dims[i] != opB->shape.dims[i]) {
+      broadcastDim = i;
+      break;
+    }
+  }
+
+  PANIC_IF(broadcastDim == -1, ERR_DIM_MISMATCH);
+
+  // One operand must match the output size (non-broadcast operand)
+  Tensor *larger = opA->size == outputSize ? opA : opB;
+  Tensor *smaller = opA->size == outputSize ? opB : opA;
+  PANIC_IF(larger->size != outputSize, ERR_NO_OP);
+
+  tensor_size_t outerSize;
+  Result r = calculateNumElementsBeforeDim(larger, broadcastDim, &outerSize);
+  PANIC_IF(r != OK, r);
+
+  // All broadcast dimensions are collapsed into one, innerSize is 1
+  tensor_size_t broadcastDimSize = larger->size / outerSize;
+
+  Result res = runCudaBroadcastBinaryOp(ctx, opA->dtype, opType, larger->values,
+                                        smaller->values, output->values, outerSize,
+                                        broadcastDimSize, 1);
+  PANIC_IF(res != OK, res);
   return output;
 }
 

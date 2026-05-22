@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "result/result.h"
 #include "shapes.h"
+#include "shapes_internal.h"
 #include "tensor/types.h"
 #include "tensor/value.h"
 #include "utils_lib/array.h"
@@ -12,6 +13,7 @@
 #include <glob.h>
 #include <wctype.h>
 #include <time.h>
+#include "utils_lib/cuda_memory.h"
 #include "utils_lib/file.h"
 #include "utils_lib/memory.h"
 #include "utils_lib/utils_lib.h"
@@ -26,8 +28,9 @@
 #define IMAGES_HEIGHT    32
 #define NUM_CHANNELS     3
 #define CHANNEL_PLANE    IMAGES_WIDTH *IMAGES_HEIGHT
-#define BATCH_SIZE       64
-#define NUM_EPOCHS       1
+#define BATCH_SIZE       16
+#define NUM_EPOCHS       100
+#define LEARNING_RATE    0.001
 
 typedef struct dataset {
   Array_Tensor Xtrain;
@@ -238,26 +241,25 @@ FowardPassOp *Make_Model(Context *ctx, u8 numLabels) {
   return Make_Sequential(ctx, blocks, 2, F32);
 }
 
-FowardPassOp *runTraining(Context *hostCtx, dataset ds) {
+FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
   // Tensor *first = Array_TensorIdx(ds.Xtest, 246);
   // basicRaylibWindow(first);
+
+  u8 numLabels = ds.labels->size;
+  FowardPassOp *model = Make_Model(cudaCtx, numLabels);
+  Optimizer *optimzer = optimizer_SGD(cudaCtx, LEARNING_RATE);
 
   ArrayPair trainDs = toBatches(hostCtx, ds.Xtrain, ds.Ytrain);
   Array *Xtrain = trainDs.a;
   Array *Ytrain = trainDs.b;
 
-  Context cudaCtx = InitializeCudaContext(10 * GB);
-  MoveToCuda(&cudaCtx, Xtrain);
-  MoveToCuda(&cudaCtx, Ytrain);
+  Context dsCudaCtx = GetScratchContext(cudaCtx, 1 * GB);
+  MoveToCuda(&dsCudaCtx, Xtrain);
+  MoveToCuda(&dsCudaCtx, Ytrain);
 
   printf("\n\n%zu batches created from dataset %zu size\n", Xtrain->size, ds.Xtrain->size);
 
-  u8 numLabels = ds.labels->size;
-
-  FowardPassOp *model = Make_Model(&cudaCtx, numLabels);
-  Optimizer *optimzer = optimizer_SGD(&cudaCtx, 0.0001);
-
-  Context scratch = cudaCtx; //GetScratchContext(hostCtx, 10 * GB);
+  Context scratch = GetScratchContext(cudaCtx, 4 * GB);
 
   for (RANGE(e, NUM_EPOCHS)) {
     size_t totalEpochLoss = 0;
@@ -269,7 +271,6 @@ FowardPassOp *runTraining(Context *hostCtx, dataset ds) {
     struct timespec epochWallStart;
     clock_gettime(CLOCK_MONOTONIC, &epochWallStart);
     for (RANGE(i, Xtrain->size)) {
-
       clock_t batchStart = clock();
       struct timespec wallStart;
       clock_gettime(CLOCK_MONOTONIC, &wallStart);
@@ -284,7 +285,6 @@ FowardPassOp *runTraining(Context *hostCtx, dataset ds) {
       Tensor *ybatch = Array_TensorIdx(Ytrain, i);
       Tensor *yOneHot = Squeeze(hostCtx, T_OneHot(&scratch, ybatch, numLabels));
       Tensor loss = loss_CrossEnthropy(&scratch, yOneHot, logits);
-      Flush(&scratch);
 
       Value *lossValue = GetAt(&loss, SHAPE1D(0));
       totalLoss += lossValue->as.f32;
@@ -294,13 +294,15 @@ FowardPassOp *runTraining(Context *hostCtx, dataset ds) {
       Array *parameters = Parameters(&scratch, model);
       OptimizerStep(&scratch, optimzer, parameters);
       ZeroGrad(&scratch, parameters);
-      resetArena(scratch.memory);
 
-      double batchTime = (double)(clock() - batchStart) / CLOCKS_PER_SEC;
-      struct timespec wallEnd;
-      clock_gettime(CLOCK_MONOTONIC, &wallEnd);
-      double wallTime = (wallEnd.tv_sec - wallStart.tv_sec) + (wallEnd.tv_nsec - wallStart.tv_nsec) / 1e9;
-      printf("batch %zu, CPU Time = %.3fs, Wall Time = %.3fs\n", i, batchTime, wallTime);
+      resetArena(scratch.memory);
+      Rewind(&scratch.cudaMemory);
+
+      // double batchTime = (double)(clock() - batchStart) / CLOCKS_PER_SEC;
+      // struct timespec wallEnd;
+      // clock_gettime(CLOCK_MONOTONIC, &wallEnd);
+      // double wallTime = (wallEnd.tv_sec - wallStart.tv_sec) + (wallEnd.tv_nsec - wallStart.tv_nsec) / 1e9;
+      // printf("batch %zu, CPU Time = %.3fs, Wall Time = %.3fs\n", i, batchTime, wallTime);
     }
 
     double epochTime = (double)(clock() - epochStart) / CLOCKS_PER_SEC;
@@ -308,20 +310,24 @@ FowardPassOp *runTraining(Context *hostCtx, dataset ds) {
     clock_gettime(CLOCK_MONOTONIC, &epochWallEnd);
     double epochWallTime = (epochWallEnd.tv_sec - epochWallStart.tv_sec) + (epochWallEnd.tv_nsec - epochWallStart.tv_nsec) / 1e9;
     printf("Epoch %zu: Avg batch Loss = %f, CPU Time = %.3fs, Wall Time = %.3fs\n", e, totalLoss / totalSamples, epochTime, epochWallTime);
+
   }
 
-  popScratch(scratch.memory);
-
+  FreeCudaScratchMemory(&dsCudaCtx.cudaMemory);
+  // FreeCudaScratchMemory(&scratch.cudaMemory);
   return model;
 }
 
-void runInference(Context *ctx, FowardPassOp *model, dataset ds) {
-  ArrayPair testDs = toBatches(ctx, ds.Xtest, ds.Ytest);
+void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
+  ArrayPair testDs = toBatches(hostCtx, ds.Xtest, ds.Ytest);
   Array *Xtest = testDs.a;
   Array *Ytest = testDs.b;
 
-  Context scratch = GetScratchContext(ctx, 10 * GB);
+  Context cudaCtx = InitializeCudaContext(6 * GB);
+  MoveToCuda(&cudaCtx, Xtest);
+  MoveToCuda(&cudaCtx, Ytest);
 
+  Context scratch = GetScratchContext(&cudaCtx, 5 * GB);
   for (RANGE(i, BATCH_SIZE)) {
     Tensor *batch = Array_TensorIdx(Xtest, i);
     Tensor *logits = Forward(&scratch, model, batch);
@@ -342,16 +348,16 @@ void runInference(Context *ctx, FowardPassOp *model, dataset ds) {
     Tensor *predictions = ArgMax(&scratch, logitsProbs, logitsProbs->shape.numOfDims - 1);
     PANIC_IF(predictions->shape.numOfDims != ybatch->shape.numOfDims, ERR_DIM_MISMATCH);
 
-    printf("\n predictions: \n");
-    PrintTensor(predictions);
-    printf("\n\n");
+    // printf("\n predictions: \n");
+    // PrintTensor(predictions);
+    // printf("\n\n");
 
-    Tensor *compMask = Equal(ctx, Cast(&scratch, predictions, F32), ybatch);
-
-    printf("\n compmask: \n");
-    PrintTensor(compMask);
-    printf("\n\n");
-
+    Tensor *compMask = Equal(&scratch, Cast(&scratch, predictions, F32), ybatch);
+    MoveTensorToHost(hostCtx, compMask);
+    // printf("\n compmask: \n");
+    // PrintTensor(compMask);
+    // printf("\n\n");
+    //
     bool *values = compMask->values;
     size_t ones = 0;
     for (RANGE(iv, compMask->size)) {
@@ -364,14 +370,18 @@ void runInference(Context *ctx, FowardPassOp *model, dataset ds) {
     printf("\n Batch Result %zu of %zu\n", ones, compMask->size);
     printf("===============================================================================");
     resetArena(scratch.memory);
+    Rewind(&scratch.cudaMemory);
   }
 }
 
 void vgg10() {
+  cudaDeviceReset();
   Context hostCtx = InitializeHostContext(25 * GB, 1);
+  Context cudaCtx = InitializeCudaContext(10 * GB);
 
   dataset ds = getDataset(&hostCtx);
 
-  FowardPassOp *model = runTraining(&hostCtx, ds);
+  FowardPassOp *model = runTraining(&hostCtx, &cudaCtx, ds);
+
   runInference(&hostCtx, model, ds);
 }

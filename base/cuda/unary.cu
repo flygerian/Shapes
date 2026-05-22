@@ -1,5 +1,7 @@
 #include "../common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stddef.h>
@@ -107,17 +109,14 @@ static Result launchUnaryOpKernel(const void *src, void *dest, size_t n,
                                              opType, param);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    if (opType == UNARY_OP_RELU) {
-      logCudaReluError("launch_error", launchError, n, blocks, threadsPerBlock);
-    }
-
-    if (launchError == cudaErrorMemoryAllocation) {
-      return ERR_OUT_OF_MEMORY;
-    }
-
-    return ERR_NO_OP;
+  if (opType == UNARY_OP_RELU && launchError != cudaSuccess) {
+    logCudaReluError("launch_error", launchError, n, blocks, threadsPerBlock);
   }
+
+  if (launchError == cudaErrorMemoryAllocation) {
+    return ERR_OUT_OF_MEMORY;
+  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   if (opType == UNARY_OP_RELU && shouldLogCudaRelu()) {
     logCudaReluError("launch_ok", launchError, n, blocks, threadsPerBlock);
@@ -136,10 +135,10 @@ static Result launchReluBackwardKernel(const void *output, const void *gradOut,
       (const T *)output, (const T *)gradOut, (T *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return launchError == cudaErrorMemoryAllocation ? ERR_OUT_OF_MEMORY
-                                                    : ERR_NO_OP;
+  if (launchError == cudaErrorMemoryAllocation) {
+    return ERR_OUT_OF_MEMORY;
   }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -155,10 +154,10 @@ static Result launchReluBackwardAccumulateKernel(const void *output,
       (const T *)output, (const T *)gradOut, (T *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return launchError == cudaErrorMemoryAllocation ? ERR_OUT_OF_MEMORY
-                                                    : ERR_NO_OP;
+  if (launchError == cudaErrorMemoryAllocation) {
+    return ERR_OUT_OF_MEMORY;
   }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -180,6 +179,7 @@ extern "C" Result runCudaUnaryOp(Context *ctx, Dtype dtype, UnaryOpType opType,
   case I64:
     return launchUnaryOpKernel<i64>(src, dest, n, opType, param);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchUnaryOpKernel<f32>(src, dest, n, opType, param);
   case F64:
@@ -198,6 +198,7 @@ extern "C" Result runCudaReluBackward(Context *ctx, Dtype dtype,
 
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchReluBackwardKernel<f32>(output, gradOut, dest, n);
   case F64:
@@ -208,15 +209,16 @@ extern "C" Result runCudaReluBackward(Context *ctx, Dtype dtype,
 }
 
 extern "C" Result runCudaReluBackwardAccumulate(Context *ctx, Dtype dtype,
-                                                const void *output,
-                                                const void *gradOut, void *dest,
-                                                tensor_size_t n) {
+                                                 const void *output,
+                                                 const void *gradOut, void *dest,
+                                                 tensor_size_t n) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }
 
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchReluBackwardAccumulateKernel<f32>(output, gradOut, dest, n);
   case F64:

@@ -1,5 +1,7 @@
 #include "../common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 
@@ -96,9 +98,7 @@ static Result launchIndexAccumulate1d(const void *dest, const void *indices,
       numIndices, sliceSize);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -119,9 +119,7 @@ static Result launchIndexAccumulate2d(const void *dest, size_t destDim1,
       sliceSize);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -138,27 +136,21 @@ static Result launchSliceAccumulate(const void *dest, size_t destNumDims,
 
   cudaError_t allocError =
       cudaMalloc(&deviceMultipliers, sizeof(multiplier_t) * destNumDims);
-  if (allocError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(allocError != cudaSuccess, cudaGetErrorString(allocError));
   allocError = cudaMalloc(&deviceRanges, sizeof(Range) * srcNumDims);
-  if (allocError != cudaSuccess) {
-    cudaFree(deviceMultipliers);
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(allocError != cudaSuccess, cudaGetErrorString(allocError));
   allocError = cudaMalloc(&deviceSrcDims, sizeof(dim_t) * srcNumDims);
-  if (allocError != cudaSuccess) {
-    cudaFree(deviceMultipliers);
-    cudaFree(deviceRanges);
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(allocError != cudaSuccess, cudaGetErrorString(allocError));
 
-  cudaMemcpy(deviceMultipliers, destMultipliers,
+  cudaError_t memcpyErr = cudaMemcpy(deviceMultipliers, destMultipliers,
              sizeof(multiplier_t) * destNumDims, cudaMemcpyHostToDevice);
-  cudaMemcpy(deviceRanges, ranges, sizeof(Range) * srcNumDims,
+  PANIC_WITH_MSG_IF(memcpyErr != cudaSuccess, cudaGetErrorString(memcpyErr));
+  memcpyErr = cudaMemcpy(deviceRanges, ranges, sizeof(Range) * srcNumDims,
              cudaMemcpyHostToDevice);
-  cudaMemcpy(deviceSrcDims, srcDims, sizeof(dim_t) * srcNumDims,
+  PANIC_WITH_MSG_IF(memcpyErr != cudaSuccess, cudaGetErrorString(memcpyErr));
+  memcpyErr = cudaMemcpy(deviceSrcDims, srcDims, sizeof(dim_t) * srcNumDims,
              cudaMemcpyHostToDevice);
+  PANIC_WITH_MSG_IF(memcpyErr != cudaSuccess, cudaGetErrorString(memcpyErr));
 
   int threadsPerBlock = 256;
   int blocks =
@@ -171,9 +163,7 @@ static Result launchSliceAccumulate(const void *dest, size_t destNumDims,
   cudaFree(deviceMultipliers);
   cudaFree(deviceRanges);
   cudaFree(deviceSrcDims);
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -184,32 +174,33 @@ static Result dispatchIndexDtype1d(Dtype valueDtype, const void *dest,
                                    size_t sliceSize) {
   switch (valueDtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     switch (indexDtype) {
     case U8:
       return launchIndexAccumulate1d<float, u8>(dest, indices, srcGrad,
-                                                numIndices, sliceSize);
+                                                 numIndices, sliceSize);
     case U16:
       return launchIndexAccumulate1d<float, u16>(dest, indices, srcGrad,
-                                                 numIndices, sliceSize);
+                                                  numIndices, sliceSize);
     case U32:
       return launchIndexAccumulate1d<float, u32>(dest, indices, srcGrad,
-                                                 numIndices, sliceSize);
+                                                  numIndices, sliceSize);
     case U64:
       return launchIndexAccumulate1d<float, u64>(dest, indices, srcGrad,
-                                                 numIndices, sliceSize);
+                                                  numIndices, sliceSize);
     case I8:
       return launchIndexAccumulate1d<float, i8>(dest, indices, srcGrad,
-                                                numIndices, sliceSize);
+                                                 numIndices, sliceSize);
     case I16:
       return launchIndexAccumulate1d<float, i16>(dest, indices, srcGrad,
-                                                 numIndices, sliceSize);
+                                                  numIndices, sliceSize);
     case I32:
       return launchIndexAccumulate1d<float, i32>(dest, indices, srcGrad,
-                                                 numIndices, sliceSize);
+                                                  numIndices, sliceSize);
     case I64:
       return launchIndexAccumulate1d<float, i64>(dest, indices, srcGrad,
-                                                 numIndices, sliceSize);
+                                                  numIndices, sliceSize);
     default:
       return ERR_NO_OP;
     }
@@ -258,12 +249,13 @@ static Result dispatchIndexDtype2d(Dtype valueDtype, const void *dest,
 
   switch (valueDtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     switch (rowIndexDtype) {
     case U8:
       return launchIndexAccumulate2d<float, u8, u8>(dest, destDim1, rowIndices,
-                                                    colIndices, srcGrad,
-                                                    numIndices, sliceSize);
+                                                     colIndices, srcGrad,
+                                                     numIndices, sliceSize);
     case U16:
       return launchIndexAccumulate2d<float, u16, u16>(
           dest, destDim1, rowIndices, colIndices, srcGrad, numIndices,
@@ -378,10 +370,11 @@ runCudaSliceAccumulate(Context *ctx, Dtype dtype, void *dest,
 
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchSliceAccumulate<float>(dest, destNumDims, destMultipliers,
-                                        ranges, srcGrad, srcDims, srcNumDims,
-                                        srcSize);
+                                         ranges, srcGrad, srcDims, srcNumDims,
+                                         srcSize);
   case F64:
     return launchSliceAccumulate<double>(dest, destNumDims, destMultipliers,
                                          ranges, srcGrad, srcDims, srcNumDims,

@@ -22,9 +22,7 @@ static Result launchFillKernel(void *dest, tensor_size_t n, T value) {
   fillKernel<<<blocks, threadsPerBlock>>>((T *)dest, n, value);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -113,6 +111,7 @@ extern "C" Result runCudaFillTensor(Context *ctx, Dtype dtype, void *dest,
   case I64:
     return launchFillKernel<i64>(dest, n, value.as.i64);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchFillKernel<f32>(dest, n, value.as.f32);
   case F64:
@@ -134,9 +133,7 @@ extern "C" Result runCudaArange(Context *ctx, f32 start, f32 step, void *dest,
   arangeKernel<<<blocks, threadsPerBlock>>>((f32 *)dest, n, start, step);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -168,6 +165,7 @@ extern "C" Result runCudaOneHot(Context *ctx, Dtype indexDtype,
   case I64:
     return launchOneHotKernel<i64>(indices, n, numClasses, dest);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchOneHotKernel<f32>(indices, n, numClasses, dest);
   case F64:

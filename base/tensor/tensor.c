@@ -106,9 +106,7 @@ Result clearTensorValues(Tensor *t) {
   }
 
   cudaError_t clearResult = cudaMemset(t->values, 0, valueBytes);
-  if (clearResult != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(clearResult != cudaSuccess, cudaGetErrorString(clearResult));
 
   return OK;
 }
@@ -542,9 +540,9 @@ void PrintTensor(Tensor *tensor) {
 
 void moveTensor(Context *destCtx, Tensor *t) {
   size_t valueBytes = t->size * getBytesForDtype(t->dtype);
-  CudaBlock *block = AllocateOnCuda(destCtx->cudaMemory, destCtx->memory, valueBytes);
-  PANIC_IF(block == NULL, ALLOCATION_FAILED);
-  void *locationOnDest = block->ptr;
+  CudaBlock block = AllocateOnCuda(&destCtx->cudaMemory, destCtx->cudaMetadataMemory, valueBytes);
+  PANIC_IF(block.ptr == NULL, ALLOCATION_FAILED);
+  void *locationOnDest = block.ptr;
   Result copyResult = CopyBetweenDevices(t->context->device->type, destCtx->device->type, t->values, locationOnDest, valueBytes);
 
   PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
@@ -553,9 +551,24 @@ void moveTensor(Context *destCtx, Tensor *t) {
   t->values = locationOnDest;
 }
 
+void MoveTensorToHost(Context *destCtx, Tensor *t) {
+  size_t valueBytes = t->size * getBytesForDtype(t->dtype);
+  void *locationOnDest = allocate(destCtx->memory, valueBytes);
+  PANIC_IF(locationOnDest == NULL, ALLOCATION_FAILED);
+
+  Result copyResult =
+      CopyBetweenDevices(t->context->device->type, destCtx->device->type,
+                         t->values, locationOnDest, valueBytes);
+  PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
+
+  t->context = destCtx;
+  t->values = locationOnDest;
+}
+
 void MoveToCuda(Context *destCtx, Array *tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
-  PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA, ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA,
+           ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
@@ -565,5 +578,21 @@ void MoveToCuda(Context *destCtx, Array *tensors) {
 
     moveTensor(destCtx, t);
     moveTensor(destCtx, t->grad);
+  }
+}
+
+void MoveToHost(Context *destCtx, Array *tensors) {
+  PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(destCtx->device != NULL && destCtx->device->type != CPU,
+           ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(tensors == NULL, ERR_NULL_PTR);
+
+  for (size_t x = 0; x < tensors->size; x++) {
+    Tensor *t = Array_TensorIdx(tensors, x);
+    PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
+
+    MoveTensorToHost(destCtx, t);
+    MoveTensorToHost(destCtx, t->grad);
   }
 }

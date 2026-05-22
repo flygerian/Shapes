@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static void seedRandomOnce(void) {
   static bool seeded = false;
@@ -117,8 +118,8 @@ static Value randomValueForRange(f32 minValue, f32 maxValue, Dtype dtype) {
 
 static inline void *allocateTensorValues(Context *ctx, size_t size) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    CudaBlock *block = AllocateOnCuda(ctx->cudaMemory, ctx->memory, size);
-    return block->ptr;
+    CudaBlock block = AllocateOnCuda(&ctx->cudaMemory, ctx->cudaMetadataMemory, size);
+    return block.ptr;
   }
   return allocate(ctx->memory, size);
 }

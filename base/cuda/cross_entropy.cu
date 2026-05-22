@@ -1,6 +1,7 @@
 #include "../common.h"
-#include "../loss/cross_entropy.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <math.h>
 
@@ -64,9 +65,7 @@ crossEntropyBackwardKernel(const T *yGround, const T *probs, const T *gradOut,
 
 static Result finishCrossEntropyLaunch() {
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -116,6 +115,7 @@ runCudaCrossEntropyForward(Context *ctx, Dtype dtype, const void *yGround,
 
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchCrossEntropyForward<f32>(yGround, logits, rows, classCount,
                                           probs, loss);
@@ -139,6 +139,7 @@ runCudaCrossEntropyBackward(Context *ctx, Dtype dtype, const void *yGround,
   tensor_size_t size = rows * classCount;
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchCrossEntropyBackward<f32>(yGround, probs, gradOut, size, rows,
                                            scalarGradOut, dLogits);

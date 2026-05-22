@@ -1,9 +1,7 @@
-#include "common.h"
 #include "result/result.h"
-#include "shapes.h"
+#include "../shapes_internal.h"
 #include "tensor/value.h"
 #include "tensor_internal.h"
-#include <stdlib.h>
 
 // dtypeRank returns a numeric rank representing the width of a dtype.
 // Higher rank means wider type. Types within the same sign family

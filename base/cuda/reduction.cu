@@ -1,5 +1,7 @@
 #include "../common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stddef.h>
@@ -141,9 +143,7 @@ static Result launchReduceDimKernel(const void *src, void *dest,
       (const T *)src, (T *)dest, numBeforeDim, numAfterDim, reduce, opType);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -160,9 +160,7 @@ static Result launchArgmaxDimKernel(const void *src, void *dest,
       (const T *)src, (i64 *)dest, numBeforeDim, numAfterDim, reduce);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -173,9 +171,7 @@ static Result launchReduceAllKernel(const void *src, void *dest, size_t n,
   reduceAllKernel<<<1, 1>>>((const T *)src, (T *)dest, n, opType);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -185,9 +181,7 @@ static Result launchStdKernel(const void *src, void *dest, size_t n) {
   stdAllKernel<<<1, 1>>>((const T *)src, (T *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -232,9 +226,10 @@ extern "C" Result runCudaReduceDim(Context *ctx, Dtype inputDtype,
       return launchArgmaxDimKernel<i64>(src, dest, numBeforeDim, numAfterDim,
                                         reduce);
     case F16:
+      return ERR_DTYPE_MISMATCH;
     case F32:
       return launchArgmaxDimKernel<f32>(src, dest, numBeforeDim, numAfterDim,
-                                        reduce);
+                                         reduce);
     case F64:
       return launchArgmaxDimKernel<f64>(src, dest, numBeforeDim, numAfterDim,
                                         reduce);
@@ -276,9 +271,10 @@ extern "C" Result runCudaReduceDim(Context *ctx, Dtype inputDtype,
       return launchReduceDimKernel<i64>(src, dest, numBeforeDim, numAfterDim,
                                         reduce, opType);
     case F16:
+      return ERR_DTYPE_MISMATCH;
     case F32:
       return launchReduceDimKernel<f32>(src, dest, numBeforeDim, numAfterDim,
-                                        reduce, opType);
+                                         reduce, opType);
     case F64:
       return launchReduceDimKernel<f64>(src, dest, numBeforeDim, numAfterDim,
                                         reduce, opType);
@@ -320,6 +316,7 @@ extern "C" Result runCudaReduceAll(Context *ctx, Dtype dtype,
     case I64:
       return launchReduceAllKernel<i64>(src, dest, n, opType);
     case F16:
+      return ERR_DTYPE_MISMATCH;
     case F32:
       return launchReduceAllKernel<f32>(src, dest, n, opType);
     case F64:
@@ -340,6 +337,7 @@ extern "C" Result runCudaStd(Context *ctx, Dtype dtype, const void *src,
 
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchStdKernel<f32>(src, dest, n);
   case F64:

@@ -1,7 +1,6 @@
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/types.h"
 #include "utils_lib/memory.h"
 #include "utils_lib/cuda_memory.h"
 #include <cuda_runtime_api.h>
@@ -25,20 +24,31 @@ Context InitializeCudaContext(size_t hostArenaSize) {
   Memory *memory = initializeArena(hostArenaSize, 1);
   Context ctx = {.memory = memory};
   attachCudaDevice(&ctx); 
+  ctx.cudaMetadataMemory = initializeArena(hostArenaSize, 1);
 
   return ctx;
 }
 
 Context GetScratchContext(Context *ctx, size_t bufferSize) {
   Context scratch = {
-      .device = ctx->device, .handle = ctx->handle, .isTraining = ctx->isTraining, .memory = GetScratchArena(ctx->memory, bufferSize), .parent = ctx};
+      .device = ctx->device, 
+      .handle = ctx->handle, 
+      .isTraining = ctx->isTraining, 
+      .memory = ctx->memory,
+      .cudaMemory = ctx->cudaMemory,
+      .cudaMetadataMemory = ctx->cudaMetadataMemory,
+      .parent = ctx, 
+  };
+
+  scratch.cudaMemory = GetCudaMemoryScratchCheckPoint(&ctx->cudaMemory);
+  scratch.memory = GetScratchArena(ctx->memory, bufferSize);
 
   return scratch;
 }
 
 void DestroyContext(Context *ctx) {
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    ReleaseCudaBlocks(ctx->cudaMemory);
+    ReleaseCudaBlocks(&ctx->cudaMemory);
     cublasDestroy(ctx->handle);
   }
 
@@ -62,9 +72,7 @@ Result Flush(Context *ctx) {
     case CPU: return OK;
     case CUDA: {
       cudaError_t syncResult = cudaDeviceSynchronize();
-      if (syncResult != cudaSuccess) {
-        return ERR_NO_OP;
-      }
+      PANIC_WITH_MSG_IF(syncResult != cudaSuccess, cudaGetErrorString(syncResult));
       return OK;
     }
     default: return OK;

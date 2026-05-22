@@ -7,8 +7,6 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <termios.h>
-#include <time.h>
-#include "tensor/types.h"
 
 #define SHAPE(dimensions, numberOfDimensions)           ((Dim){.dims = (dimensions), .numOfDims = (numberOfDimensions)})
 #define SCALAR                                          ((Dim){.dims = (dim_t[]){1}, .numOfDims = 1})

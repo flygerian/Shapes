@@ -10,7 +10,7 @@ IndentCaseLabels: true
 IndentGotoLabels: true
 
 # Line length
-ColumnLimit: 150
+ColumnLimit: 200
 
 # Braces (K&R / Attach style)
 BreakBeforeBraces: Attach

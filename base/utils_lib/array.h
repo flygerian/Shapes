@@ -36,6 +36,7 @@ Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity);
 static inline void *Array_Idx(Array *slice, size_t idx) {
   PANIC_IF(slice == NULL, ERR_NULL_PTR);
   PANIC_IF(idx < 0, ERR_OUT_OF_BOUNDS);
+  PANIC_IF(idx > slice->capacity - 1, ERR_OUT_OF_BOUNDS);
 
   if (idx >= slice->capacity) {
     return NULL;

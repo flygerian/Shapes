@@ -66,6 +66,9 @@ extern "C" {
 void runCudaGemm(Context *ctx, Dtype dtype, cublasOperation_t transA, cublasOperation_t transB, int m, int n, int k, const void *a, int lda,
                  const void *b, int ldb, bool accumulate, void *c, int ldc);
 Result runCudaBinaryOp(Context *ctx, Dtype dtype, OpType opType, const void *a, const void *b, void *dest, tensor_size_t n);
+Result runCudaBroadcastBinaryOp(Context *ctx, Dtype dtype, OpType opType, void *larger,
+                                void *smaller, void *dest, size_t outerDimSize,
+                                size_t broadcastDimSize, size_t innerDimSize);
 Result runCudaUnaryOp(Context *ctx, Dtype dtype, UnaryOpType opType, const void *src, void *dest, tensor_size_t n, f32 param);
 Result runCudaReluBackward(Context *ctx, Dtype dtype, const void *output, const void *gradOut, void *dest, tensor_size_t n);
 Result runCudaReluBackwardAccumulate(Context *ctx, Dtype dtype, const void *output, const void *gradOut, void *dest, tensor_size_t n);

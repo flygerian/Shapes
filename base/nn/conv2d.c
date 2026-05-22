@@ -5,6 +5,7 @@
 #include "../tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
+#include <stdio.h>
 #include <math.h>
 
 typedef struct conv2dLayerData {
@@ -78,6 +79,9 @@ Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t w = tensor->shape.dims[2];
   dim_t outH = (h - kH) / layerData->stride + 1;
   dim_t outW = (w - kW) / layerData->stride + 1;
+
+  // printf("batch: %zu, outH: %zu, outW: %zu, outChannels: %zu \n", batch, outH, outW, layerData->outChannels);
+  // printf("size: %zu,\n", batch * outH *outW * layerData->outChannels);
 
   Tensor *dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, layerData->outChannels), tensor->dtype);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);

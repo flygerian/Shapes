@@ -3,6 +3,8 @@
 
 #include "common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 
 #ifdef __cplusplus
 extern "C" {

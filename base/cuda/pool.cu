@@ -1,6 +1,7 @@
 #include "../common.h"
 #include "../layer/pool.h"
 #include "../result/result.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 
 static __device__ dim_t adaptivePoolStart(dim_t outIdx, dim_t inputSize,
@@ -174,9 +175,8 @@ adaptiveAvgPool2dBackwardKernel(const T *gradOut, dim_t batch, dim_t channels,
 
 static Result finishPoolLaunch() {
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }

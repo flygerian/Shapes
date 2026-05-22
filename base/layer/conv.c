@@ -223,7 +223,6 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   } else {
     f32 *kernelValues = kernelContig->values;
 
-
     colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
 
@@ -358,11 +357,9 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
 
     dim_t outputPositions = batch * outH * outW;
 
-    dColBuffer = allocate(ctx->memory, (outputPositions * kS) * sizeof(f64));
-    if (dColBuffer == NULL) {
-      res = ERR_OUT_OF_MEMORY;
-      return res;
-    }
+    Tensor *dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F64);
+    PANIC_IF(dColBufferTensor == NULL, ALLOCATION_FAILED);
+    dColBuffer = dColBufferTensor->values;
 
     runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBufferContig->values, kS, false, dWValues, kS);
 
@@ -381,19 +378,13 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
 
     dim_t outputPositions = batch * outH * outW;
 
-    dColBuffer = allocate(ctx->memory, (outputPositions * kS) * sizeof(f32));
-    if (dColBuffer == NULL) {
-      res = ERR_OUT_OF_MEMORY;
-      return res;
-    }
-
+    Tensor *dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F32);
+    PANIC_IF(dColBufferTensor == NULL, ALLOCATION_FAILED);
+    dColBuffer = dColBufferTensor->values;
 
     runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBufferContig->values, kS, false, dWValues, kS);
 
-
     runGemm(ctx, F32, CblasNoTrans, CblasNoTrans, outputPositions, kS, C_out, dOutput, C_out, wValues, kS, false, dColBuffer, kS);
-
-
 
     col2imAccumulateF32(dInput, dColBuffer, kH, kW, stride);
   }

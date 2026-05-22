@@ -1,5 +1,6 @@
 #include "../common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 
@@ -16,10 +17,7 @@ __global__ static void sgdKernel(T *param, const T *grad, tensor_size_t n,
 
 static Result finishSgdLaunch() {
   cudaError_t sync_error = cudaDeviceSynchronize();
-  // cudaError_t launchError = cudaGetLastError();
-  if (sync_error != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(sync_error != cudaSuccess, cudaGetErrorString(sync_error));
 
   return OK;
 }
@@ -48,6 +46,7 @@ extern "C" Result runCudaSgd(Context *ctx, Dtype dtype, void *param,
 
   switch (dtype) {
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchSgd<f32>(param, grad, n, learningRate);
   case F64:

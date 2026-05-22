@@ -6,6 +6,7 @@
 #include "utils_lib/array.h"
 #include <stddef.h>
 #include <stdint.h>
+#include "shapes_internal.h"
 
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
@@ -29,6 +30,8 @@ void FreeContext(Context *ctx);
 Result Flush(Context *ctx);
 Result CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size);
 void MoveToCuda(Context *destCtx, Array *tensors);
+void MoveToHost(Context *destCtx, Array *tensors);
+void MoveTensorToHost(Context *destCtx, Tensor *t);
 
 // Binary Ops
 Tensor *Add(Context *ctx, Tensor *a, Tensor *b);

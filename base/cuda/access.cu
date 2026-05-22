@@ -1,11 +1,13 @@
 #include "../common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 
 template <typename IndexType>
-__device__ static dim_t loadGatherIndex(const IndexType *indices, size_t idx) {
-  return (dim_t)indices[idx];
+__device__ static size_t loadGatherIndex(const IndexType *indices, size_t idx) {
+  return (size_t)indices[idx];
 }
 
 template <typename ValueType, typename IndexType>
@@ -20,7 +22,7 @@ indexSelect1dKernel(const ValueType *src, const IndexType *indices,
 
   size_t indexPos = flatIdx / sliceSize;
   size_t sliceOffset = flatIdx % sliceSize;
-  dim_t sourceIndex = loadGatherIndex(indices, indexPos);
+  size_t sourceIndex = loadGatherIndex(indices, indexPos);
   size_t srcOffset = (size_t)sourceIndex * sliceSize + sliceOffset;
   dest[flatIdx] = src[srcOffset];
 }
@@ -39,8 +41,8 @@ indexSelect2dKernel(const ValueType *src, size_t sourceDim1,
 
   size_t indexPos = flatIdx / sliceSize;
   size_t sliceOffset = flatIdx % sliceSize;
-  dim_t row = loadGatherIndex(rowIndices, indexPos);
-  dim_t col = loadGatherIndex(colIndices, indexPos);
+  size_t row = loadGatherIndex(rowIndices, indexPos);
+  size_t col = loadGatherIndex(colIndices, indexPos);
   size_t srcOffset =
       ((size_t)row * sourceDim1 + (size_t)col) * sliceSize + sliceOffset;
   dest[flatIdx] = src[srcOffset];
@@ -59,9 +61,8 @@ static Result launchIndexSelect1d(const void *src, const void *indices,
       numIndices, sliceSize);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -81,9 +82,8 @@ static Result launchIndexSelect2d(const void *src, size_t sourceDim1,
       sliceSize);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -122,6 +122,7 @@ dispatchIndexSelect1dByValueDtype(Dtype valueDtype, const void *src,
     return launchIndexSelect1d<i64, IndexType>(src, indices, dest, numIndices,
                                                sliceSize);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchIndexSelect1d<f32, IndexType>(src, indices, dest, numIndices,
                                                sliceSize);
@@ -168,6 +169,7 @@ dispatchIndexSelect2dByValueDtype(Dtype valueDtype, const void *src,
     return launchIndexSelect2d<i64, RowIndexType, ColIndexType>(
         src, sourceDim1, rowIndices, colIndices, dest, numIndices, sliceSize);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchIndexSelect2d<f32, RowIndexType, ColIndexType>(
         src, sourceDim1, rowIndices, colIndices, dest, numIndices, sliceSize);
@@ -220,7 +222,7 @@ extern "C" Result runCudaIndexSelect1d(Context *ctx, Dtype dtype,
 
 extern "C" Result
 runCudaIndexSelect2d(Context *ctx, Dtype dtype, const void *src,
-                     dim_t sourceDim1, const void *rowIndices,
+                     size_t sourceDim1, const void *rowIndices,
                      Dtype rowIndexDtype, const void *colIndices,
                      Dtype colIndexDtype, void *dest, tensor_size_t numIndices,
                      tensor_size_t sliceSize) {

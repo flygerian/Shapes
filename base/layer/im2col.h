@@ -1,6 +1,9 @@
 #ifndef shapes_layer_im2col_h
 #define shapes_layer_im2col_h
 
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
+
 #include "common.h"
 #include "../result/result.h"
 

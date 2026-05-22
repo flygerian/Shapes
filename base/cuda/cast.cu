@@ -1,5 +1,7 @@
 #include "../common.h"
 #include "../result/result.h"
+#include "../tensor/types.h"
+#include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 
@@ -21,9 +23,7 @@ static Result launchCastKernel(const void *src, void *dest, size_t n) {
   castKernel<<<blocks, threadsPerBlock>>>((const Src *)src, (Dest *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
-  if (launchError != cudaSuccess) {
-    return ERR_NO_OP;
-  }
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -51,6 +51,7 @@ static Result dispatchCudaCastTarget(Dtype targetDtype, const void *src,
   case I64:
     return launchCastKernel<Src, i64>(src, dest, n);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return launchCastKernel<Src, f32>(src, dest, n);
   case F64:
@@ -86,6 +87,7 @@ extern "C" Result runCudaCast(Context *ctx, Dtype sourceDtype, const void *src,
   case I64:
     return dispatchCudaCastTarget<i64>(targetDtype, src, dest, n);
   case F16:
+    return ERR_DTYPE_MISMATCH;
   case F32:
     return dispatchCudaCastTarget<f32>(targetDtype, src, dest, n);
   case F64:

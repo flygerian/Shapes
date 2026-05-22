@@ -92,7 +92,9 @@ typedef enum {
   ARRAY_ELEM_SIZE_MISMATCH,
   ERR_EXPAND_FIXED_ARRAY,
   ERR_EOF,
-  ERR_STACKING_LESS_THAN_TWO_TENSORS
+  ERR_STACKING_LESS_THAN_TWO_TENSORS,
+  ERR_CUDA_BLOCK_MISMATCH,
+  ERR_CUDA_BLOCK_NO_ALLOCATION_CHECKPOINT
 } Result;
 
 #define PANIC_IF(cond, errCode)                                                                    \
