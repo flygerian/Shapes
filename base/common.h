@@ -4,8 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <cuda_runtime.h>
-#include <cublas_v2.h>
+#include "cuda_compat.h"
 #include <termios.h>
 
 #define SHAPE(dimensions, numberOfDimensions)           ((Dim){.dims = (dimensions), .numOfDims = (numberOfDimensions)})

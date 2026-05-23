@@ -3,7 +3,7 @@
 #define shapes_internal_h
 
 #include "utils_lib/cuda_memory.h"
-#include <cublas_api.h>
+#include "cuda_compat.h"
 
 typedef enum { CPU, CUDA } DeviceType;
 

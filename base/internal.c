@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-#include <cuda_runtime_api.h>
+#include "cuda_compat.h"
 #include "shapes.h"
 #include "nn/nn.h"
 #include "result/result.h"

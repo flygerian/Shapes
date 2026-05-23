@@ -1,7 +1,7 @@
 #ifndef shapes_types_h
 #define shapes_types_h
 
-#include <cublas_api.h>
+#include "cuda_compat.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include "utils_lib/array.h"

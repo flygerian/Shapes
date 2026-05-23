@@ -1,16 +1,22 @@
 cmake_minimum_required(VERSION 3.10)
 
-# NVCC 13.2 is incompatible with GCC 16.1.1; use GCC 15 if available.
-if(EXISTS /usr/bin/g++-15)
-  set(CMAKE_CUDA_HOST_COMPILER /usr/bin/g++-15)
-endif()
-
-project(shapes C CUDA)
-set(CMAKE_CUDA_ARCHITECTURES 86)
+option(SHAPES_ENABLE_CUDA "Enable CUDA support" ON)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(SHAPES_ENABLE_CUDA)
+  # NVCC 13.2 is incompatible with GCC 16.1.1; use GCC 15 if available.
+  if(EXISTS /usr/bin/g++-15)
+    set(CMAKE_CUDA_HOST_COMPILER /usr/bin/g++-15)
+  endif()
+
+  project(shapes C CUDA)
+  set(CMAKE_CUDA_ARCHITECTURES 86)
+else()
+  project(shapes C)
+endif()
 
 add_subdirectory("raylib")
 # Copy compile_commands.json to root automatically
@@ -54,39 +60,53 @@ if(NOT OPENBLAS_LIB)
   message(FATAL_ERROR "OpenBLAS not found in ${CMAKE_SOURCE_DIR}/build/openblas/lib. Run 'make init'.")
 endif()
 
-find_package(CUDAToolkit REQUIRED)
-
 include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 
-# Memory library
-add_library(utils_lib
-  utils_lib/memory.c
-  utils_lib/array.c
-  utils_lib/map.c
-  utils_lib/bitset.c
-  utils_lib/file.c
-  utils_lib/cuda_memory.c
-)
+if(SHAPES_ENABLE_CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  add_compile_definitions(SHAPES_HAS_CUDA)
 
-target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(utils_lib CUDA::cublas CUDA::cudart stdc++ m)
+  # Memory library
+  add_library(utils_lib
+    utils_lib/memory.c
+    utils_lib/array.c
+    utils_lib/map.c
+    utils_lib/bitset.c
+    utils_lib/file.c
+    utils_lib/cuda_memory.c
+  )
+  target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
+  target_link_libraries(utils_lib CUDA::cublas CUDA::cudart stdc++ m)
 
-add_library(shapes_cuda
-    cuda/access.cu
-    cuda/binary_op.cu
-    cuda/cast.cu
-    cuda/creation.cu
-    cuda/conv_bias.cu
-    cuda/accumulate.cu
-    cuda/cross_entropy.cu
-    cuda/gemm.cu
-    cuda/im2col.cu
-    cuda/optimizer.cu
-    cuda/pool.cu
-    cuda/reduction.cu
-    cuda/unary.cu
-)
-target_include_directories(shapes_cuda PUBLIC ${CMAKE_SOURCE_DIR}) 
+  add_library(shapes_cuda
+      cuda/access.cu
+      cuda/binary_op.cu
+      cuda/cast.cu
+      cuda/creation.cu
+      cuda/conv_bias.cu
+      cuda/accumulate.cu
+      cuda/cross_entropy.cu
+      cuda/gemm.cu
+      cuda/im2col.cu
+      cuda/optimizer.cu
+      cuda/pool.cu
+      cuda/reduction.cu
+      cuda/unary.cu
+  )
+  target_include_directories(shapes_cuda PUBLIC ${CMAKE_SOURCE_DIR})
+else()
+  # Memory library (CPU-only)
+  add_library(utils_lib
+    utils_lib/memory.c
+    utils_lib/array.c
+    utils_lib/map.c
+    utils_lib/bitset.c
+    utils_lib/file.c
+    cuda_stubs.c
+  )
+  target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
+  target_link_libraries(utils_lib stdc++ m)
+endif()
 
 # Core library
 add_library(shapes_core
@@ -137,7 +157,11 @@ add_library(shapes_core
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
-target_link_libraries(shapes_core shapes_cuda raylib utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
+if(SHAPES_ENABLE_CUDA)
+  target_link_libraries(shapes_core shapes_cuda raylib utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
+else()
+  target_link_libraries(shapes_core raylib utils_lib ${OPENBLAS_LIB} stdc++ m)
+endif()
 
 # Main executable
 add_executable(shapes

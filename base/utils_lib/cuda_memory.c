@@ -3,7 +3,7 @@
 #include "utils_lib/memory.h"
 #include <stddef.h>
 #include "cuda_memory.h"
-#include <cuda_runtime_api.h>
+#include "cuda_compat.h"
 #include <stdio.h>
 
 static size_t roundCudaAllocationSize(size_t size) {
