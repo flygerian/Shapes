@@ -10,6 +10,7 @@ const defaultBatchNormEpsilon = 1e-5
 const defaultBatchNormMomentum = 0.1
 
 type batchNorm struct {
+	ctx                     shapes.Context
 	gamma, beta, o          shapes.Tensor
 	runningMean, runningVar []float32
 	runningStatsInitialized bool
@@ -29,6 +30,7 @@ func BatchNorm(outerCtx shapes.Context, numFeatures int) *batchNorm {
 	beta := shapes.Float(outerCtx, shapes.Shape{uint(numFeatures)}, 0.0)
 
 	return &batchNorm{
+		ctx:         outerCtx,
 		gamma:       gamma,
 		beta:        beta,
 		numFeatures: numFeatures,
@@ -43,6 +45,7 @@ func BatchNorm2d(outerCtx shapes.Context, numFeatures int) *batchNorm {
 	beta := shapes.Float(outerCtx, shapes.Shape{uint(numFeatures)}, 0.0)
 
 	return &batchNorm{
+		ctx:         outerCtx,
 		gamma:       gamma,
 		beta:        beta,
 		numFeatures: numFeatures,
@@ -66,7 +69,7 @@ func (bn *batchNorm) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor 
 	case 1:
 		x2d, originalShape = reshapeToBatchFeature2D(fusedCtx, x, bn.numFeatures)
 	case 2:
-		x2d, originalShape = reshapeNCHWToBatchFeature2D(fusedCtx, x, bn.numFeatures)
+		x2d, originalShape = reshapeNHWCToBatchFeature2D(fusedCtx, x, bn.numFeatures)
 	default:
 		panic(fmt.Sprintf("shapes: unsupported BatchNorm dims %d", bn.dims))
 	}
@@ -161,8 +164,8 @@ func constructBatchNormBackwardPass(ctx shapes.Context, node shapes.ComputationG
 		x2d, originalShape = reshapeToBatchFeature2D(noGraphCtx, x, numFeatures)
 		grad2d, _ = reshapeToBatchFeature2D(noGraphCtx, node.Grad().(shapes.Tensor), numFeatures)
 	case 2:
-		x2d, originalShape = reshapeNCHWToBatchFeature2D(noGraphCtx, x, numFeatures)
-		grad2d, _ = reshapeNCHWToBatchFeature2D(noGraphCtx, node.Grad().(shapes.Tensor), numFeatures)
+		x2d, originalShape = reshapeNHWCToBatchFeature2D(noGraphCtx, x, numFeatures)
+		grad2d, _ = reshapeNHWCToBatchFeature2D(noGraphCtx, node.Grad().(shapes.Tensor), numFeatures)
 	default:
 		panic(fmt.Sprintf("shapes: unsupported BatchNorm dims %d", meta.dims))
 	}
@@ -203,22 +206,20 @@ func reshapeToBatchFeature2D(ctx shapes.Context, x shapes.Tensor, numFeatures in
 	return x.Reshape(ctx, -1, numFeatures), shape
 }
 
-func reshapeNCHWToBatchFeature2D(ctx shapes.Context, x shapes.Tensor, numFeatures int) (shapes.Tensor, shapes.Shape) {
+func reshapeNHWCToBatchFeature2D(ctx shapes.Context, x shapes.Tensor, numFeatures int) (shapes.Tensor, shapes.Shape) {
 	shape := x.Shape()
 	if len(shape) != 4 {
-		err := fmt.Errorf("shapes: BatchNorm2d expects NCHW tensor with 4 dims, got %d dims", len(shape))
+		err := fmt.Errorf("shapes: BatchNorm2d expects NHWC tensor with 4 dims, got %d dims", len(shape))
 		panic(err)
 	}
 
-	channelDim := shape[1]
+	channelDim := shape[3]
 	if int(channelDim) != numFeatures {
 		err := fmt.Errorf("shapes: BatchNorm2d expects channel dim size %d, got %d", numFeatures, channelDim)
 		panic(err)
 	}
 
-	// NCHW -> NHWC, then flatten to [N*H*W, C].
-	nhwc := x.Permute(ctx, 0, 2, 3, 1)
-	x2d, _ := reshapeToBatchFeature2D(ctx, nhwc, numFeatures)
+	x2d, _ := reshapeToBatchFeature2D(ctx, x, numFeatures)
 	return x2d, shape
 }
 
@@ -228,12 +229,11 @@ func restoreBatchNorm2DOutput(ctx shapes.Context, x2d shapes.Tensor, originalSha
 	}
 
 	n := int(originalShape[0])
-	c := int(originalShape[1])
-	h := int(originalShape[2])
-	w := int(originalShape[3])
+	h := int(originalShape[1])
+	w := int(originalShape[2])
+	c := int(originalShape[3])
 
-	nhwc := x2d.Reshape(ctx, n, h, w, c)
-	return nhwc.Permute(ctx, 0, 3, 1, 2)
+	return x2d.Reshape(ctx, n, h, w, c)
 }
 
 func shapeToIntDims(shape shapes.Shape) []int {

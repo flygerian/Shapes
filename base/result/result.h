@@ -1,9 +1,19 @@
 #ifndef shapes_error_h
 #define shapes_error_h
 
+#include "stdlib.h"
+#include <stddef.h>
+#include "stdio.h"
+
 typedef enum {
   OK,
   ERR_NO_OP,
+  ALLOCATION_FAILED,
+  CUDA_OP_FAILED,
+  NULL_CONTEXT,
+  NO_DEVICE_ON_CONTEXT,
+  ERR_DEVICE_MISMATCH,
+  ALLOCATING_ZERO,
   ERR_DTYPE_MISMATCH,
   ERR_DIM_MISMATCH,
   ERR_OUT_OF_BOUNDS,
@@ -26,6 +36,7 @@ typedef enum {
   ERR_MEAN_VALUE_NOT_FLOAT,
   ERR_LOG_VALUE_NOT_FLOAT,
   ERR_ABS_VALUE_NOT_SIGNED,
+  ERR_SQRT_VALUE_NOT_FLOAT,
   ERR_NOT_A_BINOP,
   ERR_ZERO_DIM_TENSOR_ADVANCED_INDEXING,
   ERR_ONLY_INT_TYPE_ALLOWED,
@@ -57,7 +68,7 @@ typedef enum {
   ERR_ADAM_NULL_GRAD,
   ERR_ADAM_ONLY_FLOAT_TENSORS,
   ERR_ADAM_PARAMS_SIZE_MISMATCH,
-  ERR_ADAM_PARAMS_MUST_BE_CONTIGUOUS,
+
   ERR_CONCAT_TENSOR_IS_NULL,
   ERR_CONCAT_TARGET_DIM_IS_OUT_OF_BOUNDS,
   ERR_CONCAT_TENSOR_DOES_NOT_FIT_IN_TARGET_DIM,
@@ -65,7 +76,55 @@ typedef enum {
   ERR_CONCAT_TENSOR_NOT_SAME_DTYPE,
   ERR_CONCAT_TENSORS_UNEQUAL_DIMS,
   ERR_CONCAT_SOURCE_TENSOR_CANNOT_HAVE_ZERO_DIMS,
-  ERR_COPY_CTX_DEVICE_IS_NULL
+  ERR_COPY_CTX_DEVICE_IS_NULL,
+  ERR_DIFFERENT_CTX_TENSORS_PASSED,
+  NON_CONTIGOUS_MOVE_TENSOR,
+  NOT_A_DENSE_LAYER,
+  OPTIMIZER_OP_NOT_FOUND,
+  LAYER_OP_NOT_FOUND,
+  BACKWARD_TENSOR_OP_NOT_FOUND,
+  BATCH_NORM_ZERO_DIM_NOT_ALLOWED,
+  FILE_OPEN_FAILED,
+  TENSORS_CANNOT_BE_BROADCASTED,
+  ZERO_LAYERS_PASSED,
+  NON_LAYER_OP_PASSED,
+  OP_NOT_SEQUENTIAL,
+  ARRAY_ELEM_SIZE_MISMATCH,
+  ERR_EXPAND_FIXED_ARRAY,
+  ERR_EOF,
+  ERR_STACKING_LESS_THAN_TWO_TENSORS,
+  ERR_CUDA_BLOCK_MISMATCH,
+  ERR_CUDA_BLOCK_NO_ALLOCATION_CHECKPOINT
 } Result;
+
+#define PANIC_IF(cond, errCode)                                                                    \
+  do {                                                                                             \
+    if ((cond)) {                                                                                  \
+      fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                  \
+      abort();                                                                                     \
+    }                                                                                              \
+  } while (0)
+
+#define PANIC_IF_NULL(var)                                                                         \
+  do {                                                                                             \
+    if ((var) == NULL) {                                                                           \
+      fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, ERR_NULL_PTR);             \
+      abort();                                                                                     \
+    }                                                                                              \
+  } while (0)
+
+#define PANIC_WITH_MSG_IF(cond, msg)                                                                    \
+  do {                                                                                             \
+    if ((cond)) {                                                                                  \
+      fprintf(stderr, "SHAPES FATAL [%s:%d]: %s\n", __FILE__, __LINE__, msg);                  \
+      abort();                                                                                     \
+    }                                                                                              \
+  } while (0)
+
+#define PANIC(errCode)                                                                             \
+  do {                                                                                             \
+    fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                    \
+    abort();                                                                                       \
+  } while (0)
 
 #endif

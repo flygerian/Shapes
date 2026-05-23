@@ -1,5 +1,10 @@
 package shapes
 
+/*
+#include "cwrappers.h"
+*/
+import "C"
+
 // Relu applies rectified linear activation element-wise.
 func Relu(ctx Context, t Tensor) Tensor {
 	return t.Relu(ctx)
@@ -10,57 +15,21 @@ func Tanh(ctx Context, t Tensor) Tensor {
 	return t.Tanh(ctx)
 }
 
-func floatMaskForTensor(ctx Context, t Tensor) Tensor {
-	var maskData []float32
-	switch values := t.Values().(type) {
-	case []float32:
-		maskData = make([]float32, len(values))
-		for i, v := range values {
-			if v > 0 {
-				maskData[i] = 1.0
-			}
-		}
-	case []float64:
-		maskData = make([]float32, len(values))
-		for i, v := range values {
-			if v > 0 {
-				maskData[i] = 1.0
-			}
-		}
-	default:
-		panic("shapes: relu requires float tensor")
-	}
-
-	mask := FromFloat32(ctx, t.Shape(), maskData)
-	return castMaskToTensorDtype(ctx, mask, t.Dtype())
-}
-
-func castMaskToTensorDtype(ctx Context, mask Tensor, dtype Dtype) Tensor {
-	switch dtype {
-	case DtypeF16:
-		return mask.F16(ctx)
-	case DtypeF32:
-		return mask.F32(ctx)
-	case DtypeF64:
-		return mask.F64(ctx)
-	default:
-		panic("shapes: relu requires float tensor")
-	}
-}
-
-// reluBackward computes the gradient for relu.
+// ReluBackward computes the gradient for relu.
 // d(relu(x))/dx = 1 when x > 0, otherwise 0.
-func reluBackward(ctx Context, node ComputationGraphNode) {
-	backwardCtx := ctx.Backward()
-	defer backwardCtx.Finish()
-
+func ReluBackward(ctx Context, node ComputationGraphNode) {
 	input := node.Inputs()[0]
 	output := node.(Tensor)
-
-	typedMask := floatMaskForTensor(backwardCtx, output)
-	gradInput := node.Grad().Times(backwardCtx, typedMask)
-
-	input.Grad().Accumulate(backwardCtx, gradInput)
+	gradOut := node.Grad().(Tensor)
+	result := C.wrap_ReluBackwardAccumulate(
+		(*C.Context)(ctx.UnsafePtr()),
+		output.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		input.Grad().(*tensor).cTensor,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
 }
 
 // tanhBackward computes the gradient for tanh.

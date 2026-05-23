@@ -10,6 +10,7 @@ Dim *makeDim(Memory *mem, dim_t *dims, u8 numDims);
 void zeroTensorValues(Tensor *t);
 Result copyTensorValuesFromHost(Tensor *t, void *src, size_t size);
 Result copyTensorValuesToHost(Tensor *t, void *dest, size_t size);
+Result wrap_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims);
 
 Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out);
 Result wrap_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices, Tensor **out);
@@ -45,6 +46,8 @@ Result wrap_Pow(Context *ctx, Tensor *t, f32 power, Tensor **out);
 Result wrap_Exp(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Tanh(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_Relu(Context *ctx, Tensor *t, Tensor **out);
+Result wrap_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor **out);
+Result wrap_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out);
 Result wrap_MeanWithDim(Context *ctx, Tensor *t, dim_t dim, Tensor **out);
 Result wrap_Log(Context *ctx, Tensor *t, Tensor **out);
@@ -78,9 +81,11 @@ Result wrap_BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, T
                                      f32 epsilon, Tensor **out, Tensor **mean, Tensor **variance);
 Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon,
                               Tensor **dX, Tensor **dGamma, Tensor **dBeta);
-Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out, Tensor **destColBuffer);
+Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels,
+                   Tensor *bias, bool withBias, Tensor *x, Tensor **out, Tensor **destColBuffer);
 Result wrap_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride);
+                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
+                       bool withBias, u8 stride);
 Result wrap_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
                             Tensor *kernels, dim_t kernelH, dim_t kernelW, Tensor *x,
                             Tensor **out);
@@ -88,8 +93,12 @@ Result wrap_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Te
                                     u8 stride, Tensor **dX, Tensor **dKernels);
 Result wrap_MaxPool2d(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
                       Tensor **out);
+Result wrap_MaxPool2dWithIndices(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
+                                 Tensor **out, Tensor **indices);
 Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t kernelH,
                               dim_t kernelW, u8 stride, Tensor **dX);
+Result wrap_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices,
+                                         Tensor **dX);
 Result wrap_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor **out);
 Result wrap_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH,
                                       dim_t outW, Tensor **dX);

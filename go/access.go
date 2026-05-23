@@ -14,7 +14,6 @@ import "fmt"
 // Get can also accept a tensor as an argument to perform advanced indexing,
 // similar to PyTorch's x[indices] where indices is a tensor of integers.
 // When two tensors are provided, performs 2D advanced indexing.
-
 type hasAccessOps interface {
 	Get(ctx Context, indices ...interface{}) Tensor
 	Item() interface{}

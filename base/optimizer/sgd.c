@@ -1,28 +1,17 @@
-#include "common.h"
-#include "memory.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
-#include <math.h>
-#include <signal.h>
+#include "tensor_internal.h"
+#include "utils_lib/array.h"
 #include <stddef.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
-Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t numParameters,
-           f32 learningRate) {
-  (void)ctx;
-  if (parameters == NULL || parameterGrads == NULL) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
+Result shapes_optimizer_Sgd(Context *ctx, Array *parameters, f32 learningRate) {
+  PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE);
 
-  if (learningRate <= 0) {
-    return ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE;
-  }
-
-  for (size_t i = 0; i < numParameters; i++) {
-    Tensor *p = parameters[i];
-    Tensor *g = parameterGrads[i];
+  for (size_t i = 0; i < parameters->size; i++) {
+    Tensor *p = shapes_Array_TensorIdx(parameters, i);
+    Tensor *g = p->grad;
 
     if (p == NULL || g == NULL) {
       return ERR_NULL_TENSOR_PROVIDED;
@@ -36,40 +25,44 @@ Result Sgd(Context *ctx, Tensor **parameters, Tensor **parameterGrads, size_t nu
       return ERR_SGD_PARAMS_NUMBER_MISMATCH;
     }
 
-    if (!p->isContigous || !g->isContigous) {
-      return ERR_SGD_PARAMS_HAVE_TO_BE_CONTIGOUS;
-    }
-
     if (isNotFloatType(p) || isNotFloatType(g)) {
       return ERR_SGD_PARAMS_HAVE_TO_BE_FLOAT;
     }
   }
 
-  for (size_t i = 0; i < numParameters; i++) {
-    Tensor *p = parameters[i];
-    Tensor *g = parameterGrads[i];
+  for (size_t i = 0; i < parameters->size; i++) {
+    Tensor *p = shapes_Array_TensorIdx(parameters, i);
+    Tensor *g = p->grad;
 
-    if (p->dtype == F16) {
-      f16 *parameterVals = p->values;
-      f16 *gradVals = g->values;
-      for (tensor_size_t x = 0; x < p->size; x++) {
-        parameterVals[x] -= (gradVals[x] * learningRate);
+    Tensor *pWork = materializeTensorOnContext(ctx, p);
+    Tensor *gWork = materializeTensorOnContext(ctx, g);
+
+    if (ctx->device != NULL && ctx->device->type == CUDA) {
+      Result res = runCudaSgd(ctx, pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
+      PANIC_IF(res != OK, res);
+    } else {
+      if (p->dtype == F16) {
+        f16 *parameterVals = pWork->values;
+        f16 *gradVals = gWork->values;
+        for (tensor_size_t x = 0; x < pWork->size; x++) {
+          parameterVals[x] -= (gradVals[x] * learningRate);
+        }
       }
-    }
 
-    if (p->dtype == F32) {
-      f32 *parameterVals = p->values;
-      f32 *gradVals = g->values;
-      for (tensor_size_t x = 0; x < p->size; x++) {
-        parameterVals[x] -= (gradVals[x] * learningRate);
+      if (p->dtype == F32) {
+        f32 *parameterVals = pWork->values;
+        f32 *gradVals = gWork->values;
+        for (tensor_size_t x = 0; x < pWork->size; x++) {
+          parameterVals[x] -= (gradVals[x] * learningRate);
+        }
       }
-    }
 
-    if (p->dtype == F64) {
-      f64 *parameterVals = p->values;
-      f64 *gradVals = g->values;
-      for (tensor_size_t x = 0; x < p->size; x++) {
-        parameterVals[x] -= (gradVals[x] * learningRate);
+      if (p->dtype == F64) {
+        f64 *parameterVals = pWork->values;
+        f64 *gradVals = gWork->values;
+        for (tensor_size_t x = 0; x < pWork->size; x++) {
+          parameterVals[x] -= (gradVals[x] * learningRate);
+        }
       }
     }
   }

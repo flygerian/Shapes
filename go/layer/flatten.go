@@ -2,10 +2,12 @@ package layer
 
 import shapes "github.com/flygerian/shapes"
 
-type flatten struct{}
+type flatten struct {
+	ctx shapes.Context
+}
 
-func Flatten() *flatten {
-	return &flatten{}
+func Flatten(ctx shapes.Context) *flatten {
+	return &flatten{ctx: ctx}
 }
 
 func (f *flatten) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {

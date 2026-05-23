@@ -229,6 +229,35 @@ func TestDenseBackward4D(t *testing.T) {
 	}
 }
 
+func TestDenseBackwardUsesTensorContextOverCallerContext(t *testing.T) {
+	cpuCtx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer cpuCtx.Finish()
+	cudaCtx := shapes.New(context.Background(), shapes.WithGrad(true), shapes.WithCuda())
+	defer cudaCtx.Finish()
+
+	dense := Dense(cudaCtx, 4, 2)
+	x := shapes.Float(cudaCtx, shapes.Shape{3, 4}, 1.0)
+
+	o := dense.Forward(cudaCtx, x)
+	o.Backward(cpuCtx)
+
+	hidden := o.HiddenState()
+	wGradShape := hidden[0].Grad().Shape()
+	if len(wGradShape) != 2 || wGradShape[0] != 2 || wGradShape[1] != 4 {
+		t.Fatalf("expected wGrad shape [2,4], got %v", wGradShape)
+	}
+
+	xGradShape := o.Inputs()[0].Grad().Shape()
+	if len(xGradShape) != 2 || xGradShape[0] != 3 || xGradShape[1] != 4 {
+		t.Fatalf("expected xGrad shape [3,4], got %v", xGradShape)
+	}
+
+	bGradShape := hidden[1].Grad().Shape()
+	if len(bGradShape) != 1 || bGradShape[0] != 2 {
+		t.Fatalf("expected bGrad shape [2], got %v", bGradShape)
+	}
+}
+
 func TestDenseInternalOpsHaveNoBackward(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Finish()

@@ -7,6 +7,7 @@ import (
 )
 
 type conv struct {
+	ctx         shapes.Context
 	kernelShape shapes.Shape
 	stride      uint8
 	inChannels  uint
@@ -20,6 +21,7 @@ type conv struct {
 type convMetadata struct {
 	stride    uint8
 	colBuffer shapes.Tensor
+	withBias  bool
 }
 
 func Conv2d(
@@ -49,12 +51,14 @@ func Conv2d(
 		shapes.Shape{uint(outChannels), uint(inChannels), kernel[0], kernel[1]},
 		-float32(initialization), float32(initialization),
 	)
-	bias := shapes.Float(ctx, shapes.Shape{1, uint(outChannels), 1, 1}, 0)
+	bias := shapes.Float(ctx, shapes.Shape{1, 1, 1, uint(outChannels)}, 0)
 
 	state := conv{
-		kernelShape: kernel,
-		inChannels:  inChannels,
-		outChannels: outChannels,
+		ctx:           ctx,
+		kernelShape:   kernel,
+		inChannels:    inChannels,
+		outChannels:   outChannels,
+		isBiasApplied: true,
 
 		kernels: kernels,
 		stride:  stride,
@@ -79,14 +83,12 @@ func (c *conv) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
 		shapes.WithOpType(shapes.OpConv),
 	)
 
-	out, colBuffer := shapes.Conv2d(forwardCtx, x, c.kernels, c.stride)
-
-	out = out.Plus(forwardCtx, c.bias)
+	out, colBuffer := shapes.Conv2d(forwardCtx, x, c.kernels, c.bias, c.isBiasApplied, c.stride)
 
 	forwardCtx.Finish(
 		shapes.WithResult(out),
 		shapes.WithBackward(convBackward),
-		shapes.WithMetadata(convMetadata{stride: c.stride, colBuffer: colBuffer}),
+		shapes.WithMetadata(convMetadata{stride: c.stride, colBuffer: colBuffer, withBias: c.isBiasApplied}),
 	)
 
 	return out
@@ -102,21 +104,13 @@ func convBackward(ctx shapes.Context, out shapes.ComputationGraphNode) {
 	bias := hidden[1]
 	meta := out.Metadata().(convMetadata)
 
-	dOutput := out.Grad() // (B, C, oH, oW)
-	outputShape := dOutput.Shape()
-	B := outputShape[0]
-	C := outputShape[1]
-	oh := outputShape[2]
-	ow := outputShape[3]
+	ctx.Mark(meta.colBuffer)
 
-	// Collapse spatial dims first so bias reduction is stable even when Sum squeezes singleton dims.
-	dBias := dOutput.
-		Reshape(backwardCtx, int(B), int(C), int(oh*ow)).
-		Sum(backwardCtx, 2).
-		Sum(backwardCtx, 0).
-		Squeeze(backwardCtx)
+	dOutput := out.Grad() // (B, oH, oW, C)
+	var dBias shapes.Tensor
+	if meta.withBias {
+		dBias = bias.Grad().(shapes.Tensor)
+	}
 
-	bias.Grad().Accumulate(backwardCtx, dBias)
-
-	shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.colBuffer, meta.stride)
+	shapes.Conv2dBackward(backwardCtx, x, kernels, dOutput.(shapes.Tensor), meta.colBuffer, dBias, meta.withBias, meta.stride)
 }

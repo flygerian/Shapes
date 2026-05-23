@@ -1,11 +1,24 @@
 cmake_minimum_required(VERSION 3.10)
-project(shapes C CUDA)
-set(CMAKE_CUDA_ARCHITECTURES 86)
+
+option(SHAPES_ENABLE_CUDA "Enable CUDA support" ON)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(SHAPES_ENABLE_CUDA)
+  # NVCC 13.2 is incompatible with GCC 16.1.1; use GCC 15 if available.
+  if(EXISTS /usr/bin/g++-15)
+    set(CMAKE_CUDA_HOST_COMPILER /usr/bin/g++-15)
+  endif()
+
+  project(shapes C CUDA)
+  set(CMAKE_CUDA_ARCHITECTURES 86)
+else()
+  project(shapes C)
+endif()
+
+add_subdirectory("raylib")
 # Copy compile_commands.json to root automatically
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
   add_custom_target(copy_compile_commands ALL
@@ -22,11 +35,13 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-set_source_files_properties(base/tensor/binary_op.c
-  PROPERTIES COMPILE_FLAGS "-S -o /tmp/binary_op.s"
+add_compile_options(
+  -march=native
+  $<$<CONFIG:Debug>:-O0>
+  $<$<CONFIG:Release>:-O3>
+  $<$<CONFIG:Release>:-ffast-math>
+  $<$<CONFIG:RelWithDebInfo>:-O2>
 )
-
-add_compile_options(-O3 -march=native -c)
 # Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
@@ -45,21 +60,58 @@ if(NOT OPENBLAS_LIB)
   message(FATAL_ERROR "OpenBLAS not found in ${CMAKE_SOURCE_DIR}/build/openblas/lib. Run 'make init'.")
 endif()
 
-find_package(CUDAToolkit REQUIRED)
-
 include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
 
-# Memory library
-add_library(shapes_memory
-    memory.c
-)
-target_include_directories(shapes_memory PUBLIC ${CMAKE_SOURCE_DIR})
+if(SHAPES_ENABLE_CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  add_compile_definitions(SHAPES_HAS_CUDA)
+
+  # Memory library
+  add_library(utils_lib
+    utils_lib/memory.c
+    utils_lib/array.c
+    utils_lib/map.c
+    utils_lib/bitset.c
+    utils_lib/file.c
+    utils_lib/cuda_memory.c
+  )
+  target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
+  target_link_libraries(utils_lib CUDA::cublas CUDA::cudart stdc++ m)
+
+  add_library(shapes_cuda
+      cuda/access.cu
+      cuda/binary_op.cu
+      cuda/cast.cu
+      cuda/creation.cu
+      cuda/conv_bias.cu
+      cuda/accumulate.cu
+      cuda/cross_entropy.cu
+      cuda/gemm.cu
+      cuda/im2col.cu
+      cuda/optimizer.cu
+      cuda/pool.cu
+      cuda/reduction.cu
+      cuda/unary.cu
+  )
+  target_include_directories(shapes_cuda PUBLIC ${CMAKE_SOURCE_DIR})
+else()
+  # Memory library (CPU-only)
+  add_library(utils_lib
+    utils_lib/memory.c
+    utils_lib/array.c
+    utils_lib/map.c
+    utils_lib/bitset.c
+    utils_lib/file.c
+    cuda_stubs.c
+  )
+  target_include_directories(utils_lib PUBLIC ${CMAKE_SOURCE_DIR})
+  target_link_libraries(utils_lib stdc++ m)
+endif()
 
 # Core library
 add_library(shapes_core
-    common.c
     context.c
-    cuda/gemm.cu
+    device.c
     layer/dense.c
     layer/batch_norm.c
     layer/im2col.c
@@ -69,23 +121,47 @@ add_library(shapes_core
     loss/cross_entropy.c
     optimizer/sgd.c
     optimizer/adam.c
-    tensor/tensor.c
-    tensor/binary_op.c
-    tensor/matrix_ops.c
-    tensor/shape_ops.c
-    tensor/access.c
-    tensor/reduction.c
-    tensor/creation.c
-    tensor/destruction.c
-    tensor/unary.c
-    tensor/cast.c
-    tensor/accumulate.c
-    tensor/gemm.c
+    internal.c
+    binary_op.c
+    shape_ops.c
+    access.c
+    reduction.c
+    creation.c
+    unary.c
+    cast.c
+    accumulate.c
+    gemm.c
+    nn/backward.c
+    nn/dense.c
+    nn/embedding.c
+    nn/mse.c
+    nn/sgd.c
+    nn/training.c
+    nn/batchnorm.c
+    nn/cross_enthropy.c
+    nn/adam.c
+    nn/tanh.c
+    nn/relu.c
+    nn/maxpool2d.c
+    nn/adaptive_avg_pool2d.c
+    nn/conv2d.c
+    nn/sequential.c
+    nn/utils.c
+    nn/flatten.c
+    nn/softmax.c
+    cmd/examples/makemore_3.c
+    cmd/examples/makemore_5.c
+    cmd/examples/vgg-10.c
+    cmd/examples/ui.c
+    cmd/examples/raylib.c
 )
 target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
-target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} m)
-target_link_libraries(shapes_core shapes_memory ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart m)
+if(SHAPES_ENABLE_CUDA)
+  target_link_libraries(shapes_core shapes_cuda raylib utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
+else()
+  target_link_libraries(shapes_core raylib utils_lib ${OPENBLAS_LIB} stdc++ m)
+endif()
 
 # Main executable
 add_executable(shapes
@@ -93,27 +169,24 @@ add_executable(shapes
 )
 target_link_libraries(shapes shapes_core)
 
-# Test executable
-add_executable(shapes_test
-    cmd/test/main.c
-    cmd/test/memory_test.c
-    cmd/test/tensor_test.c
-    cmd/test/unary_test.c
-    cmd/test/cast_test.c
-    cmd/test/sgd_test.c
-    cmd/test/adam_test.c
-    cmd/test/layer_test.c
-)
-target_link_libraries(shapes_test shapes_core)
-
-add_executable(gemm_bench
-  cmd/cuda/gemm_bench.cu
-)
-target_link_libraries(gemm_bench CUDA::cudart -lcublas)
-
 # Enable CTest
 enable_testing()
-add_test(NAME shapes_tests COMMAND shapes_test)
+
+option(BUILD_TESTS "Build test executables" OFF)
+if(BUILD_TESTS)
+  add_executable(shapes_test
+      cmd/test/main.c
+      cmd/test/memory_test.c
+      cmd/test/tensor_test.c
+      cmd/test/unary_test.c
+      cmd/test/cast_test.c
+      cmd/test/sgd_test.c
+      cmd/test/adam_test.c
+      cmd/test/layer_test.c
+  )
+  target_link_libraries(shapes_test shapes_core utils_lib)
+  add_test(NAME shapes_tests COMMAND shapes_test)
+endif()
 
 # ---------- Linting & Formatting ----------
 

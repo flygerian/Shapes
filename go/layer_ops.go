@@ -102,14 +102,21 @@ func BatchNormBackward(ctx Context, x2d Tensor, grad2d Tensor, gamma Tensor, eps
 		track(ctx, &tensor{cTensor: dBeta})
 }
 
-func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) (Tensor, Tensor) {
+func Conv2d(ctx Context, x Tensor, kernels Tensor, bias Tensor, withBias bool, stride uint8) (Tensor, Tensor) {
 	kernelShape := kernels.Shape()
 	if len(kernelShape) < 4 {
 		panic("shapes: Conv2d kernels must be 4D [outChannels,inChannels,kH,kW]")
 	}
+	if withBias && bias == nil {
+		panic("shapes: Conv2d requires bias tensor when withBias is true")
+	}
 
 	outChannels := kernelShape[0]
 	inChannels := kernelShape[1]
+	var biasTensor *C.Tensor
+	if bias != nil {
+		biasTensor = bias.(*tensor).cTensor
+	}
 
 	var out *C.Tensor
 	var colBuffer *C.Tensor
@@ -120,6 +127,8 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) (Tensor, Tensor
 		C.size_t(outChannels),
 		C.u8(stride),
 		kernels.(*tensor).cTensor,
+		biasTensor,
+		C.bool(withBias),
 		x.(*tensor).cTensor,
 		&out,
 		&colBuffer,
@@ -131,7 +140,11 @@ func Conv2d(ctx Context, x Tensor, kernels Tensor, stride uint8) (Tensor, Tensor
 	return track(ctx, &tensor{cTensor: out}), track(ctx, &tensor{cTensor: colBuffer})
 }
 
-func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, outputGrad Tensor, colBuffer Tensor, stride uint8) {
+func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, outputGrad Tensor, colBuffer Tensor, dBias Tensor, withBias bool, stride uint8) {
+	var dBiasTensor *C.Tensor
+	if dBias != nil {
+		dBiasTensor = dBias.(*tensor).cTensor
+	}
 
 	result := C.wrap_Conv2dBackward(
 		(*C.Context)(ctx.UnsafePtr()),
@@ -141,6 +154,8 @@ func Conv2dBackward(ctx Context, x Tensor, kernels Tensor, outputGrad Tensor, co
 		kernels.Grad().(*tensor).cTensor,
 		outputGrad.(*tensor).cTensor,
 		colBuffer.(*tensor).cTensor,
+		dBiasTensor,
+		C.bool(withBias),
 		C.u8(stride),
 	)
 
@@ -221,6 +236,29 @@ func MaxPool2d(ctx Context, x Tensor, kernel Shape, stride uint8) Tensor {
 	return track(ctx, &tensor{cTensor: out})
 }
 
+func MaxPool2dWithIndices(ctx Context, x Tensor, kernel Shape, stride uint8) (Tensor, Tensor) {
+	if len(kernel) != 2 {
+		panic("shapes: MaxPool2dWithIndices kernel must be 2D [kH,kW]")
+	}
+
+	var out *C.Tensor
+	var indices *C.Tensor
+	result := C.wrap_MaxPool2dWithIndices(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		C.dim_t(kernel[0]),
+		C.dim_t(kernel[1]),
+		C.u8(stride),
+		&out,
+		&indices,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: out}), track(ctx, &tensor{cTensor: indices})
+}
+
 func MaxPool2dBackward(ctx Context, x Tensor, gradOut Tensor, kernel Shape, stride uint8) Tensor {
 	if len(kernel) != 2 {
 		panic("shapes: MaxPool2dBackward kernel must be 2D [kH,kW]")
@@ -234,6 +272,22 @@ func MaxPool2dBackward(ctx Context, x Tensor, gradOut Tensor, kernel Shape, stri
 		C.dim_t(kernel[0]),
 		C.dim_t(kernel[1]),
 		C.u8(stride),
+		&dX,
+	)
+	if result != C.OK {
+		panic("shapes: " + resultString(uint32(result)))
+	}
+
+	return track(ctx, &tensor{cTensor: dX})
+}
+
+func MaxPool2dBackwardWithIndices(ctx Context, x Tensor, gradOut Tensor, indices Tensor) Tensor {
+	var dX *C.Tensor
+	result := C.wrap_MaxPool2dBackwardWithIndices(
+		(*C.Context)(ctx.UnsafePtr()),
+		x.(*tensor).cTensor,
+		gradOut.(*tensor).cTensor,
+		indices.(*tensor).cTensor,
 		&dX,
 	)
 	if result != C.OK {

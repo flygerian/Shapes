@@ -10,4 +10,5 @@ build/openblas
 *.s
 go/*gocache
 go/main
-go/examples/datasets/*
+base/cmd/examples/datasets/*
+

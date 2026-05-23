@@ -33,6 +33,8 @@ Result copyTensorValuesToHost(Tensor *t, void *dest, size_t size) {
   return copyBetweenContexts(t->context, NULL, t->values, dest, size);
 }
 
+Result wrap_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) { return CopyShape(t, destDims, numDims); }
+
 Result wrap_GetTensorAt(Context *ctx, Tensor *source, dim_t index, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = GetTensorAt(ctx, source, index, dest);
@@ -220,6 +222,17 @@ Result wrap_Relu(Context *ctx, Tensor *t, Tensor **out) {
   return r;
 }
 
+Result wrap_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut, Tensor **out) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Result r = ReluBackward(ctx, output, gradOut, dest);
+  *out = dest;
+  return r;
+}
+
+Result wrap_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+  return ReluBackwardAccumulate(ctx, output, gradOut, dest);
+}
+
 Result wrap_Negate(Context *ctx, Tensor *t, Tensor **out) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Result r = Negate(ctx, t, dest);
@@ -395,19 +408,24 @@ Result wrap_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor 
   return r;
 }
 
-Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *x, Tensor **out, Tensor **destColBuffer) {
+Result wrap_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride,
+                   Tensor *kernels, Tensor *bias, bool withBias, Tensor *x, Tensor **out,
+                   Tensor **destColBuffer) {
   Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
   Tensor *colBuffer = allocate(ctx->memory, sizeof(Tensor));
 
-  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, x, dest, colBuffer);
+  Result r = Conv2d(ctx, inChannels, outChannels, stride, kernels, bias, withBias, x, dest,
+                    colBuffer);
   *out = dest;
   *destColBuffer = colBuffer;
   return r;
 }
 
 Result wrap_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels,
-                       Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, u8 stride) {
-  Result r = Conv2dBackward(ctx, input, dInput, kernels, dKernels, outputGrad, colBuffer, stride);
+                           Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias,
+                           bool withBias, u8 stride) {
+  Result r = Conv2dBackward(ctx, input, dInput, kernels, dKernels, outputGrad, colBuffer, dBias,
+                            withBias, stride);
   return r;
 }
 
@@ -443,6 +461,18 @@ Result wrap_MaxPool2d(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 
   return r;
 }
 
+Result wrap_MaxPool2dWithIndices(Context *ctx, Tensor *x, dim_t kernelH, dim_t kernelW, u8 stride,
+                                 Tensor **out, Tensor **indices) {
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *argmax = allocate(ctx->memory, sizeof(Tensor));
+  dim_t kernelDims[2] = {kernelH, kernelW};
+  Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
+  Result r = MaxPool2dWithIndices(ctx, x, kernel, stride, dest, argmax);
+  *out = dest;
+  *indices = argmax;
+  return r;
+}
+
 Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t kernelH,
                               dim_t kernelW, u8 stride, Tensor **dX) {
   Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
@@ -450,6 +480,14 @@ Result wrap_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t ke
   Dim kernel = {.dims = kernelDims, .numOfDims = 2, .multipliers = NULL};
 
   Result r = MaxPool2dBackward(ctx, x, gradOut, kernel, stride, dx);
+  *dX = dx;
+  return r;
+}
+
+Result wrap_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices,
+                                         Tensor **dX) {
+  Tensor *dx = allocate(ctx->memory, sizeof(Tensor));
+  Result r = MaxPool2dBackwardWithIndices(ctx, x, gradOut, indices, dx);
   *dX = dx;
   return r;
 }

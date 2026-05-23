@@ -128,6 +128,170 @@ func TestDerivedContextsCarryTrainingState(t *testing.T) {
 	}
 }
 
+func TestBackwardDisabledDisablesBackward(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	disabled := ctx.BackwardDisabled()
+	defer disabled.Finish()
+
+	if !disabled.GradEnabled() {
+		t.Fatal("BackwardDisabled should keep grad enabled")
+	}
+	if disabled.BackwardEnabled() {
+		t.Fatal("BackwardDisabled should disable backward")
+	}
+
+	sub, ok := disabled.(*subContext)
+	if !ok {
+		t.Fatal("expected BackwardDisabled to return *subContext")
+	}
+	if sub.fused {
+		t.Fatal("BackwardDisabled should not mark the subcontext as fused")
+	}
+}
+
+func TestFusedPreservesParentFlagsAndMarksFlushBoundary(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	fused := ctx.Fused()
+	defer fused.Finish()
+
+	if !fused.GradEnabled() {
+		t.Fatal("Fused should preserve grad tracking")
+	}
+	if !fused.BackwardEnabled() {
+		t.Fatal("Fused should preserve backward behavior")
+	}
+
+	sub, ok := fused.(*subContext)
+	if !ok {
+		t.Fatal("expected Fused to return *subContext")
+	}
+	if !sub.fused {
+		t.Fatal("Fused should mark the subcontext as fused")
+	}
+}
+
+func TestNonFusedContextWithoutFusedAncestorFlushesOnFinish(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	sc, ok := ctx.NoGraph().(*subContext)
+	if !ok {
+		t.Fatal("expected NoGraph to return *subContext")
+	}
+	defer sc.Finish()
+
+	if !sc.shouldFlushOnFinish() {
+		t.Fatal("expected non-fused context without fused ancestor to flush")
+	}
+}
+
+func TestNonFusedContextUnderFusedAncestorDefersFlush(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	fused, ok := ctx.Fused().(*subContext)
+	if !ok {
+		t.Fatal("expected Fused to return *subContext")
+	}
+	defer fused.Finish()
+
+	child, ok := fused.NoGraph().(*subContext)
+	if !ok {
+		t.Fatal("expected NoGraph child to return *subContext")
+	}
+	defer child.Finish()
+
+	if !child.hasFusedAncestor() {
+		t.Fatal("expected child context to detect fused ancestor")
+	}
+	if child.shouldFlushOnFinish() {
+		t.Fatal("expected child context under fused ancestor to defer flush")
+	}
+}
+
+func TestNestedFusedContextStillFlushesOnFinish(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	parent, ok := ctx.Fused().(*subContext)
+	if !ok {
+		t.Fatal("expected Fused to return *subContext")
+	}
+	defer parent.Finish()
+
+	child, ok := parent.Fused().(*subContext)
+	if !ok {
+		t.Fatal("expected nested Fused to return *subContext")
+	}
+	defer child.Finish()
+
+	if !child.hasFusedAncestor() {
+		t.Fatal("expected nested fused context to detect fused ancestor")
+	}
+	if !child.shouldFlushOnFinish() {
+		t.Fatal("expected fused context to flush even with fused ancestor")
+	}
+}
+
+func TestFusedStepContextPreservesStepSemantics(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	trainingCtx := ctx.Training(1)
+	epochCtx := trainingCtx.Epoch(1)
+	defer epochCtx.Finish()
+
+	stepCtx, ok := epochCtx.Step().Fused().(StepContext)
+	if !ok {
+		t.Fatal("expected fused step to still satisfy StepContext")
+	}
+	defer stepCtx.Finish()
+
+	sub, ok := stepCtx.(*subContext)
+	if !ok {
+		t.Fatal("expected fused step to be backed by *subContext")
+	}
+	if sub.subContextType != SubContextTypeStep {
+		t.Fatalf("expected fused step subcontext type %d, got %d", SubContextTypeStep, sub.subContextType)
+	}
+	if !sub.sweepAfterFinish {
+		t.Fatal("expected fused step to preserve step sweep behavior")
+	}
+
+	stepCtx.SetStepLoss(0.25)
+}
+
+func TestFusedContextPreservesParentSweepBehavior(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	trainingCtx := ctx.Training(1)
+	epochCtx := trainingCtx.Epoch(1)
+	defer epochCtx.Finish()
+
+	stepCtx, ok := epochCtx.Step().(*subContext)
+	if !ok {
+		t.Fatal("expected step context to be backed by *subContext")
+	}
+	if !stepCtx.sweepAfterFinish {
+		t.Fatal("expected plain step context to sweep after finish")
+	}
+
+	fusedStep, ok := stepCtx.Fused().(*subContext)
+	if !ok {
+		t.Fatal("expected fused step to be backed by *subContext")
+	}
+	defer fusedStep.Finish()
+
+	if !fusedStep.sweepAfterFinish {
+		t.Fatal("expected fused step to preserve parent sweep behavior")
+	}
+}
+
 func TestEpochStepRecordsStepLossSeparately(t *testing.T) {
 	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
@@ -185,5 +349,49 @@ func TestWithNumStepsSetsTrainingStats(t *testing.T) {
 
 	if got := trainingCtx.TrainingStats().NumSteps; got != 42 {
 		t.Fatalf("NumSteps = %d, want 42", got)
+	}
+}
+
+func TestSweepNilsFreedTensorAndDropsHandle(t *testing.T) {
+	ctx := New(stdctx.Background()).(*mainContext)
+	defer ctx.Finish()
+
+	ten := Float(ctx, Shape{2}, 1)
+	if got := ctx.NumTrackTensors(); got != 1 {
+		t.Fatalf("tracked tensors before sweep = %d, want 1", got)
+	}
+
+	ctx.Mark(ten)
+	ctx.Sweep()
+
+	if ten.(*tensor).cTensor != nil {
+		t.Fatal("Sweep should nil the freed tensor handle")
+	}
+	if got := ctx.NumTrackTensors(); got != 0 {
+		t.Fatalf("tracked tensors after sweep = %d, want 0", got)
+	}
+}
+
+func TestSweepNilsAliasHandlesForSameCTensor(t *testing.T) {
+	ctx := New(stdctx.Background()).(*mainContext)
+	defer ctx.Finish()
+
+	baseTensor := Float(ctx, Shape{2}, 1)
+	alias := Track(ctx, baseTensor.UnsafeCTensor())
+	if got := ctx.NumTrackTensors(); got != 2 {
+		t.Fatalf("tracked tensors before sweep = %d, want 2", got)
+	}
+
+	ctx.Mark(baseTensor)
+	ctx.Sweep()
+
+	if baseTensor.(*tensor).cTensor != nil {
+		t.Fatal("Sweep should nil the original freed tensor handle")
+	}
+	if alias.cTensor != nil {
+		t.Fatal("Sweep should nil alias handles that point at the same freed C tensor")
+	}
+	if got := ctx.NumTrackTensors(); got != 0 {
+		t.Fatalf("tracked tensors after sweep = %d, want 0", got)
 	}
 }

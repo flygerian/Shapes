@@ -92,6 +92,7 @@ type Tensor interface {
 // Tensor wraps a C Tensor pointer.
 type tensor struct {
 	cTensor     *C.Tensor
+	ctx         Context
 	computation *Computation
 	label       string
 }
@@ -112,6 +113,7 @@ func dim(ctx Context, shape Shape) *C.Dim {
 
 // track registers a tensor with the context for lifetime management.
 func track(ctx Context, t *tensor) *tensor {
+	t.ctx = ctx
 	if ctx.GradEnabled() && t.computation == nil {
 		leafNode(ctx, t)
 	}
@@ -123,11 +125,6 @@ func track(ctx Context, t *tensor) *tensor {
 // resultString converts a C Result code to a human-readable string.
 func resultString(r uint32) string {
 	return ResultString(r)
-}
-
-// ptrOffset returns an unsafe.Pointer offset by i elements of *C.dim_t size.
-func ptrOffset(base *C.dim_t, i int) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(unsafe.Pointer(base)) + uintptr(i)*unsafe.Sizeof(*base))
 }
 
 // UnsafeCPtr returns the C Tensor as an unsafe.Pointer for cross-package CGo casts.

@@ -17,9 +17,9 @@ func TestConvTransposeBackwardAccumulatesInputKernelAndBiasGrads(t *testing.T) {
 		1, 0,
 		0, 1,
 	})
-	layer.bias = shapes.Float(ctx, shapes.Shape{1}, 0)
+	layer.bias = shapes.Float(ctx, shapes.Shape{1, 1, 1, 1}, 0)
 
-	x := shapes.FromFloat32(ctx, shapes.Shape{1, 1, 2, 2}, []float32{
+	x := shapes.FromFloat32(ctx, shapes.Shape{1, 2, 2, 1}, []float32{
 		1, 2,
 		3, 4,
 	})

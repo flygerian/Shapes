@@ -7,7 +7,11 @@ import (
 type reluActivation struct{}
 
 func (r *reluActivation) Forward(ctx shapes.Context, x shapes.Tensor) shapes.Tensor {
-	return shapes.Relu(ctx, x)
+	forwardCtx := ctx.Forward(shapes.WithInputs(x))
+	out := shapes.Relu(ctx, x)
+
+	forwardCtx.Finish(shapes.WithResult(out), shapes.WithBackward(shapes.ReluBackward))
+	return out
 }
 
 type tanhActivation struct{}

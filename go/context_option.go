@@ -17,18 +17,24 @@ func WithArenaSize(size int) mainContextOption {
 	}
 }
 
-func WithTrainingStatsRenderer(renderer TrainingStatsRenderer) mainContextOption {
-	return func(mc *mainContext) {
-		renderer.SetTrainingContext(mc)
+func WithTrainingStatsRenderer(renderer TrainingStatsRenderer) subContextOption {
+	return func(sc *subContext) {
+		renderer.SetTrainingContext(sc)
 	}
 }
 
-func WithNumSteps(numSteps int) mainContextOption {
-	return func(mc *mainContext) {
+func WithNumSteps(numSteps int) subContextOption {
+	return func(mc *subContext) {
 		if mc.training == nil || mc.training.stats == nil {
 			panic("Can only set num steps in training mode")
 		}
 		mc.training.stats.NumSteps = numSteps
+	}
+}
+
+func WithCuda() mainContextOption {
+	return func(mc *mainContext) {
+		mc.withCuda = true
 	}
 }
 

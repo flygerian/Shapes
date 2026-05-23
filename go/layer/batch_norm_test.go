@@ -194,12 +194,12 @@ func TestBatchNorm2dReturnsResult(t *testing.T) {
 	defer ctx.Finish()
 
 	bn := BatchNorm2d(ctx, 2)
-	x := shapes.Float(ctx, shapes.Shape{2, 2, 3, 3}, 1.0)
+	x := shapes.Float(ctx, shapes.Shape{2, 3, 3, 2}, 1.0)
 
 	o := bn.Forward(ctx, x)
 	shape := o.Shape()
-	if len(shape) != 4 || shape[0] != 2 || shape[1] != 2 || shape[2] != 3 || shape[3] != 3 {
-		t.Fatalf("expected shape [2,2,3,3], got %v", shape)
+	if len(shape) != 4 || shape[0] != 2 || shape[1] != 3 || shape[2] != 3 || shape[3] != 2 {
+		t.Fatalf("expected shape [2,3,3,2], got %v", shape)
 	}
 }
 
@@ -209,33 +209,33 @@ func TestBatchNorm2dNormalizesPerChannel(t *testing.T) {
 
 	bn := BatchNorm2d(ctx, 2)
 	x := shapes.FromFloat32(ctx, shapes.Shape{1, 2, 2, 2}, []float32{
-		1.0, 3.0,
-		5.0, 7.0,
-		2.0, 4.0,
-		6.0, 8.0,
+		1.0, 2.0,
+		3.0, 4.0,
+		5.0, 6.0,
+		7.0, 8.0,
 	})
 
 	o := bn.Forward(ctx, x)
 
 	denom := float32(math.Sqrt(5.0 + defaultBatchNormEpsilon))
 	tests := []struct {
-		n, c, h, w uint32
+		n, h, w, c uint32
 		want       float32
 	}{
 		{0, 0, 0, 0, -3.0 / denom},
-		{0, 0, 0, 1, -1.0 / denom},
-		{0, 0, 1, 0, 1.0 / denom},
-		{0, 0, 1, 1, 3.0 / denom},
-		{0, 1, 0, 0, -3.0 / denom},
-		{0, 1, 0, 1, -1.0 / denom},
-		{0, 1, 1, 0, 1.0 / denom},
+		{0, 0, 1, 0, -1.0 / denom},
+		{0, 1, 0, 0, 1.0 / denom},
+		{0, 1, 1, 0, 3.0 / denom},
+		{0, 0, 0, 1, -3.0 / denom},
+		{0, 0, 1, 1, -1.0 / denom},
+		{0, 1, 0, 1, 1.0 / denom},
 		{0, 1, 1, 1, 3.0 / denom},
 	}
 
 	for _, tt := range tests {
-		got := o.Get(ctx, tt.n, tt.c, tt.h, tt.w).Item().(float32)
+		got := o.Get(ctx, tt.n, tt.h, tt.w, tt.c).Item().(float32)
 		if math.Abs(float64(got-tt.want)) > 1e-4 {
-			t.Fatalf("BatchNorm2d[%d,%d,%d,%d] = %f, want %f", tt.n, tt.c, tt.h, tt.w, got, tt.want)
+			t.Fatalf("BatchNorm2d[%d,%d,%d,%d] = %f, want %f", tt.n, tt.h, tt.w, tt.c, got, tt.want)
 		}
 	}
 }

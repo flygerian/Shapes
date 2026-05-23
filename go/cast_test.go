@@ -119,6 +119,25 @@ func TestCastI8ToBool(t *testing.T) {
 	}
 }
 
+func TestCastBoolToF32(t *testing.T) {
+	ctx := New(context.Background())
+	defer ctx.Finish()
+
+	src := FromInt8(ctx, []int8{0, 1, 1}).Bool(ctx)
+	result := src.F32(ctx)
+
+	if result.Dtype() != DtypeF32 {
+		t.Fatalf("expected dtype F32, got %s", result.Dtype())
+	}
+	expected := []float32{0.0, 1.0, 1.0}
+	for i, want := range expected {
+		got := result.Get(ctx, uint32(i)).Item().(float32)
+		if !approxEq(got, want, 1e-5) {
+			t.Errorf("F32[%d] = %f, want %f", i, got, want)
+		}
+	}
+}
+
 func TestCastF32ToF64(t *testing.T) {
 	ctx := New(context.Background())
 	defer ctx.Finish()
@@ -445,6 +464,26 @@ func TestCastF32Widening(t *testing.T) {
 	result := src.F64(ctx)
 	if result.Dtype() != DtypeF64 {
 		t.Errorf("got dtype %s, want F64", result.Dtype())
+	}
+}
+
+func TestCastCudaF32ToI64(t *testing.T) {
+	ctx := New(context.Background(), WithCuda())
+	defer ctx.Finish()
+
+	src := FromFloat32(ctx, Shape{3}, []float32{0.0, 7.9, -2.1})
+	result := src.I64(ctx)
+
+	if result.Dtype() != DtypeI64 {
+		t.Fatalf("expected dtype I64, got %s", result.Dtype())
+	}
+
+	expected := []int64{0, 7, -2}
+	for i, want := range expected {
+		got := result.Get(ctx, uint32(i)).Item().(int64)
+		if got != want {
+			t.Errorf("I64[%d] = %d, want %d", i, got, want)
+		}
 	}
 }
 

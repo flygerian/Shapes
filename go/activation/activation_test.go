@@ -59,6 +59,25 @@ func TestReluBackward(t *testing.T) {
 	}
 }
 
+func TestReluBackwardAccumulatesMultipleUses(t *testing.T) {
+	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
+	defer ctx.Finish()
+
+	x := shapes.FromFloat32(ctx, shapes.Shape{3}, []float32{-1.0, 0.0, 2.0})
+	y := Relu().Forward(ctx, x)
+	z := y.Plus(ctx, y)
+	loss := z.Sum(ctx, 0)
+	loss.Backward(ctx)
+
+	want := []float32{0.0, 0.0, 2.0}
+	got := x.Grad().(shapes.Tensor).Values().([]float32)
+	for i := range want {
+		if !approxEq(got[i], want[i], 1e-5) {
+			t.Errorf("relu accumulate[%d] = %f, want %f", i, got[i], want[i])
+		}
+	}
+}
+
 func TestTanhValues(t *testing.T) {
 	ctx := shapes.New(context.Background(), shapes.WithGrad(true))
 	defer ctx.Finish()

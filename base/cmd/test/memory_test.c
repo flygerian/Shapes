@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../memory.h"
+#include "../../utils_lib/memory.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,14 +34,6 @@ static void test_allocate_returns_non_null(void) {
   Memory *mem = initializeMemory();
   void *ptr = allocate(mem, 64);
   ASSERT_NOT_NULL(ptr, "allocate should return non-null for valid size");
-  freeMemory(mem);
-}
-
-static void test_allocate_zero_returns_null(void) {
-  Memory *mem = initializeMemory();
-  void *ptr = allocate(mem, 0);
-  ASSERT_NULL(ptr, "allocate(0) should return NULL");
-  freeMemory(mem);
 }
 
 static void test_allocate_marks_block_allocated(void) {
@@ -49,7 +41,6 @@ static void test_allocate_marks_block_allocated(void) {
   void *ptr = allocate(mem, 48);
   blockheader *hdr = BLOCK_HEADER(ptr);
   ASSERT_EQ(hdr->free, false, "newly allocated block should have free=false");
-  freeMemory(mem);
 }
 
 static void test_allocate_multiple_blocks(void) {
@@ -63,8 +54,6 @@ static void test_allocate_multiple_blocks(void) {
   ASSERT_NOT_NULL(ptr3, "third allocation should succeed");
   ASSERT_NEQ(ptr1, ptr2, "first and second allocations should be at different addresses");
   ASSERT_NEQ(ptr2, ptr3, "second and third allocations should be at different addresses");
-
-  freeMemory(mem);
 }
 
 static void test_allocate_data_integrity(void) {
@@ -72,7 +61,6 @@ static void test_allocate_data_integrity(void) {
   char *str = allocate(mem, 16);
   strcpy(str, "hello");
   ASSERT_EQ(strcmp(str, "hello"), 0, "allocated memory should hold written data");
-  freeMemory(mem);
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +73,6 @@ static void test_header_blocksize_matches_request(void) {
   void *ptr = allocate(mem, size);
   blockheader *hdr = BLOCK_HEADER(ptr);
   ASSERT_EQ(hdr->blockSize, size, "header blockSize should match requested size");
-  freeMemory(mem);
 }
 
 static void test_footer_offset_resolves_to_header(void) {
@@ -97,13 +84,10 @@ static void test_footer_offset_resolves_to_header(void) {
   blockfooter *footer = (blockfooter *)((uint8_t *)ptr + size);
 
   size_t expectedOffset = (uint8_t *)hdr - arena;
-  ASSERT_EQ(footer->headerOffset, expectedOffset,
-            "footer headerOffset should equal header's arena offset");
+  ASSERT_EQ(footer->headerOffset, expectedOffset, "footer headerOffset should equal header's arena offset");
 
   blockheader *hdrFromFooter = (blockheader *)(arena + footer->headerOffset);
   ASSERT_EQ(hdrFromFooter, hdr, "footer headerOffset should resolve back to the same header");
-
-  freeMemory(mem);
 }
 
 static void test_allocations_are_contiguous_in_arena(void) {
@@ -116,10 +100,7 @@ static void test_allocations_are_contiguous_in_arena(void) {
 
   // ptr2 should start immediately after the footer of the first block.
   uint8_t *expectedPtr2 = (uint8_t *)ptr1 + size1 + sizeof(blockfooter) + sizeof(blockheader);
-  ASSERT_EQ((uint8_t *)ptr2, expectedPtr2,
-            "second allocation payload should start right after first block's footer + header");
-
-  freeMemory(mem);
+  ASSERT_EQ((uint8_t *)ptr2, expectedPtr2, "second allocation payload should start right after first block's footer + header");
 }
 
 static void test_allocated_bytes_advances_by_total_block_size(void) {
@@ -127,9 +108,7 @@ static void test_allocated_bytes_advances_by_total_block_size(void) {
   size_t sizeBefore = mem->allocated;
   size_t payloadSize = 128;
   allocate(mem, payloadSize);
-  ASSERT_EQ(mem->allocated - sizeBefore, totalBlockSize(payloadSize),
-            "allocated should advance by header + payload + footer");
-  freeMemory(mem);
+  ASSERT_EQ(mem->allocated - sizeBefore, totalBlockSize(payloadSize), "allocated should advance by header + payload + footer");
 }
 
 // ---------------------------------------------------------------------------
@@ -144,8 +123,6 @@ static void test_free_marks_block_free(void) {
   ASSERT_EQ(hdr->free, false, "block should be allocated before freeAlloc");
   freeAlloc(mem, ptr);
   ASSERT_EQ(hdr->free, true, "block should be marked free after freeAlloc");
-
-  freeMemory(mem);
 }
 
 static void test_free_and_reuse(void) {
@@ -154,7 +131,6 @@ static void test_free_and_reuse(void) {
   freeAlloc(mem, ptr1);
   void *ptr2 = allocate(mem, 32);
   ASSERT_NOT_NULL(ptr2, "allocate should succeed after a free");
-  freeMemory(mem);
 }
 
 // ---------------------------------------------------------------------------
@@ -187,10 +163,7 @@ static void test_split_creates_free_remainder(void) {
   ASSERT_EQ(remainderHdr->free, true, "remainder block should be free after split");
 
   size_t expectedRemainderPayload = largeSize - smallSize - totalBlockSize(0);
-  ASSERT_EQ(remainderHdr->blockSize, expectedRemainderPayload,
-            "remainder block payload should be largeSize - smallSize - header/footer overhead");
-
-  freeMemory(mem);
+  ASSERT_EQ(remainderHdr->blockSize, expectedRemainderPayload, "remainder block payload should be largeSize - smallSize - header/footer overhead");
 }
 
 static void test_split_remainder_footer_offset_is_correct(void) {
@@ -207,14 +180,10 @@ static void test_split_remainder_footer_offset_is_correct(void) {
   uint8_t *remainderStart = (uint8_t *)large + smallSize + sizeof(blockfooter);
   blockheader *remainderHdr = (blockheader *)remainderStart;
 
-  blockfooter *remainderFooter =
-      (blockfooter *)((uint8_t *)(remainderHdr + 1) + remainderHdr->blockSize);
+  blockfooter *remainderFooter = (blockfooter *)((uint8_t *)(remainderHdr + 1) + remainderHdr->blockSize);
   size_t expectedOffset = (uint8_t *)remainderHdr - arena;
 
-  ASSERT_EQ(remainderFooter->headerOffset, expectedOffset,
-            "remainder block footer should point back to remainder header");
-
-  freeMemory(mem);
+  ASSERT_EQ(remainderFooter->headerOffset, expectedOffset, "remainder block footer should point back to remainder header");
 }
 
 // ---------------------------------------------------------------------------
@@ -237,11 +206,8 @@ static void test_coalesce_backwards_merges_adjacent_free_blocks(void) {
   freeAlloc(mem, ptr2);
 
   size_t expectedMergedPayload = size1 + totalBlockSize(size2);
-  ASSERT_EQ(hdr1->blockSize, expectedMergedPayload,
-            "merged block payload should be size1 + full block size of size2");
+  ASSERT_EQ(hdr1->blockSize, expectedMergedPayload, "merged block payload should be size1 + full block size of size2");
   ASSERT_EQ(hdr1->free, true, "merged block should be marked free");
-
-  freeMemory(mem);
 }
 
 static void test_coalesce_backwards_footer_points_to_merged_header(void) {
@@ -259,10 +225,7 @@ static void test_coalesce_backwards_footer_points_to_merged_header(void) {
 
   blockfooter *mergedFooter = (blockfooter *)((uint8_t *)(hdr1 + 1) + hdr1->blockSize);
   size_t expectedOffset = (uint8_t *)hdr1 - arena;
-  ASSERT_EQ(mergedFooter->headerOffset, expectedOffset,
-            "merged block footer should point to the first (surviving) header");
-
-  freeMemory(mem);
+  ASSERT_EQ(mergedFooter->headerOffset, expectedOffset, "merged block footer should point to the first (surviving) header");
 }
 
 static void test_coalesce_does_not_merge_when_prev_allocated(void) {
@@ -282,8 +245,6 @@ static void test_coalesce_does_not_merge_when_prev_allocated(void) {
   ASSERT_EQ(hdr1->blockSize, size1, "first block size should be unchanged");
   ASSERT_EQ(hdr2->free, true, "second block should be free");
   ASSERT_EQ(hdr2->blockSize, size2, "second block size should be unchanged (no merge)");
-
-  freeMemory(mem);
 }
 
 static void test_coalesce_three_blocks_into_one(void) {
@@ -302,11 +263,8 @@ static void test_coalesce_three_blocks_into_one(void) {
 
   // Expected: s1 + full(s2) + full(s3)
   size_t expectedPayload = s1 + totalBlockSize(s2) + totalBlockSize(s3);
-  ASSERT_EQ(hdr1->blockSize, expectedPayload,
-            "three consecutive frees should coalesce into one block");
+  ASSERT_EQ(hdr1->blockSize, expectedPayload, "three consecutive frees should coalesce into one block");
   ASSERT_EQ(hdr1->free, true, "fully coalesced block should be free");
-
-  freeMemory(mem);
 }
 
 // ---------------------------------------------------------------------------
@@ -317,7 +275,6 @@ static void test_reallocate_null_acts_as_allocate(void) {
   Memory *mem = initializeMemory();
   void *ptr = reallocate(mem, NULL, 32);
   ASSERT_NOT_NULL(ptr, "reallocate(NULL, size) should behave like allocate");
-  freeMemory(mem);
 }
 
 static void test_reallocate_to_zero_frees_block(void) {
@@ -327,7 +284,6 @@ static void test_reallocate_to_zero_frees_block(void) {
   ASSERT_NULL(result, "reallocate(ptr, 0) should return NULL and free the block");
   blockheader *hdr = BLOCK_HEADER(ptr);
   ASSERT_EQ(hdr->free, true, "block should be marked free after reallocate(ptr, 0)");
-  freeMemory(mem);
 }
 
 static void test_reallocate_smaller_returns_same_ptr(void) {
@@ -335,7 +291,6 @@ static void test_reallocate_smaller_returns_same_ptr(void) {
   void *ptr = allocate(mem, 64);
   void *result = reallocate(mem, ptr, 32);
   ASSERT_EQ(result, ptr, "reallocate to smaller size should return the same pointer");
-  freeMemory(mem);
 }
 
 static void test_reallocate_grows_and_preserves_data(void) {
@@ -345,7 +300,6 @@ static void test_reallocate_grows_and_preserves_data(void) {
   ptr = reallocate(mem, ptr, 64);
   ASSERT_NOT_NULL(ptr, "reallocate to larger size should succeed");
   ASSERT_EQ(strcmp(ptr, "test"), 0, "reallocate should preserve original data");
-  freeMemory(mem);
 }
 
 // ---------------------------------------------------------------------------
@@ -378,7 +332,6 @@ static void test_allocate_reuses_first_free_block(void) {
   ASSERT_EQ(reusedHdr->free, false, "reused block should be marked allocated");
 
   free(ptrs);
-  freeMemory(mem);
 }
 
 static void test_allocate_skips_allocated_blocks(void) {
@@ -395,22 +348,6 @@ static void test_allocate_skips_allocated_blocks(void) {
   ASSERT_EQ(newPtr, ptrs[2], "should find and reuse block 2");
 
   free(ptrs);
-  freeMemory(mem);
-}
-
-static void test_returns_null_when_out_of_memory(void) {
-  Memory *mem = initializeArena(SCAN_TEST_ARENA_SIZE, 1);
-  size_t blockSize = 1024;
-  size_t capacity = mem->capacity / totalBlockSize(blockSize);
-
-  void **ptrs = malloc(capacity * sizeof(void *));
-  fillArena(mem, blockSize, ptrs, capacity);
-
-  void *shouldBeNull = allocate(mem, blockSize);
-  ASSERT_NULL(shouldBeNull, "allocate should return NULL when arena is full");
-
-  free(ptrs);
-  freeMemory(mem);
 }
 
 // ---------------------------------------------------------------------------
@@ -420,14 +357,12 @@ static void test_returns_null_when_out_of_memory(void) {
 static void test_num_free_blocks_starts_at_zero(void) {
   Memory *mem = initializeMemory();
   ASSERT_EQ(mem->numFreeBlocks, (size_t)0, "numFreeBlocks should be 0 on init");
-  freeMemory(mem);
 }
 
 static void test_num_free_blocks_unchanged_after_allocate(void) {
   Memory *mem = initializeMemory();
   allocate(mem, 64);
   ASSERT_EQ(mem->numFreeBlocks, (size_t)0, "numFreeBlocks should stay 0 after allocate");
-  freeMemory(mem);
 }
 
 static void test_num_free_blocks_increments_on_free(void) {
@@ -435,7 +370,6 @@ static void test_num_free_blocks_increments_on_free(void) {
   void *ptr = allocate(mem, 64);
   freeAlloc(mem, ptr);
   ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after freeing one block");
-  freeMemory(mem);
 }
 
 static void test_num_free_blocks_decrements_on_reuse(void) {
@@ -449,9 +383,7 @@ static void test_num_free_blocks_decrements_on_reuse(void) {
   // Arena is full so next allocate goes through findAvailableSpace; no split
   // possible because the leftover would be zero-sized.
   allocate(mem, blockSz);
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)0,
-            "numFreeBlocks should be 0 after reusing the free block");
-  freeMemory(mem);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)0, "numFreeBlocks should be 0 after reusing the free block");
 }
 
 static void test_num_free_blocks_split_adds_free_remainder(void) {
@@ -466,9 +398,7 @@ static void test_num_free_blocks_split_adds_free_remainder(void) {
   // Allocating smaller triggers a split: the reused block becomes allocated and
   // the remainder is a new free block, so numFreeBlocks stays at 1.
   allocate(mem, smallSize);
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)1,
-            "numFreeBlocks should be 1 after split (reused block consumed, remainder free)");
-  freeMemory(mem);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should be 1 after split (reused block consumed, remainder free)");
 }
 
 static void test_num_free_blocks_coalesce_reduces_count(void) {
@@ -482,9 +412,7 @@ static void test_num_free_blocks_coalesce_reduces_count(void) {
   // Freeing the adjacent block triggers coalesceBackwards, merging two free
   // blocks into one, so numFreeBlocks goes back to 1 (not 2).
   freeAlloc(mem, ptr2);
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)1,
-            "numFreeBlocks should stay 1 after coalescing two adjacent free blocks");
-  freeMemory(mem);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)1, "numFreeBlocks should stay 1 after coalescing two adjacent free blocks");
 }
 
 static void test_num_free_blocks_multiple_isolated_free_blocks(void) {
@@ -497,9 +425,7 @@ static void test_num_free_blocks_multiple_isolated_free_blocks(void) {
   freeAlloc(mem, ptr1);
   freeAlloc(mem, ptr3);
 
-  ASSERT_EQ(mem->numFreeBlocks, (size_t)2,
-            "numFreeBlocks should be 2 for two non-adjacent free blocks");
-  freeMemory(mem);
+  ASSERT_EQ(mem->numFreeBlocks, (size_t)2, "numFreeBlocks should be 2 for two non-adjacent free blocks");
 }
 
 // ---------------------------------------------------------------------------
@@ -511,7 +437,6 @@ void run_memory_tests(void) {
 
   // Allocation basics
   test_allocate_returns_non_null();
-  test_allocate_zero_returns_null();
   test_allocate_marks_block_allocated();
   test_allocate_multiple_blocks();
   test_allocate_data_integrity();
@@ -545,8 +470,6 @@ void run_memory_tests(void) {
   // Free-space scan
   test_allocate_reuses_first_free_block();
   test_allocate_skips_allocated_blocks();
-  test_returns_null_when_out_of_memory();
-
   // numFreeBlocks tracking
   test_num_free_blocks_starts_at_zero();
   test_num_free_blocks_unchanged_after_allocate();

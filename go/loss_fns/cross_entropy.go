@@ -10,9 +10,9 @@ import (
 // Softmax is applied internally for numerical stability.
 // Returns: -mean_batch(sum_classes(yGround * log(softmax(logits)))).
 func CrossEntropy() func(shapes.Context, shapes.Tensor, shapes.Tensor) shapes.Tensor {
-	return func(shapesCtx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor {
+	return func(ctx shapes.Context, yGround shapes.Tensor, logits shapes.Tensor) shapes.Tensor {
 
-		fusedCtx := shapesCtx.Forward(shapes.WithInputs(yGround, logits))
+		fusedCtx := ctx.Forward(shapes.WithInputs(yGround, logits))
 		result, probs := shapes.CrossEntropyForward(fusedCtx, yGround, logits)
 		// C singleValueTensor returns a 0-d scalar; make it [1] so grad tracking
 		// in the current Go context model remains valid.
@@ -46,4 +46,6 @@ func crossEntropyBackward(c shapes.Context, node shapes.ComputationGraphNode) {
 	gradLogits := shapes.CrossEntropyBackward(ctx, yGround, probs, node.Grad().(shapes.Tensor))
 	reducedLogits := shapes.ReduceBroadcast(ctx, logits, gradLogits.(shapes.GradTensor))
 	logits.Grad().Accumulate(ctx, reducedLogits)
+
+	ctx.Mark(probs)
 }

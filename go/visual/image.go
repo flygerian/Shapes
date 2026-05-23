@@ -21,6 +21,13 @@ type imageArtefact struct {
 	maxWidth int
 }
 
+type imageLayout int
+
+const (
+	imageLayoutCHW imageLayout = iota
+	imageLayoutHWC
+)
+
 type ImageOptions struct {
 	Tensor   shapes.Tensor
 	Context  shapes.Context
@@ -51,8 +58,9 @@ func (i *imageArtefact) Measure(budget Area) Area {
 		return Area{Width: 1, Height: 1}
 	}
 
-	height := int(shape[1])
-	width := int(shape[2])
+	layout, channels, width, height := imageShape(shape)
+	_ = layout
+	_ = channels
 
 	if budget.Width > 0 && width > budget.Width {
 		scale := float64(budget.Width) / float64(width)
@@ -80,11 +88,9 @@ func (i *imageArtefact) Render(target io.Writer) {
 		return
 	}
 
-	channels := int(shape[0])
-	height := int(shape[1])
-	width := int(shape[2])
+	layout, channels, width, height := imageShape(shape)
 
-	img := tensorImage(i.tensor, i.ctx, channels, width, height)
+	img := tensorImage(i.tensor, i.ctx, layout, channels, width, height)
 
 	displayWidth := frame.Width
 	displayHeight := frame.Height
@@ -103,14 +109,26 @@ func (i *imageArtefact) Render(target io.Writer) {
 	renderKittyImage(target, encoded, frame.X, frame.Y, displayWidth, displayHeight)
 }
 
-func tensorImage(t shapes.Tensor, ctx shapes.Context, channels, width, height int) *image.RGBA {
+func imageShape(shape shapes.Shape) (imageLayout, int, int, int) {
+	if len(shape) != 3 {
+		return imageLayoutCHW, 0, 0, 0
+	}
+
+	if shape[0] == 1 || shape[0] == 3 || shape[0] == 4 {
+		return imageLayoutCHW, int(shape[0]), int(shape[2]), int(shape[1])
+	}
+
+	return imageLayoutHWC, int(shape[2]), int(shape[1]), int(shape[0])
+}
+
+func tensorImage(t shapes.Tensor, ctx shapes.Context, layout imageLayout, channels, width, height int) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	if t == nil {
 		return img
 	}
 
 	pixelSize := height * width
-	read := tensorValueReader(t, ctx, pixelSize)
+	read := tensorValueReader(t, ctx, layout, pixelSize, channels)
 	for y := range height {
 		for x := range width {
 			idx := y*width + x
@@ -137,31 +155,50 @@ func tensorPixel(read func(channel, idx, y, x int) uint8, channels, idx, y, x in
 	}
 }
 
-func tensorValueReader(t shapes.Tensor, ctx shapes.Context, pixelSize int) func(channel, idx, y, x int) uint8 {
+func tensorValueReader(t shapes.Tensor, ctx shapes.Context, layout imageLayout, pixelSize int, channels int) func(channel, idx, y, x int) uint8 {
 	if t == nil {
 		return func(channel, idx, y, x int) uint8 { return 0 }
 	}
 
 	switch values := t.Values().(type) {
 	case []float32:
+		if layout == imageLayoutHWC {
+			return func(channel, idx, y, x int) uint8 { return normalizedToByte(values[idx*channels+channel]) }
+		}
 		return func(channel, idx, y, x int) uint8 { return normalizedToByte(values[channel*pixelSize+idx]) }
 	case []float64:
+		if layout == imageLayoutHWC {
+			return func(channel, idx, y, x int) uint8 {
+				return normalizedToByte(float32(values[idx*channels+channel]))
+			}
+		}
 		return func(channel, idx, y, x int) uint8 { return normalizedToByte(float32(values[channel*pixelSize+idx])) }
 	case []uint8:
+		if layout == imageLayoutHWC {
+			return func(channel, idx, y, x int) uint8 { return values[idx*channels+channel] }
+		}
 		return func(channel, idx, y, x int) uint8 { return values[channel*pixelSize+idx] }
 	case []int8:
+		if layout == imageLayoutHWC {
+			return func(channel, idx, y, x int) uint8 { return uint8(values[idx*channels+channel]) }
+		}
 		return func(channel, idx, y, x int) uint8 { return uint8(values[channel*pixelSize+idx]) }
 	default:
-		return func(channel, idx, y, x int) uint8 { return getPixelViaTensorGet(t, ctx, channel, y, x) }
+		return func(channel, idx, y, x int) uint8 { return getPixelViaTensorGet(t, ctx, layout, channel, y, x) }
 	}
 }
 
-func getPixelViaTensorGet(t shapes.Tensor, ctx shapes.Context, channel, y, x int) uint8 {
+func getPixelViaTensorGet(t shapes.Tensor, ctx shapes.Context, layout imageLayout, channel, y, x int) uint8 {
 	if t == nil || ctx == nil {
 		return 0
 	}
 
-	val := t.Get(ctx, uint(channel), uint(y), uint(x)).Item()
+	var val interface{}
+	if layout == imageLayoutHWC {
+		val = t.Get(ctx, uint(y), uint(x), uint(channel)).Item()
+	} else {
+		val = t.Get(ctx, uint(channel), uint(y), uint(x)).Item()
+	}
 	switch v := val.(type) {
 	case float32:
 		return normalizedToByte(v)

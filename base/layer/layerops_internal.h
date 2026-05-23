@@ -1,0 +1,39 @@
+#ifndef shapes_layerops_interal_h
+#define shapes_layerops_interal_h
+
+#include "../result/result.h"
+#include "../types.h"
+#include "../utils_lib/utils_lib.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void im2colNchwF32(const f32 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f32 *colBuffer);
+
+Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+
+void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+
+void im2colNchwF64(const f64 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f64 *colBuffer);
+
+void col2imNchwAddF32(const f32 *colBuffer, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f32 *dest);
+void col2imNchwAddF64(const f64 *colBuffer, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f64 *dest);
+
+Result runCudaIm2col(Context *ctx, Dtype dtype, const void *input, dim_t batch, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *colBuffer);
+Result runCudaCol2imAccumulate(Context *ctx, Dtype dtype, void *dest, const void *colBuffer, dim_t batch, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride);
+
+Result runCudaMaxPool2d(Context *ctx, Dtype dtype, const void *input, dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *output);
+Result runCudaMaxPool2dWithIndices(Context *ctx, Dtype dtype, const void *input, dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *output, void *indices);
+Result runCudaMaxPool2dBackward(Context *ctx, Dtype dtype, const void *input, const void *gradOut, dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *dX);
+Result runCudaMaxPool2dBackwardWithIndices(Context *ctx, Dtype dtype, const void *gradOut, const void *indices, tensor_size_t numGradValues, void *dX);
+Result runCudaAdaptiveAvgPool2d(Context *ctx, Dtype dtype, const void *input, dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t outH, dim_t outW, void *output);
+Result runCudaAdaptiveAvgPool2dBackward(Context *ctx, Dtype dtype, const void *gradOut, dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t outH, dim_t outW, void *dX);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

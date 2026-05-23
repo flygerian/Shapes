@@ -68,7 +68,6 @@ static void test_my_feature(void) {
   Context ctx = {.memory = mem};
   // ... setup and operations ...
   ASSERT_EQ(actual, expected, "descriptive failure message");
-  freeMemory(mem);
 }
 
 void run_my_tests(void) {
@@ -131,7 +130,10 @@ OpenBLAS/               # Vendored OpenBLAS (installed artifacts in build/openbl
 - C99 (`CMAKE_C_STANDARD 99`). Do not use C11-specific features (e.g. `_Generic`, anonymous structs/unions, `_Static_assert`).
 
 ### Naming Conventions
-- **Public API functions**: `PascalCase` -- `Add`, `Subtract`, `MatMul`, `GetAt`, `T_Zeros`, `FreeTensor`
+- **Public API functions**: `shapes_` prefix with `PascalCase` -- `shapes_Add`, `shapes_Subtract`, `shapes_MatMul`, `shapes_GetAt`
+- **Category prefixes**: `shapes_layer_*` (layer ops), `shapes_loss_*` (loss ops), `shapes_optimizer_*` (optimizer ops)
+- **Creation functions**: `shapes_Make_*` prefix -- `shapes_Make_ZerosTensor`, `shapes_Make_FloatTensor`, `shapes_Make_RandomTensor`
+- **Internal/static functions**: `camelCase` -- `binaryOp`, `isOutOfBounds`, `copyToContiguous`, `unravel_index`
 - **Internal/static functions**: `camelCase` -- `binaryOp`, `isOutOfBounds`, `copyToContiguous`, `unravel_index`
 - **Types (structs, enums, typedefs)**: `PascalCase` -- `Tensor`, `Dim`, `Value`, `Context`, `Memory`, `Result`, `GraphNode`
 - **Enum values**: `UPPER_SNAKE_CASE` for errors (`ERR_DIM_MISMATCH`), `PascalCase` for dtypes (`F32`, `U8`), `UPPER_SNAKE_CASE` with `OP_` prefix for ops (`OP_ADD`)
@@ -173,8 +175,10 @@ Result MyOp(Context *ctx, Tensor *t, Tensor *dest) {
 - All allocations go through the custom arena allocator: `allocate(ctx->memory, size)`
 - Never use `malloc`/`calloc`/`free` directly except in `memory.c` itself
 - The `Context` struct carries a `Memory*` pointer -- pass `Context*` to all allocating functions
-- `initializeMemory()` creates a 1MB arena; `freeMemory()` releases it
+- `initializeMemory()` creates a 1MB arena; `DestroyContext()` / `freeMemory()` releases it
 - Use `GROW_ARRAY` macro for dynamic array resizing
+- Do not manually free individual allocations (no `freeAlloc`, `FreeTensor`, `freeIfContingousCopy`).
+  The arena is freed wholesale when the context is destroyed or reset via `resetArena()`.
 
 ### Tensor Patterns
 - Tensor creation functions return `Tensor*` (heap-allocated via arena): `T_Zeros`, `T_Int`
@@ -185,6 +189,14 @@ Result MyOp(Context *ctx, Tensor *t, Tensor *dest) {
 - Non-contiguous tensors are copied to contiguous before operations via `copyToContiguous()`
 - Use designated initializers for struct literals:
   `(Dim){.dims = dims, .numOfDims = 2}`, `(Value){.dtype = U8, .as.u8 = 5}`
+
+### Context Rules For Ops
+- Every tensor op executes in the `Context *ctx` passed into that op. The op must not pick a different execution context internally.
+- Materialize operands into the target context with `materializeTensorOnContext(ctx, ...)`. This applies to all real tensor operands used by the op.
+- Do not create temporary fallback contexts, including stack-local CPU shims or arena-allocated synthetic contexts, to run part of an op elsewhere.
+- Backend dispatch is based only on the passed-in `ctx`. If that backend cannot implement the op, return `ERR_NO_OP`.
+- Do not hide CPU fallback work inside CUDA ops or CUDA fallback work inside CPU ops. The Go layer is responsible for turning `ERR_NO_OP` into a panic.
+- Cross-context view creation is disallowed. If a view op such as `GetTensorAt` would need to materialize a temporary base tensor in another context, fail instead of returning a view with unclear ownership/lifetime semantics.
 
 ### Macros for Type-Generic Operations
 The `value.h` header provides macros that switch on `Dtype` to handle all numeric types:

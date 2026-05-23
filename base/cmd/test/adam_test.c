@@ -84,8 +84,6 @@ static void test_adam_single_step(void) {
   ASSERT(fabsf(vVals[0] - 0.00001f) < 1e-8f, "v[0] should accumulate correctly");
   ASSERT(fabsf(vVals[1] - 0.00004f) < 1e-8f, "v[1] should accumulate correctly");
   ASSERT(fabsf(vVals[2] - 0.00009f) < 1e-8f, "v[2] should accumulate correctly");
-
-  freeMemory(mem);
 }
 
 // Test 2: Two steps to verify momentum and velocity accumulation
@@ -130,8 +128,6 @@ static void test_adam_two_steps_accumulation(void) {
 
   ASSERT(fabsf(mVals[0] - 0.075f) < 1e-5f, "m should accumulate over steps");
   ASSERT(fabsf(vVals[0] - 0.00033975f) < 1e-8f, "v should accumulate over steps");
-
-  freeMemory(mem);
 }
 
 // Test 3: Compare with PyTorch reference (known good values)
@@ -170,8 +166,6 @@ static void test_adam_pytorch_reference(void) {
   // Just verify parameters changed in the right direction
   ASSERT(pVals[0] < 1.0f, "param[0] should decrease with positive grad");
   ASSERT(pVals[1] > 2.0f, "param[1] should increase with negative grad");
-
-  freeMemory(mem);
 }
 
 // Test 4: NULL triplets error
@@ -181,8 +175,6 @@ static void test_adam_null_triplets(void) {
 
   Result r = Adam(&ctx, NULL, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_TRIPLETS, "NULL triplets should return ERR_ADAM_NULL_TRIPLETS");
-
-  freeMemory(mem);
 }
 
 // Test 5: NULL individual tensors
@@ -214,8 +206,6 @@ static void test_adam_null_tensors(void) {
   AdamData triplet4 = {.param = &param, .paramGrad = NULL, .m = &m, .v = &v};
   r = Adam(&ctx, &triplet4, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_GRAD, "NULL paramGrad should return ERR_ADAM_NULL_GRAD");
-
-  freeMemory(mem);
 }
 
 // Test 6: Non-float type rejection
@@ -230,10 +220,7 @@ static void test_adam_non_float_type(void) {
 
   AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
-  ASSERT_EQ(r, ERR_ADAM_ONLY_FLOAT_TENSORS,
-            "Integer tensors should return ERR_ADAM_ONLY_FLOAT_TENSORS");
-
-  freeMemory(mem);
+  ASSERT_EQ(r, ERR_ADAM_ONLY_FLOAT_TENSORS, "Integer tensors should return ERR_ADAM_ONLY_FLOAT_TENSORS");
 }
 
 // Test 7: Size mismatch
@@ -248,10 +235,7 @@ static void test_adam_size_mismatch(void) {
 
   AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
-  ASSERT_EQ(r, ERR_ADAM_PARAMS_SIZE_MISMATCH,
-            "Size mismatch should return ERR_ADAM_PARAMS_SIZE_MISMATCH");
-
-  freeMemory(mem);
+  ASSERT_EQ(r, ERR_ADAM_PARAMS_SIZE_MISMATCH, "Size mismatch should return ERR_ADAM_PARAMS_SIZE_MISMATCH");
 }
 
 // Test 8: Multiple triplets in one call
@@ -292,8 +276,7 @@ static void test_adam_multiple_triplets(void) {
   v2v[0] = 0.0f;
   v2v[1] = 0.0f;
 
-  AdamData triplets[2] = {{.param = &param1, .paramGrad = &grad1, .m = &m1, .v = &v1},
-                          {.param = &param2, .paramGrad = &grad2, .m = &m2, .v = &v2}};
+  AdamData triplets[2] = {{.param = &param1, .paramGrad = &grad1, .m = &m1, .v = &v1}, {.param = &param2, .paramGrad = &grad2, .m = &m2, .v = &v2}};
 
   Result r = Adam(&ctx, triplets, 2, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, OK, "Multiple triplets should work");
@@ -301,8 +284,6 @@ static void test_adam_multiple_triplets(void) {
   // Both parameters should have been updated
   ASSERT(p1[0] != 1.0f, "param1[0] should be updated");
   ASSERT(p2[0] != 3.0f, "param2[0] should be updated");
-
-  freeMemory(mem);
 }
 
 // Test 9: Bias correction verification
@@ -346,8 +327,6 @@ static void test_adam_bias_correction(void) {
 
   // Step 1 has stronger updates due to bias correction
   ASSERT(step1_param != step1000_param, "Bias correction should affect step size");
-
-  freeMemory(mem);
 }
 
 // Test 10: Very small gradients (numerical stability)
@@ -376,8 +355,6 @@ static void test_adam_small_gradients(void) {
 
   // Should still update, though minimally
   ASSERT(pVals[0] != 1.0f, "Should still update with small gradients");
-
-  freeMemory(mem);
 }
 
 // Test 11: F64 precision
@@ -407,8 +384,6 @@ static void test_adam_f64_precision(void) {
   // Note: Adam implementation currently uses f32 internally, so F64 runs but may not
   // produce exact F64-precision results. This test verifies it doesn't crash.
   ASSERT_EQ(r, OK, "F64 tensors should be accepted (may use F32 internally)");
-
-  freeMemory(mem);
 }
 
 // Test 12: Zero learning rate
@@ -440,8 +415,6 @@ static void test_adam_zero_learning_rate(void) {
   // But m and v should still accumulate
   ASSERT_NEQ(mVals[0], 0.0f, "m should still accumulate");
   ASSERT_NEQ(vVals[0], 0.0f, "v should still accumulate");
-
-  freeMemory(mem);
 }
 
 void run_adam_tests(void) {

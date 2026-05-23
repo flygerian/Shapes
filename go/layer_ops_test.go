@@ -10,7 +10,7 @@ func TestConv2dForwardSingleBatchSingleChannel(t *testing.T) {
 	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
+	x := FromFloat32(ctx, Shape{1, 3, 3, 1}, []float32{
 		1, 2, 3,
 		4, 5, 6,
 		7, 8, 9,
@@ -20,8 +20,8 @@ func TestConv2dForwardSingleBatchSingleChannel(t *testing.T) {
 		0, 1,
 	})
 
-	out, _ := Conv2d(ctx, x, kernels, 1)
-	wantShape := Shape{1, 1, 2, 2}
+	out, _ := Conv2d(ctx, x, kernels, nil, false, 1)
+	wantShape := Shape{1, 2, 2, 1}
 	if got := out.Shape(); len(got) != len(wantShape) ||
 		got[0] != wantShape[0] || got[1] != wantShape[1] || got[2] != wantShape[2] || got[3] != wantShape[3] {
 		t.Fatalf("shape mismatch: got %v want %v", got, wantShape)
@@ -36,11 +36,36 @@ func TestConv2dForwardSingleBatchSingleChannel(t *testing.T) {
 	}
 }
 
+func TestConv2dForwardSingleBatchSingleChannelWithBias(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	x := FromFloat32(ctx, Shape{1, 3, 3, 1}, []float32{
+		1, 2, 3,
+		4, 5, 6,
+		7, 8, 9,
+	})
+	kernels := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+		1, 0,
+		0, 1,
+	})
+	bias := FromFloat32(ctx, Shape{1, 1, 1, 1}, []float32{2.5})
+
+	out, _ := Conv2d(ctx, x, kernels, bias, true, 1)
+	values := out.Values().([]float32)
+	want := []float32{8.5, 10.5, 14.5, 16.5}
+	for i := range want {
+		if math.Abs(float64(values[i]-want[i])) > 1e-5 {
+			t.Fatalf("out[%d]=%f want %f", i, values[i], want[i])
+		}
+	}
+}
+
 func TestConv2dForwardBatchDimension(t *testing.T) {
 	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{2, 1, 3, 3}, []float32{
+	x := FromFloat32(ctx, Shape{2, 3, 3, 1}, []float32{
 		1, 2, 3,
 		4, 5, 6,
 		7, 8, 9,
@@ -53,7 +78,7 @@ func TestConv2dForwardBatchDimension(t *testing.T) {
 		0, 1,
 	})
 
-	out, _ := Conv2d(ctx, x, kernels, 1)
+	out, _ := Conv2d(ctx, x, kernels, nil, false, 1)
 	values := out.Values().([]float32)
 	want := []float32{6, 8, 12, 14, 24, 26, 30, 32}
 	for i := range want {
@@ -67,7 +92,7 @@ func TestConv2dPanicsOnInvalidKernelShape(t *testing.T) {
 	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
+	x := FromFloat32(ctx, Shape{1, 3, 3, 1}, []float32{
 		1, 2, 3,
 		4, 5, 6,
 		7, 8, 9,
@@ -82,14 +107,14 @@ func TestConv2dPanicsOnInvalidKernelShape(t *testing.T) {
 		1, 0,
 		0, 1,
 	})
-	_, _ = Conv2d(ctx, x, invalidKernels, 1)
+	_, _ = Conv2d(ctx, x, invalidKernels, nil, false, 1)
 }
 
 func TestConv2dBackwardSingleChannel(t *testing.T) {
 	ctx := New(stdctx.Background(), WithGrad(true))
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
+	x := FromFloat32(ctx, Shape{1, 3, 3, 1}, []float32{
 		1, 2, 3,
 		4, 5, 6,
 		7, 8, 9,
@@ -98,13 +123,13 @@ func TestConv2dBackwardSingleChannel(t *testing.T) {
 		1, 0,
 		0, 1,
 	})
-	gradOut := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+	gradOut := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
 		1, 1,
 		1, 1,
 	})
 
-	_, colBuffer := Conv2d(ctx, x, kernels, 1)
-	Conv2dBackward(ctx, x, kernels, gradOut, colBuffer, 1)
+	_, colBuffer := Conv2d(ctx, x, kernels, nil, false, 1)
+	Conv2dBackward(ctx, x, kernels, gradOut, colBuffer, nil, false, 1)
 
 	wantDX := []float32{
 		1, 1, 0,
@@ -127,11 +152,39 @@ func TestConv2dBackwardSingleChannel(t *testing.T) {
 	}
 }
 
+func TestConv2dBackwardBiasGrad(t *testing.T) {
+	ctx := New(stdctx.Background(), WithGrad(true))
+	defer ctx.Finish()
+
+	x := FromFloat32(ctx, Shape{1, 3, 3, 1}, []float32{
+		1, 2, 3,
+		4, 5, 6,
+		7, 8, 9,
+	})
+	kernels := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+		1, 0,
+		0, 1,
+	})
+	bias := FromFloat32(ctx, Shape{1, 1, 1, 1}, []float32{0})
+	gradOut := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
+		1, 2,
+		3, 4,
+	})
+
+	_, colBuffer := Conv2d(ctx, x, kernels, bias, true, 1)
+	Conv2dBackward(ctx, x, kernels, gradOut, colBuffer, bias, true, 1)
+
+	gotDBias := bias.Values().([]float32)
+	if math.Abs(float64(gotDBias[0]-10.0)) > 1e-5 {
+		t.Fatalf("dBias=%f want 10", gotDBias[0])
+	}
+}
+
 func TestConvTranspose2dForwardSingleBatchSingleChannel(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+	x := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
 		1, 2,
 		3, 4,
 	})
@@ -158,7 +211,7 @@ func TestConvTranspose2dBackwardSingleChannel(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+	x := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
 		1, 2,
 		3, 4,
 	})
@@ -166,7 +219,7 @@ func TestConvTranspose2dBackwardSingleChannel(t *testing.T) {
 		1, 0,
 		0, 1,
 	})
-	gradOut := FromFloat32(ctx, Shape{1, 1, 3, 3}, []float32{
+	gradOut := FromFloat32(ctx, Shape{1, 3, 3, 1}, []float32{
 		1, 1, 1,
 		1, 1, 1,
 		1, 1, 1,
@@ -194,7 +247,7 @@ func TestMaxPool2dForward(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 4, 4}, []float32{
+	x := FromFloat32(ctx, Shape{1, 4, 4, 1}, []float32{
 		1, 3, 2, 1,
 		4, 6, 5, 2,
 		7, 8, 9, 3,
@@ -215,13 +268,13 @@ func TestMaxPool2dBackward(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 4, 4}, []float32{
+	x := FromFloat32(ctx, Shape{1, 4, 4, 1}, []float32{
 		1, 3, 2, 1,
 		4, 6, 5, 2,
 		7, 8, 9, 3,
 		0, 1, 2, 4,
 	})
-	gradOut := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+	gradOut := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
 		1, 2,
 		3, 4,
 	})
@@ -245,7 +298,7 @@ func TestAdaptiveAvgPool2dForward(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 4, 4}, []float32{
+	x := FromFloat32(ctx, Shape{1, 4, 4, 1}, []float32{
 		1, 2, 3, 4,
 		5, 6, 7, 8,
 		9, 10, 11, 12,
@@ -266,16 +319,47 @@ func TestAdaptiveAvgPool2dBackward(t *testing.T) {
 	ctx := New(stdctx.Background())
 	defer ctx.Finish()
 
-	x := FromFloat32(ctx, Shape{1, 1, 4, 4}, []float32{
+	x := FromFloat32(ctx, Shape{1, 4, 4, 1}, []float32{
 		1, 2, 3, 4,
 		5, 6, 7, 8,
 		9, 10, 11, 12,
 		13, 14, 15, 16,
 	})
-	gradOut := FromFloat32(ctx, Shape{1, 1, 2, 2}, []float32{
+	gradOut := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
 		1, 2,
 		3, 4,
 	})
+
+	dX := AdaptiveAvgPool2dBackward(ctx, x, gradOut, Shape{2, 2})
+	gotDX := dX.Values().([]float32)
+	wantDX := []float32{
+		0.25, 0.25, 0.5, 0.5,
+		0.25, 0.25, 0.5, 0.5,
+		0.75, 0.75, 1.0, 1.0,
+		0.75, 0.75, 1.0, 1.0,
+	}
+	for i := range wantDX {
+		if math.Abs(float64(gotDX[i]-wantDX[i])) > 1e-5 {
+			t.Fatalf("dX[%d]=%f want %f", i, gotDX[i], wantDX[i])
+		}
+	}
+}
+
+func TestAdaptiveAvgPool2dBackwardMaterializesNonContiguousGrad(t *testing.T) {
+	ctx := New(stdctx.Background())
+	defer ctx.Finish()
+
+	x := FromFloat32(ctx, Shape{1, 4, 4, 1}, []float32{
+		1, 2, 3, 4,
+		5, 6, 7, 8,
+		9, 10, 11, 12,
+		13, 14, 15, 16,
+	})
+	gradBase := FromFloat32(ctx, Shape{1, 2, 2, 1}, []float32{
+		1, 3,
+		2, 4,
+	})
+	gradOut := gradBase.Transpose(ctx, 1, 2)
 
 	dX := AdaptiveAvgPool2dBackward(ctx, x, gradOut, Shape{2, 2})
 	gotDX := dX.Values().([]float32)

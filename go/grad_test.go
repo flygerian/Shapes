@@ -10,6 +10,54 @@ func approxEq(a, b, tol float32) bool {
 	return float32(math.Abs(float64(a-b))) < tol
 }
 
+func TestBackwardAddCuda(t *testing.T) {
+	ctx := New(context.Background(), WithGrad(true), WithCuda())
+	defer ctx.Finish()
+
+	a := Float(ctx, Shape{2}, 3.0)
+	b := Float(ctx, Shape{2}, 5.0)
+
+	c := a.Plus(ctx, b)
+	c.Backward(ctx)
+
+	for i := range uint32(2) {
+		ga := a.Grad().Get(ctx, i).Item().(float32)
+		if !approxEq(ga, 1.0, 1e-5) {
+			t.Errorf("cuda grad_a[%d] = %f, want 1.0", i, ga)
+		}
+
+		gb := b.Grad().Get(ctx, i).Item().(float32)
+		if !approxEq(gb, 1.0, 1e-5) {
+			t.Errorf("cuda grad_b[%d] = %f, want 1.0", i, gb)
+		}
+	}
+}
+
+func TestBackwardUsesTensorContextOverCallerContext(t *testing.T) {
+	cpuCtx := New(context.Background(), WithGrad(true))
+	defer cpuCtx.Finish()
+	cudaCtx := New(context.Background(), WithGrad(true), WithCuda())
+	defer cudaCtx.Finish()
+
+	a := Float(cudaCtx, Shape{2}, 3.0)
+	b := Float(cudaCtx, Shape{2}, 5.0)
+
+	c := a.Plus(cudaCtx, b)
+	c.Backward(cpuCtx)
+
+	for i := range uint32(2) {
+		ga := a.Grad().Get(cudaCtx, i).Item().(float32)
+		if !approxEq(ga, 1.0, 1e-5) {
+			t.Errorf("cuda grad_a[%d] = %f, want 1.0", i, ga)
+		}
+
+		gb := b.Grad().Get(cudaCtx, i).Item().(float32)
+		if !approxEq(gb, 1.0, 1e-5) {
+			t.Errorf("cuda grad_b[%d] = %f, want 1.0", i, gb)
+		}
+	}
+}
+
 func TestBackwardAdd(t *testing.T) {
 	ctx := New(context.Background(), WithGrad(true))
 	defer ctx.Finish()

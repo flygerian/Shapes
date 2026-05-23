@@ -7,8 +7,8 @@ import (
 
 // SGD creates an SGD optimizer.
 // It uses the optimized C implementation via shapes.Sgd.
-func SGD(ctx shapes.Context, lr float32) func(shapes.ComputationGraph) {
-	return func(cg shapes.ComputationGraph) {
+func SGD(lr float32) func(shapes.Context, shapes.ComputationGraph) {
+	return func(ctx shapes.Context, cg shapes.ComputationGraph) {
 		noGraphCtx := ctx.NoGraph()
 		defer noGraphCtx.Finish()
 

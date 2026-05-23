@@ -12,7 +12,15 @@ type Layer interface {
 }
 
 type Sequential struct {
+	Ctx    shapes.Context
 	Layers []HasForward
+}
+
+func NewSequential(ctx shapes.Context, layers ...HasForward) *Sequential {
+	return &Sequential{
+		Ctx:    ctx,
+		Layers: layers,
+	}
 }
 
 type layerOption func(layer Layer)

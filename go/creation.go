@@ -75,6 +75,29 @@ func FromFloat32(ctx Context, shape Shape, data []float32) Tensor {
 	return t
 }
 
+// FromInt64 creates a tensor from a Go []int64 slice with the given shape.
+// Panics if the number of elements in data does not match the shape.
+func FromInt64(ctx Context, shape Shape, data []int64) Tensor {
+	if len(shape) == 0 {
+		return nil
+	}
+
+	t := Zeros(ctx, shape).I64(ctx)
+
+	expected := int(t.(*tensor).cTensor.size)
+	if len(data) != expected {
+		panic("shapes: data length does not match shape")
+	}
+
+	copyHostIntoTensor(
+		t.(*tensor),
+		unsafe.Pointer(&data[0]),
+		C.size_t(expected)*C.size_t(unsafe.Sizeof(int64(0))),
+	)
+
+	return t
+}
+
 // fromInt8_1D converts a 1D int8 slice to shape and flat data.
 // Returns true if data is empty (nil should be returned).
 func fromInt8_1D(data []int8) (Shape, []int8, bool) {

@@ -14,7 +14,6 @@ import (
 	"github.com/flygerian/shapes/layer"
 	"github.com/flygerian/shapes/loss_fns"
 	"github.com/flygerian/shapes/optimizer"
-	"github.com/flygerian/shapes/visual"
 )
 
 func MakeMore_3() {
@@ -94,7 +93,7 @@ func MakeMore_3() {
 
 	bn1 := layer.BatchNorm(shapesCtx, 100)
 	bn2 := layer.BatchNorm(shapesCtx, 100)
-	sgd := optimizer.SGD(shapesCtx, 0.001)
+	sgd := optimizer.SGD(0.001)
 
 	crossEnthropy := loss_fns.CrossEntropy()
 
@@ -119,7 +118,7 @@ func MakeMore_3() {
 
 	trainingCtx := shapesCtx.Training(
 		numEpochs,
-		shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
+		// shapes.WithTrainingStatsRenderer(&visual.TrainingStatsRenderer{}),
 	)
 
 	for i := range numEpochs {
@@ -141,7 +140,7 @@ func MakeMore_3() {
 		graph := lossValue.Backward(epochCtx)
 
 		// Update parameters
-		sgd(graph)
+		sgd(epochCtx, graph)
 
 		optimizer.ZeroGrad(shapesCtx, graph)
 
