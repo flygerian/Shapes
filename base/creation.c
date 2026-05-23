@@ -198,11 +198,11 @@ Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type) {
   return t;
 }
 
-Tensor *T_Zeros(Context *ctx, Dim shape) {
+Tensor *shapes_Make_ZerosTensor(Context *ctx, Dim shape) {
   return t_Zeros(ctx, shape, F32);
 }
 
-Tensor *Clone(Context *ctx, Tensor *t) {
+Tensor *shapes_Clone(Context *ctx, Tensor *t) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *source = t;
@@ -240,7 +240,7 @@ Tensor *Clone(Context *ctx, Tensor *t) {
   return dest;
 }
 
-void Copy(Context *ctx, Tensor *src, Tensor *dest) {
+void shapes_Copy(Context *ctx, Tensor *src, Tensor *dest) {
   PANIC_IF(isInvalidTensor(src) || isInvalidTensor(dest), ERR_COPY_REQUIRES_INITIALIZED_TENSORS);
   PANIC_IF(dest->isView, ERR_COPY_DESTINATION_VIEW);
   PANIC_IF(src->size != dest->size, ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE);
@@ -254,12 +254,12 @@ void Copy(Context *ctx, Tensor *src, Tensor *dest) {
     srcContigous = src;
   }
 
-  Result copyRes = shapes_CopyBetweenDevices(srcContigous->context->device->type, dest->context->device->type, srcContigous->values, dest->values,
-                                       srcContigous->size * getBytesForDtype(srcContigous->dtype));
+  Result copyRes =
+      shapes_CopyBetweenDevices(srcContigous->context->device->type, dest->context->device->type, srcContigous->values, dest->values, srcContigous->size * getBytesForDtype(srcContigous->dtype));
   PANIC_IF(copyRes != OK, copyRes);
 }
 
-void SetValues(Tensor *t, Value value) {
+void shapes_SetValues(Tensor *t, Value value) {
   if (t->context != NULL && t->context->device != NULL && t->context->device->type == CUDA) {
     Result result = runCudaFillTensor(t->context, t->dtype, t->values, t->size, value);
     if (result == OK) {
@@ -272,35 +272,35 @@ void SetValues(Tensor *t, Value value) {
   }
 }
 
-Tensor *T_Int(Context *ctx, Dim shape, i8 initialValue) {
+Tensor *shapes_Make_IntTensor(Context *ctx, Dim shape, i8 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, I8);
   Value v = (Value){.dtype = I8, .as.i8 = initialValue};
-  SetValues(init, v);
+  shapes_SetValues(init, v);
   return init;
 }
 
-Tensor *T_UInt(Context *ctx, Dim shape, u8 initialValue) {
+Tensor *shapes_Make_UIntTensor(Context *ctx, Dim shape, u8 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, U8);
   Value v = (Value){.dtype = U8, .as.u8 = initialValue};
-  SetValues(init, v);
+  shapes_SetValues(init, v);
   return init;
 }
 
-Tensor *T_Float(Context *ctx, Dim shape, f32 initialValue) {
+Tensor *shapes_Make_FloatTensor(Context *ctx, Dim shape, f32 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, F32);
   Value v = (Value){.dtype = F32, .as.f32 = initialValue};
-  SetValues(init, v);
+  shapes_SetValues(init, v);
   return init;
 }
 
-Tensor *T_Float64(Context *ctx, Dim shape, f64 initialValue) {
+Tensor *shapes_Make_Float64Tensor(Context *ctx, Dim shape, f64 initialValue) {
   Tensor *init = t_Zeros(ctx, shape, F64);
   Value v = (Value){.dtype = F64, .as.f64 = initialValue};
-  SetValues(init, v);
+  shapes_SetValues(init, v);
   return init;
 }
 
-Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtype) {
+Tensor *shapes_Make_FromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtype) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(values == NULL, ERR_NULL_PTR);
 
@@ -318,7 +318,7 @@ Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtyp
   return tensor;
 }
 
-Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype) {
+Tensor *shapes_Make_RandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype) {
   PANIC_IF(minValue > maxValue, ERR_INVALID_RANGE);
 
   Tensor *tensor = t_Zeros(ctx, shape, dtype);
@@ -344,7 +344,7 @@ Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dt
   return tensor;
 }
 
-Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
+Tensor *shapes_Make_ArangeTensor(Context *ctx, f32 start, f32 end, f32 step) {
   if (step == 0.0f) {
     step = 1.0f;
   }
@@ -395,7 +395,7 @@ Tensor *T_Arange(Context *ctx, f32 start, f32 end, f32 step) {
   return t;
 }
 
-Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
+Tensor *shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses) {
   if (isInvalidTensor(indices)) {
     return NULL;
   }
@@ -413,7 +413,7 @@ Tensor *T_OneHot(Context *ctx, Tensor *indices, dim_t numClasses) {
   outDims[outNumDims - 1] = numClasses;
 
   // Create output tensor filled with zeros
-  Tensor *out = T_Zeros(ctx, SHAPE(outDims, outNumDims));
+  Tensor *out = shapes_Make_ZerosTensor(ctx, SHAPE(outDims, outNumDims));
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result = runCudaOneHot(ctx, source->dtype, source->values, source->size, numClasses, out->values);

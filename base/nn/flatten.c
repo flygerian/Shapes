@@ -24,7 +24,7 @@ Tensor *flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
     flattenedSize *= dim;
   }
 
-  return Reshape(ctx, tensor, SHAPE2D(shape.dims[0], flattenedSize));
+  return shapes_Reshape(ctx, tensor, SHAPE2D(shape.dims[0], flattenedSize));
 }
 
 Array *flattenParameters(Context *ctx) {

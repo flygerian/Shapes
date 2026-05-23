@@ -10,16 +10,16 @@ void reluBackward(Context *ctx, Tensor *tensor) {
   Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *dInput = ReluBackward(ctx, tensor, tensor->grad);
+  Tensor *dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
 
-  Tensor *reducedGrad = ReduceBroadcast(ctx, input, dInput);
-  AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, dInput);
+  shapes_AddInPlace(ctx, input->grad, reducedGrad);
 }
 
 Tensor *reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *out = Relu(ctx, tensor);
+  Tensor *out = shapes_Relu(ctx, tensor);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);

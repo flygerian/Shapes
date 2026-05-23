@@ -15,29 +15,29 @@ void mseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(yPred == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   // ∂L/∂yPred = upstream_grad * 2*(yPred - yGround)
-  Tensor *diff = Subtract(ctx, yPred, yGround);
-  Tensor *two = T_Float(ctx, diff->shape, 2.0);
-  Tensor *localGrad = Multiply(ctx, two, diff);
-  Tensor *gradYPred = Multiply(ctx, tensor->grad, localGrad);
-  Tensor *reducedGradYPred = ReduceBroadcast(ctx, yPred, gradYPred);
-  AddInPlace(ctx, yPred->grad, reducedGradYPred);
+  Tensor *diff = shapes_Subtract(ctx, yPred, yGround);
+  Tensor *two = shapes_Make_FloatTensor(ctx, diff->shape, 2.0);
+  Tensor *localGrad = shapes_Multiply(ctx, two, diff);
+  Tensor *gradYPred = shapes_Multiply(ctx, tensor->grad, localGrad);
+  Tensor *reducedGradYPred = shapes_ReduceBroadcast(ctx, yPred, gradYPred);
+  shapes_AddInPlace(ctx, yPred->grad, reducedGradYPred);
 
   // ∂L/∂yGround = upstream_grad * -2*(yPred - yGround)
-  Tensor *negLocalGrad = Negate(ctx, localGrad);
-  Tensor *gradYGround = Multiply(ctx, tensor->grad, negLocalGrad);
-  Tensor *reducedGradYGround = ReduceBroadcast(ctx, yGround, gradYGround);
-  AddInPlace(ctx, yGround->grad, reducedGradYGround);
+  Tensor *negLocalGrad = shapes_Negate(ctx, localGrad);
+  Tensor *gradYGround = shapes_Multiply(ctx, tensor->grad, negLocalGrad);
+  Tensor *reducedGradYGround = shapes_ReduceBroadcast(ctx, yGround, gradYGround);
+  shapes_AddInPlace(ctx, yGround->grad, reducedGradYGround);
 }
 
 Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
-  Tensor *diff = Subtract(ctx, yPred, yGround);
+  Tensor *diff = shapes_Subtract(ctx, yPred, yGround);
 
-  Tensor *loss = Pow(ctx, diff, 2);
+  Tensor *loss = shapes_Pow(ctx, diff, 2);
 
   for (dim_t i = 0; i < loss->shape.numOfDims; i++) {
     dim_t dim = loss->shape.dims[i];
     if (dim > 1) {
-      loss = Sum(ctx, loss, i);
+      loss = shapes_Sum(ctx, loss, i);
     }
   }
 

@@ -95,7 +95,7 @@ static void test_cast_f32_to_f64(void) {
 
   dim_t dims[] = {2, 2};
   Dim shape = {.dims = dims, .numOfDims = 2};
-  Tensor *src = T_Float(&ctx, shape, 3.14f);
+  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 3.14f);
 
   Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "Cast F32 -> F64 should succeed");
@@ -235,7 +235,7 @@ static void test_cast_f32_to_bool(void) {
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Float(&ctx, shape, 0.0f);
+  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   ((f32 *)src->values)[0] = 0.0f;
   ((f32 *)src->values)[1] = 0.1f;
   ((f32 *)src->values)[2] = -0.2f;
@@ -275,7 +275,7 @@ static void test_cast_same_dtype_clones(void) {
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Float(&ctx, shape, 2.5f);
+  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 2.5f);
 
   Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Cast same dtype should succeed");
@@ -294,7 +294,7 @@ static void test_cast_f32_to_i32(void) {
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Float(&ctx, shape, 0.0f);
+  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   ((f32 *)src->values)[0] = 1.5f;
   ((f32 *)src->values)[1] = -3.9f;
   ((f32 *)src->values)[2] = 42.0f;
@@ -313,7 +313,7 @@ static void test_cast_f64_to_i64(void) {
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Float(&ctx, shape, 0.0f);
+  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   src->dtype = F64;
   size_t bytes = getBytesForDtype(F64) * src->size;
   src->values = allocate(mem, bytes);
@@ -351,7 +351,7 @@ static void test_cast_same_dtype_cuda_clone(void) {
   Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {3};
-  Tensor *src = T_Float(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 2.5f);
+  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 2.5f);
 
   Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Same-dtype CUDA Cast should succeed");
@@ -377,11 +377,11 @@ static void test_cast_cuda_dtype_change(void) {
   Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {2};
-  Tensor *src = T_Float(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
+  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
 
   Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
-  MoveToCuda(&ctx, toMove);
+  shapes_MoveToCuda(&ctx, toMove);
 
   Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support dtype-changing casts");
@@ -408,7 +408,7 @@ static void test_cast_cuda_f32_to_i64(void) {
 
   dim_t dims[] = {3};
   f32 values[] = {0.0f, 7.9f, -2.1f};
-  Tensor *src = T_Float(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   for (dim_t i = 0; i < 3; i++) {
     Value value = {.dtype = F32};
     value.as.f32 = values[i];
@@ -419,7 +419,7 @@ static void test_cast_cuda_f32_to_i64(void) {
 
   Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
-  MoveToCuda(&ctx, toMove);
+  shapes_MoveToCuda(&ctx, toMove);
   Tensor *dest = Cast(&ctx, src, I64);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support F32 -> I64");
   ASSERT(dest->context == &ctx, "CUDA F32 -> I64 Cast result should live on CUDA");
@@ -453,7 +453,7 @@ static void test_cast_cuda_bool_to_f32(void) {
 
   Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
-  MoveToCuda(&ctx, toMove);
+  shapes_MoveToCuda(&ctx, toMove);
   Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support BOOL -> F32");
   ASSERT(dest->context == &ctx, "CUDA BOOL -> F32 Cast result should live on CUDA");

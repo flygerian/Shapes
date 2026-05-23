@@ -18,7 +18,7 @@ void ZeroGrad(Context *ctx, Array *graph) {
     Tensor *p = shapes_Array_TensorIdx(graph, i);
     Tensor *g = p->grad;
 
-    SetValues(g, VALUE(g->dtype, 0));
+    shapes_SetValues(g, VALUE(g->dtype, 0));
   }
 }
 

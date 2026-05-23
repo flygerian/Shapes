@@ -48,9 +48,9 @@ void attachCudaDevice(Context *ctx) {
 }
 
 void attachHostDevice(Context *ctx) {
-    Device *device = allocate(ctx->memory, sizeof(Device));
-    *device = (Device){.id = "host", .type = CPU};
-    ctx->device = device;
+  Device *device = allocate(ctx->memory, sizeof(Device));
+  *device = (Device){.id = "host", .type = CPU};
+  ctx->device = device;
 }
 
 Result shapes_CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size) {

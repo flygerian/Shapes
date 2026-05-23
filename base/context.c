@@ -23,7 +23,7 @@ Context shapes_InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
 Context shapes_InitializeCudaContext(size_t hostArenaSize) {
   Memory *memory = initializeArena(hostArenaSize, 1);
   Context ctx = {.memory = memory};
-  attachCudaDevice(&ctx); 
+  attachCudaDevice(&ctx);
   ctx.cudaMetadataMemory = initializeArena(hostArenaSize, 1);
 
   return ctx;
@@ -31,13 +31,13 @@ Context shapes_InitializeCudaContext(size_t hostArenaSize) {
 
 Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
   Context scratch = {
-      .device = ctx->device, 
-      .handle = ctx->handle, 
-      .isTraining = ctx->isTraining, 
+      .device = ctx->device,
+      .handle = ctx->handle,
+      .isTraining = ctx->isTraining,
       .memory = ctx->memory,
       .cudaMemory = ctx->cudaMemory,
       .cudaMetadataMemory = ctx->cudaMetadataMemory,
-      .parent = ctx, 
+      .parent = ctx,
   };
 
   scratch.cudaMemory = GetCudaMemoryScratchCheckPoint(&ctx->cudaMemory);

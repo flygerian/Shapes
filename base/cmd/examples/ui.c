@@ -20,8 +20,7 @@ void HandleClayErrors(Clay_ErrorData errorData) {
   printf("%s", errorData.errorText.chars);
 }
 
-Clay_ElementDeclaration sidebarItemConfig =
-    (Clay_ElementDeclaration){.layout = {.sizing = {.width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_FIXED(50)}}, .backgroundColor = COLOR_ORANGE};
+Clay_ElementDeclaration sidebarItemConfig = (Clay_ElementDeclaration){.layout = {.sizing = {.width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_FIXED(50)}}, .backgroundColor = COLOR_ORANGE};
 
 // Re-useable components are just normal functions
 void SidebarItemComponent() {

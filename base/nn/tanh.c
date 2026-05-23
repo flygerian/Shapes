@@ -11,19 +11,19 @@ void tanhBackward(Context *ctx, Tensor *tensor) {
   Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *ones = T_Float(ctx, SHAPE1D(1), 1.0f);
-  Tensor *tanhSquared = Multiply(ctx, tensor, tensor);
-  Tensor *oneMinusTanhSquared = Subtract(ctx, ones, tanhSquared);
-  Tensor *gradInput = Multiply(ctx, tensor->grad, oneMinusTanhSquared);
+  Tensor *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1.0f);
+  Tensor *tanhSquared = shapes_Multiply(ctx, tensor, tensor);
+  Tensor *oneMinusTanhSquared = shapes_Subtract(ctx, ones, tanhSquared);
+  Tensor *gradInput = shapes_Multiply(ctx, tensor->grad, oneMinusTanhSquared);
 
-  Tensor *reducedGrad = ReduceBroadcast(ctx, input, gradInput);
-  AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, gradInput);
+  shapes_AddInPlace(ctx, input->grad, reducedGrad);
 }
 
 Tensor *tanhForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *out = Tanh(ctx, tensor);
+  Tensor *out = shapes_Tanh(ctx, tensor);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);

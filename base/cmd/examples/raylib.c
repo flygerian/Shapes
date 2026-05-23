@@ -33,8 +33,7 @@ Padel MakePadel(int width, int height) {
 }
 
 void CheckPadelCollidesWithBall(Padel player, Ball *ball) {
-  bool isColliding = CheckCollisionCircleRec(ball->coords, ball->radius,
-                                             (Rectangle){.x = player.coords.x, .y = player.coords.y, .width = player.width, .height = player.height});
+  bool isColliding = CheckCollisionCircleRec(ball->coords, ball->radius, (Rectangle){.x = player.coords.x, .y = player.coords.y, .width = player.width, .height = player.height});
   if (isColliding) {
     printf("collides");
     ball->xSpeed *= -1;

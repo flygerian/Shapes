@@ -84,8 +84,7 @@ static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, 
   return OK;
 }
 
-static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndices,
-                                   Tensor *colIndices, Tensor *srcGrad) {
+static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices, Tensor *srcGrad) {
 
   Tensor *rowContig = materializeTensorOnContext(ctx, rowIndices);
   Tensor *colContig = materializeTensorOnContext(ctx, colIndices);
@@ -158,8 +157,7 @@ static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tens
 
     u64 srcBase = getContigousIdxFromCoord(srcGradContig, srcCoords);
     u64 dstBase = getContigousIdxFromCoord(dest, dstCoords);
-    accumulateStridedByDtype(dest->dtype, dest->values, dstBase, dstStep, srcGradContig->values,
-                             srcBase, srcStep, innerCount);
+    accumulateStridedByDtype(dest->dtype, dest->values, dstBase, dstStep, srcGradContig->values, srcBase, srcStep, innerCount);
 
     for (i32 d = (i32)lastDim - 1; d >= 0; d--) {
       srcCoords[d]++;
@@ -188,15 +186,12 @@ static Result indexAccumulate1dCuda(Context *ctx, Tensor *dest, Tensor *indices,
     sliceSize *= dest->shape.dims[i];
   }
 
-  Result result = runCudaIndexAccumulate1d(ctx, dest->dtype, dest->values, indicesContig->values,
-                                           indicesContig->dtype, srcContig->values,
-                                           indicesContig->size, sliceSize);
+  Result result = runCudaIndexAccumulate1d(ctx, dest->dtype, dest->values, indicesContig->values, indicesContig->dtype, srcContig->values, indicesContig->size, sliceSize);
 
   return result;
 }
 
-static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndices,
-                                    Tensor *colIndices, Tensor *srcGrad) {
+static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices, Tensor *srcGrad) {
   if (!dest->isContigous || dest->isView) {
     return ERR_NO_OP;
   }
@@ -210,9 +205,8 @@ static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndic
     sliceSize *= dest->shape.dims[i];
   }
 
-  Result result = runCudaIndexAccumulate2d(
-      ctx, dest->dtype, dest->values, dest->shape.dims[1], rowContig->values, rowContig->dtype,
-      colConfig->values, colConfig->dtype, srcGradContig->values, rowContig->size, sliceSize);
+  Result result = runCudaIndexAccumulate2d(ctx, dest->dtype, dest->values, dest->shape.dims[1], rowContig->values, rowContig->dtype, colConfig->values, colConfig->dtype, srcGradContig->values,
+                                           rowContig->size, sliceSize);
 
   return result;
 }
@@ -224,16 +218,14 @@ static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, Range *ranges, Ten
 
   Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  Result result = runCudaSliceAccumulate(
-      ctx, dest->dtype, dest->values, dest->shape.numOfDims, dest->shape.multipliers, ranges,
-      srcContig->values, srcContig->shape.dims, srcContig->shape.numOfDims, srcContig->size);
+  Result result = runCudaSliceAccumulate(ctx, dest->dtype, dest->values, dest->shape.numOfDims, dest->shape.multipliers, ranges, srcContig->values, srcContig->shape.dims, srcContig->shape.numOfDims,
+                                         srcContig->size);
 
   return result;
 }
 
-void IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
-  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(indices) || isInvalidTensor(srcGrad),
-           ERR_NULL_TENSOR_PROVIDED);
+void shapes_IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
+  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(indices) || isInvalidTensor(srcGrad), ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);
   PANIC_IF(result != OK, result);
@@ -247,17 +239,12 @@ void IndexAccumulate1d(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcG
       PANIC_IF(result != OK, result);
       return;
     case CPU:
-    default:
-      result = indexAccumulate1dCpu(ctx, dest, indices, srcGrad);
-      PANIC_IF(result != OK, result);
+    default: result = indexAccumulate1dCpu(ctx, dest, indices, srcGrad); PANIC_IF(result != OK, result);
   }
 }
 
-void IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices,
-                       Tensor *srcGrad) {
-  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(rowIndices) || isInvalidTensor(colIndices) ||
-               isInvalidTensor(srcGrad),
-           ERR_NULL_TENSOR_PROVIDED);
+void shapes_IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices, Tensor *srcGrad) {
+  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(rowIndices) || isInvalidTensor(colIndices) || isInvalidTensor(srcGrad), ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);
   PANIC_IF(result != OK, result);
@@ -272,15 +259,12 @@ void IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *c
       PANIC_IF(result != OK, result);
       return;
     case CPU:
-    default:
-      result = indexAccumulate2dCpu(ctx, dest, rowIndices, colIndices, srcGrad);
-      PANIC_IF(result != OK, result);
+    default: result = indexAccumulate2dCpu(ctx, dest, rowIndices, colIndices, srcGrad); PANIC_IF(result != OK, result);
   }
 }
 
-void SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
-  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(srcGrad) || ranges == NULL,
-           ERR_NULL_TENSOR_PROVIDED);
+void shapes_SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+  PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(srcGrad) || ranges == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);
   PANIC_IF(result != OK, result);
@@ -291,8 +275,7 @@ void SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad)
   PANIC_IF(ndims == 0, ERR_DIM_MISMATCH);
 
   for (u8 i = 0; i < ndims; i++) {
-    PANIC_IF(ranges[i].start > ranges[i].end || ranges[i].end > dest->shape.dims[i],
-             ERR_OUT_OF_BOUNDS);
+    PANIC_IF(ranges[i].start > ranges[i].end || ranges[i].end > dest->shape.dims[i], ERR_OUT_OF_BOUNDS);
 
     u64 span = ranges[i].end - ranges[i].start;
     PANIC_IF((u64)srcGrad->shape.dims[i] != span, ERR_DIM_MISMATCH);
@@ -306,8 +289,6 @@ void SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad)
       PANIC_IF(result != OK, result);
       return;
     case CPU:
-    default:
-      result = sliceAccumulateCpu(ctx, dest, ranges, srcGrad);
-      PANIC_IF(result != OK, result);
+    default: result = sliceAccumulateCpu(ctx, dest, ranges, srcGrad); PANIC_IF(result != OK, result);
   }
 }

@@ -21,11 +21,11 @@ void adaptiveAvgPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
   Tensor dX;
-  Result result = AdaptiveAvgPool2dBackward(ctx, input, tensor->grad, layerData->outH, layerData->outW, &dX);
+  Result result = shapes_layer_AdaptiveAvgPool2dBackward(ctx, input, tensor->grad, layerData->outH, layerData->outW, &dX);
   PANIC_IF(result != OK, result);
 
-  Tensor *reducedGrad = ReduceBroadcast(ctx, input, &dX);
-  AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, &dX);
+  shapes_AddInPlace(ctx, input->grad, reducedGrad);
 }
 
 Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
@@ -40,7 +40,7 @@ Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Tensor *dest = t_Zeros(ctx, SHAPE4D(batch, layerData->outH, layerData->outW, channels), tensor->dtype);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
-  Result result = AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, dest);
+  Result result = shapes_layer_AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, dest);
   PANIC_IF(result != OK, result);
 
   dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));

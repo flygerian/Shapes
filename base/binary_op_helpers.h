@@ -7,49 +7,44 @@
 #define SHAPES_PRAGMA_SIMD
 #endif
 
-#define STRAIGHT_CMP_LOOP(TYPE, op)                                                                \
-  do {                                                                                             \
-    TYPE *pa = a->values;                                                                          \
-    TYPE *pb = b->values;                                                                          \
-    bool *po = dest->values;                                                                       \
-    for (tensor_size_t i = 0; i < dest->size; i++) {                                               \
-      po[i] = pa[i] op pb[i];                                                                      \
-    }                                                                                              \
-    return OK;                                                                                     \
+#define STRAIGHT_CMP_LOOP(TYPE, op)                                                                                                                                                                    \
+  do {                                                                                                                                                                                                 \
+    TYPE *pa = a->values;                                                                                                                                                                              \
+    TYPE *pb = b->values;                                                                                                                                                                              \
+    bool *po = dest->values;                                                                                                                                                                           \
+    for (tensor_size_t i = 0; i < dest->size; i++) {                                                                                                                                                   \
+      po[i] = pa[i] op pb[i];                                                                                                                                                                          \
+    }                                                                                                                                                                                                  \
+    return OK;                                                                                                                                                                                         \
   } while (0)
 
-
-#define SWITCH_ARITH_OP(OP_TYPE, ADD_EXPR, SUB_EXPR, MUL_EXPR)                                     \
-  switch (OP_TYPE) {                                                                               \
-    case OP_ADD: ADD_EXPR; break;                                                                  \
-    case OP_SUBTRACT: SUB_EXPR; break;                                                             \
-    case OP_MULTIPLY: MUL_EXPR; break;                                                             \
-    default: return ERR_NOT_A_BINOP;                                                               \
+#define SWITCH_ARITH_OP(OP_TYPE, ADD_EXPR, SUB_EXPR, MUL_EXPR)                                                                                                                                         \
+  switch (OP_TYPE) {                                                                                                                                                                                   \
+    case OP_ADD: ADD_EXPR; break;                                                                                                                                                                      \
+    case OP_SUBTRACT: SUB_EXPR; break;                                                                                                                                                                 \
+    case OP_MULTIPLY: MUL_EXPR; break;                                                                                                                                                                 \
+    default: return ERR_NOT_A_BINOP;                                                                                                                                                                   \
   }
 
-#define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                           \
-  static inline void add_##NAME(const void *restrict a, const void *restrict b,                    \
-                                void *restrict out, tensor_size_t n) {                             \
-    SHAPES_PRAGMA_SIMD                                                                             \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      ((TYPE *)out)[i] = ((TYPE *)a)[i] + ((TYPE *)b)[i];                                          \
-    }                                                                                              \
-  }                                                                                                \
-  static inline void subtract_##NAME(const void *restrict a, const void *restrict b,               \
-                                     void *restrict out, tensor_size_t n) {                        \
-    SHAPES_PRAGMA_SIMD                                                                             \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      ((TYPE *)out)[i] = ((TYPE *)a)[i] - ((TYPE *)b)[i];                                          \
-    }                                                                                              \
-  }                                                                                                \
-  static inline void multiply_##NAME(const void *restrict a, const void *restrict b,               \
-                                     void *restrict out, tensor_size_t n) {                        \
-    SHAPES_PRAGMA_SIMD                                                                             \
-    for (tensor_size_t i = 0; i < n; i++) {                                                        \
-      ((TYPE *)out)[i] = ((TYPE *)a)[i] * ((TYPE *)b)[i];                                          \
-    }                                                                                              \
+#define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                                                                                                                               \
+  static inline void add_##NAME(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n) {                                                                                 \
+    SHAPES_PRAGMA_SIMD                                                                                                                                                                                 \
+    for (tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
+      ((TYPE *)out)[i] = ((TYPE *)a)[i] + ((TYPE *)b)[i];                                                                                                                                              \
+    }                                                                                                                                                                                                  \
+  }                                                                                                                                                                                                    \
+  static inline void subtract_##NAME(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n) {                                                                            \
+    SHAPES_PRAGMA_SIMD                                                                                                                                                                                 \
+    for (tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
+      ((TYPE *)out)[i] = ((TYPE *)a)[i] - ((TYPE *)b)[i];                                                                                                                                              \
+    }                                                                                                                                                                                                  \
+  }                                                                                                                                                                                                    \
+  static inline void multiply_##NAME(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n) {                                                                            \
+    SHAPES_PRAGMA_SIMD                                                                                                                                                                                 \
+    for (tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
+      ((TYPE *)out)[i] = ((TYPE *)a)[i] * ((TYPE *)b)[i];                                                                                                                                              \
+    }                                                                                                                                                                                                  \
   }
-
 
 DEFINE_ARITH_HELPERS(bool, bool)
 DEFINE_ARITH_HELPERS(u8, u8)
@@ -63,8 +58,7 @@ DEFINE_ARITH_HELPERS(i64, i64)
 DEFINE_ARITH_HELPERS(f32, f32)
 DEFINE_ARITH_HELPERS(f64, f64)
 
-typedef void (*binopFn)(const void *restrict a, const void *restrict b, void *restrict out,
-                        tensor_size_t n);
+typedef void (*binopFn)(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n);
 
 typedef struct binop {
   binopFn U8;
@@ -96,16 +90,7 @@ static inline binopFn getBinopFn(binop op, Dtype dt) {
 }
 
 static binop binopTable[] = {
-    [OP_ADD] = (binop){.U8 = add_u8,
-                       .U16 = add_u16,
-                       .U32 = add_u32,
-                       .U64 = add_u64,
-                       .I8 = add_i8,
-                       .I16 = add_i16,
-                       .I32 = add_i32,
-                       .I64 = add_i64,
-                       .F32 = add_f32,
-                       .F64 = add_f64},
+    [OP_ADD] = (binop){.U8 = add_u8, .U16 = add_u16, .U32 = add_u32, .U64 = add_u64, .I8 = add_i8, .I16 = add_i16, .I32 = add_i32, .I64 = add_i64, .F32 = add_f32, .F64 = add_f64},
     [OP_SUBTRACT] = (binop){.U8 = subtract_u8,
                             .U16 = subtract_u16,
                             .U32 = subtract_u32,

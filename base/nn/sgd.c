@@ -4,7 +4,7 @@
 #include "shapes.h"
 
 void sgdStep(Context *ctx, Optimizer *opts, Array *parameters) {
-  Result res = shapes_optimizerops_Sgd(ctx, parameters, opts->learningRate);
+  Result res = shapes_optimizer_Sgd(ctx, parameters, opts->learningRate);
   PANIC_IF(res != OK, res);
 }
 

@@ -9,10 +9,8 @@
 extern "C" {
 #endif
 
-Result runCudaCrossEntropyForward(Context *ctx, Dtype dtype, const void *yGround, const void *logits, tensor_size_t rows, dim_t classCount,
-                                  void *probs, void *loss);
-Result runCudaCrossEntropyBackward(Context *ctx, Dtype dtype, const void *yGround, const void *probs, const void *gradOut, tensor_size_t rows,
-                                   dim_t classCount, bool scalarGradOut, void *dLogits);
+Result runCudaCrossEntropyForward(Context *ctx, Dtype dtype, const void *yGround, const void *logits, tensor_size_t rows, dim_t classCount, void *probs, void *loss);
+Result runCudaCrossEntropyBackward(Context *ctx, Dtype dtype, const void *yGround, const void *probs, const void *gradOut, tensor_size_t rows, dim_t classCount, bool scalarGradOut, void *dLogits);
 
 #ifdef __cplusplus
 }

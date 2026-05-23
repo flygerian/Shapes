@@ -179,7 +179,7 @@ Tensor *Cast(Context *ctx, Tensor *source, Dtype target) {
   PANIC_IF(!isCastSafe(srcDtype, target), ERR_TRUNCATING_CAST);
 
   if (srcDtype == target) {
-    return Clone(ctx, source);
+    return shapes_Clone(ctx, source);
   }
 
   DeviceType deviceType = CPU;

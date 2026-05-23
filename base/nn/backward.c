@@ -21,7 +21,7 @@ void backward(Context *ctx, Tensor *node) {
   switch (node->opType) {
     case OP_DENSE: denseBackward(ctx, node); return;
     case OP_EMBEDDING: embeddingBackward(ctx, node); return;
-    case OP_RESHAPE: ReshapeBackward(ctx, node); return;
+    case OP_RESHAPE: shapes_ReshapeBackward(ctx, node); return;
     case OP_MSE: mseBackward(ctx, node); return;
     case OP_BATCH_NORM: batchnormBackward(ctx, node); return;
     case OP_CROSS_ENTHROPY: crossEnthropyBackward(ctx, node); return;
@@ -30,7 +30,7 @@ void backward(Context *ctx, Tensor *node) {
     case OP_MAXPOOL2D: maxPool2dBackward(ctx, node); return;
     case OP_ADAPTIVE_AVG_POOL2D: adaptiveAvgPool2dBackward(ctx, node); return;
     case OP_CONV2D: conv2dBackward(ctx, node); return;
-    case OP_SQRT: SqrtBackward(ctx, node); return;
+    case OP_SQRT: shapes_SqrtBackward(ctx, node); return;
   }
 
   PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);
@@ -39,8 +39,8 @@ void backward(Context *ctx, Tensor *node) {
 Array *Backward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
-  Tensor *ones = T_Float(ctx, SHAPE1D(1), 1);
-  AddInPlace(ctx, tensor->grad, ones);
+  Tensor *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1);
+  shapes_AddInPlace(ctx, tensor->grad, ones);
 
   Array *graph = buildGraph(ctx, tensor);
 

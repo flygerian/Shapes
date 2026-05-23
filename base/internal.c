@@ -32,20 +32,20 @@ size_t getBytesForDtype(Dtype type) {
   }
 }
 
-void PrintItem(Tensor *t) {
+void shapes_PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value *val = GetAt(t, zeroIdx);
+  Value *val = shapes_GetAt(t, zeroIdx);
 
   PRINT_VALUE(*val);
 }
 
-char *GetItem(Context *ctx, Tensor *t) {
+char *shapes_GetItem(Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value *val = GetAt(t, zeroIdx);
+  Value *val = shapes_GetAt(t, zeroIdx);
 
   size_t size = sizeof(char) * 32;
   char *valueStr = allocate(ctx->memory, size);
@@ -54,7 +54,7 @@ char *GetItem(Context *ctx, Tensor *t) {
   return valueStr;
 }
 
-Result CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
+Result shapes_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -176,7 +176,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   for (tensor_size_t i = 0; i < source->size; i++) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
-    Value *val = GetAt(source, idx);
+    Value *val = shapes_GetAt(source, idx);
     writeTensorValueAtFlatIndex(copy, i, *val);
 
     for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
@@ -197,8 +197,7 @@ Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
   PANIC_IF(ctx == NULL || src == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   // Check if tensors are on the same device (both NULL = CPU, or same device pointer)
-  bool sameDevice = (ctx->device == NULL && src->context->device == NULL) ||
-                    (ctx->device != NULL && src->context->device != NULL && ctx->device->type == src->context->device->type);
+  bool sameDevice = (ctx->device == NULL && src->context->device == NULL) || (ctx->device != NULL && src->context->device != NULL && ctx->device->type == src->context->device->type);
   PANIC_IF(!sameDevice, ERR_DIFFERENT_CTX_TENSORS_PASSED);
 
   Tensor *working = src;
@@ -256,7 +255,7 @@ TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
-  Tensor *reshapedSmaller = Reshape(ctx, smaller, newShape);
+  Tensor *reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
 
   if (smaller == a) {
     return (TensorPair){.a = reshapedSmaller, .b = b};
@@ -496,7 +495,7 @@ static void printTensorDim(Tensor *t, size_t *flatIdx, u8 dim, u8 indent) {
   printf("]");
 }
 
-void PrintTensor(Tensor *tensor) {
+void shapes_PrintTensor(Tensor *tensor) {
   if (tensor == NULL || tensor->values == NULL) {
     printf("tensor([])\n");
     return;
@@ -552,24 +551,21 @@ void moveTensor(Context *destCtx, Tensor *t) {
   t->values = locationOnDest;
 }
 
-void MoveTensorToHost(Context *destCtx, Tensor *t) {
+void shapes_MoveTensorToHost(Context *destCtx, Tensor *t) {
   size_t valueBytes = t->size * getBytesForDtype(t->dtype);
   void *locationOnDest = allocate(destCtx->memory, valueBytes);
   PANIC_IF(locationOnDest == NULL, ALLOCATION_FAILED);
 
-  Result copyResult =
-      shapes_CopyBetweenDevices(t->context->device->type, destCtx->device->type,
-                         t->values, locationOnDest, valueBytes);
+  Result copyResult = shapes_CopyBetweenDevices(t->context->device->type, destCtx->device->type, t->values, locationOnDest, valueBytes);
   PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
 
   t->context = destCtx;
   t->values = locationOnDest;
 }
 
-void MoveToCuda(Context *destCtx, Array *tensors) {
+void shapes_MoveToCuda(Context *destCtx, Array *tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
-  PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA,
-           ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
@@ -582,10 +578,9 @@ void MoveToCuda(Context *destCtx, Array *tensors) {
   }
 }
 
-void MoveToHost(Context *destCtx, Array *tensors) {
+void shapes_MoveToHost(Context *destCtx, Array *tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
-  PANIC_IF(destCtx->device != NULL && destCtx->device->type != CPU,
-           ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(destCtx->device != NULL && destCtx->device->type != CPU, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
@@ -593,7 +588,7 @@ void MoveToHost(Context *destCtx, Array *tensors) {
     PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 
-    MoveTensorToHost(destCtx, t);
-    MoveTensorToHost(destCtx, t->grad);
+    shapes_MoveTensorToHost(destCtx, t);
+    shapes_MoveTensorToHost(destCtx, t->grad);
   }
 }

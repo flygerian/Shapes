@@ -17,8 +17,8 @@ void makemore_3() {
   f32 xData[12] = {2.0, 3.0, -1.0, 3.0, -1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, -1.0f};
   f32 yData[4] = {1.0, -1.0, -1.0, 1.0};
 
-  Tensor *xs = MakeFromContigousArray(&ctx, SHAPE2D(4, 3), &xData, F32);
-  Tensor *ys = MakeFromContigousArray(&ctx, SHAPE1D(4), &yData, F32);
+  Tensor *xs = shapes_Make_FromContigousArray(&ctx, SHAPE2D(4, 3), &xData, F32);
+  Tensor *ys = shapes_Make_FromContigousArray(&ctx, SHAPE1D(4), &yData, F32);
 
   FowardPassOp *dense = layer_Dense(&ctx, F32, 3, 10, false);
   FowardPassOp *bn1 = layer_BatchNorm(&ctx, F32, 10);
@@ -32,7 +32,7 @@ void makemore_3() {
     out = Forward(&ctx, bn1, out);
     Tensor *logits = Forward(&ctx, dense2, out);
 
-    Tensor *logitsSqueezed = Squeeze(&ctx, logits);
+    Tensor *logitsSqueezed = shapes_Squeeze(&ctx, logits);
     Tensor loss = loss_Mse(&ctx, ys, logitsSqueezed);
 
     Value lossValue;

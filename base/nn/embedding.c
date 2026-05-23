@@ -12,7 +12,7 @@ void embeddingBackward(Context *ctx, Tensor *out) {
   Tensor *input = shapes_Array_TensorIdx(out->inputs, 0);
   Tensor *indices = (Tensor *)out->opMetadata;
 
-  IndexAccumulate1d(ctx, input->grad, indices, out->grad);
+  shapes_IndexAccumulate1d(ctx, input->grad, indices, out->grad);
 }
 
 Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
@@ -25,13 +25,13 @@ Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
 
   PANIC_IF(embedding->shape.numOfDims != 2, ERR_DIM_MISMATCH);
 
-  Tensor *out = IndexWithTensor(ctx, embedding, indices);
+  Tensor *out = shapes_IndexWithTensor(ctx, embedding, indices);
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   shapes_Array_AppendTensor(out->inputs, embedding);
 
   out->opMetadata = indices;
   out->opType = OP_EMBEDDING;
-  out->grad = T_Zeros(ctx, out->shape);
+  out->grad = shapes_Make_ZerosTensor(ctx, out->shape);
   return out;
 }
 
@@ -43,7 +43,7 @@ Array *embeddingParameters(Context *ctx, Layer *layer) {
 }
 
 FowardPassOp *layer_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
-  Tensor *embedding = MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
+  Tensor *embedding = shapes_Make_RandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
 
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = embedding;

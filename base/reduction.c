@@ -124,7 +124,7 @@ static Tensor *meanCpu(Context *ctx, Tensor *t) {
   Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
 
-  Tensor *dest = T_Zeros(ctx, SCALAR);
+  Tensor *dest = shapes_Make_ZerosTensor(ctx, SCALAR);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   return dest;
@@ -205,7 +205,7 @@ static Tensor *stdCpu(Context *ctx, Tensor *t) {
 
   f64 std = sqrt(deviationSquaredSum / (f64)(input->size - 1));
 
-  Tensor *dest = T_Zeros(ctx, SCALAR);
+  Tensor *dest = shapes_Make_ZerosTensor(ctx, SCALAR);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   switch (input->dtype) {
@@ -315,7 +315,7 @@ static Tensor *sumCuda(Context *ctx, Tensor *t, dim_t dim) {
 static Tensor *meanCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *dest = T_Zeros(ctx, SCALAR);
+  Tensor *dest = shapes_Make_ZerosTensor(ctx, SCALAR);
   Result result = runCudaReduceAll(ctx, input->dtype, REDUCTION_OP_MEAN, input->values,
                                    dest->values, input->size);
   PANIC_IF(result != OK, result);
@@ -343,7 +343,7 @@ static Tensor *meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
 static Tensor *stdCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *dest = T_Zeros(ctx, SCALAR);
+  Tensor *dest = shapes_Make_ZerosTensor(ctx, SCALAR);
 
   Result result = runCudaStd(ctx, input->dtype, input->values, dest->values, input->size);
   PANIC_IF(result != OK, result);
@@ -387,7 +387,7 @@ static Tensor *argMaxCuda(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-Tensor *Sum(Context *ctx, Tensor *t, dim_t dim) {
+Tensor *shapes_Sum(Context *ctx, Tensor *t, dim_t dim) {
   validateReduceDim(t, dim, ERR_SUM_DIM_OUT_OF_BOUNDS);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -397,31 +397,31 @@ Tensor *Sum(Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor *ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
+Tensor *shapes_ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
   validateReductionTensor(input);
   validateReductionTensor(grad);
 
   Tensor *current = grad;
   i32 dimDiff = (i32)grad->shape.numOfDims - (i32)input->shape.numOfDims;
   if (dimDiff < 0) {
-    return Clone(ctx, current);
+    return shapes_Clone(ctx, current);
   }
 
   for (i32 i = 0; i < dimDiff; i++) {
-    Tensor *summed = Sum(ctx, current, 0);
-    current = SqueezeDim(ctx, summed, 0);
+    Tensor *summed = shapes_Sum(ctx, current, 0);
+    current = shapes_SqueezeDim(ctx, summed, 0);
   }
 
   for (u8 d = 0; d < input->shape.numOfDims; d++) {
     if (input->shape.dims[d] == 1 && current->shape.dims[d] > 1) {
-      current = Sum(ctx, current, d);
+      current = shapes_Sum(ctx, current, d);
     }
   }
 
-  return Clone(ctx, current);
+  return shapes_Clone(ctx, current);
 }
 
-Tensor *Mean(Context *ctx, Tensor *t) {
+Tensor *shapes_Mean(Context *ctx, Tensor *t) {
   validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -431,7 +431,7 @@ Tensor *Mean(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *MeanDim(Context *ctx, Tensor *t, dim_t dim) {
+Tensor *shapes_MeanDim(Context *ctx, Tensor *t, dim_t dim) {
   validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
   PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
 
@@ -442,7 +442,7 @@ Tensor *MeanDim(Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor *Std(Context *ctx, Tensor *t) {
+Tensor *shapes_Std(Context *ctx, Tensor *t) {
   validateStdTensor(t);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -452,7 +452,7 @@ Tensor *Std(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *Max(Context *ctx, Tensor *t, dim_t dim) {
+Tensor *shapes_Max(Context *ctx, Tensor *t, dim_t dim) {
   validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -462,7 +462,7 @@ Tensor *Max(Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor *ArgMax(Context *ctx, Tensor *t, dim_t dim) {
+Tensor *shapes_ArgMax(Context *ctx, Tensor *t, dim_t dim) {
   validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {

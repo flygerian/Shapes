@@ -148,7 +148,7 @@ static void logReluTensorState(const char *phase, Context *ctx, Tensor *t, Resul
   int contiguous = t != NULL && t->isContigous ? 1 : 0;
 
   fprintf(stderr,
-          "[Relu] phase=%s ctx=%p ctxDevice=%s tensorCtx=%p tensorDevice=%s dtype=%s "
+          "[shapes_Relu] phase=%s ctx=%p ctxDevice=%s tensorCtx=%p tensorDevice=%s dtype=%s "
           "size=%llu contiguous=%d result=%s(%d)\n",
           phase, (void *)ctx, unaryContextDeviceName(ctx), (void *)tensorCtx,
           unaryContextDeviceName(tensorCtx), dtypeName, size, contiguous, unaryResultName(result),
@@ -366,7 +366,7 @@ static Tensor *unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 para
 
 static Tensor *dispatchUnaryOp(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
   if (opType == UNARY_OP_RELU && shouldLogRelu()) {
-    fprintf(stderr, "[Relu] phase=dispatch device=%s\n",
+    fprintf(stderr, "[shapes_Relu] phase=dispatch device=%s\n",
             unaryDeviceTypeName(getUnaryDispatchDevice(ctx)));
   }
 
@@ -377,7 +377,7 @@ static Tensor *dispatchUnaryOp(Context *ctx, Tensor *t, UnaryOpType opType, f32 
   }
 }
 
-Tensor *Pow(Context *ctx, Tensor *t, f32 power) {
+Tensor *shapes_Pow(Context *ctx, Tensor *t, f32 power) {
   Result result = validatePowTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -388,7 +388,7 @@ Tensor *Pow(Context *ctx, Tensor *t, f32 power) {
   }
 }
 
-Tensor *Tanh(Context *ctx, Tensor *t) {
+Tensor *shapes_Tanh(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_TANH_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -399,7 +399,7 @@ Tensor *Tanh(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *Relu(Context *ctx, Tensor *t) {
+Tensor *shapes_Relu(Context *ctx, Tensor *t) {
   logReluTensorState("entry", ctx, t, OK);
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
@@ -412,12 +412,12 @@ Tensor *Relu(Context *ctx, Tensor *t) {
   }
 
   if (shouldLogRelu()) {
-    fprintf(stderr, "[Relu] phase=return result=OK(0)\n");
+    fprintf(stderr, "[shapes_Relu] phase=return result=OK(0)\n");
   }
   return out;
 }
 
-Tensor *ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
+Tensor *shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -462,7 +462,7 @@ Tensor *ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
   return dInput;
 }
 
-void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+void shapes_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -517,46 +517,46 @@ void ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tenso
   }
 }
 
-Tensor *Negate(Context *ctx, Tensor *t) {
+Tensor *shapes_Negate(Context *ctx, Tensor *t) {
   Result result = validateNegateTensor(t);
   PANIC_IF(result != OK, result);
   return dispatchUnaryOp(ctx, t, UNARY_OP_NEGATE, 0.0f);
 }
 
-Tensor *Exp(Context *ctx, Tensor *t) {
+Tensor *shapes_Exp(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_EXP_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
   return dispatchUnaryOp(ctx, t, UNARY_OP_EXP, 0.0f);
 }
 
-Tensor *Log(Context *ctx, Tensor *t) {
+Tensor *shapes_Log(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_LOG_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
   return dispatchUnaryOp(ctx, t, UNARY_OP_LOG, 0.0f);
 }
 
-Tensor *Abs(Context *ctx, Tensor *t) {
+Tensor *shapes_Abs(Context *ctx, Tensor *t) {
   Result result = validateAbsTensor(t);
   PANIC_IF(result != OK, result);
   return dispatchUnaryOp(ctx, t, UNARY_OP_ABS, 0.0f);
 }
 
-void SqrtBackward(Context *ctx, Tensor *tensor) {
+void shapes_SqrtBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
            ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *two = T_Float(ctx, SHAPE1D(1), 2.0f);
-  Tensor *twoTimesOutput = Multiply(ctx, two, tensor);
-  Tensor *gradInput = Divide(ctx, tensor->grad, twoTimesOutput);
+  Tensor *two = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 2.0f);
+  Tensor *twoTimesOutput = shapes_Multiply(ctx, two, tensor);
+  Tensor *gradInput = shapes_Divide(ctx, tensor->grad, twoTimesOutput);
 
-  Tensor *reducedGrad = ReduceBroadcast(ctx, input, gradInput);
-  AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, gradInput);
+  shapes_AddInPlace(ctx, input->grad, reducedGrad);
 }
 
-Tensor *Sqrt(Context *ctx, Tensor *t) {
+Tensor *shapes_Sqrt(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_SQRT_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -565,7 +565,7 @@ Tensor *Sqrt(Context *ctx, Tensor *t) {
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   shapes_Array_AppendTensor(out->inputs, t);
   out->opType = OP_SQRT;
-  out->grad = T_Zeros(ctx, out->shape);
+  out->grad = shapes_Make_ZerosTensor(ctx, out->shape);
 
   return out;
 }

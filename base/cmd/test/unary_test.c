@@ -227,14 +227,14 @@ static void test_negate_cuda_dispatch_i32(void) {
 
   Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, t);
-  MoveToCuda(&ctx, toMove);
+  shapes_MoveToCuda(&ctx, toMove);
 
-  Tensor *result = Negate(&ctx, t);
-  ASSERT_NOT_NULL(result, "CUDA Negate should return a tensor on I32");
-  ASSERT(result->context == &ctx, "CUDA Negate result should live on the CUDA context");
+  Tensor *result = shapes_Negate(&ctx, t);
+  ASSERT_NOT_NULL(result, "CUDA shapes_Negate should return a tensor on I32");
+  ASSERT(result->context == &ctx, "CUDA shapes_Negate result should live on the CUDA context");
 
   i32 expected[] = {-1, 2, 0, -7};
-  assertMovedI32Values(&ctx, result, expected, 4, "CUDA Negate result should match");
+  assertMovedI32Values(&ctx, result, expected, 4, "CUDA shapes_Negate result should match");
 
   DestroyContext(&ctx);
 }

@@ -31,7 +31,7 @@ void denseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(input == NULL || weights == NULL || input->grad == NULL || weights->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(bias != NULL && bias->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Result result = shapes_layerops_DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad, bias != NULL ? bias->grad : NULL);
+  Result result = shapes_layer_DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad, bias != NULL ? bias->grad : NULL);
   PANIC_IF(result != OK, result);
 }
 
@@ -41,7 +41,7 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
   denseLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  Tensor *out = shapes_layersops_DenseLinear(ctx, tensor, layer->weights, layer->bias, layerData->withBias);
+  Tensor *out = shapes_layer_DenseLinear(ctx, tensor, layer->weights, layer->bias, layerData->withBias);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
@@ -75,7 +75,7 @@ Array *denseLayerParameters(Context *ctx, Layer *state) {
 
 FowardPassOp *layer_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
-  Tensor *w = MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
+  Tensor *w = shapes_Make_RandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
@@ -84,7 +84,7 @@ FowardPassOp *layer_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t ou
   *layer = (Layer){.weights = w, .layerData = layerData};
 
   if (withBias) {
-    Tensor *b = MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
+    Tensor *b = shapes_Make_RandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
     layer->bias = b;
   }
 

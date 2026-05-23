@@ -707,8 +707,7 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   ASSERT_EQ(r, OK, "Conv2dBackward stride-two should succeed");
 
   f32 *dxVals = dX->values;
-  f32 wantDX[25] = {1.0f, 2.0f, 2.0f, 4.0f,  0.0f,  3.0f,  4.0f, 6.0f, 8.0f, 0.0f, 3.0f, 6.0f, 4.0f,
-                    8.0f, 0.0f, 9.0f, 12.0f, 12.0f, 16.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+  f32 wantDX[25] = {1.0f, 2.0f, 2.0f, 4.0f, 0.0f, 3.0f, 4.0f, 6.0f, 8.0f, 0.0f, 3.0f, 6.0f, 4.0f, 8.0f, 0.0f, 9.0f, 12.0f, 12.0f, 16.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
   for (int i = 0; i < 25; i++) {
     ASSERT(fabsf(dxVals[i] - wantDX[i]) < 1e-5f, "Conv2dBackward stride-two dX mismatch");
   }
@@ -972,7 +971,7 @@ static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
   Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, yGround);
   Array_AppendTensor(toMove, logits);
-  MoveToCuda(&ctx, toMove);
+  shapes_MoveToCuda(&ctx, toMove);
 
   Result result = CrossEntropyForward(&ctx, yGround, logits, &loss, &probs);
   ASSERT_EQ(result, OK, "CUDA CrossEntropyForward should succeed");
@@ -1011,7 +1010,7 @@ static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) 
   Array_AppendTensor(toMove, yGround);
   Array_AppendTensor(toMove, probs);
   Array_AppendTensor(toMove, gradOut);
-  MoveToCuda(&ctx, toMove);
+  shapes_MoveToCuda(&ctx, toMove);
   Result result = CrossEntropyBackward(&ctx, yGround, probs, gradOut, &dLogits);
   ASSERT_EQ(result, OK, "CUDA CrossEntropyBackward should succeed");
   ASSERT(dLogits.context == &ctx, "CUDA CrossEntropyBackward result should live on target context");

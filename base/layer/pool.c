@@ -148,15 +148,15 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
   return OK;
 }
 
-Result MaxPool2d(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest) {
+Result shapes_layer_MaxPool2d(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, NULL);
 }
 
-Result MaxPool2dWithIndices(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
+Result shapes_layer_MaxPool2dWithIndices(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, indices);
 }
 
-Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelShape, u8 stride, Tensor *dX) {
+Result shapes_layer_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelShape, u8 stride, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -275,7 +275,7 @@ Result MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelSha
   return OK;
 }
 
-Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX) {
+Result shapes_layer_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut) || isInvalidTensor(indices)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -295,8 +295,8 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   dim_t batch = x->shape.dims[0];
   dim_t channels = x->shape.dims[3];
 
-  if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[3] != channels || indices->shape.dims[0] != batch ||
-      indices->shape.dims[3] != channels || gradOut->shape.dims[1] != indices->shape.dims[1] || gradOut->shape.dims[2] != indices->shape.dims[2]) {
+  if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[3] != channels || indices->shape.dims[0] != batch || indices->shape.dims[3] != channels ||
+      gradOut->shape.dims[1] != indices->shape.dims[1] || gradOut->shape.dims[2] != indices->shape.dims[2]) {
     return ERR_DIM_MISMATCH;
   }
 
@@ -335,7 +335,7 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   return OK;
 }
 
-Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest) {
+Result shapes_layer_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest) {
   if (ctx == NULL || dest == NULL || x == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -424,7 +424,7 @@ Result AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor
   return OK;
 }
 
-Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW, Tensor *dX) {
+Result shapes_layer_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

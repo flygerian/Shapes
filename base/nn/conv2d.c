@@ -47,19 +47,18 @@ void conv2dBackward(Context *ctx, Tensor *tensor) {
     PANIC_IF(dBias == NULL, ALLOCATION_FAILED);
   }
 
-  Result result =
-      Conv2dBackward(ctx, input, dInput, kernels, dKernels, tensor->grad, layerData->colBuffer, dBias, layerData->withBias, layerData->stride);
+  Result result = shapes_layer_Conv2dBackward(ctx, input, dInput, kernels, dKernels, tensor->grad, layerData->colBuffer, dBias, layerData->withBias, layerData->stride);
   PANIC_IF(result != OK, result);
 
-  Tensor *reducedInputGrad = ReduceBroadcast(ctx, input, dInput);
-  AddInPlace(ctx, input->grad, reducedInputGrad);
+  Tensor *reducedInputGrad = shapes_ReduceBroadcast(ctx, input, dInput);
+  shapes_AddInPlace(ctx, input->grad, reducedInputGrad);
 
-  Tensor *reducedKernelGrad = ReduceBroadcast(ctx, kernels, dKernels);
-  AddInPlace(ctx, kernels->grad, reducedKernelGrad);
+  Tensor *reducedKernelGrad = shapes_ReduceBroadcast(ctx, kernels, dKernels);
+  shapes_AddInPlace(ctx, kernels->grad, reducedKernelGrad);
 
   if (layerData->withBias) {
-    Tensor *reducedBiasGrad = ReduceBroadcast(ctx, bias, dBias);
-    AddInPlace(ctx, bias->grad, reducedBiasGrad);
+    Tensor *reducedBiasGrad = shapes_ReduceBroadcast(ctx, bias, dBias);
+    shapes_AddInPlace(ctx, bias->grad, reducedBiasGrad);
   }
 }
 
@@ -87,8 +86,7 @@ Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   Tensor colBuffer;
-  Result result =
-      Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, dest, &colBuffer);
+  Result result = shapes_layer_Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, dest, &colBuffer);
   PANIC_IF(result != OK, result);
 
   Tensor *colBufferPtr = allocate(ctx->memory, sizeof(Tensor));
@@ -127,7 +125,7 @@ Array *conv2dLayerParameters(Context *ctx, Layer *state) {
 
 FowardPassOp *layer_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
-  Tensor *w = MakeRandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
+  Tensor *w = shapes_Make_RandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
 
   conv2dLayerData *layerData = allocate(ctx->memory, sizeof(conv2dLayerData));
   *layerData = (conv2dLayerData){.inChannels = inChannels, .outChannels = outChannels, .stride = stride, .withBias = withBias, .colBuffer = NULL};

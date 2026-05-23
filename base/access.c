@@ -34,7 +34,7 @@ static Result indexValueToDim(Value idxVal, dim_t *idx) {
   }
 }
 
-Value *GetAt(Tensor *t, Dim dim) {
+Value *shapes_GetAt(Tensor *t, Dim dim) {
   PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS);
 
@@ -42,7 +42,7 @@ Value *GetAt(Tensor *t, Dim dim) {
 
   Value *result = allocate(t->context->memory, sizeof(Value));
 
-  byte* values;
+  byte *values;
   if (t->context->device != CPU) {
     size_t size = sizeof(t->size * getBytesForDtype(t->dtype));
     values = allocate(t->context->memory, size);
@@ -56,7 +56,7 @@ Value *GetAt(Tensor *t, Dim dim) {
   return result;
 }
 
-Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
+Tensor *shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(indices), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(source->shape.numOfDims == 0, ERR_ZERO_DIM_TENSOR_ADVANCED_INDEXING);
@@ -93,9 +93,7 @@ Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   if (isCudaCtx) {
-    Result result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values,
-                                         workingIndices->values, workingIndices->dtype,
-                                         dest->values, workingIndices->size, sliceSize);
+    Result result = runCudaIndexSelect1d(ctx, workingSource->dtype, workingSource->values, workingIndices->values, workingIndices->dtype, dest->values, workingIndices->size, sliceSize);
     PANIC_IF(result != OK, result);
   }
 
@@ -117,15 +115,14 @@ Tensor *IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
     }
     u64 srcOffset = getContigousIdxFromCoord(workingSource, srcCoords);
 
-    memcpy((char *)dest->values + destOffset * bytesPerElem,
-           (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
+    memcpy((char *)dest->values + destOffset * bytesPerElem, (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
     destOffset += sliceSize;
   }
 
   return dest;
 }
 
-Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices) {
+Tensor *shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(rowIndices), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(colIndices), ERR_NULL_TENSOR_PROVIDED);
@@ -165,10 +162,8 @@ Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tens
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   if (isCudaCtx) {
-    Result result = runCudaIndexSelect2d(
-        ctx, workingSource->dtype, workingSource->values, workingSource->shape.dims[1],
-        workingRows->values, workingRows->dtype, workingCols->values, workingCols->dtype,
-        dest->values, workingRows->size, sliceSize);
+    Result result = runCudaIndexSelect2d(ctx, workingSource->dtype, workingSource->values, workingSource->shape.dims[1], workingRows->values, workingRows->dtype, workingCols->values,
+                                         workingCols->dtype, dest->values, workingRows->size, sliceSize);
     PANIC_IF(result != OK, result);
   }
 
@@ -199,16 +194,14 @@ Tensor *IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tens
     }
     u64 srcOffset = getContigousIdxFromCoord(workingSource, srcCoords);
 
-    memcpy((char *)dest->values + destOffset * bytesPerElem,
-           (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
+    memcpy((char *)dest->values + destOffset * bytesPerElem, (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);
     destOffset += sliceSize;
   }
-
 
   return dest;
 }
 
-Result AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
+Result shapes_AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

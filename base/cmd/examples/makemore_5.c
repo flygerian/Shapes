@@ -164,8 +164,8 @@ Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
   for (size_t i = 0; i < datasetPairs->size; i++) {
     DatasetPair *dp = (DatasetPair *)Array_Idx(datasetPairs, i);
 
-    Tensor *context = MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
-    Tensor *target = MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
+    Tensor *context = shapes_Make_FromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
+    Tensor *target = shapes_Make_FromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
 
     TensorPair tp = {.a = Cast(ctx, context, F32), .b = Cast(ctx, target, F32)};
     Array_Append(tensorPairs, &tp);
@@ -200,8 +200,8 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
       targetData[i] = pairs[start + i].target;
     }
 
-    Tensor *inputTensor = MakeFromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
-    Tensor *targetTensor = MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
+    Tensor *inputTensor = shapes_Make_FromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
+    Tensor *targetTensor = shapes_Make_FromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
 
     shapes_Array_AppendTensor(batchInputs, inputTensor);
     shapes_Array_AppendTensor(batchTargets, targetTensor);
@@ -249,10 +249,10 @@ Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
 
   for (size_t i = 0; i < params->size; i++) {
     Tensor *p = shapes_Array_TensorIdx(params, i);
-    Tensor *squared = Pow(ctx, p->grad, 2);
-    Tensor *flat = Reshape(ctx, squared, SHAPE1D(p->grad->size));
-    Tensor *totalSum = Sum(ctx, flat, 0);
-    Tensor *norm = Sqrt(ctx, totalSum);
+    Tensor *squared = shapes_Pow(ctx, p->grad, 2);
+    Tensor *flat = shapes_Reshape(ctx, squared, SHAPE1D(p->grad->size));
+    Tensor *totalSum = shapes_Sum(ctx, flat, 0);
+    Tensor *norm = shapes_Sqrt(ctx, totalSum);
 
     Value normValue;
     VALUE_GET_FROM_ARR(norm->values, 0, &normValue, norm->dtype);
@@ -263,11 +263,11 @@ Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
 }
 
 static Tensor *softmax(Context *ctx, Tensor *logits, dim_t dim) {
-  Tensor *maxVal = Max(ctx, logits, dim);
-  Tensor *shifted = Subtract(ctx, logits, maxVal);
-  Tensor *expVals = Exp(ctx, shifted);
-  Tensor *sumExp = Sum(ctx, expVals, dim);
-  return Divide(ctx, expVals, sumExp);
+  Tensor *maxVal = shapes_Max(ctx, logits, dim);
+  Tensor *shifted = shapes_Subtract(ctx, logits, maxVal);
+  Tensor *expVals = shapes_Exp(ctx, shifted);
+  Tensor *sumExp = shapes_Sum(ctx, expVals, dim);
+  return shapes_Divide(ctx, expVals, sumExp);
 }
 
 static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
@@ -276,7 +276,7 @@ static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
 
   for (dim_t i = 0; i < numClasses; i++) {
     dim_t idx[2] = {0, i};
-    Value *p = GetAt(probs, (Dim){.dims = idx, .numOfDims = 2});
+    Value *p = shapes_GetAt(probs, (Dim){.dims = idx, .numOfDims = 2});
     cumulative += p->as.f32;
     if (r <= cumulative) {
       return (int)i;
@@ -296,10 +296,10 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
 
     for (int step = 0; step < maxNameLen; step++) {
       i32 inputData[3] = {context[0], context[1], context[2]};
-      Tensor *input = MakeFromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
+      Tensor *input = shapes_Make_FromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
       Tensor *embeddings = Forward(ctx, model->embedding, input);
-      Tensor *reshapedEmbeddings = Reshape(ctx, embeddings, SHAPE2D(1, 30));
+      Tensor *reshapedEmbeddings = shapes_Reshape(ctx, embeddings, SHAPE2D(1, 30));
       Tensor *logits = Model_Forward(ctx, model, reshapedEmbeddings, 1);
       Tensor *probs = softmax(ctx, logits, 1);
 
@@ -371,10 +371,10 @@ void makemore_5() {
       Context scratchCtx = {.memory = scratchMem, .isTraining = true};
 
       Tensor *embeddings = Forward(&scratchCtx, model.embedding, input);
-      Tensor *reshapedEmbeddings = Reshape(&scratchCtx, embeddings, SHAPE2D(batchSize, 30));
+      Tensor *reshapedEmbeddings = shapes_Reshape(&scratchCtx, embeddings, SHAPE2D(batchSize, 30));
       Tensor *logits = Model_Forward(&scratchCtx, &model, reshapedEmbeddings, batchSize);
 
-      Tensor *targetOneHot = T_OneHot(&scratchCtx, target, 27);
+      Tensor *targetOneHot = shapes_Make_OneHotTensor(&scratchCtx, target, 27);
       Tensor loss = loss_CrossEnthropy(&scratchCtx, targetOneHot, logits);
 
       Value lossValue;

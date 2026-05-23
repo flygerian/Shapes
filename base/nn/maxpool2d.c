@@ -21,11 +21,11 @@ void maxPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
   Tensor dX;
-  Result result = MaxPool2dBackward(ctx, input, tensor->grad, layerData->kernel, layerData->stride, &dX);
+  Result result = shapes_layer_MaxPool2dBackward(ctx, input, tensor->grad, layerData->kernel, layerData->stride, &dX);
   PANIC_IF(result != OK, result);
 
-  Tensor *reducedGrad = ReduceBroadcast(ctx, input, &dX);
-  AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, &dX);
+  shapes_AddInPlace(ctx, input->grad, reducedGrad);
 }
 
 Tensor *maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
@@ -46,7 +46,7 @@ Tensor *maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Tensor *dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
-  Result result = MaxPool2d(ctx, tensor, layerData->kernel, layerData->stride, dest);
+  Result result = shapes_layer_MaxPool2d(ctx, tensor, layerData->kernel, layerData->stride, dest);
   PANIC_IF(result != OK, result);
 
   dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));

@@ -130,7 +130,10 @@ OpenBLAS/               # Vendored OpenBLAS (installed artifacts in build/openbl
 - C99 (`CMAKE_C_STANDARD 99`). Do not use C11-specific features (e.g. `_Generic`, anonymous structs/unions, `_Static_assert`).
 
 ### Naming Conventions
-- **Public API functions**: `PascalCase` -- `Add`, `Subtract`, `MatMul`, `GetAt`, `T_Zeros`, `FreeTensor`
+- **Public API functions**: `shapes_` prefix with `PascalCase` -- `shapes_Add`, `shapes_Subtract`, `shapes_MatMul`, `shapes_GetAt`
+- **Category prefixes**: `shapes_layer_*` (layer ops), `shapes_loss_*` (loss ops), `shapes_optimizer_*` (optimizer ops)
+- **Creation functions**: `shapes_Make_*` prefix -- `shapes_Make_ZerosTensor`, `shapes_Make_FloatTensor`, `shapes_Make_RandomTensor`
+- **Internal/static functions**: `camelCase` -- `binaryOp`, `isOutOfBounds`, `copyToContiguous`, `unravel_index`
 - **Internal/static functions**: `camelCase` -- `binaryOp`, `isOutOfBounds`, `copyToContiguous`, `unravel_index`
 - **Types (structs, enums, typedefs)**: `PascalCase` -- `Tensor`, `Dim`, `Value`, `Context`, `Memory`, `Result`, `GraphNode`
 - **Enum values**: `UPPER_SNAKE_CASE` for errors (`ERR_DIM_MISMATCH`), `PascalCase` for dtypes (`F32`, `U8`), `UPPER_SNAKE_CASE` with `OP_` prefix for ops (`OP_ADD`)

@@ -8,10 +8,8 @@
 #include <stdlib.h>
 #include "binary_op_helpers.h"
 
-
 static bool isComparisonOp(OpType opType) {
-  return opType == OP_GREATER || opType == OP_GREATER_OR_EQUAL || opType == OP_LESS ||
-         opType == OP_LESS_OR_EQUAL || opType == OP_EQUAL;
+  return opType == OP_GREATER || opType == OP_GREATER_OR_EQUAL || opType == OP_LESS || opType == OP_LESS_OR_EQUAL || opType == OP_EQUAL;
 }
 
 static bool isArithmeticOp(OpType opType) {
@@ -44,72 +42,63 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
       const bool *restrict pa = a->values;
       const bool *restrict pb = b->values;
       bool *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_bool(pa, pb, po, n), subtract_bool(pa, pb, po, n),
-                      multiply_bool(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_bool(pa, pb, po, n), subtract_bool(pa, pb, po, n), multiply_bool(pa, pb, po, n));
       return OK;
     }
     case U8: {
       const u8 *restrict pa = a->values;
       const u8 *restrict pb = b->values;
       u8 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_u8(pa, pb, po, n), subtract_u8(pa, pb, po, n),
-                      multiply_u8(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_u8(pa, pb, po, n), subtract_u8(pa, pb, po, n), multiply_u8(pa, pb, po, n));
       return OK;
     }
     case U16: {
       const u16 *restrict pa = a->values;
       const u16 *restrict pb = b->values;
       u16 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_u16(pa, pb, po, n), subtract_u16(pa, pb, po, n),
-                      multiply_u16(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_u16(pa, pb, po, n), subtract_u16(pa, pb, po, n), multiply_u16(pa, pb, po, n));
       return OK;
     }
     case U32: {
       const u32 *restrict pa = a->values;
       const u32 *restrict pb = b->values;
       u32 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_u32(pa, pb, po, n), subtract_u32(pa, pb, po, n),
-                      multiply_u32(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_u32(pa, pb, po, n), subtract_u32(pa, pb, po, n), multiply_u32(pa, pb, po, n));
       return OK;
     }
     case U64: {
       const u64 *restrict pa = a->values;
       const u64 *restrict pb = b->values;
       u64 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_u64(pa, pb, po, n), subtract_u64(pa, pb, po, n),
-                      multiply_u64(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_u64(pa, pb, po, n), subtract_u64(pa, pb, po, n), multiply_u64(pa, pb, po, n));
       return OK;
     }
     case I8: {
       const i8 *restrict pa = a->values;
       const i8 *restrict pb = b->values;
       i8 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_i8(pa, pb, po, n), subtract_i8(pa, pb, po, n),
-                      multiply_i8(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_i8(pa, pb, po, n), subtract_i8(pa, pb, po, n), multiply_i8(pa, pb, po, n));
       return OK;
     }
     case I16: {
       const i16 *restrict pa = a->values;
       const i16 *restrict pb = b->values;
       i16 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_i16(pa, pb, po, n), subtract_i16(pa, pb, po, n),
-                      multiply_i16(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_i16(pa, pb, po, n), subtract_i16(pa, pb, po, n), multiply_i16(pa, pb, po, n));
       return OK;
     }
     case I32: {
       const i32 *restrict pa = a->values;
       const i32 *restrict pb = b->values;
       i32 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_i32(pa, pb, po, n), subtract_i32(pa, pb, po, n),
-                      multiply_i32(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_i32(pa, pb, po, n), subtract_i32(pa, pb, po, n), multiply_i32(pa, pb, po, n));
       return OK;
     }
     case I64: {
       const i64 *restrict pa = a->values;
       const i64 *restrict pb = b->values;
       i64 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_i64(pa, pb, po, n), subtract_i64(pa, pb, po, n),
-                      multiply_i64(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_i64(pa, pb, po, n), subtract_i64(pa, pb, po, n), multiply_i64(pa, pb, po, n));
       return OK;
     }
     case F16:
@@ -117,16 +106,14 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
       const f32 *restrict pa = a->values;
       const f32 *restrict pb = b->values;
       f32 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_f32(pa, pb, po, n), subtract_f32(pa, pb, po, n),
-                      multiply_f32(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_f32(pa, pb, po, n), subtract_f32(pa, pb, po, n), multiply_f32(pa, pb, po, n));
       return OK;
     }
     case F64: {
       const f64 *restrict pa = a->values;
       const f64 *restrict pb = b->values;
       f64 *restrict po = dest->values;
-      SWITCH_ARITH_OP(opType, add_f64(pa, pb, po, n), subtract_f64(pa, pb, po, n),
-                      multiply_f64(pa, pb, po, n));
+      SWITCH_ARITH_OP(opType, add_f64(pa, pb, po, n), subtract_f64(pa, pb, po, n), multiply_f64(pa, pb, po, n));
       return OK;
     }
     default: return ERR_NOT_A_BINOP;
@@ -232,8 +219,7 @@ static inline void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destC
   }
 }
 
-static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *output,
-                             OpType opType) {
+static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *output, OpType opType) {
   dim_t currentCoord[output->shape.numOfDims];
   dim_t aCoords[output->shape.numOfDims];
   dim_t bCoords[output->shape.numOfDims];
@@ -276,30 +262,20 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
   binopFn doBinaryOperation = getBinopFn(binopTable[opType], opA->dtype);
 
   for (tensor_size_t outerIdx = 0; outerIdx < numOuterIterations; outerIdx++) {
-    for (dim_t broadcastDimIdx = 0; broadcastDimIdx < broadcastDimNumIterations;
-         broadcastDimIdx++) {
-      tensor_size_t bOuterIdxPresenceMultiplier =
-          broadcastOperandOuterSize == numOuterIterations ? 1 : 0;
-      tensor_size_t broadcastOperandIdx =
-          bOuterIdxPresenceMultiplier * outerIdx * numInnerIterations;
+    for (dim_t broadcastDimIdx = 0; broadcastDimIdx < broadcastDimNumIterations; broadcastDimIdx++) {
+      tensor_size_t bOuterIdxPresenceMultiplier = broadcastOperandOuterSize == numOuterIterations ? 1 : 0;
+      tensor_size_t broadcastOperandIdx = bOuterIdxPresenceMultiplier * outerIdx * numInnerIterations;
       void *broadcastOperandPos = (u8 *)broadcastOperand->values + broadcastOperandIdx * elemBytes;
 
-      tensor_size_t nbOuterIdxPresenceMultiplier =
-          nonBroadcastOperandOuterSize == numOuterIterations ? 1 : 0;
-      tensor_size_t nonBroadcastOperandIdx =
-          nbOuterIdxPresenceMultiplier *
-              (outerIdx * broadcastDimNumIterations * numInnerIterations) +
-          (broadcastDimIdx * numInnerIterations);
-      void *nonBroadcastOperandPos =
-          (u8 *)nonBroadcastOperand->values + nonBroadcastOperandIdx * elemBytes;
+      tensor_size_t nbOuterIdxPresenceMultiplier = nonBroadcastOperandOuterSize == numOuterIterations ? 1 : 0;
+      tensor_size_t nonBroadcastOperandIdx = nbOuterIdxPresenceMultiplier * (outerIdx * broadcastDimNumIterations * numInnerIterations) + (broadcastDimIdx * numInnerIterations);
+      void *nonBroadcastOperandPos = (u8 *)nonBroadcastOperand->values + nonBroadcastOperandIdx * elemBytes;
 
-      tensor_size_t outputIdx =
-          (outerIdx * broadcastDimNumIterations + broadcastDimIdx) * numInnerIterations;
+      tensor_size_t outputIdx = (outerIdx * broadcastDimNumIterations + broadcastDimIdx) * numInnerIterations;
       void *aPos = broadcastOperand == opA ? broadcastOperandPos : nonBroadcastOperandPos;
       void *bPos = broadcastOperand == opA ? nonBroadcastOperandPos : broadcastOperandPos;
 
-      doBinaryOperation(aPos, bPos, (u8 *)output->values + outputIdx * elemBytes,
-                        numInnerIterations);
+      doBinaryOperation(aPos, bPos, (u8 *)output->values + outputIdx * elemBytes, numInnerIterations);
     }
   }
 
@@ -371,8 +347,7 @@ static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(output == NULL, ALLOCATION_FAILED);
 
   if (areTensorsSameShape(opA, opB)) {
-    Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values,
-                                 output->values, output->size);
+    Result res = runCudaBinaryOp(ctx, opA->dtype, opType, opA->values, opB->values, output->values, output->size);
     PANIC_IF(res != OK, res);
     return output;
   }
@@ -400,9 +375,7 @@ static Tensor *binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   // All broadcast dimensions are collapsed into one, innerSize is 1
   tensor_size_t broadcastDimSize = larger->size / outerSize;
 
-  Result res = runCudaBroadcastBinaryOp(ctx, opA->dtype, opType, larger->values,
-                                        smaller->values, output->values, outerSize,
-                                        broadcastDimSize, 1);
+  Result res = runCudaBroadcastBinaryOp(ctx, opA->dtype, opType, larger->values, smaller->values, output->values, outerSize, broadcastDimSize, 1);
   PANIC_IF(res != OK, res);
   return output;
 }
@@ -420,12 +393,11 @@ static Tensor *binaryOp(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   }
 }
 
-Tensor *Add(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_Add(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_ADD);
 }
 
-static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, tensor_size_t idx,
-                                                        dim_t *currentCoord, dim_t *bCoords) {
+static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, tensor_size_t idx, dim_t *currentCoord, dim_t *bCoords) {
   unravel_index(idx, &a->shape, currentCoord);
 
   // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
@@ -555,13 +527,11 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) 
   PANIC_IF(res != OK, res);
 }
 
-
 static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:
-      PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims,
-               ERR_DTYPE_MISMATCH);
+      PANIC_IF(!areTensorsSameShape(a, b) || a->shape.numOfDims != b->shape.numOfDims, ERR_DTYPE_MISMATCH);
       inPlaceBinopCuda(ctx, a, b, opType);
       return;
     case CPU:
@@ -569,50 +539,50 @@ static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   }
 }
 
-void AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+void shapes_AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
   inPlaceBinop(ctx, a, b, OP_ADD);
 }
 
-void SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) {
+void shapes_SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) {
   inPlaceBinop(ctx, a, b, OP_SUBTRACT);
 }
 
-void MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) {
+void shapes_MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) {
   inPlaceBinop(ctx, a, b, OP_MULTIPLY);
 }
 
-Tensor *Subtract(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_Subtract(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_SUBTRACT);
 }
 
-Tensor *Multiply(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_Multiply(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_MULTIPLY);
 }
 
-Tensor *Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
+Tensor *shapes_Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
   // Implement division as: numerator / denominator = numerator * (denominator^-1)
   // This automatically gets correct gradients through the computation graph!
 
-  Tensor *denom_inv = Pow(ctx, denominator, -1.0f);
-  return Multiply(ctx, numerator, denom_inv);
+  Tensor *denom_inv = shapes_Pow(ctx, denominator, -1.0f);
+  return shapes_Multiply(ctx, numerator, denom_inv);
 }
 
-Tensor *GreaterThan(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_GreaterThan(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_GREATER);
 }
 
-Tensor *GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_GREATER_OR_EQUAL);
 }
 
-Tensor *Equal(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_Equal(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_EQUAL);
 }
 
-Tensor *LessThan(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_LessThan(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_LESS);
 }
 
-Tensor *LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
+Tensor *shapes_LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_LESS_OR_EQUAL);
 }

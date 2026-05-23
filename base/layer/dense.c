@@ -64,14 +64,14 @@ static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, Dtype 
 
 static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
   if (src->shape.numOfDims == 1) {
-    *dest = *UnSqueeze(ctx, src, 0);
+    *dest = *shapes_UnSqueeze(ctx, src, 0);
     return;
   }
 
   *dest = *src;
 }
 
-Tensor *shapes_layersops_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
+Tensor *shapes_layer_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
   // w: [outputSize, inputSize]
@@ -100,21 +100,20 @@ Tensor *shapes_layersops_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor 
   tensor_size_t rows = x->size / inputSize;
 
   Dim newDims = swapLastDim(ctx, x->shape, outputSize);
-  Tensor *out = T_Zeros(ctx, newDims);
+  Tensor *out = shapes_Make_ZerosTensor(ctx, newDims);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
-  runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize, xContig->values, (int)inputSize, wContig->values,
-          (int)inputSize, false, out->values, (int)outputSize);
+  runGemm(ctx, x->dtype, CblasNoTrans, CblasTrans, (int)rows, (int)outputSize, (int)inputSize, xContig->values, (int)inputSize, wContig->values, (int)inputSize, false, out->values, (int)outputSize);
 
   if (withBias) {
-    AddInPlace(ctx, out, b);
+    shapes_AddInPlace(ctx, out, b);
   }
 
   return out;
 }
 
-Result shapes_layerops_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
+Result shapes_layer_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
   // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL
@@ -184,23 +183,21 @@ Result shapes_layerops_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor 
   PANIC_IF(createdDWRaw == NULL, ALLOCATION_FAILED);
   dWRaw = *createdDWRaw;
 
-  runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize, gContig->values, (int)outputSize, wContig->values,
-          (int)inputSize, false, dX2d.values, (int)inputSize);
+  runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize, gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX2d.values, (int)inputSize);
 
   // dW = gradOut^T * x
-  runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows, gContig->values, (int)outputSize, xContig->values,
-          (int)inputSize, false, dWRaw.values, (int)inputSize);
+  runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows, gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dWRaw.values, (int)inputSize);
 
-  Tensor *dXReduced = ReduceBroadcast(ctx, x, &dX2d);
-  AddInPlace(ctx, dX, dXReduced);
+  Tensor *dXReduced = shapes_ReduceBroadcast(ctx, x, &dX2d);
+  shapes_AddInPlace(ctx, dX, dXReduced);
 
-  Tensor *dWReduced = ReduceBroadcast(ctx, w, &dWRaw);
-  AddInPlace(ctx, dW, dWReduced);
+  Tensor *dWReduced = shapes_ReduceBroadcast(ctx, w, &dWRaw);
+  shapes_AddInPlace(ctx, dW, dWReduced);
 
   if (dB != NULL) {
-    Tensor *dBRaw = Sum(ctx, gContig, 0);
-    Tensor *dBReduced = ReduceBroadcast(ctx, dB, dBRaw);
-    AddInPlace(ctx, dB, dBReduced);
+    Tensor *dBRaw = shapes_Sum(ctx, gContig, 0);
+    Tensor *dBReduced = shapes_ReduceBroadcast(ctx, dB, dBRaw);
+    shapes_AddInPlace(ctx, dB, dBReduced);
   }
 
   return OK;

@@ -71,8 +71,7 @@ static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor 
   Result res = runCudaFillTensor(ctx, outputGrad->dtype, ones, rows, one);
   PANIC_IF(res != OK, res);
 
-  runGemm(ctx, outputGrad->dtype, CblasNoTrans, CblasNoTrans, 1, (int)channels, (int)rows, ones, (int)rows, outputGrad->values, (int)channels, false,
-          dBias->values, (int)channels);
+  runGemm(ctx, outputGrad->dtype, CblasNoTrans, CblasNoTrans, 1, (int)channels, (int)rows, ones, (int)rows, outputGrad->values, (int)channels, false, dBias->values, (int)channels);
 }
 
 static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
@@ -113,8 +112,7 @@ static void accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBi
   return accumulateConvBiasGradCpu(outputGrad, dBias);
 }
 
-Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest,
-              Tensor *colBufferDest) {
+Result shapes_layer_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   Tensor *biasContig = bias;
@@ -142,8 +140,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     PANIC_IF(bias == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(bias->dtype != t->dtype, ERR_DTYPE_MISMATCH);
     PANIC_IF(bias->shape.numOfDims != 4 || bias->shape.dims == NULL, ERR_DIM_MISMATCH);
-    PANIC_IF(bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 || bias->shape.dims[3] != outChannels,
-             ERR_DIM_MISMATCH);
+    PANIC_IF(bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 || bias->shape.dims[3] != outChannels, ERR_DIM_MISMATCH);
   }
 
   dim_t kernelHeight = kernels->shape.dims[2];
@@ -155,9 +152,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
 
   PANIC_IF(kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight || width < kernelWidth, ERR_DIM_MISMATCH);
 
-  PANIC_IF(kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels || kernels->shape.dims[2] != kernelHeight ||
-               kernels->shape.dims[3] != kernelWidth,
-           ERR_DIM_MISMATCH);
+  PANIC_IF(kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels || kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth, ERR_DIM_MISMATCH);
 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
@@ -172,7 +167,6 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     biasContig = materializeTensorOnContext(ctx, bias);
   }
 
-
   tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
   tensor_size_t positions = outputChannelHeight * outputChannelWidth;
 
@@ -185,20 +179,16 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
     colBuffer = im2colF64(ctx, inputContig, kernelHeight, kernelWidth, stride);
     PANIC_IF(colBuffer == NULL, ERR_OUT_OF_MEMORY);
 
-
-
-    runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels, (int)patchSize, colBuffer->values, (int)patchSize,
-            kernelValues, (int)patchSize, false, gemmOutput.values, (int)outChannels);
+    runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels, (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
+            gemmOutput.values, (int)outChannels);
 
   } else {
     f32 *kernelValues = kernelContig->values;
 
     colBuffer = im2colF32(ctx, inputContig, kernelHeight, kernelWidth, stride);
 
-
-    runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels, (int)patchSize, colBuffer->values, (int)patchSize,
-            kernelValues, (int)patchSize, false, gemmOutput.values, (int)outChannels);
-
+    runGemm(ctx, t->dtype, CblasNoTrans, CblasTrans, (int)batch * positions, (int)outChannels, (int)patchSize, colBuffer->values, (int)patchSize, kernelValues, (int)patchSize, false,
+            gemmOutput.values, (int)outChannels);
   }
 
   if (colBufferDest != NULL) {
@@ -217,8 +207,7 @@ Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Te
   return result;
 }
 
-Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer,
-                      Tensor *dBias, bool withBias, u8 stride) {
+Result shapes_layer_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias, bool withBias, u8 stride) {
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
@@ -268,8 +257,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   dim_t outH = (h - kH) / stride + 1;
   dim_t outW = (w - kW) / stride + 1;
 
-  if (outputGrad->shape.dims[0] != batch || outputGrad->shape.dims[1] != outH || outputGrad->shape.dims[2] != outW ||
-      outputGrad->shape.dims[3] != outChannels) {
+  if (outputGrad->shape.dims[0] != batch || outputGrad->shape.dims[1] != outH || outputGrad->shape.dims[2] != outW || outputGrad->shape.dims[3] != outChannels) {
     return ERR_DIM_MISMATCH;
   }
   if (withBias) {
@@ -367,7 +355,7 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
   return res;
 }
 
-Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
+Result shapes_layer_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
   if (t == NULL || dest == NULL || ctx == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -491,7 +479,7 @@ Result ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 s
   return OK;
 }
 
-Result ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
+Result shapes_layer_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
   if (isInvalidTensor(x) || isInvalidTensor(kernels) || isInvalidTensor(gradOut) || dX == NULL || dKernels == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

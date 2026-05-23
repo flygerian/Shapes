@@ -22,8 +22,7 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   PANIC_IF((colBuffer == NULL || colBuffer->values == NULL), ALLOCATION_FAILED);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    Result result =
-        runCudaIm2col(ctx, t->dtype, t->values, batch, numInputChannels, height, width, kernelHeight, kernelWidth, stride, colBuffer->values);
+    Result result = runCudaIm2col(ctx, t->dtype, t->values, batch, numInputChannels, height, width, kernelHeight, kernelWidth, stride, colBuffer->values);
     PANIC_IF(result != OK, result);
 
     return colBuffer;
@@ -75,8 +74,7 @@ Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   PANIC_IF((colBuffer == NULL || colBuffer->values == NULL), ALLOCATION_FAILED);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    Result result =
-        runCudaIm2col(ctx, t->dtype, t->values, batch, numInputChannels, height, width, kernelHeight, kernelWidth, stride, colBuffer->values);
+    Result result = runCudaIm2col(ctx, t->dtype, t->values, batch, numInputChannels, height, width, kernelHeight, kernelWidth, stride, colBuffer->values);
     PANIC_IF(result != OK, result);
     return colBuffer;
   }
@@ -118,8 +116,7 @@ void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, di
   f32 *input = dInput->values;
 
   if (dInput->context->device->type == CUDA) {
-    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch, numInputChannels, height, width,
-                                         kernelHeight, kernelWidth, stride);
+    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch, numInputChannels, height, width, kernelHeight, kernelWidth, stride);
     PANIC_IF(res != OK, res);
     return;
   }
@@ -159,8 +156,7 @@ void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, di
   f64 *input = dInput->values;
 
   if (dInput->context->device->type == CUDA) {
-    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch, numInputChannels, height, width,
-                                         kernelHeight, kernelWidth, stride);
+    Result res = runCudaCol2imAccumulate(dInput->context, dInput->dtype, dInput->values, dColBuffer, batch, numInputChannels, height, width, kernelHeight, kernelWidth, stride);
     PANIC_IF(res != OK, res);
   }
 
