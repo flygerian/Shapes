@@ -8,7 +8,7 @@ void sgdStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PANIC_IF(res != OK, res);
 }
 
-Optimizer *optimizer_SGD(Context *ctx, f32 learningRate) {
+Optimizer *shapesnn_SGD(Context *ctx, f32 learningRate) {
   Optimizer *opt = allocate(ctx->memory, sizeof(Optimizer));
   *opt = (Optimizer){.learningRate = learningRate, .opType = OP_SGD};
   return opt;

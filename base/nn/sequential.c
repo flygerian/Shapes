@@ -14,7 +14,7 @@ typedef struct sequentialModelData {
   Array *parameters;
 } sequentialModel;
 
-FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numLayers, Dtype dtype) {
+FowardPassOp *shapesnn_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numLayers, Dtype dtype) {
   PANIC_IF(numLayers == 0, ZERO_LAYERS_PASSED);
   PANIC_IF_NULL(layerOps);
 
@@ -43,7 +43,7 @@ FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numL
     array_AppendFowardPassOp(layers, op);
 
     // TODO: use scratch context here
-    Array *params = Parameters(ctx, op);
+    Array *params = shapesnn_Parameters(ctx, op);
     for (size_t ip = 0; ip < params->size; ip++) {
       Tensor *p = shapes_Array_TensorIdx(params, ip);
       shapes_Array_AppendTensor(parameters, p);
@@ -67,7 +67,7 @@ Tensor *sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *inpu
   Tensor *out = input;
   for (RANGE(i, layers->size)) {
     FowardPassOp *layer = array_FowardPassOpIdx(layers, i);
-    out = Forward(ctx, layer, out);
+    out = shapesnn_Forward(ctx, layer, out);
   }
 
   return out;

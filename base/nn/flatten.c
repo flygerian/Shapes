@@ -31,7 +31,7 @@ Array *flattenParameters(Context *ctx) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
-FowardPassOp *layer_Flatten(Context *ctx, Dtype dtype) {
+FowardPassOp *shapesnn_Flatten(Context *ctx, Dtype dtype) {
   PANIC_IF_NULL(ctx);
 
   FowardPassOp *flattenLayer = allocate(ctx->memory, sizeof(FowardPassOp));

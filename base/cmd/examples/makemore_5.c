@@ -220,17 +220,17 @@ typedef struct {
 Model Make_Model(Context *ctx) {
   Model model;
 
-  model.embedding = layer_Embedding(ctx, F32, 27, 10);
+  model.embedding = shapesnn_Embedding(ctx, F32, 27, 10);
 
   FowardPassOp *layers[] = {
-      layer_Dense(ctx, F32, 30, 100, false),
-      layer_BatchNorm(ctx, F32, 100),
-      layer_Tanh(ctx, F32),
-      layer_Dense(ctx, F32, 100, 27, false),
+      shapesnn_Dense(ctx, F32, 30, 100, false),
+      shapesnn_BatchNorm(ctx, F32, 100),
+      shapesnn_Tanh(ctx, F32),
+      shapesnn_Dense(ctx, F32, 100, 27, false),
   };
 
-  model.layers = Make_Sequential(ctx, layers, 4, F32);
-  model.optimizer = optimizer_Adam(ctx, 0.001f);
+  model.layers = shapesnn_Sequential(ctx, layers, 4, F32);
+  model.optimizer = shapesnn_Adam(ctx, 0.001f);
 
   return model;
 }
@@ -298,7 +298,7 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
       i32 inputData[3] = {context[0], context[1], context[2]};
       Tensor *input = shapes_Make_FromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
-      Tensor *embeddings = Forward(ctx, model->embedding, input);
+      Tensor *embeddings = shapesnn_Forward(ctx, model->embedding, input);
       Tensor *reshapedEmbeddings = shapes_Reshape(ctx, embeddings, SHAPE2D(1, 30));
       Tensor *logits = Model_Forward(ctx, model, reshapedEmbeddings, 1);
       Tensor *probs = softmax(ctx, logits, 1);
@@ -370,18 +370,18 @@ void makemore_5() {
 
       Context scratchCtx = {.memory = scratchMem, .isTraining = true};
 
-      Tensor *embeddings = Forward(&scratchCtx, model.embedding, input);
+      Tensor *embeddings = shapesnn_Forward(&scratchCtx, model.embedding, input);
       Tensor *reshapedEmbeddings = shapes_Reshape(&scratchCtx, embeddings, SHAPE2D(batchSize, 30));
       Tensor *logits = Model_Forward(&scratchCtx, &model, reshapedEmbeddings, batchSize);
 
       Tensor *targetOneHot = shapes_Make_OneHotTensor(&scratchCtx, target, 27);
-      Tensor loss = loss_CrossEnthropy(&scratchCtx, targetOneHot, logits);
+      Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, targetOneHot, logits);
 
       Value lossValue;
       VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
       totalLoss += lossValue.as.f32 * batchSize;
 
-      Backward(&scratchCtx, &loss);
+      shapesnn_Backward(&scratchCtx, &loss);
 
       if (epoch == 0 && b == 0) {
         printf("\nGradient norms after first batch:\n");
@@ -398,8 +398,8 @@ void makemore_5() {
         printf("Scratch used per batch: %zu KB\n", scratchMem->allocated / 1024);
       }
 
-      OptimizerStep(&ctx, model.optimizer, params);
-      ZeroGrad(&ctx, params);
+      shapesnn_OptimizerStep(&ctx, model.optimizer, params);
+      shapesnn_ZeroGrad(&ctx, params);
 
       if (epoch == 0 && b == 0) {
         printf("Scratch used per batch: %zu KB\n", scratchMem->allocated / 1024);

@@ -193,39 +193,39 @@ static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
 }
 
 FowardPassOp *Make_ConvBlock(Context *ctx) {
-  FowardPassOp *layers[] = {layer_Conv2d(ctx, F32, 3, 64, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
-                            layer_Conv2d(ctx, F32, 64, 64, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
+  FowardPassOp *layers[] = {shapesnn_Conv2d(ctx, F32, 3, 64, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
+                            shapesnn_Conv2d(ctx, F32, 64, 64, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
 
-                            layer_MaxPool2d(ctx, F32, 2, 2, 1),
+                            shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
 
-                            layer_Conv2d(ctx, F32, 64, 128, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
-                            layer_Conv2d(ctx, F32, 128, 128, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
+                            shapesnn_Conv2d(ctx, F32, 64, 128, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
+                            shapesnn_Conv2d(ctx, F32, 128, 128, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
 
-                            layer_MaxPool2d(ctx, F32, 2, 2, 1),
+                            shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
 
-                            layer_Conv2d(ctx, F32, 128, 256, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
-                            layer_Conv2d(ctx, F32, 256, 256, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
+                            shapesnn_Conv2d(ctx, F32, 128, 256, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
+                            shapesnn_Conv2d(ctx, F32, 256, 256, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
 
-                            layer_MaxPool2d(ctx, F32, 2, 2, 1),
+                            shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
 
-                            layer_Conv2d(ctx, F32, 256, 512, 2, 2, 1, false),
-                            layer_Relu(ctx, F32),
-                            layer_AdaptiveAvgPool2d(ctx, F32, 1, 1)};
+                            shapesnn_Conv2d(ctx, F32, 256, 512, 2, 2, 1, false),
+                            shapesnn_Relu(ctx, F32),
+                            shapesnn_AdaptiveAvgPool2d(ctx, F32, 1, 1)};
 
-  return Make_Sequential(ctx, layers, 18, F32);
+  return shapesnn_Sequential(ctx, layers, 18, F32);
 }
 
 FowardPassOp *Make_LinearBlock(Context *ctx, u8 numLabels) {
-  FowardPassOp *layers[] = {layer_Flatten(ctx, F32), layer_Dense(ctx, F32, 512, 4000, false),      layer_Relu(ctx, F32), layer_Dense(ctx, F32, 4000, 1000, false),
-                            layer_Relu(ctx, F32),    layer_Dense(ctx, F32, 1000, numLabels, false)};
+  FowardPassOp *layers[] = {shapesnn_Flatten(ctx, F32), shapesnn_Dense(ctx, F32, 512, 4000, false),      shapesnn_Relu(ctx, F32), shapesnn_Dense(ctx, F32, 4000, 1000, false),
+                            shapesnn_Relu(ctx, F32),    shapesnn_Dense(ctx, F32, 1000, numLabels, false)};
 
-  return Make_Sequential(ctx, layers, 6, F32);
+  return shapesnn_Sequential(ctx, layers, 6, F32);
 }
 
 FowardPassOp *Make_Model(Context *ctx, u8 numLabels) {
@@ -233,7 +233,7 @@ FowardPassOp *Make_Model(Context *ctx, u8 numLabels) {
   FowardPassOp *linearBlock = Make_LinearBlock(ctx, numLabels);
 
   FowardPassOp *blocks[2] = {convBlock, linearBlock};
-  return Make_Sequential(ctx, blocks, 2, F32);
+  return shapesnn_Sequential(ctx, blocks, 2, F32);
 }
 
 FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
@@ -242,7 +242,7 @@ FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
 
   u8 numLabels = ds.labels->size;
   FowardPassOp *model = Make_Model(cudaCtx, numLabels);
-  Optimizer *optimzer = optimizer_SGD(cudaCtx, LEARNING_RATE);
+  Optimizer *optimzer = shapesnn_SGD(cudaCtx, LEARNING_RATE);
 
   ArrayPair trainDs = toBatches(hostCtx, ds.Xtrain, ds.Ytrain);
   Array *Xtrain = trainDs.a;
@@ -274,20 +274,20 @@ FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
       }
 
       Tensor *batch = shapes_Array_TensorIdx(Xtrain, i);
-      Tensor *logits = Forward(&scratch, model, batch);
+      Tensor *logits = shapesnn_Forward(&scratch, model, batch);
 
       Tensor *ybatch = shapes_Array_TensorIdx(Ytrain, i);
       Tensor *yOneHot = shapes_Squeeze(hostCtx, shapes_Make_OneHotTensor(&scratch, ybatch, numLabels));
-      Tensor loss = loss_CrossEnthropy(&scratch, yOneHot, logits);
+      Tensor loss = shapesnn_CrossEnthropy(&scratch, yOneHot, logits);
 
       Value *lossValue = shapes_GetAt(&loss, SHAPE1D(0));
       totalLoss += lossValue->as.f32;
       totalSamples += 1;
 
-      Backward(&scratch, &loss);
-      Array *parameters = Parameters(&scratch, model);
-      OptimizerStep(&scratch, optimzer, parameters);
-      ZeroGrad(&scratch, parameters);
+      shapesnn_Backward(&scratch, &loss);
+      Array *parameters = shapesnn_Parameters(&scratch, model);
+      shapesnn_OptimizerStep(&scratch, optimzer, parameters);
+      shapesnn_ZeroGrad(&scratch, parameters);
 
       resetArena(scratch.memory);
       Rewind(&scratch.cudaMemory);
@@ -317,12 +317,12 @@ void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
   Context scratch = shapes_GetScratchContext(&cudaCtx, 5 * GB);
   for (RANGE(i, BATCH_SIZE)) {
     Tensor *batch = shapes_Array_TensorIdx(Xtest, i);
-    Tensor *logits = Forward(&scratch, model, batch);
+    Tensor *logits = shapesnn_Forward(&scratch, model, batch);
 
     u8 oneInput = {1};
     Tensor *ybatch = shapes_Array_TensorIdx(Ytest, i);
 
-    Tensor *logitsProbs = nn_Softmax(&scratch, logits);
+    Tensor *logitsProbs = shapesnn_Softmax(&scratch, logits);
 
     Tensor *predictions = shapes_ArgMax(&scratch, logitsProbs, logitsProbs->shape.numOfDims - 1);
     PANIC_IF(predictions->shape.numOfDims != ybatch->shape.numOfDims, ERR_DIM_MISMATCH);

@@ -52,8 +52,8 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
 Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
-void Array_AppendLayer(Array *array, Layer *layer);
-Layer *Array_LayerIdx(Array *array, size_t idx);
+void shapesnn_Array_AppendLayer(Array *array, Layer *layer);
+Layer *shapesnn_Array_LayerIdx(Array *array, size_t idx);
 
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b,
              int ldb, bool accumulate, void *c, int ldc);

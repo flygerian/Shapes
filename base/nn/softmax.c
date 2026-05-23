@@ -1,7 +1,7 @@
 #include "shapes.h"
 #include "types.h"
 
-Tensor *nn_Softmax(Context *ctx, Tensor *logits) {
+Tensor *shapesnn_Softmax(Context *ctx, Tensor *logits) {
   u8 ndims = logits->shape.numOfDims;
   u8 classDim = ndims - 1;
 

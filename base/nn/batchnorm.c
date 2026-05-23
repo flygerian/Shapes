@@ -203,7 +203,7 @@ Tensor *batchNormForward(Context *ctx, Layer *layer, Tensor *input) {
   return out;
 }
 
-FowardPassOp *layer_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) {
+FowardPassOp *shapesnn_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) {
   Tensor *gamma = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
   shapes_SetValues(gamma, VALUE(dtype, 1.0));
   Tensor *beta = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
@@ -228,7 +228,7 @@ FowardPassOp *layer_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) {
   return op;
 }
 
-FowardPassOp *layer_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures) {
+FowardPassOp *shapesnn_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures) {
   Tensor *gamma = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
   shapes_SetValues(gamma, VALUE(dtype, 1.0));
   Tensor *beta = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);

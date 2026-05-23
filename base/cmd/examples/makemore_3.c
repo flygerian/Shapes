@@ -20,36 +20,36 @@ void makemore_3() {
   Tensor *xs = shapes_Make_FromContigousArray(&ctx, SHAPE2D(4, 3), &xData, F32);
   Tensor *ys = shapes_Make_FromContigousArray(&ctx, SHAPE1D(4), &yData, F32);
 
-  FowardPassOp *dense = layer_Dense(&ctx, F32, 3, 10, false);
-  FowardPassOp *bn1 = layer_BatchNorm(&ctx, F32, 10);
-  FowardPassOp *dense2 = layer_Dense(&ctx, F32, 10, 1, true);
+  FowardPassOp *dense = shapesnn_Dense(&ctx, F32, 3, 10, false);
+  FowardPassOp *bn1 = shapesnn_BatchNorm(&ctx, F32, 10);
+  FowardPassOp *dense2 = shapesnn_Dense(&ctx, F32, 10, 1, true);
 
-  Optimizer *sgd = optimizer_Adam(&ctx, 1e-2);
+  Optimizer *sgd = shapesnn_Adam(&ctx, 1e-2);
 
   ctx.isTraining = true;
   for (u8 epoch = 1; epoch <= 50; epoch++) {
-    Tensor *out = Forward(&ctx, dense, xs);
-    out = Forward(&ctx, bn1, out);
-    Tensor *logits = Forward(&ctx, dense2, out);
+    Tensor *out = shapesnn_Forward(&ctx, dense, xs);
+    out = shapesnn_Forward(&ctx, bn1, out);
+    Tensor *logits = shapesnn_Forward(&ctx, dense2, out);
 
     Tensor *logitsSqueezed = shapes_Squeeze(&ctx, logits);
-    Tensor loss = loss_Mse(&ctx, ys, logitsSqueezed);
+    Tensor loss = shapesnn_Mse(&ctx, ys, logitsSqueezed);
 
     Value lossValue;
     VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
 
     fprintf(stdout, "Loss: %f \n", lossValue.as.f32);
 
-    Backward(&ctx, &loss);
+    shapesnn_Backward(&ctx, &loss);
 
     Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 6);
 
-    shapes_Array_AppendTensorArray(parameters, Parameters(&ctx, dense));
-    shapes_Array_AppendTensorArray(parameters, Parameters(&ctx, dense2));
-    shapes_Array_AppendTensorArray(parameters, Parameters(&ctx, bn1));
+    shapes_Array_AppendTensorArray(parameters, shapesnn_Parameters(&ctx, dense));
+    shapes_Array_AppendTensorArray(parameters, shapesnn_Parameters(&ctx, dense2));
+    shapes_Array_AppendTensorArray(parameters, shapesnn_Parameters(&ctx, bn1));
 
-    OptimizerStep(&ctx, sgd, parameters);
-    ZeroGrad(&ctx, parameters);
+    shapesnn_OptimizerStep(&ctx, sgd, parameters);
+    shapesnn_ZeroGrad(&ctx, parameters);
   }
 
   shapes_DestroyContext(&ctx);

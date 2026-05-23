@@ -42,7 +42,7 @@ Array *embeddingParameters(Context *ctx, Layer *layer) {
   return params;
 }
 
-FowardPassOp *layer_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
+FowardPassOp *shapesnn_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
   Tensor *embedding = shapes_Make_RandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
 
   Layer *layer = allocate(ctx->memory, sizeof(Layer));

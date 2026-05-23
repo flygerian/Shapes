@@ -29,7 +29,7 @@ void mseBackward(Context *ctx, Tensor *tensor) {
   shapes_AddInPlace(ctx, yGround->grad, reducedGradYGround);
 }
 
-Tensor loss_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
+Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
   Tensor *diff = shapes_Subtract(ctx, yPred, yGround);
 
   Tensor *loss = shapes_Pow(ctx, diff, 2);

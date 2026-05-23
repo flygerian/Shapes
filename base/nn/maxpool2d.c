@@ -65,7 +65,7 @@ Array *maxPool2dLayerParameters(Context *ctx, Layer *state) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
-FowardPassOp *layer_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
+FowardPassOp *shapesnn_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
   maxPool2dLayerData *layerData = allocate(ctx->memory, sizeof(maxPool2dLayerData));
   dim_t *kernelDims = allocate(ctx->memory, sizeof(dim_t) * 2);
   kernelDims[0] = kernelH;

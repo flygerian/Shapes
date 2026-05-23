@@ -123,7 +123,7 @@ Array *conv2dLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
-FowardPassOp *layer_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
+FowardPassOp *shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
   Tensor *w = shapes_Make_RandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
 

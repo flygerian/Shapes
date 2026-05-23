@@ -53,7 +53,7 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PANIC_IF(res != OK, res);
 }
 
-Optimizer *optimizer_Adam(Context *ctx, f32 learningRate) {
+Optimizer *shapesnn_Adam(Context *ctx, f32 learningRate) {
   adamState state = {
       .episolon = 1e-8,
       .m = Make_PtrSet(ctx->memory),

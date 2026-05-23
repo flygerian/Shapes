@@ -15,7 +15,7 @@ void crossEnthropyBackward(Context *ctx, Tensor *tensor) {
   shapes_AddInPlace(ctx, logits->grad, reducedLogits);
 }
 
-Tensor loss_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
+Tensor shapesnn_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(yGround == NULL, ERR_NULL_PTR);
   PANIC_IF(logits == NULL, ERR_NULL_PTR);

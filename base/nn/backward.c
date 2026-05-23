@@ -36,7 +36,7 @@ void backward(Context *ctx, Tensor *node) {
   PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);
 }
 
-Array *Backward(Context *ctx, Tensor *tensor) {
+Array *shapesnn_Backward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   Tensor *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1);

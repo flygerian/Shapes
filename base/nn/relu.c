@@ -35,7 +35,7 @@ Array *reluLayerParameters(Context *ctx, Layer *state) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
-FowardPassOp *layer_Relu(Context *ctx, Dtype dtype) {
+FowardPassOp *shapesnn_Relu(Context *ctx, Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = NULL;
   layer->bias = NULL;

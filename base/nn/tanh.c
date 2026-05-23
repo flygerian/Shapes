@@ -39,7 +39,7 @@ Array *tanhLayerParameters(Context *ctx, Layer *state) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
-FowardPassOp *layer_Tanh(Context *ctx, Dtype dtype) {
+FowardPassOp *shapesnn_Tanh(Context *ctx, Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = NULL;
   layer->bias = NULL;

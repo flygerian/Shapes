@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include "nn_internal.h"
 
-void ZeroGrad(Context *ctx, Array *graph) {
+void shapesnn_ZeroGrad(Context *ctx, Array *graph) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(graph == NULL, ERR_NULL_PTR);
 
@@ -22,7 +22,7 @@ void ZeroGrad(Context *ctx, Array *graph) {
   }
 }
 
-Tensor *Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
+Tensor *shapesnn_Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
   PANIC_IF(fwdOp->ctx == NULL, NULL_CONTEXT);
   PANIC_IF(fwdOp == NULL, ERR_NULL_PTR);
   PANIC_IF(input == NULL, ERR_NULL_PTR);
@@ -43,7 +43,7 @@ Tensor *Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
   PANIC_IF(true, LAYER_OP_NOT_FOUND);
 }
 
-Array *Parameters(Context *ctx, FowardPassOp *op) {
+Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(op == NULL, ERR_NULL_PTR);
 
@@ -63,7 +63,7 @@ Array *Parameters(Context *ctx, FowardPassOp *op) {
   PANIC_IF(true, LAYER_OP_NOT_FOUND);
 }
 
-void OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters) {
+void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(optimizer == NULL, ERR_NULL_PTR);
 
