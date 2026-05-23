@@ -1,7 +1,8 @@
 #include "result/result.h"
 #include "shapes.h"
+#include "common.h"
 
-#include "tensor/tensor_internal.h"
+#include "tensor_internal.h"
 #include <string.h>
 
 BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {

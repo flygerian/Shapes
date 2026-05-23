@@ -1,6 +1,5 @@
-#include "../common.h"
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
@@ -23,7 +22,8 @@ static Result launchCastKernel(const void *src, void *dest, size_t n) {
   castKernel<<<blocks, threadsPerBlock>>>((const Src *)src, (Dest *)dest, n);
 
   cudaError_t launchError = cudaGetLastError();
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }

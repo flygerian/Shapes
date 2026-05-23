@@ -1,7 +1,6 @@
 #ifndef shapes_unary_h
 #define shapes_unary_h
 
-
 #define COMPUTE_POW(val, power, dtype_enum, c_type, pow_fn)                                        \
   case dtype_enum: {                                                                               \
     c_type num = (val)->as.c_type;                                                                 \

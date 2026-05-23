@@ -2,8 +2,8 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
-#include "tensor/value.h"
+#include "tensor_internal.h"
+#include "value.h"
 #include "utils_lib/array.h"
 #include <sched.h>
 #include <stdbool.h>
@@ -66,7 +66,7 @@ Tensor *restoreBatchNorm2DOutput(Context *ctx, Tensor *x2d, Dim originalShape) {
 }
 
 void batchnormBackward(Context *ctx, Tensor *output) {
-  Tensor *x = Array_TensorIdx(output->inputs, 0);
+  Tensor *x = shapes_Array_TensorIdx(output->inputs, 0);
   batchNormLayerData *layerData = output->opMetadata;
 
   Tensor *x2d;
@@ -118,8 +118,8 @@ Array *batchNormLayerParameters(Context *ctx, Layer *layer) {
 
   batchNormLayerData *layerData = layer->layerData;
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_AppendTensor(params, layerData->gamma);
-  Array_AppendTensor(params, layerData->beta);
+  shapes_Array_AppendTensor(params, layerData->gamma);
+  shapes_Array_AppendTensor(params, layerData->beta);
 
   return params;
 }
@@ -196,7 +196,7 @@ Tensor *batchNormForward(Context *ctx, Layer *layer, Tensor *input) {
   }
 
   out->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 1);
-  Array_AppendTensor(out->inputs, input);
+  shapes_Array_AppendTensor(out->inputs, input);
   out->opType = OP_BATCH_NORM;
   out->opMetadata = layerData;
 

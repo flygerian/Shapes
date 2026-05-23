@@ -1,7 +1,6 @@
-#include "common.h"
-#include "im2col.h"
+#include "layerops_internal.h"
 #include "result/result.h"
-#include "tensor/tensor_internal.h"
+#include "tensor_internal.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>

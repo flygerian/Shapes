@@ -1,8 +1,8 @@
 #include "common.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/types.h"
-#include "tensor/value.h"
+#include "types.h"
+#include "value.h"
 #include "tensor_internal.h"
 #include "utils_lib/cuda_memory.h"
 #include "utils_lib/memory.h"
@@ -215,7 +215,7 @@ Tensor *Clone(Context *ctx, Tensor *t) {
   void *newValues = allocateTensorValues(ctx, valueBytes);
   PANIC_IF(newValues == NULL, ALLOCATION_FAILED);
 
-  Result valueCopyRes = CopyBetweenDevices(source->context->device->type, ctx->device->type, source->values, newValues, valueBytes);
+  Result valueCopyRes = shapes_CopyBetweenDevices(source->context->device->type, ctx->device->type, source->values, newValues, valueBytes);
   PANIC_IF(valueCopyRes != OK, valueCopyRes);
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
@@ -254,7 +254,7 @@ void Copy(Context *ctx, Tensor *src, Tensor *dest) {
     srcContigous = src;
   }
 
-  Result copyRes = CopyBetweenDevices(srcContigous->context->device->type, dest->context->device->type, srcContigous->values, dest->values,
+  Result copyRes = shapes_CopyBetweenDevices(srcContigous->context->device->type, dest->context->device->type, srcContigous->values, dest->values,
                                        srcContigous->size * getBytesForDtype(srcContigous->dtype));
   PANIC_IF(copyRes != OK, copyRes);
 }
@@ -312,7 +312,7 @@ Tensor *MakeFromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtyp
   size_t valueBytes = snm.size * getBytesForDtype(dtype);
 
   // Assume the values buffer is created on the host then copy it to the devices on the context, which is where the tensor will get created as well
-  Result copyRes = CopyBetweenDevices(CPU, ctx->device->type, values, tensor->values, valueBytes);
+  Result copyRes = shapes_CopyBetweenDevices(CPU, ctx->device->type, values, tensor->values, valueBytes);
   PANIC_IF(copyRes != OK, copyRes);
 
   return tensor;
@@ -333,7 +333,7 @@ Tensor *MakeRandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dt
     for (tensor_size_t i = 0; i < tensor->size; i++) {
       VALUE_SET(tempValues, i, randomValueForRange(minValue, maxValue, dtype));
     }
-    Result copyRes = CopyBetweenDevices(CPU, ctx->device->type, tempValues, tensor->values, valueBytes);
+    Result copyRes = shapes_CopyBetweenDevices(CPU, ctx->device->type, tempValues, tensor->values, valueBytes);
     PANIC_IF(copyRes != OK, copyRes);
   } else {
     for (tensor_size_t i = 0; i < tensor->size; i++) {

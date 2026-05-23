@@ -2,7 +2,7 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/types.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include <alloca.h>

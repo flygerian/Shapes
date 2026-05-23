@@ -1,5 +1,5 @@
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
@@ -22,7 +22,8 @@ static Result launchFillKernel(void *dest, tensor_size_t n, T value) {
   fillKernel<<<blocks, threadsPerBlock>>>((T *)dest, n, value);
 
   cudaError_t launchError = cudaGetLastError();
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -133,7 +134,8 @@ extern "C" Result runCudaArange(Context *ctx, f32 start, f32 step, void *dest,
   arangeKernel<<<blocks, threadsPerBlock>>>((f32 *)dest, n, start, step);
 
   cudaError_t launchError = cudaGetLastError();
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }

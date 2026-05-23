@@ -1,4 +1,4 @@
-#include "im2col.h"
+#include "layerops_internal.h"
 
 // Pack one NCHW input image into a 2D matrix so convolution can be expressed
 // as GEMM. Each column is one sliding-window position, and each row selects one

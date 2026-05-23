@@ -2,7 +2,7 @@
 #include "../shapes.h"
 #include "nn.h"
 #include "result/result.h"
-#include "../tensor/tensor_internal.h"
+#include "../tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 
@@ -14,7 +14,7 @@ typedef struct adaptiveAvgPool2dLayerData {
 void adaptiveAvgPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *input = Array_TensorIdx(tensor->inputs, 0);
+  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   adaptiveAvgPool2dLayerData *layerData = tensor->opMetadata;
@@ -47,7 +47,7 @@ Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(dest->inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
-  Array_AppendTensor(dest->inputs, inputRef);
+  shapes_Array_AppendTensor(dest->inputs, inputRef);
 
   dest->opMetadata = layerData;
   dest->opType = OP_ADAPTIVE_AVG_POOL2D;
@@ -55,6 +55,7 @@ Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
 }
 
 Array *adaptiveAvgPool2dLayerParameters(Context *ctx, Layer *state) {
+  (void)state;
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 

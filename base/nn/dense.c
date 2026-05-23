@@ -2,7 +2,6 @@
 #include "../shapes.h"
 #include "nn.h"
 #include "result/result.h"
-#include "../tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include <sched.h>
@@ -20,19 +19,19 @@ void denseBackward(Context *ctx, Tensor *tensor) {
 
   denseLayerData *layerData = tensor->opMetadata;
 
-  Tensor *input = Array_TensorIdx(tensor->inputs, 0);
-  Tensor *weights = Array_TensorIdx(tensor->inputs, 1);
+  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor *weights = shapes_Array_TensorIdx(tensor->inputs, 1);
   Tensor *bias = NULL;
 
   if (layerData->withBias) {
     PANIC_IF(tensor != NULL, ERR_DIM_MISMATCH);
-    bias = Array_TensorIdx(tensor->inputs, 2);
+    bias = shapes_Array_TensorIdx(tensor->inputs, 2);
   }
 
   PANIC_IF(input == NULL || weights == NULL || input->grad == NULL || weights->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(bias != NULL && bias->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Result result = DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad, bias != NULL ? bias->grad : NULL);
+  Result result = shapes_layerops_DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad, bias != NULL ? bias->grad : NULL);
   PANIC_IF(result != OK, result);
 }
 
@@ -42,15 +41,15 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
   denseLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  Tensor *out = DenseLinear(ctx, tensor, layer->weights, layer->bias, layerData->withBias);
+  Tensor *out = shapes_layersops_DenseLinear(ctx, tensor, layer->weights, layer->bias, layerData->withBias);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
   Tensor *weightRef = layer->weights;
-  Array_AppendTensor(out->inputs, inputRef);
-  Array_AppendTensor(out->inputs, weightRef);
+  shapes_Array_AppendTensor(out->inputs, inputRef);
+  shapes_Array_AppendTensor(out->inputs, weightRef);
 
   if (layerData->withBias) {
     Tensor *biasRef = layer->bias;
@@ -65,10 +64,10 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
 Array *denseLayerParameters(Context *ctx, Layer *state) {
   denseLayerData *layerData = state->layerData;
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_AppendTensor(params, (void *)state->weights);
+  shapes_Array_AppendTensor(params, (void *)state->weights);
 
   if (layerData->withBias) {
-    Array_AppendTensor(params, (void *)state->bias);
+    shapes_Array_AppendTensor(params, (void *)state->bias);
   }
 
   return params;

@@ -3,9 +3,8 @@
 #include "nn/nn_internal.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
-#include "tensor/types.h"
-#include "tensor/value.h"
+#include "types.h"
+#include "value.h"
 #include "utils_lib/array.h"
 #include "utils_lib/bitset.h"
 #include "utils_lib/memory.h"
@@ -204,8 +203,8 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
     Tensor *inputTensor = MakeFromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
     Tensor *targetTensor = MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
 
-    Array_AppendTensor(batchInputs, inputTensor);
-    Array_AppendTensor(batchTargets, targetTensor);
+    shapes_Array_AppendTensor(batchInputs, inputTensor);
+    shapes_Array_AppendTensor(batchTargets, targetTensor);
   }
 
   return (BatchedDataset){.inputs = batchInputs, .targets = batchTargets, .numBatches = numBatches};
@@ -249,7 +248,7 @@ Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
   Array *gradNorms = MakeArray(ctx->memory, sizeof(Value), params->size);
 
   for (size_t i = 0; i < params->size; i++) {
-    Tensor *p = Array_TensorIdx(params, i);
+    Tensor *p = shapes_Array_TensorIdx(params, i);
     Tensor *squared = Pow(ctx, p->grad, 2);
     Tensor *flat = Reshape(ctx, squared, SHAPE1D(p->grad->size));
     Tensor *totalSum = Sum(ctx, flat, 0);

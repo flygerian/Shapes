@@ -1,7 +1,7 @@
 #ifndef shapes_nn_h
 #define shapes_nn_h
 
-#include "tensor/types.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include "utils_lib/map.h"
 

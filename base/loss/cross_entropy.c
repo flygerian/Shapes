@@ -3,15 +3,10 @@
 #include "shapes.h"
 
 #include "loss/cross_entropy.h"
-#include "tensor/tensor_internal.h"
-#include "tensor/types.h"
-#include "tensor/value.h"
+#include "tensor_internal.h"
+#include "types.h"
 #include <math.h>
 #include <sched.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 static inline Tensor* crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig, Tensor *yContig, Tensor *probs, tensor_size_t rows, dim_t classCount) {
   if (logitsContig->dtype == F64) {
@@ -151,7 +146,7 @@ static inline void crossEnthropyBackwardCpu(Tensor *pContig, Tensor *yContig, Te
   }
 }
 
-Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
+Tensor *shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
   PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(probs) || isInvalidTensor(gradOut), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(yGround->shape.numOfDims != probs->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(yGround->dtype != probs->dtype || yGround->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH);

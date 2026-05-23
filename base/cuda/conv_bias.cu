@@ -1,6 +1,5 @@
-#include "../common.h"
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
@@ -45,7 +44,8 @@ static Result launchConvBiasAdd(Context *ctx, void *output, const void *bias,
                                                  n, channels);
 
   cudaError_t launchError = cudaGetLastError();
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -64,7 +64,8 @@ static Result launchConvBiasBackward(Context *ctx, const void *outputGrad,
                                                       (T *)dBias, n, channels);
 
   cudaError_t launchError = cudaGetLastError();
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }

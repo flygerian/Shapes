@@ -1,8 +1,8 @@
 #ifndef shapes_value_h
 #define shapes_value_h
 
-#include "../common.h"
-#include "../tensor/types.h"
+#include "common.h"
+#include "types.h"
 #include <stddef.h>
 #include <stdio.h>
 

@@ -1,7 +1,6 @@
-#include "../common.h"
-#include "../layer/im2col.h"
+#include "../layer/layerops_internal.h"
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <stddef.h>

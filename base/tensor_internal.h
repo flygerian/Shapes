@@ -1,9 +1,7 @@
 #ifndef shapes_tensor_internal_h
 #define shapes_tensor_internal_h
 
-#include "../shapes.h"
 #include "cblas.h"
-#include "../common.h"
 #include "nn/nn.h"
 #include "result/result.h"
 #include "utils_lib/array.h"
@@ -54,12 +52,12 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
 Result powValue(Value *v, f32 power);
 Result sqrtValue(Value *v);
 
-Tensor *Array_TensorIdx(Array *array, size_t idx);
 void Array_AppendLayer(Array *array, Layer *layer);
 Layer *Array_LayerIdx(Array *array, size_t idx);
 
 void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b,
              int ldb, bool accumulate, void *c, int ldc);
+
 #ifdef __cplusplus
 extern "C" {
 #endif

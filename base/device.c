@@ -1,7 +1,6 @@
 
 #include "common.h"
 #include "shapes.h"
-#include "tensor/types.h"
 #include "utils_lib/cuda_memory.h"
 #include <string.h>
 
@@ -54,7 +53,7 @@ void attachHostDevice(Context *ctx) {
     ctx->device = device;
 }
 
-Result CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size) {
+Result shapes_CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size) {
   if (srcPtr == NULL || destPtr == NULL) {
     return ERR_NULL_PTR;
   }

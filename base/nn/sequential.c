@@ -1,8 +1,8 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
-#include "tensor/types.h"
+#include "tensor_internal.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,7 +19,7 @@ FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numL
   PANIC_IF_NULL(layerOps);
 
   Array *layers = MakeArray(ctx->memory, sizeof(FowardPassOp *), numLayers);
-  Array *parameters = Make_DynamicTensorArray(ctx->memory);
+  Array *parameters = shapes_Make_DynamicTensorArray(ctx->memory);
 
   for (size_t i = 0; i < numLayers; i++) {
     FowardPassOp *op = layerOps[i];
@@ -45,8 +45,8 @@ FowardPassOp *Make_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numL
     // TODO: use scratch context here
     Array *params = Parameters(ctx, op);
     for (size_t ip = 0; ip < params->size; ip++) {
-      Tensor *p = Array_TensorIdx(params, ip);
-      Array_AppendTensor(parameters, p);
+      Tensor *p = shapes_Array_TensorIdx(params, ip);
+      shapes_Array_AppendTensor(parameters, p);
     }
   }
 

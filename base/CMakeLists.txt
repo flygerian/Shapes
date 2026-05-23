@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
+
+# NVCC 13.2 is incompatible with GCC 16.1.1; use GCC 15 if available.
+if(EXISTS /usr/bin/g++-15)
+  set(CMAKE_CUDA_HOST_COMPILER /usr/bin/g++-15)
+endif()
+
 project(shapes C CUDA)
 set(CMAKE_CUDA_ARCHITECTURES 86)
 
@@ -95,16 +101,16 @@ add_library(shapes_core
     loss/cross_entropy.c
     optimizer/sgd.c
     optimizer/adam.c
-    tensor/tensor.c
-    tensor/binary_op.c
-    tensor/shape_ops.c
-    tensor/access.c
-    tensor/reduction.c
-    tensor/creation.c
-    tensor/unary.c
-    tensor/cast.c
-    tensor/accumulate.c
-    tensor/gemm.c
+    internal.c
+    binary_op.c
+    shape_ops.c
+    access.c
+    reduction.c
+    creation.c
+    unary.c
+    cast.c
+    accumulate.c
+    gemm.c
     nn/backward.c
     nn/dense.c
     nn/embedding.c

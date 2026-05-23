@@ -1,6 +1,6 @@
 #include "../common.h"
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <math.h>
@@ -116,7 +116,8 @@ static Result launchUnaryOpKernel(const void *src, void *dest, size_t n,
   if (launchError == cudaErrorMemoryAllocation) {
     return ERR_OUT_OF_MEMORY;
   }
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   if (opType == UNARY_OP_RELU && shouldLogCudaRelu()) {
     logCudaReluError("launch_ok", launchError, n, blocks, threadsPerBlock);
@@ -138,7 +139,8 @@ static Result launchReluBackwardKernel(const void *output, const void *gradOut,
   if (launchError == cudaErrorMemoryAllocation) {
     return ERR_OUT_OF_MEMORY;
   }
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -157,7 +159,8 @@ static Result launchReluBackwardAccumulateKernel(const void *output,
   if (launchError == cudaErrorMemoryAllocation) {
     return ERR_OUT_OF_MEMORY;
   }
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }
@@ -209,9 +212,9 @@ extern "C" Result runCudaReluBackward(Context *ctx, Dtype dtype,
 }
 
 extern "C" Result runCudaReluBackwardAccumulate(Context *ctx, Dtype dtype,
-                                                 const void *output,
-                                                 const void *gradOut, void *dest,
-                                                 tensor_size_t n) {
+                                                const void *output,
+                                                const void *gradOut, void *dest,
+                                                tensor_size_t n) {
   if (ctx == NULL || ctx->device == NULL || ctx->device->type != CUDA) {
     return ERR_NO_OP;
   }

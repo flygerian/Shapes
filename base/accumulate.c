@@ -1,9 +1,7 @@
-#include "common.h"
 #include "result/result.h"
-#include "tensor/tensor_internal.h"
-#include "tensor/value.h"
+#include "tensor_internal.h"
+#include "value.h"
 #include <stddef.h>
-#include <stdlib.h>
 
 static DeviceType getAccumulateDispatchDevice(Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {

@@ -2,7 +2,7 @@
 #include "../shapes.h"
 #include "nn.h"
 #include "result/result.h"
-#include "../tensor/tensor_internal.h"
+#include "tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include <stdio.h>
@@ -23,12 +23,12 @@ void conv2dBackward(Context *ctx, Tensor *tensor) {
   conv2dLayerData *layerData = tensor->opMetadata;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  Tensor *input = Array_TensorIdx(tensor->inputs, 0);
-  Tensor *kernels = Array_TensorIdx(tensor->inputs, 1);
+  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor *kernels = shapes_Array_TensorIdx(tensor->inputs, 1);
   Tensor *bias = NULL;
 
   if (layerData->withBias) {
-    bias = Array_TensorIdx(tensor->inputs, 2);
+    bias = shapes_Array_TensorIdx(tensor->inputs, 2);
   }
 
   PANIC_IF(input == NULL || kernels == NULL || input->grad == NULL || kernels->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -100,8 +100,8 @@ Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
 
   Tensor *inputRef = tensor;
   Tensor *weightRef = kernels;
-  Array_AppendTensor(dest->inputs, inputRef);
-  Array_AppendTensor(dest->inputs, weightRef);
+  shapes_Array_AppendTensor(dest->inputs, inputRef);
+  shapes_Array_AppendTensor(dest->inputs, weightRef);
 
   if (layerData->withBias) {
     Tensor *biasRef = bias;
@@ -116,10 +116,10 @@ Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
 Array *conv2dLayerParameters(Context *ctx, Layer *state) {
   conv2dLayerData *layerData = state->layerData;
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_AppendTensor(params, (void *)state->weights);
+  shapes_Array_AppendTensor(params, (void *)state->weights);
 
   if (layerData->withBias) {
-    Array_AppendTensor(params, (void *)state->bias);
+    shapes_Array_AppendTensor(params, (void *)state->bias);
   }
 
   return params;

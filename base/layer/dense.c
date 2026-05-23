@@ -1,11 +1,7 @@
-#include "common.h"
 #include "result/result.h"
 #include "shapes.h"
 
-#include "tensor/tensor_internal.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "tensor_internal.h"
 #include <time.h>
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
@@ -75,7 +71,7 @@ static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
   *dest = *src;
 }
 
-Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
+Tensor *shapes_layersops_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
   // w: [outputSize, inputSize]
@@ -118,7 +114,7 @@ Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias
   return out;
 }
 
-Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
+Result shapes_layerops_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
   // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL

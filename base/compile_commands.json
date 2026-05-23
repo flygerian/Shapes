@@ -37,79 +37,79 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/access.cu -o CMakeFiles/shapes_cuda.dir/cuda/access.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/access.cu -o CMakeFiles/shapes_cuda.dir/cuda/access.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/access.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/access.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/binary_op.cu -o CMakeFiles/shapes_cuda.dir/cuda/binary_op.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/binary_op.cu -o CMakeFiles/shapes_cuda.dir/cuda/binary_op.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/binary_op.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/binary_op.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/cast.cu -o CMakeFiles/shapes_cuda.dir/cuda/cast.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/cast.cu -o CMakeFiles/shapes_cuda.dir/cuda/cast.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/cast.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/cast.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/creation.cu -o CMakeFiles/shapes_cuda.dir/cuda/creation.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/creation.cu -o CMakeFiles/shapes_cuda.dir/cuda/creation.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/creation.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/creation.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/conv_bias.cu -o CMakeFiles/shapes_cuda.dir/cuda/conv_bias.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/conv_bias.cu -o CMakeFiles/shapes_cuda.dir/cuda/conv_bias.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/conv_bias.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/conv_bias.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/accumulate.cu -o CMakeFiles/shapes_cuda.dir/cuda/accumulate.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/accumulate.cu -o CMakeFiles/shapes_cuda.dir/cuda/accumulate.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/accumulate.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/accumulate.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/cross_entropy.cu -o CMakeFiles/shapes_cuda.dir/cuda/cross_entropy.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/cross_entropy.cu -o CMakeFiles/shapes_cuda.dir/cuda/cross_entropy.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/cross_entropy.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/cross_entropy.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/gemm.cu -o CMakeFiles/shapes_cuda.dir/cuda/gemm.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/gemm.cu -o CMakeFiles/shapes_cuda.dir/cuda/gemm.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/gemm.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/gemm.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/im2col.cu -o CMakeFiles/shapes_cuda.dir/cuda/im2col.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/im2col.cu -o CMakeFiles/shapes_cuda.dir/cuda/im2col.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/im2col.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/im2col.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/optimizer.cu -o CMakeFiles/shapes_cuda.dir/cuda/optimizer.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/optimizer.cu -o CMakeFiles/shapes_cuda.dir/cuda/optimizer.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/optimizer.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/optimizer.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/pool.cu -o CMakeFiles/shapes_cuda.dir/cuda/pool.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/pool.cu -o CMakeFiles/shapes_cuda.dir/cuda/pool.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/pool.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/pool.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/reduction.cu -o CMakeFiles/shapes_cuda.dir/cuda/reduction.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/reduction.cu -o CMakeFiles/shapes_cuda.dir/cuda/reduction.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/reduction.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/reduction.cu.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/unary.cu -o CMakeFiles/shapes_cuda.dir/cuda/unary.cu.o",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15  --options-file CMakeFiles/shapes_cuda.dir/includes_CUDA.rsp -O3 -DNDEBUG \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O3 -ffast-math -x cu -c /home/olabode/repos/Shapes/base/cuda/unary.cu -o CMakeFiles/shapes_cuda.dir/cuda/unary.cu.o",
   "file": "/home/olabode/repos/Shapes/base/cuda/unary.cu",
   "output": "CMakeFiles/shapes_cuda.dir/cuda/unary.cu.o"
 },
@@ -181,63 +181,63 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/tensor.c.o -c /home/olabode/repos/Shapes/base/tensor/tensor.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/tensor.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/tensor.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/internal.c.o -c /home/olabode/repos/Shapes/base/internal.c",
+  "file": "/home/olabode/repos/Shapes/base/internal.c",
+  "output": "CMakeFiles/shapes_core.dir/internal.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/binary_op.c.o -c /home/olabode/repos/Shapes/base/tensor/binary_op.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/binary_op.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/binary_op.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/binary_op.c.o -c /home/olabode/repos/Shapes/base/binary_op.c",
+  "file": "/home/olabode/repos/Shapes/base/binary_op.c",
+  "output": "CMakeFiles/shapes_core.dir/binary_op.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o -c /home/olabode/repos/Shapes/base/tensor/shape_ops.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/shape_ops.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/shape_ops.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/shape_ops.c.o -c /home/olabode/repos/Shapes/base/shape_ops.c",
+  "file": "/home/olabode/repos/Shapes/base/shape_ops.c",
+  "output": "CMakeFiles/shapes_core.dir/shape_ops.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/access.c.o -c /home/olabode/repos/Shapes/base/tensor/access.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/access.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/access.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/access.c.o -c /home/olabode/repos/Shapes/base/access.c",
+  "file": "/home/olabode/repos/Shapes/base/access.c",
+  "output": "CMakeFiles/shapes_core.dir/access.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/reduction.c.o -c /home/olabode/repos/Shapes/base/tensor/reduction.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/reduction.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/reduction.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/reduction.c.o -c /home/olabode/repos/Shapes/base/reduction.c",
+  "file": "/home/olabode/repos/Shapes/base/reduction.c",
+  "output": "CMakeFiles/shapes_core.dir/reduction.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/creation.c.o -c /home/olabode/repos/Shapes/base/tensor/creation.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/creation.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/creation.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/creation.c.o -c /home/olabode/repos/Shapes/base/creation.c",
+  "file": "/home/olabode/repos/Shapes/base/creation.c",
+  "output": "CMakeFiles/shapes_core.dir/creation.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/unary.c.o -c /home/olabode/repos/Shapes/base/tensor/unary.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/unary.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/unary.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/unary.c.o -c /home/olabode/repos/Shapes/base/unary.c",
+  "file": "/home/olabode/repos/Shapes/base/unary.c",
+  "output": "CMakeFiles/shapes_core.dir/unary.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/cast.c.o -c /home/olabode/repos/Shapes/base/tensor/cast.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/cast.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/cast.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cast.c.o -c /home/olabode/repos/Shapes/base/cast.c",
+  "file": "/home/olabode/repos/Shapes/base/cast.c",
+  "output": "CMakeFiles/shapes_core.dir/cast.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/accumulate.c.o -c /home/olabode/repos/Shapes/base/tensor/accumulate.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/accumulate.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/accumulate.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/accumulate.c.o -c /home/olabode/repos/Shapes/base/accumulate.c",
+  "file": "/home/olabode/repos/Shapes/base/accumulate.c",
+  "output": "CMakeFiles/shapes_core.dir/accumulate.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/tensor/gemm.c.o -c /home/olabode/repos/Shapes/base/tensor/gemm.c",
-  "file": "/home/olabode/repos/Shapes/base/tensor/gemm.c",
-  "output": "CMakeFiles/shapes_core.dir/tensor/gemm.c.o"
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/home/olabode/repos/Shapes/base/build/openblas/include -I/home/olabode/repos/Shapes/base -I/home/olabode/repos/Shapes/base/raylib/src -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -O3 -DNDEBUG -std=gnu99 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/gemm.c.o -c /home/olabode/repos/Shapes/base/gemm.c",
+  "file": "/home/olabode/repos/Shapes/base/gemm.c",
+  "output": "CMakeFiles/shapes_core.dir/gemm.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build",
@@ -421,157 +421,139 @@
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/context.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/context.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/context.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/init.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/init.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/init.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/init.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/input.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/input.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/input.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/input.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/input.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/input.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/monitor.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/monitor.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/monitor.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/monitor.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/platform.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/platform.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/platform.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/platform.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/platform.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/platform.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/vulkan.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/vulkan.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/vulkan.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/vulkan.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/vulkan.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/vulkan.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/window.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/window.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/window.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/window.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/egl_context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/egl_context.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/egl_context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/egl_context.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/egl_context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/egl_context.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/osmesa_context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/osmesa_context.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/osmesa_context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/osmesa_context.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/osmesa_context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_init.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_init.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_init.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_init.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_monitor.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_monitor.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_monitor.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_monitor.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_window.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_window.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_window.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_window.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_joystick.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_joystick.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_joystick.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_joystick.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/null_joystick.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_joystick.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_module.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_module.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_module.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_module.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_module.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/posix_module.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_time.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_time.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_time.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_time.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_time.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/posix_time.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_thread.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_thread.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_thread.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_thread.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_thread.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/posix_thread.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_init.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_init.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_init.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/x11_init.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_monitor.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_monitor.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_monitor.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/x11_monitor.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_window.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_window.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/x11_window.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/x11_window.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/xkb_unicode.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/xkb_unicode.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/xkb_unicode.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/xkb_unicode.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/xkb_unicode.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/xkb_unicode.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/glx_context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/glx_context.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/glx_context.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/glx_context.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/glx_context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/glx_context.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/wl_init.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/wl_init.c",
-  "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/wl_init.c",
-  "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/wl_init.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/wl_monitor.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/wl_monitor.c",
-  "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/wl_monitor.c",
-  "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/wl_monitor.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/wl_window.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/wl_window.c",
-  "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/wl_window.c",
-  "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/wl_window.c.o"
-},
-{
-  "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/linux_joystick.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/linux_joystick.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/linux_joystick.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/linux_joystick.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/linux_joystick.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/linux_joystick.c.o"
 },
 {
   "directory": "/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_poll.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_poll.c",
+  "command": "/usr/bin/cc -D_DEFAULT_SOURCE -D_GLFW_X11 -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/include -I/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src -I/home/olabode/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_poll.c.o -c /home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_poll.c",
   "file": "/home/olabode/repos/Shapes/base/raylib/src/external/glfw/src/posix_poll.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/posix_poll.c.o"
 }

@@ -3,10 +3,10 @@
 #include <stddef.h>
 #include <string.h>
 #include <cuda_runtime_api.h>
-#include "../shapes.h"
+#include "shapes.h"
 #include "nn/nn.h"
 #include "result/result.h"
-#include "tensor/types.h"
+#include "types.h"
 #include "tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
@@ -287,6 +287,7 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
 }
 
 Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result) {
+  (void)ctx;
   if (dim == 0) {
     return OK;
   }
@@ -425,35 +426,35 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
   }
 }
 
-Array *Make_DynamicTensorArray(Memory *memory) {
+Array *shapes_Make_DynamicTensorArray(Memory *memory) {
   return MakeDynamicArray(memory, sizeof(Tensor *));
 }
 
-Array *Make_TensorArray(Memory *memory, size_t capacity) {
+Array *shapes_Make_TensorArray(Memory *memory, size_t capacity) {
   return MakeArray(memory, sizeof(Tensor *), capacity);
 }
 
-void Array_AppendTensor(Array *array, Tensor *tensor) {
+void shapes_Array_AppendTensor(Array *array, Tensor *tensor) {
   PANIC_IF(array->elemSize != sizeof(Tensor *), ARRAY_ELEM_SIZE_MISMATCH);
   Array_Append(array, (void *)&tensor);
 }
 
-void Array_AppendTensorArray(Array *array, Array *tensorArray) {
+void shapes_Array_AppendTensorArray(Array *array, Array *tensorArray) {
   PANIC_IF(array == NULL, ERR_NULL_PTR);
 
   for (size_t i = 0; i < tensorArray->size; i++) {
-    Tensor *tensor = Array_TensorIdx(tensorArray, i);
+    Tensor *tensor = shapes_Array_TensorIdx(tensorArray, i);
     PANIC_IF(tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-    Array_AppendTensor(array, tensor);
+    shapes_Array_AppendTensor(array, tensor);
   }
 }
 
-void Array_AppendLayer(Array *array, Layer *layer) {
+void shapes_Array_AppendLayer(Array *array, Layer *layer) {
   Array_Append(array, (void *)&layer);
 }
 
-Layer *Array_LayerIdx(Array *array, size_t idx) {
+Layer *shapes_Array_LayerIdx(Array *array, size_t idx) {
   return *(Layer **)Array_Idx(array, idx);
 }
 
@@ -543,7 +544,7 @@ void moveTensor(Context *destCtx, Tensor *t) {
   CudaBlock block = AllocateOnCuda(&destCtx->cudaMemory, destCtx->cudaMetadataMemory, valueBytes);
   PANIC_IF(block.ptr == NULL, ALLOCATION_FAILED);
   void *locationOnDest = block.ptr;
-  Result copyResult = CopyBetweenDevices(t->context->device->type, destCtx->device->type, t->values, locationOnDest, valueBytes);
+  Result copyResult = shapes_CopyBetweenDevices(t->context->device->type, destCtx->device->type, t->values, locationOnDest, valueBytes);
 
   PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
 
@@ -557,7 +558,7 @@ void MoveTensorToHost(Context *destCtx, Tensor *t) {
   PANIC_IF(locationOnDest == NULL, ALLOCATION_FAILED);
 
   Result copyResult =
-      CopyBetweenDevices(t->context->device->type, destCtx->device->type,
+      shapes_CopyBetweenDevices(t->context->device->type, destCtx->device->type,
                          t->values, locationOnDest, valueBytes);
   PANIC_IF(copyResult != OK, ALLOCATION_FAILED);
 
@@ -572,7 +573,7 @@ void MoveToCuda(Context *destCtx, Array *tensors) {
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
-    Tensor *t = Array_TensorIdx(tensors, x);
+    Tensor *t = shapes_Array_TensorIdx(tensors, x);
     PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 
@@ -588,7 +589,7 @@ void MoveToHost(Context *destCtx, Array *tensors) {
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
-    Tensor *t = Array_TensorIdx(tensors, x);
+    Tensor *t = shapes_Array_TensorIdx(tensors, x);
     PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 

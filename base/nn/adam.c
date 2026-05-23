@@ -1,7 +1,6 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 #include "utils_lib/map.h"
 #include <stddef.h>
@@ -21,8 +20,10 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PtrMap *m = state->m;
   PtrMap *v = state->v;
 
+  PANIC_IF(parameters->size == 0, ERR_DIM_MISMATCH);
+
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = Array_TensorIdx(parameters, i);
+    Tensor *p = shapes_Array_TensorIdx(parameters, i);
     if (!PtrMap_Contains(m, p)) {
       PtrMap_Put(m, p, T_Zeros(ctx, p->shape));
     }
@@ -35,7 +36,7 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   AdamData triplets[parameters->size];
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = Array_TensorIdx(parameters, i);
+    Tensor *p = shapes_Array_TensorIdx(parameters, i);
     triplets[i] = (AdamData){
         .m = ((Tensor *)PtrMap_Get(m, p))->values,
         .v = ((Tensor *)PtrMap_Get(v, p))->values,
@@ -47,7 +48,7 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   }
 
   state->step++;
-  Result res = Adam(ctx, triplets, parameters->size, state->b1, state->b2, state->step, opts->learningRate, state->episolon);
+  Result res = shapes_optimizer_Adam(ctx, triplets, parameters->size, state->b1, state->b2, state->step, opts->learningRate, state->episolon);
 
   PANIC_IF(res != OK, res);
 }

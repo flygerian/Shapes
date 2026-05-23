@@ -228,7 +228,7 @@ static Result validateAbsTensor(Tensor *t) {
   }
 }
 
-static Result applyUnaryCpuValue(Value *value, UnaryOpType opType, f32 param) {
+static Result applyUnaryCpuValue(Value *value, UnaryOpType opType) {
   switch (opType) {
     case UNARY_OP_NEGATE: return negateValue(value);
     case UNARY_OP_EXP: return expValue(value);
@@ -327,7 +327,7 @@ static Tensor *powCpu(Context *ctx, Tensor *t, f32 power) {
   return output;
 }
 
-static Tensor *unaryOpCpu(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
+static Tensor *unaryOpCpu(Context *ctx, Tensor *t, UnaryOpType opType) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
@@ -337,7 +337,7 @@ static Tensor *unaryOpCpu(Context *ctx, Tensor *t, UnaryOpType opType, f32 param
     Value value;
     VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
-    Result result = applyUnaryCpuValue(&value, opType, param);
+    Result result = applyUnaryCpuValue(&value, opType);
     PANIC_IF(result != OK, result);
 
     VALUE_SET(output->values, i, value);
@@ -373,7 +373,7 @@ static Tensor *dispatchUnaryOp(Context *ctx, Tensor *t, UnaryOpType opType, f32 
   switch (getUnaryDispatchDevice(ctx)) {
     case CUDA: return unaryOpCuda(ctx, t, opType, param);
     case CPU:
-    default: return unaryOpCpu(ctx, t, opType, param);
+    default: return unaryOpCpu(ctx, t, opType);
   }
 }
 
@@ -545,7 +545,7 @@ void SqrtBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
            ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *input = Array_TensorIdx(tensor->inputs, 0);
+  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *two = T_Float(ctx, SHAPE1D(1), 2.0f);
@@ -563,7 +563,7 @@ Tensor *Sqrt(Context *ctx, Tensor *t) {
   Tensor *out = dispatchUnaryOp(ctx, t, UNARY_OP_SQRT, 0.0f);
 
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  Array_AppendTensor(out->inputs, t);
+  shapes_Array_AppendTensor(out->inputs, t);
   out->opType = OP_SQRT;
   out->grad = T_Zeros(ctx, out->shape);
 

@@ -1,8 +1,6 @@
-#include "../common.h"
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
-#include <cmath>
 #include <cuda_runtime.h>
 #include <stddef.h>
 
@@ -109,16 +107,15 @@ __global__ static void broadcastAddKernel(const T *larger, const T *smaller,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] + smaller[outer * innerDimSize + inner];
 }
 
 template <typename T>
-__global__ static void broadcastSubtractKernel(const T *larger,
-                                               const T *smaller, T *dest,
-                                               size_t broadcastDimSize,
-                                               size_t innerDimSize) {
+__global__ static void
+broadcastSubtractKernel(const T *larger, const T *smaller, T *dest,
+                        size_t broadcastDimSize, size_t innerDimSize) {
   size_t outer = blockIdx.x;
   size_t broadcast = blockIdx.y * blockDim.y + threadIdx.y;
   size_t inner = blockIdx.z * blockDim.x + threadIdx.x;
@@ -127,16 +124,15 @@ __global__ static void broadcastSubtractKernel(const T *larger,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] - smaller[outer * innerDimSize + inner];
 }
 
 template <typename T>
-__global__ static void broadcastMultiplyKernel(const T *larger,
-                                               const T *smaller, T *dest,
-                                               size_t broadcastDimSize,
-                                               size_t innerDimSize) {
+__global__ static void
+broadcastMultiplyKernel(const T *larger, const T *smaller, T *dest,
+                        size_t broadcastDimSize, size_t innerDimSize) {
   size_t outer = blockIdx.x;
   size_t broadcast = blockIdx.y * blockDim.y + threadIdx.y;
   size_t inner = blockIdx.z * blockDim.x + threadIdx.x;
@@ -145,8 +141,8 @@ __global__ static void broadcastMultiplyKernel(const T *larger,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] * smaller[outer * innerDimSize + inner];
 }
 
@@ -155,10 +151,9 @@ __global__ static void broadcastMultiplyKernel(const T *larger,
 // ============================================================================
 
 template <typename T>
-__global__ static void broadcastGreaterKernel(const T *larger,
-                                              const T *smaller, bool *dest,
-                                              size_t broadcastDimSize,
-                                              size_t innerDimSize) {
+__global__ static void
+broadcastGreaterKernel(const T *larger, const T *smaller, bool *dest,
+                       size_t broadcastDimSize, size_t innerDimSize) {
   size_t outer = blockIdx.x;
   size_t broadcast = blockIdx.y * blockDim.y + threadIdx.y;
   size_t inner = blockIdx.z * blockDim.x + threadIdx.x;
@@ -167,17 +162,15 @@ __global__ static void broadcastGreaterKernel(const T *larger,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] > smaller[outer * innerDimSize + inner];
 }
 
 template <typename T>
-__global__ static void broadcastGreaterOrEqualKernel(const T *larger,
-                                                     const T *smaller,
-                                                     bool *dest,
-                                                     size_t broadcastDimSize,
-                                                     size_t innerDimSize) {
+__global__ static void
+broadcastGreaterOrEqualKernel(const T *larger, const T *smaller, bool *dest,
+                              size_t broadcastDimSize, size_t innerDimSize) {
   size_t outer = blockIdx.x;
   size_t broadcast = blockIdx.y * blockDim.y + threadIdx.y;
   size_t inner = blockIdx.z * blockDim.x + threadIdx.x;
@@ -186,8 +179,8 @@ __global__ static void broadcastGreaterOrEqualKernel(const T *larger,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] >= smaller[outer * innerDimSize + inner];
 }
 
@@ -203,16 +196,15 @@ __global__ static void broadcastLessKernel(const T *larger, const T *smaller,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] < smaller[outer * innerDimSize + inner];
 }
 
 template <typename T>
-__global__ static void broadcastLessOrEqualKernel(const T *larger,
-                                                  const T *smaller, bool *dest,
-                                                  size_t broadcastDimSize,
-                                                  size_t innerDimSize) {
+__global__ static void
+broadcastLessOrEqualKernel(const T *larger, const T *smaller, bool *dest,
+                           size_t broadcastDimSize, size_t innerDimSize) {
   size_t outer = blockIdx.x;
   size_t broadcast = blockIdx.y * blockDim.y + threadIdx.y;
   size_t inner = blockIdx.z * blockDim.x + threadIdx.x;
@@ -221,8 +213,8 @@ __global__ static void broadcastLessOrEqualKernel(const T *larger,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] <= smaller[outer * innerDimSize + inner];
 }
 
@@ -238,8 +230,8 @@ __global__ static void broadcastEqualKernel(const T *larger, const T *smaller,
     return;
   }
 
-  size_t idx =
-      outer * broadcastDimSize * innerDimSize + broadcast * innerDimSize + inner;
+  size_t idx = outer * broadcastDimSize * innerDimSize +
+               broadcast * innerDimSize + inner;
   dest[idx] = larger[idx] == smaller[outer * innerDimSize + inner];
 }
 
@@ -306,8 +298,8 @@ static Result launchGreaterOrEqualKernel(Context *, const void *a,
   int threadsPerBlock = 256;
   int blocks =
       (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
-  greaterOrEqualKernel<<<blocks, threadsPerBlock>>>(
-      (const T *)a, (const T *)b, (bool *)dest, (size_t)n);
+  greaterOrEqualKernel<<<blocks, threadsPerBlock>>>((const T *)a, (const T *)b,
+                                                    (bool *)dest, (size_t)n);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
@@ -331,7 +323,7 @@ static Result launchLessOrEqualKernel(Context *, const void *a, const void *b,
   int blocks =
       (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
   lessOrEqualKernel<<<blocks, threadsPerBlock>>>((const T *)a, (const T *)b,
-                                                  (bool *)dest, (size_t)n);
+                                                 (bool *)dest, (size_t)n);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
@@ -343,22 +335,22 @@ static Result launchEqualKernel(Context *, const void *a, const void *b,
   int blocks =
       (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
   equalKernel<<<blocks, threadsPerBlock>>>((const T *)a, (const T *)b,
-                                         (bool *)dest, (size_t)n);
+                                           (bool *)dest, (size_t)n);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
 
 template <typename T>
-static Result launchBroadcastAddKernel(Context *, const void *larger,
-                                       const void *smaller, void *dest,
-                                       size_t outerDimSize,
-                                       size_t broadcastDimSize,
-                                       size_t innerDimSize) {
+static Result
+launchBroadcastAddKernel(Context *, const void *larger, const void *smaller,
+                         void *dest, size_t outerDimSize,
+                         size_t broadcastDimSize, size_t innerDimSize) {
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
   broadcastAddKernel<<<grid, block>>>((const T *)larger, (const T *)smaller,
-                                     (T *)dest, broadcastDimSize, innerDimSize);
+                                      (T *)dest, broadcastDimSize,
+                                      innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
@@ -372,9 +364,9 @@ static Result launchBroadcastSubtractKernel(Context *, const void *larger,
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
-  broadcastSubtractKernel<<<grid, block>>>(
-      (const T *)larger, (const T *)smaller, (T *)dest, broadcastDimSize,
-      innerDimSize);
+  broadcastSubtractKernel<<<grid, block>>>((const T *)larger,
+                                           (const T *)smaller, (T *)dest,
+                                           broadcastDimSize, innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
@@ -388,36 +380,32 @@ static Result launchBroadcastMultiplyKernel(Context *, const void *larger,
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
-  broadcastMultiplyKernel<<<grid, block>>>(
-      (const T *)larger, (const T *)smaller, (T *)dest, broadcastDimSize,
-      innerDimSize);
+  broadcastMultiplyKernel<<<grid, block>>>((const T *)larger,
+                                           (const T *)smaller, (T *)dest,
+                                           broadcastDimSize, innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
 
 template <typename T>
-static Result launchBroadcastGreaterKernel(Context *, const void *larger,
-                                           const void *smaller, void *dest,
-                                           size_t outerDimSize,
-                                           size_t broadcastDimSize,
-                                           size_t innerDimSize) {
+static Result
+launchBroadcastGreaterKernel(Context *, const void *larger, const void *smaller,
+                             void *dest, size_t outerDimSize,
+                             size_t broadcastDimSize, size_t innerDimSize) {
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
-  broadcastGreaterKernel<<<grid, block>>>(
-      (const T *)larger, (const T *)smaller, (bool *)dest, broadcastDimSize,
-      innerDimSize);
+  broadcastGreaterKernel<<<grid, block>>>((const T *)larger, (const T *)smaller,
+                                          (bool *)dest, broadcastDimSize,
+                                          innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
 
 template <typename T>
-static Result launchBroadcastGreaterOrEqualKernel(Context *, const void *larger,
-                                                  const void *smaller,
-                                                  void *dest,
-                                                  size_t outerDimSize,
-                                                  size_t broadcastDimSize,
-                                                  size_t innerDimSize) {
+static Result launchBroadcastGreaterOrEqualKernel(
+    Context *, const void *larger, const void *smaller, void *dest,
+    size_t outerDimSize, size_t broadcastDimSize, size_t innerDimSize) {
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
@@ -429,17 +417,16 @@ static Result launchBroadcastGreaterOrEqualKernel(Context *, const void *larger,
 }
 
 template <typename T>
-static Result launchBroadcastLessKernel(Context *, const void *larger,
-                                        const void *smaller, void *dest,
-                                        size_t outerDimSize,
-                                        size_t broadcastDimSize,
-                                        size_t innerDimSize) {
+static Result
+launchBroadcastLessKernel(Context *, const void *larger, const void *smaller,
+                          void *dest, size_t outerDimSize,
+                          size_t broadcastDimSize, size_t innerDimSize) {
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
-  broadcastLessKernel<<<grid, block>>>(
-      (const T *)larger, (const T *)smaller, (bool *)dest, broadcastDimSize,
-      innerDimSize);
+  broadcastLessKernel<<<grid, block>>>((const T *)larger, (const T *)smaller,
+                                       (bool *)dest, broadcastDimSize,
+                                       innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
@@ -453,25 +440,24 @@ static Result launchBroadcastLessOrEqualKernel(Context *, const void *larger,
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
-  broadcastLessOrEqualKernel<<<grid, block>>>(
-      (const T *)larger, (const T *)smaller, (bool *)dest, broadcastDimSize,
-      innerDimSize);
+  broadcastLessOrEqualKernel<<<grid, block>>>((const T *)larger,
+                                              (const T *)smaller, (bool *)dest,
+                                              broadcastDimSize, innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
 
 template <typename T>
-static Result launchBroadcastEqualKernel(Context *, const void *larger,
-                                         const void *smaller, void *dest,
-                                         size_t outerDimSize,
-                                         size_t broadcastDimSize,
-                                         size_t innerDimSize) {
+static Result
+launchBroadcastEqualKernel(Context *, const void *larger, const void *smaller,
+                           void *dest, size_t outerDimSize,
+                           size_t broadcastDimSize, size_t innerDimSize) {
   dim3 block(32, 32, 1);
   dim3 grid(outerDimSize, (broadcastDimSize + block.y - 1) / block.y,
             (innerDimSize + block.x - 1) / block.x);
-  broadcastEqualKernel<<<grid, block>>>(
-      (const T *)larger, (const T *)smaller, (bool *)dest, broadcastDimSize,
-      innerDimSize);
+  broadcastEqualKernel<<<grid, block>>>((const T *)larger, (const T *)smaller,
+                                        (bool *)dest, broadcastDimSize,
+                                        innerDimSize);
   checkCudaLaunch(cudaGetLastError());
   return OK;
 }
@@ -489,18 +475,18 @@ typedef Result (*CudaBroadcastBinaryOpFn)(Context *, const void *, const void *,
                                           void *, size_t, size_t, size_t);
 
 static const CudaBinaryOpFn addTable[12] = {
-    NULL,                    // F16
-    launchAddKernel<f32>,    // F32
-    launchAddKernel<f64>,    // F64
-    launchAddKernel<u8>,     // U8
-    launchAddKernel<u16>,    // U16
-    launchAddKernel<u32>,    // U32
-    launchAddKernel<u64>,    // U64
-    launchAddKernel<i8>,     // I8
-    launchAddKernel<i16>,    // I16
-    launchAddKernel<i32>,    // I32
-    launchAddKernel<i64>,    // I64
-    launchAddKernel<bool>,   // BOOL
+    NULL,                  // F16
+    launchAddKernel<f32>,  // F32
+    launchAddKernel<f64>,  // F64
+    launchAddKernel<u8>,   // U8
+    launchAddKernel<u16>,  // U16
+    launchAddKernel<u32>,  // U32
+    launchAddKernel<u64>,  // U64
+    launchAddKernel<i8>,   // I8
+    launchAddKernel<i16>,  // I16
+    launchAddKernel<i32>,  // I32
+    launchAddKernel<i64>,  // I64
+    launchAddKernel<bool>, // BOOL
 };
 
 static const CudaBinaryOpFn subtractTable[12] = {
@@ -534,18 +520,18 @@ static const CudaBinaryOpFn multiplyTable[12] = {
 };
 
 static const CudaBinaryOpFn greaterTable[12] = {
-    NULL,                        // F16
-    launchGreaterKernel<f32>,    // F32
-    launchGreaterKernel<f64>,    // F64
-    launchGreaterKernel<u8>,     // U8
-    launchGreaterKernel<u16>,    // U16
-    launchGreaterKernel<u32>,    // U32
-    launchGreaterKernel<u64>,    // U64
-    launchGreaterKernel<i8>,     // I8
-    launchGreaterKernel<i16>,    // I16
-    launchGreaterKernel<i32>,    // I32
-    launchGreaterKernel<i64>,    // I64
-    launchGreaterKernel<bool>,   // BOOL
+    NULL,                      // F16
+    launchGreaterKernel<f32>,  // F32
+    launchGreaterKernel<f64>,  // F64
+    launchGreaterKernel<u8>,   // U8
+    launchGreaterKernel<u16>,  // U16
+    launchGreaterKernel<u32>,  // U32
+    launchGreaterKernel<u64>,  // U64
+    launchGreaterKernel<i8>,   // I8
+    launchGreaterKernel<i16>,  // I16
+    launchGreaterKernel<i32>,  // I32
+    launchGreaterKernel<i64>,  // I64
+    launchGreaterKernel<bool>, // BOOL
 };
 
 static const CudaBinaryOpFn greaterOrEqualTable[12] = {
@@ -564,180 +550,180 @@ static const CudaBinaryOpFn greaterOrEqualTable[12] = {
 };
 
 static const CudaBinaryOpFn lessTable[12] = {
-    NULL,                       // F16
-    launchLessKernel<f32>,      // F32
-    launchLessKernel<f64>,      // F64
-    launchLessKernel<u8>,       // U8
-    launchLessKernel<u16>,      // U16
-    launchLessKernel<u32>,      // U32
-    launchLessKernel<u64>,      // U64
-    launchLessKernel<i8>,       // I8
-    launchLessKernel<i16>,      // I16
-    launchLessKernel<i32>,      // I32
-    launchLessKernel<i64>,      // I64
-    launchLessKernel<bool>,     // BOOL
+    NULL,                   // F16
+    launchLessKernel<f32>,  // F32
+    launchLessKernel<f64>,  // F64
+    launchLessKernel<u8>,   // U8
+    launchLessKernel<u16>,  // U16
+    launchLessKernel<u32>,  // U32
+    launchLessKernel<u64>,  // U64
+    launchLessKernel<i8>,   // I8
+    launchLessKernel<i16>,  // I16
+    launchLessKernel<i32>,  // I32
+    launchLessKernel<i64>,  // I64
+    launchLessKernel<bool>, // BOOL
 };
 
 static const CudaBinaryOpFn lessOrEqualTable[12] = {
-    NULL,                            // F16
-    launchLessOrEqualKernel<f32>,    // F32
-    launchLessOrEqualKernel<f64>,    // F64
-    launchLessOrEqualKernel<u8>,     // U8
-    launchLessOrEqualKernel<u16>,    // U16
-    launchLessOrEqualKernel<u32>,    // U32
-    launchLessOrEqualKernel<u64>,    // U64
-    launchLessOrEqualKernel<i8>,     // I8
-    launchLessOrEqualKernel<i16>,    // I16
-    launchLessOrEqualKernel<i32>,    // I32
-    launchLessOrEqualKernel<i64>,    // I64
-    launchLessOrEqualKernel<bool>,   // BOOL
+    NULL,                          // F16
+    launchLessOrEqualKernel<f32>,  // F32
+    launchLessOrEqualKernel<f64>,  // F64
+    launchLessOrEqualKernel<u8>,   // U8
+    launchLessOrEqualKernel<u16>,  // U16
+    launchLessOrEqualKernel<u32>,  // U32
+    launchLessOrEqualKernel<u64>,  // U64
+    launchLessOrEqualKernel<i8>,   // I8
+    launchLessOrEqualKernel<i16>,  // I16
+    launchLessOrEqualKernel<i32>,  // I32
+    launchLessOrEqualKernel<i64>,  // I64
+    launchLessOrEqualKernel<bool>, // BOOL
 };
 
 static const CudaBinaryOpFn equalTable[12] = {
-    NULL,                       // F16
-    launchEqualKernel<f32>,     // F32
-    launchEqualKernel<f64>,     // F64
-    launchEqualKernel<u8>,      // U8
-    launchEqualKernel<u16>,     // U16
-    launchEqualKernel<u32>,     // U32
-    launchEqualKernel<u64>,     // U64
-    launchEqualKernel<i8>,      // I8
-    launchEqualKernel<i16>,     // I16
-    launchEqualKernel<i32>,     // I32
-    launchEqualKernel<i64>,     // I64
-    launchEqualKernel<bool>,    // BOOL
+    NULL,                    // F16
+    launchEqualKernel<f32>,  // F32
+    launchEqualKernel<f64>,  // F64
+    launchEqualKernel<u8>,   // U8
+    launchEqualKernel<u16>,  // U16
+    launchEqualKernel<u32>,  // U32
+    launchEqualKernel<u64>,  // U64
+    launchEqualKernel<i8>,   // I8
+    launchEqualKernel<i16>,  // I16
+    launchEqualKernel<i32>,  // I32
+    launchEqualKernel<i64>,  // I64
+    launchEqualKernel<bool>, // BOOL
 };
 
 static const CudaBinaryOpFn *cudaBinaryOpTable[9] = {
-    NULL,                  // OP_NONE (0)
-    addTable,              // OP_ADD (1)
-    subtractTable,         // OP_SUBTRACT (2)
-    multiplyTable,         // OP_MULTIPLY (3)
-    greaterTable,          // OP_GREATER (4)
-    greaterOrEqualTable,   // OP_GREATER_OR_EQUAL (5)
-    lessTable,             // OP_LESS (6)
-    lessOrEqualTable,      // OP_LESS_OR_EQUAL (7)
-    equalTable,            // OP_EQUAL (8)
+    NULL,                // OP_NONE (0)
+    addTable,            // OP_ADD (1)
+    subtractTable,       // OP_SUBTRACT (2)
+    multiplyTable,       // OP_MULTIPLY (3)
+    greaterTable,        // OP_GREATER (4)
+    greaterOrEqualTable, // OP_GREATER_OR_EQUAL (5)
+    lessTable,           // OP_LESS (6)
+    lessOrEqualTable,    // OP_LESS_OR_EQUAL (7)
+    equalTable,          // OP_EQUAL (8)
 };
 
 static const CudaBroadcastBinaryOpFn broadcastAddTable[12] = {
-    NULL,                            // F16
-    launchBroadcastAddKernel<f32>,   // F32
-    launchBroadcastAddKernel<f64>,   // F64
-    launchBroadcastAddKernel<u8>,    // U8
-    launchBroadcastAddKernel<u16>,   // U16
-    launchBroadcastAddKernel<u32>,   // U32
-    launchBroadcastAddKernel<u64>,   // U64
-    launchBroadcastAddKernel<i8>,    // I8
-    launchBroadcastAddKernel<i16>,   // I16
-    launchBroadcastAddKernel<i32>,   // I32
-    launchBroadcastAddKernel<i64>,   // I64
-    launchBroadcastAddKernel<bool>,  // BOOL
+    NULL,                           // F16
+    launchBroadcastAddKernel<f32>,  // F32
+    launchBroadcastAddKernel<f64>,  // F64
+    launchBroadcastAddKernel<u8>,   // U8
+    launchBroadcastAddKernel<u16>,  // U16
+    launchBroadcastAddKernel<u32>,  // U32
+    launchBroadcastAddKernel<u64>,  // U64
+    launchBroadcastAddKernel<i8>,   // I8
+    launchBroadcastAddKernel<i16>,  // I16
+    launchBroadcastAddKernel<i32>,  // I32
+    launchBroadcastAddKernel<i64>,  // I64
+    launchBroadcastAddKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastSubtractTable[12] = {
-    NULL,                                 // F16
-    launchBroadcastSubtractKernel<f32>,   // F32
-    launchBroadcastSubtractKernel<f64>,   // F64
-    launchBroadcastSubtractKernel<u8>,    // U8
-    launchBroadcastSubtractKernel<u16>,   // U16
-    launchBroadcastSubtractKernel<u32>,   // U32
-    launchBroadcastSubtractKernel<u64>,   // U64
-    launchBroadcastSubtractKernel<i8>,    // I8
-    launchBroadcastSubtractKernel<i16>,   // I16
-    launchBroadcastSubtractKernel<i32>,   // I32
-    launchBroadcastSubtractKernel<i64>,   // I64
-    launchBroadcastSubtractKernel<bool>,  // BOOL
+    NULL,                                // F16
+    launchBroadcastSubtractKernel<f32>,  // F32
+    launchBroadcastSubtractKernel<f64>,  // F64
+    launchBroadcastSubtractKernel<u8>,   // U8
+    launchBroadcastSubtractKernel<u16>,  // U16
+    launchBroadcastSubtractKernel<u32>,  // U32
+    launchBroadcastSubtractKernel<u64>,  // U64
+    launchBroadcastSubtractKernel<i8>,   // I8
+    launchBroadcastSubtractKernel<i16>,  // I16
+    launchBroadcastSubtractKernel<i32>,  // I32
+    launchBroadcastSubtractKernel<i64>,  // I64
+    launchBroadcastSubtractKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastMultiplyTable[12] = {
-    NULL,                                 // F16
-    launchBroadcastMultiplyKernel<f32>,   // F32
-    launchBroadcastMultiplyKernel<f64>,   // F64
-    launchBroadcastMultiplyKernel<u8>,    // U8
-    launchBroadcastMultiplyKernel<u16>,   // U16
-    launchBroadcastMultiplyKernel<u32>,   // U32
-    launchBroadcastMultiplyKernel<u64>,   // U64
-    launchBroadcastMultiplyKernel<i8>,    // I8
-    launchBroadcastMultiplyKernel<i16>,   // I16
-    launchBroadcastMultiplyKernel<i32>,   // I32
-    launchBroadcastMultiplyKernel<i64>,   // I64
-    launchBroadcastMultiplyKernel<bool>,  // BOOL
+    NULL,                                // F16
+    launchBroadcastMultiplyKernel<f32>,  // F32
+    launchBroadcastMultiplyKernel<f64>,  // F64
+    launchBroadcastMultiplyKernel<u8>,   // U8
+    launchBroadcastMultiplyKernel<u16>,  // U16
+    launchBroadcastMultiplyKernel<u32>,  // U32
+    launchBroadcastMultiplyKernel<u64>,  // U64
+    launchBroadcastMultiplyKernel<i8>,   // I8
+    launchBroadcastMultiplyKernel<i16>,  // I16
+    launchBroadcastMultiplyKernel<i32>,  // I32
+    launchBroadcastMultiplyKernel<i64>,  // I64
+    launchBroadcastMultiplyKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastGreaterTable[12] = {
-    NULL,                                  // F16
-    launchBroadcastGreaterKernel<f32>,     // F32
-    launchBroadcastGreaterKernel<f64>,     // F64
-    launchBroadcastGreaterKernel<u8>,      // U8
-    launchBroadcastGreaterKernel<u16>,     // U16
-    launchBroadcastGreaterKernel<u32>,     // U32
-    launchBroadcastGreaterKernel<u64>,     // U64
-    launchBroadcastGreaterKernel<i8>,      // I8
-    launchBroadcastGreaterKernel<i16>,     // I16
-    launchBroadcastGreaterKernel<i32>,     // I32
-    launchBroadcastGreaterKernel<i64>,     // I64
-    launchBroadcastGreaterKernel<bool>,    // BOOL
+    NULL,                               // F16
+    launchBroadcastGreaterKernel<f32>,  // F32
+    launchBroadcastGreaterKernel<f64>,  // F64
+    launchBroadcastGreaterKernel<u8>,   // U8
+    launchBroadcastGreaterKernel<u16>,  // U16
+    launchBroadcastGreaterKernel<u32>,  // U32
+    launchBroadcastGreaterKernel<u64>,  // U64
+    launchBroadcastGreaterKernel<i8>,   // I8
+    launchBroadcastGreaterKernel<i16>,  // I16
+    launchBroadcastGreaterKernel<i32>,  // I32
+    launchBroadcastGreaterKernel<i64>,  // I64
+    launchBroadcastGreaterKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastGreaterOrEqualTable[12] = {
-    NULL,                                       // F16
-    launchBroadcastGreaterOrEqualKernel<f32>,   // F32
-    launchBroadcastGreaterOrEqualKernel<f64>,   // F64
-    launchBroadcastGreaterOrEqualKernel<u8>,    // U8
-    launchBroadcastGreaterOrEqualKernel<u16>,   // U16
-    launchBroadcastGreaterOrEqualKernel<u32>,   // U32
-    launchBroadcastGreaterOrEqualKernel<u64>,   // U64
-    launchBroadcastGreaterOrEqualKernel<i8>,    // I8
-    launchBroadcastGreaterOrEqualKernel<i16>,   // I16
-    launchBroadcastGreaterOrEqualKernel<i32>,   // I32
-    launchBroadcastGreaterOrEqualKernel<i64>,   // I64
-    launchBroadcastGreaterOrEqualKernel<bool>,  // BOOL
+    NULL,                                      // F16
+    launchBroadcastGreaterOrEqualKernel<f32>,  // F32
+    launchBroadcastGreaterOrEqualKernel<f64>,  // F64
+    launchBroadcastGreaterOrEqualKernel<u8>,   // U8
+    launchBroadcastGreaterOrEqualKernel<u16>,  // U16
+    launchBroadcastGreaterOrEqualKernel<u32>,  // U32
+    launchBroadcastGreaterOrEqualKernel<u64>,  // U64
+    launchBroadcastGreaterOrEqualKernel<i8>,   // I8
+    launchBroadcastGreaterOrEqualKernel<i16>,  // I16
+    launchBroadcastGreaterOrEqualKernel<i32>,  // I32
+    launchBroadcastGreaterOrEqualKernel<i64>,  // I64
+    launchBroadcastGreaterOrEqualKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastLessTable[12] = {
-    NULL,                                 // F16
-    launchBroadcastLessKernel<f32>,       // F32
-    launchBroadcastLessKernel<f64>,       // F64
-    launchBroadcastLessKernel<u8>,        // U8
-    launchBroadcastLessKernel<u16>,       // U16
-    launchBroadcastLessKernel<u32>,       // U32
-    launchBroadcastLessKernel<u64>,       // U64
-    launchBroadcastLessKernel<i8>,        // I8
-    launchBroadcastLessKernel<i16>,       // I16
-    launchBroadcastLessKernel<i32>,       // I32
-    launchBroadcastLessKernel<i64>,       // I64
-    launchBroadcastLessKernel<bool>,      // BOOL
+    NULL,                            // F16
+    launchBroadcastLessKernel<f32>,  // F32
+    launchBroadcastLessKernel<f64>,  // F64
+    launchBroadcastLessKernel<u8>,   // U8
+    launchBroadcastLessKernel<u16>,  // U16
+    launchBroadcastLessKernel<u32>,  // U32
+    launchBroadcastLessKernel<u64>,  // U64
+    launchBroadcastLessKernel<i8>,   // I8
+    launchBroadcastLessKernel<i16>,  // I16
+    launchBroadcastLessKernel<i32>,  // I32
+    launchBroadcastLessKernel<i64>,  // I64
+    launchBroadcastLessKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastLessOrEqualTable[12] = {
-    NULL,                                      // F16
-    launchBroadcastLessOrEqualKernel<f32>,     // F32
-    launchBroadcastLessOrEqualKernel<f64>,     // F64
-    launchBroadcastLessOrEqualKernel<u8>,      // U8
-    launchBroadcastLessOrEqualKernel<u16>,     // U16
-    launchBroadcastLessOrEqualKernel<u32>,     // U32
-    launchBroadcastLessOrEqualKernel<u64>,     // U64
-    launchBroadcastLessOrEqualKernel<i8>,      // I8
-    launchBroadcastLessOrEqualKernel<i16>,     // I16
-    launchBroadcastLessOrEqualKernel<i32>,     // I32
-    launchBroadcastLessOrEqualKernel<i64>,     // I64
-    launchBroadcastLessOrEqualKernel<bool>,    // BOOL
+    NULL,                                   // F16
+    launchBroadcastLessOrEqualKernel<f32>,  // F32
+    launchBroadcastLessOrEqualKernel<f64>,  // F64
+    launchBroadcastLessOrEqualKernel<u8>,   // U8
+    launchBroadcastLessOrEqualKernel<u16>,  // U16
+    launchBroadcastLessOrEqualKernel<u32>,  // U32
+    launchBroadcastLessOrEqualKernel<u64>,  // U64
+    launchBroadcastLessOrEqualKernel<i8>,   // I8
+    launchBroadcastLessOrEqualKernel<i16>,  // I16
+    launchBroadcastLessOrEqualKernel<i32>,  // I32
+    launchBroadcastLessOrEqualKernel<i64>,  // I64
+    launchBroadcastLessOrEqualKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn broadcastEqualTable[12] = {
-    NULL,                                 // F16
-    launchBroadcastEqualKernel<f32>,      // F32
-    launchBroadcastEqualKernel<f64>,      // F64
-    launchBroadcastEqualKernel<u8>,       // U8
-    launchBroadcastEqualKernel<u16>,       // U16
-    launchBroadcastEqualKernel<u32>,       // U32
-    launchBroadcastEqualKernel<u64>,       // U64
-    launchBroadcastEqualKernel<i8>,        // I8
-    launchBroadcastEqualKernel<i16>,       // I16
-    launchBroadcastEqualKernel<i32>,       // I32
-    launchBroadcastEqualKernel<i64>,       // I64
-    launchBroadcastEqualKernel<bool>,      // BOOL
+    NULL,                             // F16
+    launchBroadcastEqualKernel<f32>,  // F32
+    launchBroadcastEqualKernel<f64>,  // F64
+    launchBroadcastEqualKernel<u8>,   // U8
+    launchBroadcastEqualKernel<u16>,  // U16
+    launchBroadcastEqualKernel<u32>,  // U32
+    launchBroadcastEqualKernel<u64>,  // U64
+    launchBroadcastEqualKernel<i8>,   // I8
+    launchBroadcastEqualKernel<i16>,  // I16
+    launchBroadcastEqualKernel<i32>,  // I32
+    launchBroadcastEqualKernel<i64>,  // I64
+    launchBroadcastEqualKernel<bool>, // BOOL
 };
 
 static const CudaBroadcastBinaryOpFn *cudaBroadcastBinaryOpTable[9] = {

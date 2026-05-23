@@ -1,10 +1,9 @@
-#include "im2col.h"
 #include "common.h"
 #include "cblas.h"
-#include "memory.h"
+#include "layerops_internal.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
+#include "tensor_internal.h"
 #include <assert.h>
 #include <iso646.h>
 #include <sched.h>
@@ -14,35 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-static int clampBlasThreadCount(int threadCount) {
-  int maxThreads = openblas_get_num_procs();
-  if (maxThreads < 1) {
-    maxThreads = 1;
-  }
-
-  if (threadCount < 1) {
-    return 0;
-  }
-
-  return threadCount > maxThreads ? maxThreads : threadCount;
-}
-
-
-typedef struct {
-  cudaEvent_t start;
-  cudaEvent_t end;
-  const char *opName;
-  const char *phase;
-  const char *deviceName;
-  bool active;
-} PendingCudaOpTiming;
-
-typedef PendingCudaOpTiming CudaOpPhase;
-
-#define MAX_PENDING_CUDA_OP_TIMINGS 64
-
-static PendingCudaOpTiming pendingCudaOpTimings[MAX_PENDING_CUDA_OP_TIMINGS] = {0};
 
 Result runCudaConvBiasAdd(Context *ctx, Dtype dtype, void *output, const void *bias, tensor_size_t numValues, dim_t channels);
 Result runCudaConvBiasBackward(Context *ctx, Dtype dtype, const void *outputGrad, void *dBias, tensor_size_t numValues, dim_t channels);
@@ -87,8 +57,6 @@ static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor 
   tensor_size_t rows = outputGrad->size / channels;
   size_t oneBytes = rows * getBytesForDtype(outputGrad->dtype);
   double phaseStartMs = 0.0;
-  CudaOpPhase fillPhase = {0};
-  CudaOpPhase gemmPhase = {0};
   void *ones = allocate(ctx->memory, oneBytes);
 
   PANIC_IF(ones == NULL, ERR_OUT_OF_MEMORY);
@@ -111,6 +79,8 @@ static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
   PANIC_IF(outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   dim_t channels = outputGrad->shape.dims[3];
+  PANIC_IF(channels == 0, ERR_DTYPE_MISMATCH);
+
   tensor_size_t numValues = outputGrad->size;
 
   if (outputGrad->dtype == F64) {
@@ -317,7 +287,6 @@ Result Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kerne
     }
   }
 
-  inputContig = materializeTensorOnContext(ctx, input);
   kernelContig = materializeTensorOnContext(ctx, kernels);
   outputGradContig = materializeTensorOnContext(ctx, outputGrad);
   colBufferContig = materializeTensorOnContext(ctx, colBuffer);

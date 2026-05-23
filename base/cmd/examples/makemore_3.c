@@ -7,8 +7,7 @@
 #include <stdio.h>
 #include <termios.h>
 #include "nn/nn.h"
-#include "tensor/tensor_internal.h"
-#include "tensor/value.h"
+#include "value.h"
 #include "utils_lib/array.h"
 
 void makemore_3() {
@@ -45,13 +44,13 @@ void makemore_3() {
 
     Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 6);
 
-    Array_AppendTensorArray(parameters, Parameters(&ctx, dense));
-    Array_AppendTensorArray(parameters, Parameters(&ctx, dense2));
-    Array_AppendTensorArray(parameters, Parameters(&ctx, bn1));
+    shapes_Array_AppendTensorArray(parameters, Parameters(&ctx, dense));
+    shapes_Array_AppendTensorArray(parameters, Parameters(&ctx, dense2));
+    shapes_Array_AppendTensorArray(parameters, Parameters(&ctx, bn1));
 
     OptimizerStep(&ctx, sgd, parameters);
     ZeroGrad(&ctx, parameters);
   }
 
-  DestroyContext(&ctx);
+  shapes_DestroyContext(&ctx);
 }

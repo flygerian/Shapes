@@ -1,6 +1,6 @@
 #include "test.h"
 #include "../../shapes.h"
-#include "../../tensor/tensor_internal.h"
+#include "../../tensor_internal.h"
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stdio.h>

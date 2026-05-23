@@ -1,7 +1,5 @@
-#include "common.h"
 #include "result/result.h"
-#include "tensor/binary_op_helpers.h"
-#include "tensor/tensor_internal.h"
+#include "binary_op_helpers.h"
 #include <math.h>
 
 #ifndef rsqrtf
@@ -74,7 +72,9 @@ static bool isFloatDtype(Dtype dt) {
   return dt == F16 || dt == F32 || dt == F64;
 }
 
-Result Adam(Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
+Result shapes_optimizer_Adam(Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
+  (void)ctx;
+
   if (triplets == NULL) {
     return ERR_ADAM_NULL_TRIPLETS;
   }

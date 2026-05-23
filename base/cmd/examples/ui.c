@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "tensor/types.h"
+#include "types.h"
 #include "time.h"
 #include <sys/ioctl.h>
 #include "unistd.h"

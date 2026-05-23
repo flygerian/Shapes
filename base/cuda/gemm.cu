@@ -1,5 +1,4 @@
-#include "../common.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cublas_v2.h>
 #include <cuda_runtime.h>

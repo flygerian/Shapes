@@ -1,7 +1,6 @@
-#include "common.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/types.h"
+#include "types.h"
 #include "tensor_internal.h"
 #include "value.h"
 #include <stdbool.h>

@@ -1,4 +1,3 @@
-#include "../common.h"
 #include "tensor_internal.h"
 #include <sched.h>
 #include <string.h>

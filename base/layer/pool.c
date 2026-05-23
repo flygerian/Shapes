@@ -1,7 +1,7 @@
 #include "common.h"
-#include "layer/pool.h"
+#include "layerops_internal.h"
 #include "result/result.h"
-#include "tensor/tensor_internal.h"
+#include "tensor_internal.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -293,8 +293,6 @@ Result MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Te
   }
 
   dim_t batch = x->shape.dims[0];
-  dim_t h = x->shape.dims[1];
-  dim_t w = x->shape.dims[2];
   dim_t channels = x->shape.dims[3];
 
   if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[3] != channels || indices->shape.dims[0] != batch ||

@@ -1,6 +1,6 @@
-#include "../common.h"
-#include "../layer/pool.h"
+#include "../layer/layerops_internal.h"
 #include "../result/result.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 

@@ -1,17 +1,16 @@
-#include "common.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
+#include "tensor_internal.h"
 #include "utils_lib/array.h"
 #include <stddef.h>
 #include <stdlib.h>
 
-Result Sgd(Context *ctx, Array *parameters, f32 learningRate) {
+Result shapes_optimizerops_Sgd(Context *ctx, Array *parameters, f32 learningRate) {
   PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE);
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = Array_TensorIdx(parameters, i);
+    Tensor *p = shapes_Array_TensorIdx(parameters, i);
     Tensor *g = p->grad;
 
     if (p == NULL || g == NULL) {
@@ -32,7 +31,7 @@ Result Sgd(Context *ctx, Array *parameters, f32 learningRate) {
   }
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = Array_TensorIdx(parameters, i);
+    Tensor *p = shapes_Array_TensorIdx(parameters, i);
     Tensor *g = p->grad;
 
     Tensor *pWork = materializeTensorOnContext(ctx, p);

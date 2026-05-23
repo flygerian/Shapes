@@ -1,6 +1,5 @@
-#include "../common.h"
 #include "../result/result.h"
-#include "../tensor/types.h"
+#include "../types.h"
 #include "../utils_lib/utils_lib.h"
 #include <cuda_runtime.h>
 #include <math.h>
@@ -65,7 +64,8 @@ crossEntropyBackwardKernel(const T *yGround, const T *probs, const T *gradOut,
 
 static Result finishCrossEntropyLaunch() {
   cudaError_t launchError = cudaGetLastError();
-  PANIC_WITH_MSG_IF(launchError != cudaSuccess, cudaGetErrorString(launchError));
+  PANIC_WITH_MSG_IF(launchError != cudaSuccess,
+                    cudaGetErrorString(launchError));
 
   return OK;
 }

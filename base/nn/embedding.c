@@ -2,7 +2,6 @@
 #include "nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -10,7 +9,7 @@
 void embeddingBackward(Context *ctx, Tensor *out) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
-  Tensor *input = Array_TensorIdx(out->inputs, 0);
+  Tensor *input = shapes_Array_TensorIdx(out->inputs, 0);
   Tensor *indices = (Tensor *)out->opMetadata;
 
   IndexAccumulate1d(ctx, input->grad, indices, out->grad);
@@ -28,7 +27,7 @@ Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
 
   Tensor *out = IndexWithTensor(ctx, embedding, indices);
   out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  Array_AppendTensor(out->inputs, embedding);
+  shapes_Array_AppendTensor(out->inputs, embedding);
 
   out->opMetadata = indices;
   out->opType = OP_EMBEDDING;
@@ -38,7 +37,7 @@ Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
 
 Array *embeddingParameters(Context *ctx, Layer *layer) {
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 1);
-  Array_AppendTensor(params, (void *)layer->weights);
+  shapes_Array_AppendTensor(params, (void *)layer->weights);
 
   return params;
 }

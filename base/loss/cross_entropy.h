@@ -1,8 +1,9 @@
 #ifndef shapes_loss_cross_entropy_h
 #define shapes_loss_cross_entropy_h
 
-#include "common.h"
 #include "../result/result.h"
+#include "shapes_internal.h"
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {

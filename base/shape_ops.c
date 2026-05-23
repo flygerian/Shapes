@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "common.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/types.h"
+#include "types.h"
 #include "tensor_internal.h"
 #include <stdlib.h>
 
@@ -118,7 +117,7 @@ Tensor *Reshape(Context *ctx, Tensor *source, Dim newShape) {
 
   dest->opType = OP_RESHAPE;
   dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  Array_AppendTensor(dest->inputs, source);
+  shapes_Array_AppendTensor(dest->inputs, source);
 
   dest->grad = T_Zeros(ctx, dest->shape);
 
@@ -129,7 +128,7 @@ void ReshapeBackward(Context *ctx, Tensor *node) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(node == NULL || node->inputs == NULL || node->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *input = Array_TensorIdx(node->inputs, 0);
+  Tensor *input = shapes_Array_TensorIdx(node->inputs, 0);
 
   Tensor *gradReshaped = Reshape(ctx, node->grad, input->shape);
   AddInPlace(ctx, input->grad, gradReshaped);
@@ -544,16 +543,16 @@ Tensor* Stack(Context *ctx, Array_Tensor tensors) {
   PANIC_IF_NULL(tensors);
   PANIC_IF(tensors->size < 2, ERR_STACKING_LESS_THAN_TWO_TENSORS);
 
-  Tensor *firstTensor = Array_TensorIdx(tensors, 0);
-  Array_Tensor unsqueezed = Make_TensorArray(ctx->memory, tensors->size);
+  Tensor *firstTensor = shapes_Array_TensorIdx(tensors, 0);
+  Array_Tensor unsqueezed = shapes_Make_TensorArray(ctx->memory, tensors->size);
 
   for (RANGE_FROM(1, tensors->size, i)) {
-    Tensor *currentTensor = Array_TensorIdx(tensors, i);
+    Tensor *currentTensor = shapes_Array_TensorIdx(tensors, i);
 
     PANIC_IF_NULL(currentTensor);
     PANIC_IF(!isSameShape(firstTensor, currentTensor), ERR_DIM_MISMATCH);
 
-    Array_AppendTensor(unsqueezed, UnSqueeze(ctx, currentTensor, 0));
+    shapes_Array_AppendTensor(unsqueezed, UnSqueeze(ctx, currentTensor, 0));
   }
 
   Tensor *firstTensorUnsqueezed  = UnSqueeze(ctx, firstTensor, 0);

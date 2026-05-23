@@ -12,7 +12,7 @@
 #include <time.h>
 #include "shapes_internal.h"
 
-Context InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
+Context shapes_InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
   Memory *memory = initializeArena(arenaSize, minBlockSize);
   Context ctx = {.memory = memory};
   attachHostDevice(&ctx);
@@ -20,7 +20,7 @@ Context InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
   return ctx;
 }
 
-Context InitializeCudaContext(size_t hostArenaSize) {
+Context shapes_InitializeCudaContext(size_t hostArenaSize) {
   Memory *memory = initializeArena(hostArenaSize, 1);
   Context ctx = {.memory = memory};
   attachCudaDevice(&ctx); 
@@ -29,7 +29,7 @@ Context InitializeCudaContext(size_t hostArenaSize) {
   return ctx;
 }
 
-Context GetScratchContext(Context *ctx, size_t bufferSize) {
+Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
   Context scratch = {
       .device = ctx->device, 
       .handle = ctx->handle, 
@@ -46,7 +46,7 @@ Context GetScratchContext(Context *ctx, size_t bufferSize) {
   return scratch;
 }
 
-void DestroyContext(Context *ctx) {
+void shapes_DestroyContext(Context *ctx) {
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     ReleaseCudaBlocks(&ctx->cudaMemory);
     cublasDestroy(ctx->handle);
@@ -55,15 +55,15 @@ void DestroyContext(Context *ctx) {
   freeMemory(ctx->memory);
 }
 
-void FreeContext(Context *ctx) {
+void shapes_FreeContext(Context *ctx) {
   if (ctx == NULL) {
     return;
   }
 
-  DestroyContext(ctx);
+  shapes_DestroyContext(ctx);
 }
 
-Result Flush(Context *ctx) {
+Result shapes_Flush(Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
     return OK;
   }

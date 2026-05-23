@@ -7,7 +7,7 @@
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include "utils_lib/utils_lib.h"
-#include "../shapes_internal.h"
+#include "shapes_internal.h"
 
 typedef size_t tensor_size_t;
 typedef size_t dim_t;

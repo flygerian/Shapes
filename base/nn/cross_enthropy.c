@@ -1,18 +1,16 @@
-#include "common.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/tensor_internal.h"
 #include "utils_lib/array.h"
 
 void crossEnthropyBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *yGround = Array_TensorIdx(tensor->inputs, 0);
-  Tensor *logits = Array_TensorIdx(tensor->inputs, 1);
+  Tensor *yGround = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor *logits = shapes_Array_TensorIdx(tensor->inputs, 1);
   Tensor *probs = tensor->opMetadata;
 
-  Tensor *dLogits = CrossEntropyBackward(ctx, yGround, probs, tensor->grad);
+  Tensor *dLogits = shapes_loss_CrossEntropyBackward(ctx, yGround, probs, tensor->grad);
   Tensor *reducedLogits = ReduceBroadcast(ctx, logits, dLogits);
   AddInPlace(ctx, logits->grad, reducedLogits);
 }
@@ -28,8 +26,8 @@ Tensor loss_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
   Tensor *probs = crossEnthropyResult.b;
 
   loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  Array_AppendTensor(loss->inputs, yGround);
-  Array_AppendTensor(loss->inputs, logits);
+  shapes_Array_AppendTensor(loss->inputs, yGround);
+  shapes_Array_AppendTensor(loss->inputs, logits);
 
   loss->opType = OP_CROSS_ENTHROPY;
   loss->opMetadata = probs;

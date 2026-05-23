@@ -1,6 +1,7 @@
 #include "result/result.h"
-#include "../shapes_internal.h"
-#include "tensor/value.h"
+#include "shapes.h"
+#include "shapes_internal.h"
+#include "value.h"
 #include "tensor_internal.h"
 
 // dtypeRank returns a numeric rank representing the width of a dtype.

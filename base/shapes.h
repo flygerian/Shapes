@@ -2,7 +2,7 @@
 #define shapes_h
 
 #include "result/result.h"
-#include "tensor/types.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -13,25 +13,27 @@
 
 // Arrays
 typedef Array *Array_Tensor;
-Array_Tensor Make_DynamicTensorArray(Memory *memory);
-Array *Make_TensorArray(Memory *memory, size_t capacity);
-void Array_AppendTensor(Array *array, Tensor *tensor);
-void Array_AppendTensorArray(Array *array, Array *tensorArray);
-static inline Tensor *Array_TensorIdx(Array *array, size_t idx) {
+Array_Tensor shapes_Make_DynamicTensorArray(Memory *memory);
+Array *shapes_Make_TensorArray(Memory *memory, size_t capacity);
+void shapes_Array_AppendTensor(Array *array, Tensor *tensor);
+void shapes_Array_AppendTensorArray(Array *array, Array *tensorArray);
+static inline Tensor *shapes_Array_TensorIdx(Array *array, size_t idx) {
   return *((Tensor **)Array_Idx(array, idx));
 }
 
 // Context
-Context InitializeHostContext(size_t arenaSize, size_t minBlockSize);
-Context InitializeCudaContext(size_t hostArenaSize);
-Context GetScratchContext(Context *ctx, size_t bufferSize);
-void DestroyContext(Context *ctx);
-void FreeContext(Context *ctx);
-Result Flush(Context *ctx);
-Result CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size);
-void MoveToCuda(Context *destCtx, Array *tensors);
-void MoveToHost(Context *destCtx, Array *tensors);
-void MoveTensorToHost(Context *destCtx, Tensor *t);
+Context shapes_InitializeHostContext(size_t arenaSize, size_t minBlockSize);
+Context shapes_InitializeCudaContext(size_t hostArenaSize);
+Context shapes_GetScratchContext(Context *ctx, size_t bufferSize);
+void shapes_DestroyContext(Context *ctx);
+void shapes_FreeContext(Context *ctx);
+Result shapes_Flush(Context *ctx);
+
+Result shapes_CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size);
+
+void shapes_MoveToCuda(Context *destCtx, Array *tensors);
+void shapes_MoveToHost(Context *destCtx, Array *tensors);
+void shapes_MoveTensorToHost(Context *destCtx, Tensor *t);
 
 // Binary Ops
 Tensor *Add(Context *ctx, Tensor *a, Tensor *b);
@@ -102,8 +104,8 @@ Tensor *MatMul(Context *ctx, Tensor *a, Tensor *b);
 Tensor *Dot(Context *ctx, Tensor *a, Tensor *b);
 
 // Layer ops
-Tensor *DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
-Result DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB);
+Tensor *shapes_layersops_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
+Result shapes_layerops_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB);
 BatchNormFowardResult BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon);
 BatchNormBackwardResult BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon);
 Result Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest,
@@ -121,12 +123,12 @@ Result AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t
 
 // Loss ops
 TensorPair CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor *logits);
-Tensor *CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut);
+Tensor *shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut);
 
 // Optimizer ops
-Result Sgd(Context *ctx, Array *parameters, f32 learningRate);
+Result shapes_optimizerops_Sgd(Context *ctx, Array *parameters, f32 learningRate);
 
-Result Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon);
+Result shapes_optimizer_Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon);
 
 // Debug
 void PrintItem(Tensor *t);

@@ -1,8 +1,7 @@
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor/types.h"
+#include "types.h"
 #include "tensor_internal.h"
-#include "../common.h"
 #include "utils_lib/memory.h"
 #include <stddef.h>
 #include <string.h>
@@ -47,7 +46,7 @@ Value *GetAt(Tensor *t, Dim dim) {
   if (t->context->device != CPU) {
     size_t size = sizeof(t->size * getBytesForDtype(t->dtype));
     values = allocate(t->context->memory, size);
-    CopyBetweenDevices(t->context->device->type, CPU, t->values, values, size);
+    shapes_CopyBetweenDevices(t->context->device->type, CPU, t->values, values, size);
   } else {
     values = t->values;
   }
