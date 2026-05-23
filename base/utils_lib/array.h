@@ -5,7 +5,7 @@
 #include "result/result.h"
 #include "utils_lib.h"
 
-#define ARRAY_PTR_AT_IDX(slice, idx) ((slice)->items + ((idx) * (slice)->elemSize))
+#define ARRAY_PTR_AT_IDX(slice, idx) ((byte *)(slice)->items + ((idx) * (slice)->elemSize))
 
 typedef struct Array {
   void *items;
@@ -35,7 +35,6 @@ Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity);
 // declared in the header file so it can be inlined at the call site
 static inline void *Array_Idx(Array *slice, size_t idx) {
   PANIC_IF(slice == NULL, ERR_NULL_PTR);
-  PANIC_IF(idx < 0, ERR_OUT_OF_BOUNDS);
   PANIC_IF(idx > slice->capacity - 1, ERR_OUT_OF_BOUNDS);
 
   if (idx >= slice->capacity) {
