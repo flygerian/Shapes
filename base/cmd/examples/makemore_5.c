@@ -231,7 +231,7 @@ Model Make_Model(Context *ctx) {
   };
 
   model.layers = shapesnn_Sequential(ctx, layers, 4, F32);
-  model.optimizer = shapesnn_Adam(ctx, 0.0001f);
+  model.optimizer = shapesnn_Adam(ctx, 0.01f);
 
   return model;
 }

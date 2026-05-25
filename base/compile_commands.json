@@ -1,469 +1,469 @@
 [
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/memory.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/memory.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/utils_lib.dir/utils_lib/memory.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/memory.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/utils_lib/memory.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/memory.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/array.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/array.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/utils_lib.dir/utils_lib/array.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/array.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/utils_lib/array.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/array.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/map.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/map.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/utils_lib.dir/utils_lib/map.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/map.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/utils_lib/map.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/map.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/bitset.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/bitset.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/utils_lib.dir/utils_lib/bitset.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/bitset.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/utils_lib/bitset.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/bitset.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/utils_lib.dir/utils_lib/file.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/file.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/utils_lib.dir/utils_lib/file.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/utils_lib/file.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/utils_lib/file.c",
   "output": "CMakeFiles/utils_lib.dir/utils_lib/file.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/utils_lib.dir/cuda_stubs.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cuda_stubs.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc  -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/utils_lib.dir/cuda_stubs.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cuda_stubs.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cuda_stubs.c",
   "output": "CMakeFiles/utils_lib.dir/cuda_stubs.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/context.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/context.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/context.c",
   "output": "CMakeFiles/shapes_core.dir/context.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/device.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/device.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/device.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/device.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/device.c",
   "output": "CMakeFiles/shapes_core.dir/device.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/dense.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/dense.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/layer/dense.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/dense.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/layer/dense.c",
   "output": "CMakeFiles/shapes_core.dir/layer/dense.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/batch_norm.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/batch_norm.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/layer/batch_norm.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/batch_norm.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/layer/batch_norm.c",
   "output": "CMakeFiles/shapes_core.dir/layer/batch_norm.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/im2col.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/im2col.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/layer/im2col.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/im2col.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/layer/im2col.c",
   "output": "CMakeFiles/shapes_core.dir/layer/im2col.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/im2col_v2.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/im2col_v2.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/layer/im2col_v2.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/im2col_v2.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/layer/im2col_v2.c",
   "output": "CMakeFiles/shapes_core.dir/layer/im2col_v2.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/conv.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/conv.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/layer/conv.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/conv.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/layer/conv.c",
   "output": "CMakeFiles/shapes_core.dir/layer/conv.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/layer/pool.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/pool.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/layer/pool.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/layer/pool.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/layer/pool.c",
   "output": "CMakeFiles/shapes_core.dir/layer/pool.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/loss/cross_entropy.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/loss/cross_entropy.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/loss/cross_entropy.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/loss/cross_entropy.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/loss/cross_entropy.c",
   "output": "CMakeFiles/shapes_core.dir/loss/cross_entropy.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/optimizer/sgd.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/optimizer/sgd.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/optimizer/sgd.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/optimizer/sgd.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/optimizer/sgd.c",
   "output": "CMakeFiles/shapes_core.dir/optimizer/sgd.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/optimizer/adam.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/optimizer/adam.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/optimizer/adam.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/optimizer/adam.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/optimizer/adam.c",
   "output": "CMakeFiles/shapes_core.dir/optimizer/adam.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/internal.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/internal.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/internal.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/internal.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/internal.c",
   "output": "CMakeFiles/shapes_core.dir/internal.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/binary_op.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/binary_op.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/binary_op.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/binary_op.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/binary_op.c",
   "output": "CMakeFiles/shapes_core.dir/binary_op.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/shape_ops.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/shape_ops.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/shape_ops.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/shape_ops.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/shape_ops.c",
   "output": "CMakeFiles/shapes_core.dir/shape_ops.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/access.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/access.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/access.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/access.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/access.c",
   "output": "CMakeFiles/shapes_core.dir/access.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/reduction.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/reduction.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/reduction.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/reduction.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/reduction.c",
   "output": "CMakeFiles/shapes_core.dir/reduction.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/creation.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/creation.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/creation.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/creation.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/creation.c",
   "output": "CMakeFiles/shapes_core.dir/creation.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/unary.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/unary.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/unary.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/unary.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/unary.c",
   "output": "CMakeFiles/shapes_core.dir/unary.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/cast.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cast.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cast.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cast.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cast.c",
   "output": "CMakeFiles/shapes_core.dir/cast.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/accumulate.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/accumulate.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/accumulate.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/accumulate.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/accumulate.c",
   "output": "CMakeFiles/shapes_core.dir/accumulate.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/gemm.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/gemm.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/gemm.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/gemm.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/gemm.c",
   "output": "CMakeFiles/shapes_core.dir/gemm.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/backward.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/backward.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/backward.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/backward.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/backward.c",
   "output": "CMakeFiles/shapes_core.dir/nn/backward.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/dense.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/dense.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/dense.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/dense.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/dense.c",
   "output": "CMakeFiles/shapes_core.dir/nn/dense.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/embedding.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/embedding.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/embedding.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/embedding.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/embedding.c",
   "output": "CMakeFiles/shapes_core.dir/nn/embedding.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/mse.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/mse.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/mse.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/mse.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/mse.c",
   "output": "CMakeFiles/shapes_core.dir/nn/mse.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/sgd.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/sgd.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/sgd.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/sgd.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/sgd.c",
   "output": "CMakeFiles/shapes_core.dir/nn/sgd.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/training.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/training.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/training.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/training.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/training.c",
   "output": "CMakeFiles/shapes_core.dir/nn/training.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/batchnorm.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/batchnorm.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/batchnorm.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/batchnorm.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/batchnorm.c",
   "output": "CMakeFiles/shapes_core.dir/nn/batchnorm.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/cross_enthropy.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/cross_enthropy.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/cross_enthropy.c",
   "output": "CMakeFiles/shapes_core.dir/nn/cross_enthropy.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/adam.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/adam.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/adam.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/adam.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/adam.c",
   "output": "CMakeFiles/shapes_core.dir/nn/adam.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/tanh.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/tanh.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/tanh.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/tanh.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/tanh.c",
   "output": "CMakeFiles/shapes_core.dir/nn/tanh.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/relu.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/relu.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/relu.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/relu.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/relu.c",
   "output": "CMakeFiles/shapes_core.dir/nn/relu.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/maxpool2d.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/maxpool2d.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/maxpool2d.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/maxpool2d.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/maxpool2d.c",
   "output": "CMakeFiles/shapes_core.dir/nn/maxpool2d.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/adaptive_avg_pool2d.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/adaptive_avg_pool2d.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/adaptive_avg_pool2d.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/adaptive_avg_pool2d.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/adaptive_avg_pool2d.c",
   "output": "CMakeFiles/shapes_core.dir/nn/adaptive_avg_pool2d.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/conv2d.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/conv2d.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/conv2d.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/conv2d.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/conv2d.c",
   "output": "CMakeFiles/shapes_core.dir/nn/conv2d.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/sequential.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/sequential.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/sequential.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/sequential.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/sequential.c",
   "output": "CMakeFiles/shapes_core.dir/nn/sequential.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/utils.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/utils.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/utils.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/utils.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/utils.c",
   "output": "CMakeFiles/shapes_core.dir/nn/utils.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/flatten.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/flatten.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/flatten.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/flatten.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/flatten.c",
   "output": "CMakeFiles/shapes_core.dir/nn/flatten.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/nn/softmax.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/softmax.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/nn/softmax.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/nn/softmax.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/nn/softmax.c",
   "output": "CMakeFiles/shapes_core.dir/nn/softmax.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/makemore_3.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/makemore_3.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/makemore_3.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/makemore_3.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_5.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/makemore_5.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cmd/examples/makemore_5.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/makemore_5.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/makemore_5.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/makemore_5.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/vgg-10.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/vgg-10.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cmd/examples/vgg-10.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/vgg-10.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/vgg-10.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/vgg-10.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/ui.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/ui.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cmd/examples/ui.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/ui.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/ui.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/ui.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes_core.dir/cmd/examples/raylib.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/raylib.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes_core.dir/cmd/examples/raylib.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/raylib.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cmd/examples/raylib.c",
   "output": "CMakeFiles/shapes_core.dir/cmd/examples/raylib.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build",
-  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -g -std=gnu99 -arch arm64 -march=native -O0 -o CMakeFiles/shapes.dir/cmd/main/main.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/main/main.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release",
+  "command": "/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/build/openblas/include -I/Users/olabodeadedoyin/repos/Shapes/base -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -O3 -DNDEBUG -std=gnu99 -arch arm64 -march=native -O3 -ffast-math -o CMakeFiles/shapes.dir/cmd/main/main.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/cmd/main/main.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/cmd/main/main.c",
   "output": "CMakeFiles/shapes.dir/cmd/main/main.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib",
-  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/raudio.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/raudio.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib",
+  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/raudio.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/raudio.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/raudio.c",
   "output": "raylib/raylib/CMakeFiles/raylib.dir/raudio.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib",
-  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rcore.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rcore.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib",
+  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rcore.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rcore.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rcore.c",
   "output": "raylib/raylib/CMakeFiles/raylib.dir/rcore.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib",
-  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rmodels.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rmodels.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib",
+  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rmodels.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rmodels.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rmodels.c",
   "output": "raylib/raylib/CMakeFiles/raylib.dir/rmodels.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib",
-  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rshapes.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rshapes.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib",
+  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rshapes.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rshapes.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rshapes.c",
   "output": "raylib/raylib/CMakeFiles/raylib.dir/rshapes.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib",
-  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rtext.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rtext.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib",
+  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rtext.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rtext.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rtext.c",
   "output": "raylib/raylib/CMakeFiles/raylib.dir/rtext.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib",
-  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rtextures.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rtextures.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib",
+  "command": "/usr/bin/cc -DGL_SILENCE_DEPRECATION -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -isystem /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=gnu99 -arch arm64 -o CMakeFiles/raylib.dir/rtextures.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rtextures.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/rtextures.c",
   "output": "raylib/raylib/CMakeFiles/raylib.dir/rtextures.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/context.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/context.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/context.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/init.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/init.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/init.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/init.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/init.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/init.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/input.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/input.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/input.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/input.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/input.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/input.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/monitor.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/monitor.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/monitor.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/monitor.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/monitor.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/monitor.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/platform.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/platform.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/platform.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/platform.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/platform.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/platform.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/vulkan.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/vulkan.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/vulkan.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/vulkan.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/vulkan.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/vulkan.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/window.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/window.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/window.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/window.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/window.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/window.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/egl_context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/egl_context.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/egl_context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/egl_context.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/egl_context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/egl_context.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/osmesa_context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/osmesa_context.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/osmesa_context.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/osmesa_context.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/osmesa_context.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_init.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_init.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_init.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_init.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_init.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_init.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_monitor.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_monitor.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_monitor.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_monitor.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_monitor.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_monitor.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_window.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_window.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_window.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_window.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_window.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_window.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_joystick.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_joystick.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/null_joystick.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_joystick.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/null_joystick.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/null_joystick.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_time.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_time.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_time.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_time.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_time.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/cocoa_time.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_module.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/posix_module.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_module.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/posix_module.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/posix_module.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/posix_module.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_thread.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/posix_thread.c",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_thread.c.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/posix_thread.c",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/posix_thread.c",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/posix_thread.c.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_init.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_init.m",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_init.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_init.m",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_init.m",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/cocoa_init.m.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_joystick.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_joystick.m",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_joystick.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_joystick.m",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_joystick.m",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/cocoa_joystick.m.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_monitor.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_monitor.m",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_monitor.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_monitor.m",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_monitor.m",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/cocoa_monitor.m.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_window.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_window.m",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/cocoa_window.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_window.m",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/cocoa_window.m",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/cocoa_window.m.o"
 },
 {
-  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src",
-  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -g -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/nsgl_context.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/nsgl_context.m",
+  "directory": "/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src",
+  "command": "/usr/bin/cc -D_GLFW_COCOA -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/include -I/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src -I/Users/olabodeadedoyin/repos/Shapes/base/build-release/raylib/raylib/external/glfw/src -fno-strict-aliasing -Werror=implicit-function-declaration -Werror=pointer-arith  -O3 -DNDEBUG -std=c99 -arch arm64 -fPIC -Wall -o CMakeFiles/glfw.dir/nsgl_context.m.o -c /Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/nsgl_context.m",
   "file": "/Users/olabodeadedoyin/repos/Shapes/base/raylib/src/external/glfw/src/nsgl_context.m",
   "output": "raylib/raylib/external/glfw/src/CMakeFiles/glfw.dir/nsgl_context.m.o"
 }

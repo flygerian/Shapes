@@ -58,9 +58,6 @@ Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);
 
 void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
-Result powValue(Value *v, f32 power);
-Result sqrtValue(Value *v);
-
 void shapesnn_Array_AppendLayer(Array *array, Layer *layer);
 Layer *shapesnn_Array_LayerIdx(Array *array, size_t idx);
 
