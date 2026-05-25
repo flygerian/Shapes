@@ -414,5 +414,8 @@ void makemore_5() {
 
   printf("\nTraining complete. Generating samples...\n");
 
+  ctx.isTraining = false;
+  scratchCtx.isTraining = false;
+
   Model_Generate(&scratchCtx, &model, itos, 10, 20, (dim_t)itos->size);
 }

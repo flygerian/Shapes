@@ -41,18 +41,19 @@ Value *shapes_GetAt(Tensor *t, Dim dim) {
   u64 idx = getContigousIdxFromCoord(t, dim.dims);
 
   Value *result = allocate(t->context->memory, sizeof(Value));
+  size_t valueBytes = getBytesForDtype(t->dtype);
 
   byte *values;
-  if (t->context->device != CPU) {
-    size_t size = sizeof(t->size * getBytesForDtype(t->dtype));
+  if (t->context->device != NULL && t->context->device->type != CPU) {
+    size_t size = t->size * valueBytes;
     values = allocate(t->context->memory, size);
     shapes_CopyBetweenDevices(t->context->device->type, CPU, t->values, values, size);
   } else {
     values = t->values;
   }
 
-  size_t valueBytes = getBytesForDtype(t->dtype);
   memcpy(&result->as, values + idx * valueBytes, valueBytes);
+  result->dtype = t->dtype;
   return result;
 }
 
