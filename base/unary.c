@@ -4,12 +4,14 @@
 #include "tensor_internal.h"
 #include "unary.h"
 #include "value.h"
+#include <assert.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vecLib/vForce.h>
 
 Result powValue(Value *v, f32 power) {
   switch (v->dtype) {
@@ -240,15 +242,27 @@ static Result applyUnaryCpuValue(Value *value, UnaryOpType opType) {
 }
 
 static void tanhCpuF32(const f32 *src, f32 *dst, tensor_size_t n) {
+  #ifdef __APPLE__
+    int ni = (int)n;
+    PANIC_IF(ni <= 0, ERR_NO_OP);
+    vvtanhf(dst, src, &ni);
+  #else
   for (tensor_size_t i = 0; i < n; i++) {
     dst[i] = tanhf(src[i]);
   }
+  #endif
 }
 
 static void tanhCpuF64(const f64 *src, f64 *dst, tensor_size_t n) {
+  #ifdef __APPLE__
+    int ni = (int)n;
+    PANIC_IF(ni <= 0, ERR_NO_OP);
+    vvtanh(dst, src, &ni);
+  #else
   for (tensor_size_t i = 0; i < n; i++) {
     dst[i] = tanh(src[i]);
   }
+  #endif
 }
 
 static Tensor *tanhCpu(Context *ctx, Tensor *t) {

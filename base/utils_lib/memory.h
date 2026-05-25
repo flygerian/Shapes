@@ -1,5 +1,5 @@
-#ifndef clox_memory_h
-#define clox_memory_h
+#ifndef utils_lib_memory_h
+#define utils_lib_memory_h
 
 #include <stddef.h>
 #include <stdint.h>
@@ -37,6 +37,9 @@ typedef struct {
   size_t blockSize;
   size_t nextFreeOffset;
   size_t prevFreeOffset;
+  // Pads sizeof(blockheader) from 40 to 48 so the user payload (header + 1) lands
+  // on a 16-byte boundary. Needed for SIMD routines like vvtanhf.
+  size_t _padding;
 } blockheader;
 
 typedef struct {

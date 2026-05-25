@@ -1,3 +1,6 @@
+#ifndef utils_lib_file_h
+#define utils_lib_file_h
+
 #include "utils_lib/array.h"
 #include "utils_lib/error.h"
 #include "utils_lib/memory.h"
@@ -13,3 +16,5 @@ Error File_ReadBytesToBuffer(File file, byte *restrict buf, size_t numBytesToRea
 Array* File_ReadLines(Memory *memory, File file);
 
 void CloseFile(File* file);
+
+#endif

@@ -1,3 +1,5 @@
+#ifndef utils_lib_h
+#define utils_lib_h
 
 #include <math.h>
 #include <stdint.h>
@@ -31,3 +33,5 @@ typedef char* string;
   size_t iterator = from; iterator < (size_t) bufferSize; iterator++
 
 #define F32_(var) (f32) var
+
+#endif

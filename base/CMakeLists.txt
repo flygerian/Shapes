@@ -53,11 +53,11 @@ endif()
 unset(OPENBLAS_LIB CACHE)
 find_library(OPENBLAS_LIB
   NAMES openblas
-  PATHS ${CMAKE_SOURCE_DIR}/build/openblas/lib
+  PATHS ${CMAKE_SOURCE_DIR}/OpenBLAS ${CMAKE_SOURCE_DIR}/build/openblas/lib
   NO_DEFAULT_PATH
 )
 if(NOT OPENBLAS_LIB)
-  message(FATAL_ERROR "OpenBLAS not found in ${CMAKE_SOURCE_DIR}/build/openblas/lib. Run 'make init'.")
+  message(FATAL_ERROR "OpenBLAS not found. Run 'make init' or place libopenblas in base/OpenBLAS/.")
 endif()
 
 include_directories (${CMAKE_SOURCE_DIR}/build/openblas/include)
@@ -160,7 +160,7 @@ target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 if(SHAPES_ENABLE_CUDA)
   target_link_libraries(shapes_core shapes_cuda raylib utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
 else()
-  target_link_libraries(shapes_core raylib utils_lib ${OPENBLAS_LIB} stdc++ m)
+  target_link_libraries(shapes_core raylib utils_lib ${OPENBLAS_LIB} stdc++ m "-framework Accelerate")
 endif()
 
 # Main executable

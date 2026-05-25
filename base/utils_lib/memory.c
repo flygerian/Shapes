@@ -13,16 +13,25 @@
 
 #define HUGE_PAGE_SIZE (2UL * 1024 * 1024)
 #define ALIGN_TO_HUGE(size) (((size) + HUGE_PAGE_SIZE - 1) & ~(HUGE_PAGE_SIZE - 1))
+#define ALLOC_ALIGN ((size_t)16)
+#define ALIGN_UP(value, align) (((value) + ((align) - 1)) & ~((align) - 1))
 #define BLOCK_ID 0x10010110
+#ifdef __APPLE__
+  #include <mach/vm_statistics.h>
+  #define HUGE_PAGE_FD  VM_FLAGS_SUPERPAGE_SIZE_2MB
+  #define HUGE_PAGE_FLAGS (MAP_PRIVATE | MAP_ANON)
+#else
+  // Linux
+  #define HUGE_PAGE_FD  -1
+  #define HUGE_PAGE_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB)
+#endif
 
 Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
   size_t totalSize = sizeof(Memory) + arenaSize;
   size_t alignedSize = ALIGN_TO_HUGE(totalSize);  // round up to 2MB boundary
 
-  Memory *head = mmap(NULL, alignedSize,
-                      PROT_READ|PROT_WRITE,
-                      MAP_PRIVATE|MAP_ANONYMOUS|MAP_HUGETLB,
-                      -1, 0);
+  Memory *head = mmap(NULL, alignedSize, PROT_READ | PROT_WRITE,
+                 HUGE_PAGE_FLAGS, HUGE_PAGE_FD, 0);
 
   if (head == MAP_FAILED) {
     printf("mmap failed: %d", errno);
@@ -107,11 +116,15 @@ static inline void *adjustBlock(Memory *memory, blockheader *header, size_t size
 }
 
 void *allocate(Memory *memory, size_t size) {
-  size_t totalBlockSize = TOTAL_BLOCK_SIZE(size);
+  // Round the payload up so every block keeps the arena cursor aligned. Without this,
+  // odd-byte allocations (e.g. strings, bitsets) leave subsequent float blocks unaligned,
+  // which breaks Accelerate SIMD routines like vvtanhf even though scalar loops tolerate it.
+  size_t alignedSize = ALIGN_UP(size, ALLOC_ALIGN);
+  size_t totalBlockSize = TOTAL_BLOCK_SIZE(alignedSize);
   // Grow at the end of the arena if there's room; this is the fast path.
   if (memory->allocated + totalBlockSize <= memory->capacity) {
     blockheader *header = (blockheader *)(ARENA(memory) + memory->allocated);
-    adjustBlock(memory, header, size);
+    adjustBlock(memory, header, alignedSize);
     header->free = false;
 
     memory->allocated += totalBlockSize;
@@ -153,8 +166,9 @@ void *reallocate(Memory *memory, void *ptr, size_t size) {
 }
 
 void freeAlloc(Memory *memory, void *ptr) {
-  if (ptr == NULL)
-    return;
+  if (ptr == NULL) {
+    return; 
+  }
 
   blockheader *memBlockHeader = BLOCK_HEADER(ptr);
   if (memBlockHeader->free) {
@@ -185,9 +199,9 @@ void printMemoryFragmentationChart(Memory *memory) {
     size_t blockSize = sizeof(blockheader) + header->blockSize + sizeof(blockfooter);
 
     if (header->free) {
-      fprintf(stdout, "(%d) ", header->blockSize);
+      fprintf(stdout, "(%zu) ", header->blockSize);
     } else {
-      fprintf(stdout, "%d ", header->blockSize);
+      fprintf(stdout, "%zu ", header->blockSize);
     }
 
     col++;

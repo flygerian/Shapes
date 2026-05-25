@@ -28,7 +28,7 @@ static const char *deviceTypeName(DeviceType type) {
   }
 }
 
-static cublasOperation_t toCudaTranspose(CBLAS_TRANSPOSE trans) {
+static cublasOperation_t toCudaTranspose(TRANSPOSE trans) {
   switch (trans) {
     case CblasNoTrans: return CUBLAS_OP_N;
     case CblasTrans: return CUBLAS_OP_T;
@@ -36,7 +36,7 @@ static cublasOperation_t toCudaTranspose(CBLAS_TRANSPOSE trans) {
   }
 }
 
-void runCpuGemm(Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c, int ldc) {
+void runCpuGemm(Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c, int ldc) {
 
   if (dtype == F64) {
     cblas_dgemm(CblasRowMajor, transA, transB, m, n, k, 1.0, (const double *)a, lda, (const double *)b, ldb, accumulate ? 1.0 : 0.0, (double *)c, ldc);
@@ -46,7 +46,7 @@ void runCpuGemm(Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int
   cblas_sgemm(CblasRowMajor, transA, transB, m, n, k, 1.0f, (const float *)a, lda, (const float *)b, ldb, accumulate ? 1.0f : 0.0f, (float *)c, ldc);
 }
 
-void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c, int ldc) {
+void runGemm(Context *ctx, Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c, int ldc) {
 
   if (ctx->device == NULL) {
     return runCpuGemm(dtype, transA, transB, m, n, k, a, lda, b, ldb, accumulate, c, ldc);

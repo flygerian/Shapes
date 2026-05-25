@@ -1,11 +1,20 @@
 #ifndef shapes_tensor_internal_h
 #define shapes_tensor_internal_h
 
-#include "cblas.h"
+#ifdef __APPLE__
+  #include <Accelerate/Accelerate.h>
+  #define TRANSPOSE enum CBLAS_TRANSPOSE
+#else
+  #include "cblas.h"
+  #define TRANSPOSE ( CBLAS_TRANSPOSE ) 
+#endif
+
+
+
+
 #include "nn/nn.h"
 #include "result/result.h"
 #include "utils_lib/array.h"
-#include "utils_lib/cuda_memory.h"
 #include <stddef.h>
 
 typedef struct {
@@ -55,7 +64,7 @@ Result sqrtValue(Value *v);
 void shapesnn_Array_AppendLayer(Array *array, Layer *layer);
 Layer *shapesnn_Array_LayerIdx(Array *array, size_t idx);
 
-void runGemm(Context *ctx, Dtype dtype, CBLAS_TRANSPOSE transA, CBLAS_TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b,
+void runGemm(Context *ctx, Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b,
              int ldb, bool accumulate, void *c, int ldc);
 
 #ifdef __cplusplus

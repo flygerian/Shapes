@@ -43,8 +43,10 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
       .parent = ctx,
   };
 
-  scratch.cudaMemory = GetCudaMemoryScratchCheckPoint(&ctx->cudaMemory);
   scratch.memory = GetScratchArena(ctx->memory, bufferSize);
+  if(ctx->device->type == CUDA) {
+    scratch.cudaMemory = GetCudaMemoryScratchCheckPoint(&ctx->cudaMemory);
+  }
 
   return scratch;
 }

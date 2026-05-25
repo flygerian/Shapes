@@ -33,26 +33,33 @@ BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor
     f64 *meanAcrossBatch = mean->values;
     f64 *varianceAcrossBatch = variance->values;
 
-    f64 *sumX2 = allocate(ctx->memory, sizeof(f64) * numFeatures);
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * numFeatures);
-    PANIC_IF(sumX2 == NULL || invStd == NULL, ALLOCATION_FAILED);
+    PANIC_IF(invStd == NULL, ALLOCATION_FAILED);
 
-    memset(sumX2, 0, sizeof(f64) * numFeatures);
     memset(meanAcrossBatch, 0, sizeof(f64) * numFeatures);
 
     for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
       tensor_size_t row = currentBatch * numFeatures;
       for (tensor_size_t col = 0; col < numFeatures; col++) {
-        f64 val = xVals[row + col];
-        meanAcrossBatch[col] += val;
-        sumX2[col] += val * val;
+        meanAcrossBatch[col] += xVals[row + col];
       }
     }
 
     f64 mAsDouble = (f64)batchSize;
     for (tensor_size_t j = 0; j < numFeatures; j++) {
       meanAcrossBatch[j] /= mAsDouble;
-      varianceAcrossBatch[j] = sumX2[j] / mAsDouble - meanAcrossBatch[j] * meanAcrossBatch[j];
+    }
+
+    for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
+      tensor_size_t row = currentBatch * numFeatures;
+      for (tensor_size_t col = 0; col < numFeatures; col++) {
+        f64 centered = xVals[row + col] - meanAcrossBatch[col];
+        varianceAcrossBatch[col] += centered * centered;
+      }
+    }
+
+    for (tensor_size_t j = 0; j < numFeatures; j++) {
+      varianceAcrossBatch[j] /= mAsDouble;
       invStd[j] = 1.0 / sqrt(varianceAcrossBatch[j] + (f64)epsilon);
     }
 
@@ -70,26 +77,33 @@ BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor
     f32 *outVals = out->values;
     f32 *meanAcrossBatch = mean->values;
     f32 *varianceAcrossBatch = variance->values;
-    f32 *sumX2 = allocate(ctx->memory, sizeof(f32) * numFeatures);
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * numFeatures);
-    PANIC_IF(sumX2 == NULL || invStd == NULL, ERR_OUT_OF_MEMORY);
+    PANIC_IF(invStd == NULL, ERR_OUT_OF_MEMORY);
 
-    memset(sumX2, 0, sizeof(f32) * numFeatures);
     memset(meanAcrossBatch, 0, sizeof(f32) * numFeatures);
 
     for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
       tensor_size_t row = currentBatch * numFeatures;
       for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
-        f32 val = xVals[row + feature];
-        meanAcrossBatch[feature] += val;
-        sumX2[feature] += val * val;
+        meanAcrossBatch[feature] += xVals[row + feature];
       }
     }
 
     f32 batchAsFloat = (f32)batchSize;
     for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
       meanAcrossBatch[feature] /= batchAsFloat;
-      varianceAcrossBatch[feature] = sumX2[feature] / batchAsFloat - meanAcrossBatch[feature] * meanAcrossBatch[feature];
+    }
+
+    for (tensor_size_t currentBatch = 0; currentBatch < batchSize; currentBatch++) {
+      tensor_size_t row = currentBatch * numFeatures;
+      for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+        f32 centered = xVals[row + feature] - meanAcrossBatch[feature];
+        varianceAcrossBatch[feature] += centered * centered;
+      }
+    }
+
+    for (tensor_size_t feature = 0; feature < numFeatures; feature++) {
+      varianceAcrossBatch[feature] /= batchAsFloat;
       invStd[feature] = 1.0f / sqrtf(varianceAcrossBatch[feature] + epsilon);
     }
 
@@ -136,29 +150,37 @@ BatchNormBackwardResult shapes_layer_BatchNormBackward(Context *ctx, Tensor *x2d
     f64 *mean = allocate(ctx->memory, sizeof(f64) * n);
     f64 *var = allocate(ctx->memory, sizeof(f64) * n);
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * n);
-    f64 *sumX2 = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHat = allocate(ctx->memory, sizeof(f64) * n);
     f64 *sumDXHatXHat = allocate(ctx->memory, sizeof(f64) * n);
-    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumX2 == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
+    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
 
     memset(mean, 0, sizeof(f64) * n);
-    memset(sumX2, 0, sizeof(f64) * n);
+    memset(var, 0, sizeof(f64) * n);
     memset(sumDXHat, 0, sizeof(f64) * n);
     memset(sumDXHatXHat, 0, sizeof(f64) * n);
 
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        f64 val = xVals[row + j];
-        mean[j] += val;
-        sumX2[j] += val * val;
+        mean[j] += xVals[row + j];
       }
     }
 
     f64 mAsDouble = (f64)m;
     for (tensor_size_t j = 0; j < n; j++) {
       mean[j] /= mAsDouble;
-      var[j] = sumX2[j] / mAsDouble - mean[j] * mean[j];
+    }
+
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        f64 centered = xVals[row + j] - mean[j];
+        var[j] += centered * centered;
+      }
+    }
+
+    for (tensor_size_t j = 0; j < n; j++) {
+      var[j] /= mAsDouble;
       invStd[j] = 1.0 / sqrt(var[j] + (f64)epsilon);
     }
 
@@ -201,29 +223,37 @@ BatchNormBackwardResult shapes_layer_BatchNormBackward(Context *ctx, Tensor *x2d
     f32 *mean = allocate(ctx->memory, sizeof(f32) * n);
     f32 *var = allocate(ctx->memory, sizeof(f32) * n);
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * n);
-    f32 *sumX2 = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHat = allocate(ctx->memory, sizeof(f32) * n);
     f32 *sumDXHatXHat = allocate(ctx->memory, sizeof(f32) * n);
-    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumX2 == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
+    PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
 
     memset(mean, 0, sizeof(f32) * n);
-    memset(sumX2, 0, sizeof(f32) * n);
+    memset(var, 0, sizeof(f32) * n);
     memset(sumDXHat, 0, sizeof(f32) * n);
     memset(sumDXHatXHat, 0, sizeof(f32) * n);
 
     for (tensor_size_t i = 0; i < m; i++) {
       tensor_size_t row = i * n;
       for (tensor_size_t j = 0; j < n; j++) {
-        f32 val = xVals[row + j];
-        mean[j] += val;
-        sumX2[j] += val * val;
+        mean[j] += xVals[row + j];
       }
     }
 
     f32 mAsFloat = (f32)m;
     for (tensor_size_t j = 0; j < n; j++) {
       mean[j] /= mAsFloat;
-      var[j] = sumX2[j] / mAsFloat - mean[j] * mean[j];
+    }
+
+    for (tensor_size_t i = 0; i < m; i++) {
+      tensor_size_t row = i * n;
+      for (tensor_size_t j = 0; j < n; j++) {
+        f32 centered = xVals[row + j] - mean[j];
+        var[j] += centered * centered;
+      }
+    }
+
+    for (tensor_size_t j = 0; j < n; j++) {
+      var[j] /= mAsFloat;
       invStd[j] = 1.0f / sqrtf(var[j] + epsilon);
     }
 

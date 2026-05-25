@@ -4,6 +4,7 @@
 #include "result/result.h"
 #include "shapes.h"
 #include "types.h"
+#include "utils_lib/utils_lib.h"
 #include "value.h"
 #include "utils_lib/array.h"
 #include "utils_lib/bitset.h"
@@ -16,7 +17,7 @@
 #include <time.h>
 
 #define BATCH_SIZE 128
-#define NUM_EPOCHS 10
+#define NUM_EPOCHS 100
 
 Array *getNames(Context *ctx) {
   FILE *f = fopen("names.txt", "r");
@@ -230,7 +231,7 @@ Model Make_Model(Context *ctx) {
   };
 
   model.layers = shapesnn_Sequential(ctx, layers, 4, F32);
-  model.optimizer = shapesnn_Adam(ctx, 0.001f);
+  model.optimizer = shapesnn_Adam(ctx, 0.0001f);
 
   return model;
 }
@@ -322,10 +323,9 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
 }
 
 void makemore_5() {
-  Memory *mem = initializeArena((size_t)1024 * 1024 * 1024 * 5, 1); // 5GB
-  Context ctx = {.memory = mem};
+  Context ctx = shapes_InitializeHostContext(5 * GB, 1);
 
-  printf("Arena capacity: %zu MB\n", mem->capacity / (1024 * 1024));
+  printf("Arena capacity: %zu MB\n", ctx.memory->capacity / MB);
 
   Array *words = getNames(&ctx);
   printf("Got %zu words\n", words->size);
@@ -347,12 +347,13 @@ void makemore_5() {
   printf("Total parameters: %zu\n\n", params->size);
 
   size_t scratchBufferSize = (size_t)1024 * 1024 * 10;
-  Memory *scratchMem = GetScratchArena(mem, scratchBufferSize);
-  printf("Scratch capacity: %zu MB\n", scratchMem->capacity / (1024 * 1024));
 
   ctx.isTraining = true;
 
   printf("Starting training with %zu samples in %zu batches\n", dataset->size, batchedData.numBatches);
+
+  Context scratchCtx = shapes_GetScratchContext(&ctx, scratchBufferSize);
+  printf("Scratch capacity: %zu MB\n", scratchCtx.memory->capacity / (1024 * 1024));
 
   for (size_t epoch = 0; epoch < NUM_EPOCHS; epoch++) {
     f32 totalLoss = 0.0f;
@@ -368,7 +369,6 @@ void makemore_5() {
       dim_t batchSize = input->shape.dims[0];
       totalSamples += batchSize;
 
-      Context scratchCtx = {.memory = scratchMem, .isTraining = true};
 
       Tensor *embeddings = shapesnn_Forward(&scratchCtx, model.embedding, input);
       Tensor *reshapedEmbeddings = shapes_Reshape(&scratchCtx, embeddings, SHAPE2D(batchSize, 30));
@@ -395,17 +395,17 @@ void makemore_5() {
       }
 
       if (epoch == 0 && b == 0) {
-        printf("Scratch used per batch: %zu KB\n", scratchMem->allocated / 1024);
+        printf("Scratch used per batch: %zu KB\n", scratchCtx.memory->allocated / 1024);
       }
 
       shapesnn_OptimizerStep(&ctx, model.optimizer, params);
       shapesnn_ZeroGrad(&ctx, params);
 
       if (epoch == 0 && b == 0) {
-        printf("Scratch used per batch: %zu KB\n", scratchMem->allocated / 1024);
+        printf("Scratch used per batch: %zu KB\n", scratchCtx.memory->allocated / 1024);
       }
 
-      resetArena(scratchMem);
+      resetArena(scratchCtx.memory);
     }
 
     double epochTime = (double)(clock() - epochStart) / CLOCKS_PER_SEC;
@@ -414,6 +414,5 @@ void makemore_5() {
 
   printf("\nTraining complete. Generating samples...\n");
 
-  Context genCtx = {.memory = mem, .isTraining = false};
-  Model_Generate(&genCtx, &model, itos, 10, 20, (dim_t)itos->size);
+  Model_Generate(&scratchCtx, &model, itos, 10, 20, (dim_t)itos->size);
 }

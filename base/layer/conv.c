@@ -1,5 +1,4 @@
 #include "common.h"
-#include "cblas.h"
 #include "layerops_internal.h"
 #include "result/result.h"
 #include "shapes.h"

@@ -36,7 +36,9 @@ static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig,
       for (tensor_size_t c = 0; c < classCount; c++) {
         double p = probVals[base + c] / sumExp;
         probVals[base + c] = p;
-        rowLoss += yVals[base + c] * log(p);
+        if (yVals[base + c] != 0.0) {
+          rowLoss += yVals[base + c] * log(p);
+        }
       }
 
       totalLoss += -rowLoss;
@@ -70,7 +72,9 @@ static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig,
       for (tensor_size_t c = 0; c < classCount; c++) {
         float p = probVals[base + c] / sumExp;
         probVals[base + c] = p;
-        rowLoss += yVals[base + c] * logf(p);
+        if (yVals[base + c] != 0.0f) {
+          rowLoss += yVals[base + c] * logf(p);
+        }
       }
 
       totalLoss += -rowLoss;
@@ -173,10 +177,20 @@ Tensor *shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *
   switch (ctx->device->type) {
     case CPU: crossEnthropyBackwardCpu(pContig, yContig, gContig, dLogits, scalarGradOut, rows); break;
 
-    case CUDA:
-      Result res = runCudaCrossEntropyBackward(ctx, pContig->dtype, yContig->values, pContig->values, gContig->values, rows, classCount, scalarGradOut, dLogits->values);
+    case CUDA: {
+      Result res = runCudaCrossEntropyBackward(
+          ctx,
+          pContig->dtype,
+          yContig->values,
+          pContig->values,
+          gContig->values,
+          rows, classCount,
+          scalarGradOut,
+          dLogits->values
+      );
       PANIC_IF(res != OK, res);
       break;
+    }
   }
 
   return dLogits;
