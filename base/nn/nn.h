@@ -43,6 +43,9 @@ Array *shapesnn_Tensors(Context *ctx, FowardPassOp *op);
 void shapesnn_SaveAsSafeTensors(Context *ctx, FowardPassOp *model, string path);
 void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path);
 
+void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path);
+Array *shapesnn_SafeTensors_Load(Context *ctx, string path);
+
 FowardPassOp *shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
 FowardPassOp *shapesnn_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim);
 Optimizer *shapesnn_SGD(Context *ctx, f32 learningRate);

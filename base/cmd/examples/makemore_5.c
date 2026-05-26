@@ -319,10 +319,27 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
   }
 }
 
-void runInference(string path, Array *itos) {
+static Array *loadItosFromFile(Context *ctx, string path) {
+  Array *all = shapesnn_SafeTensors_Load(ctx, path);
+  for (RANGE(i, all->size)) {
+    NamedTensor *nt = (NamedTensor *)Array_Idx(all, i);
+    if (strcmp(STR(nt->name), "tokenizer.itos") == 0) {
+      Tensor *t = nt->tensor;
+      Array *itos = MakeArray(ctx->memory, sizeof(char), t->size);
+      memcpy(itos->items, t->values, t->size);
+      itos->size = t->size;
+      return itos;
+    }
+  }
+  PANIC_WITH_CODE(ERR_NULL_PTR);
+}
+
+void runInference(string path) {
   Context ctx = shapes_InitializeHostContext(5 * GB, 1);
   Model model = Make_Model(&ctx);
   shapesnn_LoadFromSafeTensors(&ctx, model.layers, path);
+
+  Array *itos = loadItosFromFile(&ctx, path);
   Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
 }
 
@@ -418,12 +435,21 @@ void makemore_5() {
   ctx.isTraining = false;
   scratchCtx.isTraining = false;
 
-  string modelFilePath = "model.safetensors"; 
-  shapesnn_SaveAsSafeTensors(&ctx, model.layers, modelFilePath);
+  string modelFilePath = "model.safetensors";
+
+  Array *named = shapesnn_Tensors(&ctx, model.layers);
+  Tensor *itosT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(itos->size), itos->items, U8);
+  Tensor *stoiT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(stoi->size), stoi->items, I32);
+  NamedTensor itosNt = {.name = MakeString(ctx.memory, "tokenizer.itos"), .tensor = itosT};
+  NamedTensor stoiNt = {.name = MakeString(ctx.memory, "tokenizer.stoi"), .tensor = stoiT};
+  Array_Append(named, &itosNt);
+  Array_Append(named, &stoiNt);
+  shapesnn_SafeTensors_Save(&ctx, named, modelFilePath);
+
   Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
 
   printf("Using saved model \n\n");
 
 
-  runInference(modelFilePath, itos);
+  runInference(modelFilePath);
 }

@@ -44,7 +44,7 @@ void shapesnn_SaveAsSafeTensors(Context *ctx, FowardPassOp *model, string path) 
   PANIC_IF(model->type != OP_SEQUENTIAL, ERR_NO_OP);
 
   Array *named = shapesnn_Tensors(ctx, model);
-  safetensors_Save(ctx, named, path);
+  shapesnn_SafeTensors_Save(ctx, named, path);
 }
 
 void shapesnn_Load(Context *ctx, FowardPassOp *op, Array *tensors) {
@@ -71,17 +71,22 @@ void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path
   PANIC_IF_NULL(model);
   PANIC_IF(model->type != OP_SEQUENTIAL, ERR_NO_OP);
 
-  Array *loaded = safetensors_Load(ctx, path);
+  Array *loaded = shapesnn_SafeTensors_Load(ctx, path);
   Array *expected = shapesnn_Tensors(ctx, model);
 
-  PANIC_IF(loaded->size != expected->size, ERR_DIM_MISMATCH);
-
-  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor *), loaded->size);
-  for (RANGE(i, loaded->size)) {
-    NamedTensor *loadedNt = (NamedTensor *)Array_Idx(loaded, i);
+  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor *), expected->size);
+  for (RANGE(i, expected->size)) {
     NamedTensor *expectedNt = (NamedTensor *)Array_Idx(expected, i);
-    PANIC_IF(strcmp(STR(loadedNt->name), STR(expectedNt->name)) != 0, ERR_NO_OP);
-    shapes_Array_AppendTensor(tensors, loadedNt->tensor);
+    Tensor *match = NULL;
+    for (RANGE(j, loaded->size)) {
+      NamedTensor *loadedNt = (NamedTensor *)Array_Idx(loaded, j);
+      if (strcmp(STR(loadedNt->name), STR(expectedNt->name)) == 0) {
+        match = loadedNt->tensor;
+        break;
+      }
+    }
+    PANIC_IF(match == NULL, ERR_NO_OP);
+    shapes_Array_AppendTensor(tensors, match);
   }
 
   shapesnn_Load(ctx, model, tensors);

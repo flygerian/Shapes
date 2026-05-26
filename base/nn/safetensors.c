@@ -75,7 +75,7 @@ static String buildHeader(Memory *memory, Array *named, size_t *outDataBytes) {
   return json;
 }
 
-void safetensors_Save(Context *ctx, Array *named, string path) {
+void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(named == NULL, ERR_NULL_PTR);
   PANIC_IF(path == NULL, ERR_NULL_PTR);
@@ -268,7 +268,7 @@ static Array *parseHeader(Memory *memory, const char *json, size_t jsonLen, size
   return out;
 }
 
-Array *safetensors_Load(Context *ctx, string path) {
+Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(path == NULL, ERR_NULL_PTR);
 

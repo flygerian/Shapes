@@ -62,9 +62,6 @@ Array *conv2dLayerParameters(Context *ctx, Layer *state);
 Tensor *flattenFoward(Context *ctx, Layer *layer, Tensor *tensor);
 Array *flattenParameters(Context *ctx);
 
-void safetensors_Save(Context *ctx, Array *named, string path);
-Array *safetensors_Load(Context *ctx, string path);
-
 void loadIntoTensor(Context *ctx, Tensor *dst, Tensor *src);
 
 void denseLayerLoad(Context *ctx, Layer *layer, Array *tensors);
