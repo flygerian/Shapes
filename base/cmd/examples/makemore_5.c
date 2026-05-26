@@ -17,7 +17,7 @@
 #include <time.h>
 
 #define BATCH_SIZE 128
-#define NUM_EPOCHS 100
+#define NUM_EPOCHS 10
 
 Array *getNames(Context *ctx) {
   FILE *f = fopen("names.txt", "r");
@@ -212,7 +212,6 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
 }
 
 typedef struct {
-  FowardPassOp *embedding;
   FowardPassOp *layers;
   Optimizer *optimizer;
   Dtype datatype;
@@ -221,22 +220,22 @@ typedef struct {
 Model Make_Model(Context *ctx) {
   Model model;
 
-  model.embedding = shapesnn_Embedding(ctx, F32, 27, 10);
-
   FowardPassOp *layers[] = {
+      shapesnn_Embedding(ctx, F32, 27, 10),
+      shapesnn_Flatten(ctx, F32),
       shapesnn_Dense(ctx, F32, 30, 100, false),
       shapesnn_BatchNorm(ctx, F32, 100),
       shapesnn_Tanh(ctx, F32),
       shapesnn_Dense(ctx, F32, 100, 27, false),
   };
 
-  model.layers = shapesnn_Sequential(ctx, layers, 4, F32);
+  model.layers = shapesnn_Sequential(ctx, layers, 6, F32);
   model.optimizer = shapesnn_Adam(ctx, 0.01f);
 
   return model;
 }
 
-Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input, dim_t batchSize) {
+Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input) {
   return sequentialModelForward(ctx, model->layers, input);
 }
 
@@ -299,9 +298,7 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
       i32 inputData[3] = {context[0], context[1], context[2]};
       Tensor *input = shapes_Make_FromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
-      Tensor *embeddings = shapesnn_Forward(ctx, model->embedding, input);
-      Tensor *reshapedEmbeddings = shapes_Reshape(ctx, embeddings, SHAPE2D(1, 30));
-      Tensor *logits = Model_Forward(ctx, model, reshapedEmbeddings, 1);
+      Tensor *logits = Model_Forward(ctx, model, input);
       Tensor *probs = softmax(ctx, logits, 1);
 
       int nextIdx = sampleFromProbs(probs, vocabSize);
@@ -320,6 +317,13 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
     generated[genLen] = '\0';
     printf("%2d. %s\n", sample + 1, generated);
   }
+}
+
+void runInference(string path, Array *itos) {
+  Context ctx = shapes_InitializeHostContext(5 * GB, 1);
+  Model model = Make_Model(&ctx);
+  shapesnn_LoadFromSafeTensors(&ctx, model.layers, path);
+  Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
 }
 
 void makemore_5() {
@@ -369,10 +373,7 @@ void makemore_5() {
       dim_t batchSize = input->shape.dims[0];
       totalSamples += batchSize;
 
-
-      Tensor *embeddings = shapesnn_Forward(&scratchCtx, model.embedding, input);
-      Tensor *reshapedEmbeddings = shapes_Reshape(&scratchCtx, embeddings, SHAPE2D(batchSize, 30));
-      Tensor *logits = Model_Forward(&scratchCtx, &model, reshapedEmbeddings, batchSize);
+      Tensor *logits = Model_Forward(&scratchCtx, &model, input);
 
       Tensor *targetOneHot = shapes_Make_OneHotTensor(&scratchCtx, target, 27);
       Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, targetOneHot, logits);
@@ -417,5 +418,12 @@ void makemore_5() {
   ctx.isTraining = false;
   scratchCtx.isTraining = false;
 
-  Model_Generate(&scratchCtx, &model, itos, 10, 20, (dim_t)itos->size);
+  string modelFilePath = "model.safetensors"; 
+  shapesnn_SaveAsSafeTensors(&ctx, model.layers, modelFilePath);
+  Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
+
+  printf("Using saved model \n\n");
+
+
+  runInference(modelFilePath, itos);
 }

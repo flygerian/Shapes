@@ -4,6 +4,7 @@
 #include "types.h"
 #include "utils_lib/array.h"
 #include "utils_lib/map.h"
+#include "utils_lib/utils_lib.h"
 
 typedef struct Layer {
   Tensor *weights;
@@ -15,8 +16,14 @@ typedef struct FowardPassOp {
   Context *ctx;
   OpType type;
   Dtype dtype;
+  string label;
   void *op;
 } FowardPassOp;
+
+typedef struct NamedTensor {
+  String name;
+  Tensor *tensor;
+} NamedTensor;
 
 typedef struct Optimzer {
   f32 learningRate;
@@ -32,6 +39,9 @@ Tensor *TensorPtrMap_Get(TensorPtrMap *map, void *key);
 
 Tensor *shapesnn_Forward(Context *ctx, FowardPassOp *op, Tensor *input);
 Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op);
+Array *shapesnn_Tensors(Context *ctx, FowardPassOp *op);
+void shapesnn_SaveAsSafeTensors(Context *ctx, FowardPassOp *model, string path);
+void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path);
 
 FowardPassOp *shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
 FowardPassOp *shapesnn_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim);

@@ -35,6 +35,17 @@ Array *reluLayerParameters(Context *ctx, Layer *state) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
+Array *reluLayerTensors(Context *ctx, Layer *state) {
+  (void)state;
+  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+}
+
+void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+  (void)ctx;
+  (void)state;
+  PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
+}
+
 FowardPassOp *shapesnn_Relu(Context *ctx, Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = NULL;

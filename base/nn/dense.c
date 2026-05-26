@@ -1,6 +1,7 @@
 #include "../common.h"
 #include "../shapes.h"
 #include "nn.h"
+#include "nn_internal.h"
 #include "result/result.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
@@ -61,21 +62,37 @@ Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
   return out;
 }
 
-Array *denseLayerParameters(Context *ctx, Layer *state) {
-  denseLayerData *layerData = state->layerData;
+Array *denseLayerParameters(Context *ctx, Layer *layer) {
+  denseLayerData *layerData = layer->layerData;
   Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  shapes_Array_AppendTensor(params, (void *)state->weights);
+  shapes_Array_AppendTensor(params, (void *)layer->weights);
 
   if (layerData->withBias) {
-    shapes_Array_AppendTensor(params, (void *)state->bias);
+    shapes_Array_AppendTensor(params, (void *)layer->bias);
   }
 
   return params;
 }
 
+Array* denseLayerTensors(Context *ctx, Layer *layer) {
+  return denseLayerParameters(ctx, layer);
+}
+
+void denseLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
+  denseLayerData *layerData = layer->layerData;
+  size_t expected = layerData->withBias ? 2 : 1;
+  PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
+
+  loadIntoTensor(ctx, layer->weights, shapes_Array_TensorIdx(tensors, 0));
+  if (layerData->withBias) {
+    loadIntoTensor(ctx, layer->bias, shapes_Array_TensorIdx(tensors, 1));
+  }
+}
+
 FowardPassOp *shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
   Tensor *w = shapes_Make_RandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
+  w->label = "weights";
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
@@ -85,6 +102,7 @@ FowardPassOp *shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t
 
   if (withBias) {
     Tensor *b = shapes_Make_RandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
+    b->label = "bias";
     layer->bias = b;
   }
 

@@ -19,6 +19,7 @@ void backward(Context *ctx, Tensor *node) {
   PANIC_IF(node == NULL, NULL_CONTEXT);
 
   switch (node->opType) {
+    case OP_NONE: return;
     case OP_DENSE: denseBackward(ctx, node); return;
     case OP_EMBEDDING: embeddingBackward(ctx, node); return;
     case OP_RESHAPE: shapes_ReshapeBackward(ctx, node); return;
@@ -31,9 +32,8 @@ void backward(Context *ctx, Tensor *node) {
     case OP_ADAPTIVE_AVG_POOL2D: adaptiveAvgPool2dBackward(ctx, node); return;
     case OP_CONV2D: conv2dBackward(ctx, node); return;
     case OP_SQRT: shapes_SqrtBackward(ctx, node); return;
+    default: PANIC_WITH_CODE(BACKWARD_TENSOR_OP_NOT_FOUND);
   }
-
-  PANIC_IF(node->opType != OP_NONE, BACKWARD_TENSOR_OP_NOT_FOUND);
 }
 
 Array *shapesnn_Backward(Context *ctx, Tensor *tensor) {

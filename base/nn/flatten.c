@@ -31,6 +31,15 @@ Array *flattenParameters(Context *ctx) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
+Array *flattenLayerTensors(Context *ctx) {
+  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+}
+
+void flattenLayerLoad(Context *ctx, Array *tensors) {
+  (void)ctx;
+  PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
+}
+
 FowardPassOp *shapesnn_Flatten(Context *ctx, Dtype dtype) {
   PANIC_IF_NULL(ctx);
 

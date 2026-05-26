@@ -121,7 +121,7 @@ typedef enum {
     }                                                                                              \
   } while (0)
 
-#define PANIC(errCode)                                                                             \
+#define PANIC_WITH_CODE(errCode)                                                                   \
   do {                                                                                             \
     fprintf(stderr, "SHAPES FATAL [%s:%d]: %d\n", __FILE__, __LINE__, errCode);                    \
     abort();                                                                                       \

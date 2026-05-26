@@ -12,7 +12,10 @@ typedef struct File {
 } File;
 
 File File_OpenPathInReadMode(string path);
+File File_OpenPathInWriteMode(string path);
 Error File_ReadBytesToBuffer(File file, byte *restrict buf, size_t numBytesToRead);
+Error File_WriteBytes(File file, const byte *buf, size_t numBytesToWrite);
+size_t File_Size(File file);
 Array* File_ReadLines(Memory *memory, File file);
 
 void CloseFile(File* file);

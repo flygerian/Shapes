@@ -6,13 +6,11 @@
 #include "utils_lib/array.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 #include "nn_internal.h"
 #include "utils_lib/memory.h"
 
-typedef struct sequentialModelData {
-  Array *layers;
-  Array *parameters;
-} sequentialModel;
 
 FowardPassOp *shapesnn_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numLayers, Dtype dtype) {
   PANIC_IF(numLayers == 0, ZERO_LAYERS_PASSED);
@@ -79,4 +77,54 @@ Array *sequentialModelParameters(Context *ctx, FowardPassOp *modelOp) {
 
   sequentialModel *model = modelOp->op;
   return model->parameters;
+}
+
+void sequentialModelLoad(Context *ctx, FowardPassOp *modelOp, Array *tensors) {
+  PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
+  PANIC_IF(tensors->elemSize != sizeof(Tensor *), ARRAY_ELEM_SIZE_MISMATCH);
+
+  sequentialModel *model = modelOp->op;
+  Array *layers = model->layers;
+
+  size_t cursor = 0;
+  for (RANGE(i, layers->size)) {
+    FowardPassOp *child = array_FowardPassOpIdx(layers, i);
+    size_t childCount = shapesnn_Tensors(ctx, child)->size;
+
+    Array *slice = Array_Slice(tensors, cursor, childCount);
+    shapesnn_Load(ctx, child, slice);
+    cursor += childCount;
+  }
+
+  PANIC_IF(cursor != tensors->size, ERR_DIM_MISMATCH);
+}
+
+Array *sequentialModelTensors(Context *ctx, FowardPassOp *modelOp) {
+  PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
+
+  sequentialModel *model = modelOp->op;
+  Array *layers = model->layers;
+  Array *out = MakeDynamicArray(ctx->memory, sizeof(NamedTensor));
+
+  for (RANGE(i, layers->size)) {
+    FowardPassOp *child = array_FowardPassOpIdx(layers, i);
+    Array *childTensors = shapesnn_Tensors(ctx, child);
+
+    for (RANGE(j, childTensors->size)) {
+      NamedTensor *child_nt = (NamedTensor *)Array_Idx(childTensors, j);
+      PANIC_IF(child_nt->name == NULL, ERR_NULL_PTR);
+
+      char buf[256];
+      int written = snprintf(buf, sizeof(buf), "layer.%zu.%s", i, STR(child_nt->name));
+      PANIC_IF(written < 0 || (size_t)written >= sizeof(buf), ERR_OUT_OF_BOUNDS);
+
+      NamedTensor nt = {
+          .name = MakeStringN(ctx->memory, buf, (size_t)written),
+          .tensor = child_nt->tensor,
+      };
+      Array_Append(out, &nt);
+    }
+  }
+
+  return out;
 }

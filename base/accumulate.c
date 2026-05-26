@@ -33,17 +33,16 @@ static Result validateAccumulateTensorArgs(Tensor *dest, Tensor *srcGrad) {
 
 static dim_t indexValueToDim(Value *idxVal, Dtype dtype) {
   switch (dtype) {
-    case U8: return idxVal->as.u8; ;
+    case U8: return idxVal->as.u8;
     case U16: return idxVal->as.u16;
-    case U32: return idxVal->as.u32; return OK;
-    case U64: return idxVal->as.u64; return OK;
-    case I8: return (dim_t)idxVal->as.i8; return OK;
-    case I16: return (dim_t)idxVal->as.i16; return OK;
-    case I32: return (dim_t)idxVal->as.i32; return OK;
-    case I64: return (dim_t)idxVal->as.i64; return OK;
+    case U32: return idxVal->as.u32;
+    case U64: return idxVal->as.u64;
+    case I8: return (dim_t)idxVal->as.i8;
+    case I16: return (dim_t)idxVal->as.i16;
+    case I32: return (dim_t)idxVal->as.i32;
+    case I64: return (dim_t)idxVal->as.i64;
+    default: PANIC_WITH_CODE(ERR_DTYPE_MISMATCH);
   }
-
-  PANIC_IF(true, ERR_DTYPE_MISMATCH);
   return -1;
 }
 

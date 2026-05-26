@@ -1,5 +1,6 @@
 #include "common.h"
 #include "nn/nn.h"
+#include "nn_internal.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "tensor_internal.h"
@@ -124,6 +125,30 @@ Array *batchNormLayerParameters(Context *ctx, Layer *layer) {
   return params;
 }
 
+Array *batchNormLayerTensors(Context *ctx, Layer *layer) {
+  PANIC_IF(ctx == NULL, NULL_CONTEXT);
+  PANIC_IF(layer == NULL, ERR_NULL_PTR);
+
+  batchNormLayerData *layerData = layer->layerData;
+  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor *), 4);
+  shapes_Array_AppendTensor(tensors, layerData->gamma);
+  shapes_Array_AppendTensor(tensors, layerData->beta);
+  shapes_Array_AppendTensor(tensors, layerData->runningMean);
+  shapes_Array_AppendTensor(tensors, layerData->runningVar);
+
+  return tensors;
+}
+
+void batchNormLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
+  PANIC_IF(tensors->size != 4, ERR_DIM_MISMATCH);
+  batchNormLayerData *layerData = layer->layerData;
+
+  loadIntoTensor(ctx, layerData->gamma, shapes_Array_TensorIdx(tensors, 0));
+  loadIntoTensor(ctx, layerData->beta, shapes_Array_TensorIdx(tensors, 1));
+  loadIntoTensor(ctx, layerData->runningMean, shapes_Array_TensorIdx(tensors, 2));
+  loadIntoTensor(ctx, layerData->runningVar, shapes_Array_TensorIdx(tensors, 3));
+}
+
 void updateRunningStats(Context *ctx, batchNormLayerData *layerData, Tensor *mean, Tensor *variance) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(mean == NULL, ERR_NULL_PTR);
@@ -205,8 +230,10 @@ Tensor *batchNormForward(Context *ctx, Layer *layer, Tensor *input) {
 
 FowardPassOp *shapesnn_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) {
   Tensor *gamma = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  gamma->label = "gamma";
   shapes_SetValues(gamma, VALUE(dtype, 1.0));
   Tensor *beta = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  beta->label = "beta";
 
   batchNormLayerData *data = allocate(ctx->memory, sizeof(batchNormLayerData));
   data->beta = beta;
@@ -215,7 +242,9 @@ FowardPassOp *shapesnn_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) 
   data->epsilon = 1e-5;
   data->momentum = 0.1;
   data->runningMean = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  data->runningMean->label = "running_mean";
   data->runningVar = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  data->runningVar->label = "running_var";
   shapes_SetValues(data->runningVar, VALUE(dtype, 1));
   data->runningStatsInitialised = true;
   data->dims = 1;
@@ -230,8 +259,10 @@ FowardPassOp *shapesnn_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures) 
 
 FowardPassOp *shapesnn_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures) {
   Tensor *gamma = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  gamma->label = "gamma";
   shapes_SetValues(gamma, VALUE(dtype, 1.0));
   Tensor *beta = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  beta->label = "beta";
 
   batchNormLayerData *data = allocate(ctx->memory, sizeof(batchNormLayerData));
   data->beta = beta;
@@ -240,7 +271,9 @@ FowardPassOp *shapesnn_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures
   data->epsilon = 1e-5;
   data->momentum = 0.1;
   data->runningMean = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  data->runningMean->label = "running_mean";
   data->runningVar = t_Zeros(ctx, SHAPE1D(numFeatures), dtype);
+  data->runningVar->label = "running_var";
   shapes_SetValues(data->runningVar, VALUE(dtype, 1));
   data->runningStatsInitialised = true;
   data->dims = 2;

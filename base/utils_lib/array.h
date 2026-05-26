@@ -49,11 +49,15 @@ void Array_Append(Array *array, void *ptr);
 void Array_Reset(Array *array);
 void Array_AppendStructPtr(Array *array, void *ptr);
 void *Array_StructPtrIdx(Array *array, size_t idx);
+Array *Array_Slice(Array *src, size_t start, size_t count);
 
 String MakeString(Memory *memory, char *stringData);
 String MakeStringN(Memory *memory, char *stringData, size_t len);
 void Array_AppendString(Array *array, String str);
 String Array_StringIdx(Array *array, size_t idx);
+
+void String_AppendCString(String str, const char *cstr);
+void String_AppendFormat(String str, const char *fmt, ...);
 
 Array_F32 Make_DynamicF32Array(Memory *memory);
 Array_F32 Make_F32Array(Memory *memory, size_t capacity);

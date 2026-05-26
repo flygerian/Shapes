@@ -59,6 +59,17 @@ Array *adaptiveAvgPool2dLayerParameters(Context *ctx, Layer *state) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
+Array *adaptiveAvgPool2dLayerTensors(Context *ctx, Layer *state) {
+  (void)state;
+  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+}
+
+void adaptiveAvgPool2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+  (void)ctx;
+  (void)state;
+  PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
+}
+
 FowardPassOp *shapesnn_AdaptiveAvgPool2d(Context *ctx, Dtype dtype, dim_t outH, dim_t outW) {
   adaptiveAvgPool2dLayerData *layerData = allocate(ctx->memory, sizeof(adaptiveAvgPool2dLayerData));
   *layerData = (adaptiveAvgPool2dLayerData){.outH = outH, .outW = outW};

@@ -1,6 +1,7 @@
 #include "../common.h"
 #include "../shapes.h"
 #include "nn.h"
+#include "nn_internal.h"
 #include "result/result.h"
 #include "tensor_internal.h"
 #include "utils_lib/array.h"
@@ -123,9 +124,25 @@ Array *conv2dLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
+Array *conv2dLayerTensors(Context *ctx, Layer *state) {
+  return conv2dLayerParameters(ctx, state);
+}
+
+void conv2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+  conv2dLayerData *layerData = state->layerData;
+  size_t expected = layerData->withBias ? 2 : 1;
+  PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
+
+  loadIntoTensor(ctx, state->weights, shapes_Array_TensorIdx(tensors, 0));
+  if (layerData->withBias) {
+    loadIntoTensor(ctx, state->bias, shapes_Array_TensorIdx(tensors, 1));
+  }
+}
+
 FowardPassOp *shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
   Tensor *w = shapes_Make_RandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
+  w->label = "weights";
 
   conv2dLayerData *layerData = allocate(ctx->memory, sizeof(conv2dLayerData));
   *layerData = (conv2dLayerData){.inChannels = inChannels, .outChannels = outChannels, .stride = stride, .withBias = withBias, .colBuffer = NULL};
@@ -135,6 +152,7 @@ FowardPassOp *shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size
 
   if (withBias) {
     Tensor *b = t_Zeros(ctx, SHAPE4D(1, 1, 1, outChannels), dtype);
+    b->label = "bias";
     layer->bias = b;
   }
 

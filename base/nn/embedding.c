@@ -1,5 +1,6 @@
 #include "common.h"
 #include "nn.h"
+#include "nn_internal.h"
 #include "result/result.h"
 #include "shapes.h"
 #include "utils_lib/array.h"
@@ -42,8 +43,18 @@ Array *embeddingParameters(Context *ctx, Layer *layer) {
   return params;
 }
 
+Array *embeddingLayerTensors(Context *ctx, Layer *layer) {
+  return embeddingParameters(ctx, layer);
+}
+
+void embeddingLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
+  PANIC_IF(tensors->size != 1, ERR_DIM_MISMATCH);
+  loadIntoTensor(ctx, layer->weights, shapes_Array_TensorIdx(tensors, 0));
+}
+
 FowardPassOp *shapesnn_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
   Tensor *embedding = shapes_Make_RandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
+  embedding->label = "weights";
 
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = embedding;

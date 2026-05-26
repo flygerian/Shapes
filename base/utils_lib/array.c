@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "result/result.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -27,14 +28,18 @@ Array *contructNewArray(Memory *memory, size_t elemSize, size_t capacity) {
 
 static inline void expandIfNeeded(Array *array, size_t numItemsToAdd) {
   PANIC_IF(array == NULL, ERR_NULL_PTR);
-  bool isArrayAtCapacity = array->size + numItemsToAdd > array->capacity;
-  PANIC_IF(isArrayAtCapacity && array->isCapacityFixed, ERR_EXPAND_FIXED_ARRAY);
+  bool needsExpansion = array->size + numItemsToAdd > array->capacity;
+  PANIC_IF(needsExpansion && array->isCapacityFixed, ERR_EXPAND_FIXED_ARRAY);
 
-  if(!isArrayAtCapacity) {
+  if (!needsExpansion) {
     return;
   }
 
-  const size_t newCapacity = array->capacity + SLICE_GROW_FACTOR;
+  size_t newCapacity = array->capacity;
+  while (newCapacity < array->size + numItemsToAdd) {
+    newCapacity += SLICE_GROW_FACTOR;
+  }
+
   void *newItemsAllocation =
       reallocate(array->memory, array->items, (newCapacity * array->elemSize));
 
@@ -81,6 +86,16 @@ void Array_Reset(Array *array) {
     array->size = 0;
 }
 
+Array *Array_Slice(Array *src, size_t start, size_t count) {
+  PANIC_IF(src == NULL, ERR_NULL_PTR);
+  PANIC_IF(start + count > src->size, ERR_OUT_OF_BOUNDS);
+
+  Array *slice = MakeArray(src->memory, src->elemSize, count);
+  memcpy(slice->items, (byte *)src->items + start * src->elemSize, count * src->elemSize);
+  slice->size = count;
+  return slice;
+}
+
 String Array_StringIdx(Array *array, size_t idx) {
   return *((String *)Array_Idx(array, idx));
 }
@@ -92,11 +107,46 @@ String MakeString(Memory *memory, char *stringData) {
 }
 
 String MakeStringN(Memory *memory, char *stringData, size_t len) {
-  String str = MakeArray(memory, sizeof(char), len + 1);
+  String str = MakeDynamicArray(memory, sizeof(char));
+  expandIfNeeded(str, len + 1);
   memcpy(str->items, stringData, len);
   ((char *)str->items)[len] = '\0';
   str->size = len;
   return str;
+}
+
+void String_AppendCString(String str, const char *cstr) {
+  PANIC_IF(str == NULL, ERR_NULL_PTR);
+  PANIC_IF(cstr == NULL, ERR_NULL_PTR);
+  PANIC_IF(str->elemSize != sizeof(char), ARRAY_ELEM_SIZE_MISMATCH);
+
+  size_t len = strlen(cstr);
+  expandIfNeeded(str, len + 1);
+  memcpy((char *)str->items + str->size, cstr, len);
+  str->size += len;
+  ((char *)str->items)[str->size] = '\0';
+}
+
+void String_AppendFormat(String str, const char *fmt, ...) {
+  PANIC_IF(str == NULL, ERR_NULL_PTR);
+  PANIC_IF(fmt == NULL, ERR_NULL_PTR);
+  PANIC_IF(str->elemSize != sizeof(char), ARRAY_ELEM_SIZE_MISMATCH);
+
+  va_list args;
+  va_start(args, fmt);
+
+  va_list measure;
+  va_copy(measure, args);
+  int needed = vsnprintf(NULL, 0, fmt, measure);
+  va_end(measure);
+
+  PANIC_IF(needed < 0, ERR_NO_OP);
+
+  expandIfNeeded(str, (size_t)needed + 1);
+  vsnprintf((char *)str->items + str->size, (size_t)needed + 1, fmt, args);
+  str->size += (size_t)needed;
+
+  va_end(args);
 }
 
 Array_F32 Make_DynamicF32Array(Memory *memory) {

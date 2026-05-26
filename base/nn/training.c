@@ -38,9 +38,8 @@ Tensor *shapesnn_Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
     case OP_CONV2D: return conv2dForward(ctx, (Layer *)fwdOp->op, input);
     case OP_SEQUENTIAL: return sequentialModelForward(ctx, fwdOp, input);
     case OP_FLATTEN: return flattenFoward(ctx, fwdOp->op, input);
+    default: PANIC_WITH_CODE(LAYER_OP_NOT_FOUND);
   }
-
-  PANIC_IF(true, LAYER_OP_NOT_FOUND);
 }
 
 Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op) {
@@ -58,9 +57,8 @@ Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op) {
     case OP_CONV2D: return conv2dLayerParameters(ctx, (Layer *)op->op);
     case OP_SEQUENTIAL: return sequentialModelParameters(ctx, op);
     case OP_FLATTEN: return flattenParameters(ctx);
+    default: PANIC_WITH_CODE(LAYER_OP_NOT_FOUND);
   }
-
-  PANIC_IF(true, LAYER_OP_NOT_FOUND);
 }
 
 void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters) {
@@ -70,7 +68,6 @@ void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameter
   switch (optimizer->opType) {
     case OP_SGD: sgdStep(ctx, optimizer, parameters); return;
     case OP_ADAM: adamStep(ctx, optimizer, parameters); return;
+    default: PANIC_WITH_CODE(OPTIMIZER_OP_NOT_FOUND);
   }
-
-  PANIC_IF(true, OPTIMIZER_OP_NOT_FOUND);
 }

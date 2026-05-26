@@ -107,6 +107,7 @@ typedef struct sizeAndMultipliers {
 
 typedef struct Tensor {
   Context *context;
+  string label;
   Memory *metadataMemory;
   void *values;
   Range *boundary;

@@ -65,6 +65,17 @@ Array *maxPool2dLayerParameters(Context *ctx, Layer *state) {
   return MakeArray(ctx->memory, sizeof(Tensor *), 0);
 }
 
+Array *maxPool2dLayerTensors(Context *ctx, Layer *state) {
+  (void)state;
+  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+}
+
+void maxPool2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+  (void)ctx;
+  (void)state;
+  PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
+}
+
 FowardPassOp *shapesnn_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
   maxPool2dLayerData *layerData = allocate(ctx->memory, sizeof(maxPool2dLayerData));
   dim_t *kernelDims = allocate(ctx->memory, sizeof(dim_t) * 2);
