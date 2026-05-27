@@ -10,18 +10,22 @@ void reluBackward(Context *ctx, Tensor *tensor) {
   Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
+  Tensor *dInput = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dInput == NULL, ALLOCATION_FAILED);
+  *dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
 
-  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, dInput);
-  shapes_AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, input, dInput);
+  shapes_AddInPlace(ctx, input->grad, &reducedGrad);
 }
 
 Tensor *reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *out = shapes_Relu(ctx, tensor);
+  Tensor *out = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(out == NULL, ALLOCATION_FAILED);
+  *out = shapes_Relu(ctx, tensor);
 
-  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
+  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
@@ -32,12 +36,12 @@ Tensor *reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
 }
 
 Array *reluLayerParameters(Context *ctx, Layer *state) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 Array *reluLayerTensors(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
@@ -48,8 +52,8 @@ void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
 
 FowardPassOp *shapesnn_Relu(Context *ctx, Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
-  layer->weights = NULL;
-  layer->bias = NULL;
+  layer->weights = (Tensor){0};
+  layer->bias = (Tensor){0};
   layer->layerData = NULL;
 
   FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));

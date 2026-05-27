@@ -7,8 +7,8 @@
 #include "utils_lib/utils_lib.h"
 
 typedef struct Layer {
-  Tensor *weights;
-  Tensor *bias;
+  Tensor weights;
+  Tensor bias;
   void *layerData;
 } Layer;
 

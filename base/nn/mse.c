@@ -15,33 +15,38 @@ void mseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(yPred == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   // ∂L/∂yPred = upstream_grad * 2*(yPred - yGround)
-  Tensor *diff = shapes_Subtract(ctx, yPred, yGround);
-  Tensor *two = shapes_Make_FloatTensor(ctx, diff->shape, 2.0);
-  Tensor *localGrad = shapes_Multiply(ctx, two, diff);
-  Tensor *gradYPred = shapes_Multiply(ctx, tensor->grad, localGrad);
-  Tensor *reducedGradYPred = shapes_ReduceBroadcast(ctx, yPred, gradYPred);
-  shapes_AddInPlace(ctx, yPred->grad, reducedGradYPred);
+  Tensor diff = shapes_Subtract(ctx, yPred, yGround);
+  Tensor two = shapes_Make_FloatTensor(ctx, diff.shape, 2.0);
+  Tensor localGrad = shapes_Multiply(ctx, &two, &diff);
+  Tensor gradYPred = shapes_Multiply(ctx, tensor->grad, &localGrad);
+  Tensor reducedGradYPred = shapes_ReduceBroadcast(ctx, yPred, &gradYPred);
+  shapes_AddInPlace(ctx, yPred->grad, &reducedGradYPred);
 
   // ∂L/∂yGround = upstream_grad * -2*(yPred - yGround)
-  Tensor *negLocalGrad = shapes_Negate(ctx, localGrad);
-  Tensor *gradYGround = shapes_Multiply(ctx, tensor->grad, negLocalGrad);
-  Tensor *reducedGradYGround = shapes_ReduceBroadcast(ctx, yGround, gradYGround);
-  shapes_AddInPlace(ctx, yGround->grad, reducedGradYGround);
+  Tensor negLocalGrad = shapes_Negate(ctx, &localGrad);
+  Tensor gradYGround = shapes_Multiply(ctx, tensor->grad, &negLocalGrad);
+  Tensor reducedGradYGround = shapes_ReduceBroadcast(ctx, yGround, &gradYGround);
+  shapes_AddInPlace(ctx, yGround->grad, &reducedGradYGround);
 }
 
 Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
-  Tensor *diff = shapes_Subtract(ctx, yPred, yGround);
+  Tensor diffVal = shapes_Subtract(ctx, yPred, yGround);
 
-  Tensor *loss = shapes_Pow(ctx, diff, 2);
+  Tensor *loss = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(loss == NULL, ALLOCATION_FAILED);
+  *loss = shapes_Pow(ctx, &diffVal, 2);
 
   for (dim_t i = 0; i < loss->shape.numOfDims; i++) {
     dim_t dim = loss->shape.dims[i];
     if (dim > 1) {
-      loss = shapes_Sum(ctx, loss, i);
+      Tensor *newLoss = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(newLoss == NULL, ALLOCATION_FAILED);
+      *newLoss = shapes_Sum(ctx, loss, i);
+      loss = newLoss;
     }
   }
 
-  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
+  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor), 2);
   shapes_Array_AppendTensor(loss->inputs, yGround);
   shapes_Array_AppendTensor(loss->inputs, yPred);
 

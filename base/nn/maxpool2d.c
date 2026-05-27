@@ -24,8 +24,8 @@ void maxPool2dBackward(Context *ctx, Tensor *tensor) {
   Result result = shapes_layer_MaxPool2dBackward(ctx, input, tensor->grad, layerData->kernel, layerData->stride, &dX);
   PANIC_IF(result != OK, result);
 
-  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, &dX);
-  shapes_AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, input, &dX);
+  shapes_AddInPlace(ctx, input->grad, &reducedGrad);
 }
 
 Tensor *maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
@@ -43,13 +43,15 @@ Tensor *maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t outH = (h - kH) / layerData->stride + 1;
   dim_t outW = (w - kW) / layerData->stride + 1;
 
-  Tensor *dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
+  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
+  *dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
   PANIC_IF(dest == NULL, ALLOCATION_FAILED);
 
   Result result = shapes_layer_MaxPool2d(ctx, tensor, layerData->kernel, layerData->stride, dest);
   PANIC_IF(result != OK, result);
 
-  dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
+  dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
   PANIC_IF(dest->inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
@@ -62,12 +64,12 @@ Tensor *maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
 
 Array *maxPool2dLayerParameters(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 Array *maxPool2dLayerTensors(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 void maxPool2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
@@ -87,8 +89,8 @@ FowardPassOp *shapesnn_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t
   };
 
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
-  layer->weights = NULL;
-  layer->bias = NULL;
+  layer->weights = (Tensor){0};
+  layer->bias = (Tensor){0};
   layer->layerData = layerData;
 
   FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));

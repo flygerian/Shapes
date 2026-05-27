@@ -11,21 +11,23 @@ void tanhBackward(Context *ctx, Tensor *tensor) {
   Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1.0f);
-  Tensor *tanhSquared = shapes_Multiply(ctx, tensor, tensor);
-  Tensor *oneMinusTanhSquared = shapes_Subtract(ctx, ones, tanhSquared);
-  Tensor *gradInput = shapes_Multiply(ctx, tensor->grad, oneMinusTanhSquared);
+  Tensor ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1.0f);
+  Tensor tanhSquared = shapes_Multiply(ctx, tensor, tensor);
+  Tensor oneMinusTanhSquared = shapes_Subtract(ctx, &ones, &tanhSquared);
+  Tensor gradInput = shapes_Multiply(ctx, tensor->grad, &oneMinusTanhSquared);
 
-  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, gradInput);
-  shapes_AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, input, &gradInput);
+  shapes_AddInPlace(ctx, input->grad, &reducedGrad);
 }
 
 Tensor *tanhForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *out = shapes_Tanh(ctx, tensor);
+  Tensor *out = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(out == NULL, ALLOCATION_FAILED);
+  *out = shapes_Tanh(ctx, tensor);
 
-  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
+  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
   PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
@@ -36,12 +38,12 @@ Tensor *tanhForward(Context *ctx, Layer *layer, Tensor *tensor) {
 }
 
 Array *tanhLayerParameters(Context *ctx, Layer *state) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 Array *tanhLayerTensors(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 void tanhLayerLoad(Context *ctx, Layer *state, Array *tensors) {
@@ -52,8 +54,8 @@ void tanhLayerLoad(Context *ctx, Layer *state, Array *tensors) {
 
 FowardPassOp *shapesnn_Tanh(Context *ctx, Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
-  layer->weights = NULL;
-  layer->bias = NULL;
+  layer->weights = (Tensor){0};
+  layer->bias = (Tensor){0};
   layer->layerData = NULL;
 
   FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));

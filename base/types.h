@@ -113,7 +113,6 @@ typedef struct Tensor {
   Range *boundary;
   tensor_size_t size;
   Dim shape;
-
   Dtype dtype;
   bool isView;
   bool isContigous;
@@ -122,6 +121,7 @@ typedef struct Tensor {
   Array *inputs;
   OpType opType;
   void *opMetadata;
+  u64 nodeId;
 } Tensor;
 
 typedef struct {

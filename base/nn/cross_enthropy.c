@@ -10,9 +10,9 @@ void crossEnthropyBackward(Context *ctx, Tensor *tensor) {
   Tensor *logits = shapes_Array_TensorIdx(tensor->inputs, 1);
   Tensor *probs = tensor->opMetadata;
 
-  Tensor *dLogits = shapes_loss_CrossEntropyBackward(ctx, yGround, probs, tensor->grad);
-  Tensor *reducedLogits = shapes_ReduceBroadcast(ctx, logits, dLogits);
-  shapes_AddInPlace(ctx, logits->grad, reducedLogits);
+  Tensor dLogits = shapes_loss_CrossEntropyBackward(ctx, yGround, probs, tensor->grad);
+  Tensor reducedLogits = shapes_ReduceBroadcast(ctx, logits, &dLogits);
+  shapes_AddInPlace(ctx, logits->grad, &reducedLogits);
 }
 
 Tensor shapesnn_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
@@ -25,7 +25,7 @@ Tensor shapesnn_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
   Tensor *loss = crossEnthropyResult.a;
   Tensor *probs = crossEnthropyResult.b;
 
-  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor *), 2);
+  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor), 2);
   shapes_Array_AppendTensor(loss->inputs, yGround);
   shapes_Array_AppendTensor(loss->inputs, logits);
 

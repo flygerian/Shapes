@@ -187,16 +187,14 @@ static void tanhCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t
   #endif
 }
 
-static Tensor *tanhCpu(Context *ctx, Tensor *t) {
+static Tensor tanhCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
-    case F32: tanhCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
-    case F64: tanhCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    case F32: tanhCpuF32((const f32 *)input->values, (f32 *)output.values, input->size); break;
+    case F64: tanhCpuF64((const f64 *)input->values, (f64 *)output.values, input->size); break;
     default: PANIC_IF(true, ERR_TANH_VALUE_NOT_FLOAT);
   }
 
@@ -217,16 +215,14 @@ static void reluCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t
   }
 }
 
-static Tensor *reluCpu(Context *ctx, Tensor *t) {
+static Tensor reluCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
-    case F32: reluCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
-    case F64: reluCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    case F32: reluCpuF32((const f32 *)input->values, (f32 *)output.values, input->size); break;
+    case F64: reluCpuF64((const f64 *)input->values, (f64 *)output.values, input->size); break;
     default: PANIC_IF(true, ERR_RELU_VALUE_NOT_FLOAT);
   }
 
@@ -257,19 +253,17 @@ static void powCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor *powCpu(Context *ctx, Tensor *t, f32 power) {
+static Tensor powCpu(Context *ctx, Tensor *t, f32 power) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
     case F32:
-      powCpuF32((const f32 *)input->values, (f32 *)output->values, input->size, power);
+      powCpuF32((const f32 *)input->values, (f32 *)output.values, input->size, power);
       break;
     case F64:
-      powCpuF64((const f64 *)input->values, (f64 *)output->values, input->size, (f64)power);
+      powCpuF64((const f64 *)input->values, (f64 *)output.values, input->size, (f64)power);
       break;
     default: PANIC_IF(true, ERR_POW_VALUE_NOT_FLOAT);
   }
@@ -301,16 +295,14 @@ static void sqrtCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t
   #endif
 }
 
-static Tensor *sqrtCpu(Context *ctx, Tensor *t) {
+static Tensor sqrtCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
-    case F32: sqrtCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
-    case F64: sqrtCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    case F32: sqrtCpuF32((const f32 *)input->values, (f32 *)output.values, input->size); break;
+    case F64: sqrtCpuF64((const f64 *)input->values, (f64 *)output.values, input->size); break;
     default: PANIC_IF(true, ERR_SQRT_VALUE_NOT_FLOAT);
   }
 
@@ -341,16 +333,14 @@ static void expCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor *expCpu(Context *ctx, Tensor *t) {
+static Tensor expCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
-    case F32: expCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
-    case F64: expCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    case F32: expCpuF32((const f32 *)input->values, (f32 *)output.values, input->size); break;
+    case F64: expCpuF64((const f64 *)input->values, (f64 *)output.values, input->size); break;
     default: PANIC_IF(true, ERR_EXP_VALUE_NOT_FLOAT);
   }
 
@@ -381,16 +371,14 @@ static void logCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor *logCpu(Context *ctx, Tensor *t) {
+static Tensor logCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
-    case F32: logCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
-    case F64: logCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    case F32: logCpuF32((const f32 *)input->values, (f32 *)output.values, input->size); break;
+    case F64: logCpuF64((const f64 *)input->values, (f64 *)output.values, input->size); break;
     default: PANIC_IF(true, ERR_LOG_VALUE_NOT_FLOAT);
   }
 
@@ -421,19 +409,17 @@ static void absCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor *absCpu(Context *ctx, Tensor *t) {
+static Tensor absCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
-    case F32: absCpuF32((const f32 *)input->values, (f32 *)output->values, input->size); break;
-    case F64: absCpuF64((const f64 *)input->values, (f64 *)output->values, input->size); break;
+    case F32: absCpuF32((const f32 *)input->values, (f32 *)output.values, input->size); break;
+    case F64: absCpuF64((const f64 *)input->values, (f64 *)output.values, input->size); break;
     case I8: {
       const i8 *s = input->values;
-      i8 *d = output->values;
+      i8 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? (i8)-s[i] : s[i];
       }
@@ -441,7 +427,7 @@ static Tensor *absCpu(Context *ctx, Tensor *t) {
     }
     case I16: {
       const i16 *s = input->values;
-      i16 *d = output->values;
+      i16 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? (i16)-s[i] : s[i];
       }
@@ -449,7 +435,7 @@ static Tensor *absCpu(Context *ctx, Tensor *t) {
     }
     case I32: {
       const i32 *s = input->values;
-      i32 *d = output->values;
+      i32 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? -s[i] : s[i];
       }
@@ -457,7 +443,7 @@ static Tensor *absCpu(Context *ctx, Tensor *t) {
     }
     case I64: {
       const i64 *s = input->values;
-      i64 *d = output->values;
+      i64 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? -s[i] : s[i];
       }
@@ -491,23 +477,21 @@ static void negateCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size
   #endif
 }
 
-static Tensor *negateCpu(Context *ctx, Tensor *t) {
+static Tensor negateCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ALLOCATION_FAILED);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   switch (input->dtype) {
     case F16:
     case F32:
-      negateCpuF32((const f32 *)input->values, (f32 *)output->values, input->size);
+      negateCpuF32((const f32 *)input->values, (f32 *)output.values, input->size);
       break;
     case F64:
-      negateCpuF64((const f64 *)input->values, (f64 *)output->values, input->size);
+      negateCpuF64((const f64 *)input->values, (f64 *)output.values, input->size);
       break;
     case I8: {
       const i8 *s = input->values;
-      i8 *d = output->values;
+      i8 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = (i8)-s[i];
       }
@@ -515,7 +499,7 @@ static Tensor *negateCpu(Context *ctx, Tensor *t) {
     }
     case I16: {
       const i16 *s = input->values;
-      i16 *d = output->values;
+      i16 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = (i16)-s[i];
       }
@@ -523,7 +507,7 @@ static Tensor *negateCpu(Context *ctx, Tensor *t) {
     }
     case I32: {
       const i32 *s = input->values;
-      i32 *d = output->values;
+      i32 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = -s[i];
       }
@@ -531,7 +515,7 @@ static Tensor *negateCpu(Context *ctx, Tensor *t) {
     }
     case I64: {
       const i64 *s = input->values;
-      i64 *d = output->values;
+      i64 *d = output.values;
       for (tensor_size_t i = 0; i < input->size; i++) {
         d[i] = -s[i];
       }
@@ -543,14 +527,12 @@ static Tensor *negateCpu(Context *ctx, Tensor *t) {
   return output;
 }
 
-static Tensor *unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
+static Tensor unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor *output = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(output == NULL, ERR_OUT_OF_MEMORY);
-
+  Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   Result result =
-      runCudaUnaryOp(ctx, input->dtype, opType, input->values, output->values, input->size, param);
+      runCudaUnaryOp(ctx, input->dtype, opType, input->values, output.values, input->size, param);
 
   if (opType == UNARY_OP_RELU) {
     logReluTensorState("cuda_kernel", ctx, input, result);
@@ -561,7 +543,7 @@ static Tensor *unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 para
   return output;
 }
 
-Tensor *shapes_Pow(Context *ctx, Tensor *t, f32 power) {
+Tensor shapes_Pow(Context *ctx, Tensor *t, f32 power) {
   Result result = validatePowTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -572,7 +554,7 @@ Tensor *shapes_Pow(Context *ctx, Tensor *t, f32 power) {
   }
 }
 
-Tensor *shapes_Tanh(Context *ctx, Tensor *t) {
+Tensor shapes_Tanh(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_TANH_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -583,12 +565,12 @@ Tensor *shapes_Tanh(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *shapes_Relu(Context *ctx, Tensor *t) {
+Tensor shapes_Relu(Context *ctx, Tensor *t) {
   logReluTensorState("entry", ctx, t, OK);
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
-  Tensor *out;
+  Tensor out;
   switch (getUnaryDispatchDevice(ctx)) {
     case CUDA: out = unaryOpCuda(ctx, t, UNARY_OP_RELU, 0.0f); break;
     case CPU:
@@ -601,7 +583,7 @@ Tensor *shapes_Relu(Context *ctx, Tensor *t) {
   return out;
 }
 
-Tensor *shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
+Tensor shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -619,25 +601,23 @@ Tensor *shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
   Tensor *outputWork = materializeTensorOnContext(ctx, output);
   Tensor *gradWork = materializeTensorOnContext(ctx, gradOut);
 
-  Tensor *dInput = t_Zeros(ctx, outputWork->shape, outputWork->dtype);
-  PANIC_IF(dInput == NULL, ERR_OUT_OF_MEMORY);
-
+  Tensor dInput = t_Zeros(ctx, outputWork->shape, outputWork->dtype);
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     result = runCudaReluBackward(ctx, outputWork->dtype, outputWork->values, gradWork->values,
-                                 dInput->values, outputWork->size);
+                                 dInput.values, outputWork->size);
     PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   } else if (outputWork->dtype == F64) {
     f64 *outputValues = outputWork->values;
     f64 *gradValues = gradWork->values;
-    f64 *destValues = dInput->values;
+    f64 *destValues = dInput.values;
     for (tensor_size_t i = 0; i < outputWork->size; i++) {
       destValues[i] = outputValues[i] > 0.0 ? gradValues[i] : 0.0;
     }
   } else {
     f32 *outputValues = outputWork->values;
     f32 *gradValues = gradWork->values;
-    f32 *destValues = dInput->values;
+    f32 *destValues = dInput.values;
     for (tensor_size_t i = 0; i < outputWork->size; i++) {
       destValues[i] = outputValues[i] > 0.0f ? gradValues[i] : 0.0f;
     }
@@ -701,7 +681,7 @@ void shapes_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut
   }
 }
 
-Tensor *shapes_Negate(Context *ctx, Tensor *t) {
+Tensor shapes_Negate(Context *ctx, Tensor *t) {
   Result result = validateNegateTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -712,7 +692,7 @@ Tensor *shapes_Negate(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *shapes_Exp(Context *ctx, Tensor *t) {
+Tensor shapes_Exp(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_EXP_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -723,7 +703,7 @@ Tensor *shapes_Exp(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *shapes_Log(Context *ctx, Tensor *t) {
+Tensor shapes_Log(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_LOG_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -734,7 +714,7 @@ Tensor *shapes_Log(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor *shapes_Abs(Context *ctx, Tensor *t) {
+Tensor shapes_Abs(Context *ctx, Tensor *t) {
   Result result = validateAbsTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -752,29 +732,32 @@ void shapes_SqrtBackward(Context *ctx, Tensor *tensor) {
   Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
   PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *two = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 2.0f);
-  Tensor *twoTimesOutput = shapes_Multiply(ctx, two, tensor);
-  Tensor *gradInput = shapes_Divide(ctx, tensor->grad, twoTimesOutput);
+  Tensor two = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 2.0f);
+  Tensor twoTimesOutput = shapes_Multiply(ctx, &two, tensor);
+  Tensor gradInput = shapes_Divide(ctx, tensor->grad, &twoTimesOutput);
 
-  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, gradInput);
-  shapes_AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, input, &gradInput);
+  shapes_AddInPlace(ctx, input->grad, &reducedGrad);
 }
 
-Tensor *shapes_Sqrt(Context *ctx, Tensor *t) {
+Tensor shapes_Sqrt(Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_SQRT_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
-  Tensor *out;
+  Tensor out;
   switch (getUnaryDispatchDevice(ctx)) {
     case CUDA: out = unaryOpCuda(ctx, t, UNARY_OP_SQRT, 0.0f); break;
     case CPU:
     default: out = sqrtCpu(ctx, t); break;
   }
 
-  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  shapes_Array_AppendTensor(out->inputs, t);
-  out->opType = OP_SQRT;
-  out->grad = shapes_Make_ZerosTensor(ctx, out->shape);
+  out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  shapes_Array_AppendTensor(out.inputs, t);
+  out.opType = OP_SQRT;
+  Tensor *gradPtr = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
+  *gradPtr = shapes_Make_ZerosTensor(ctx, out.shape);
+  out.grad = gradPtr;
 
   return out;
 }

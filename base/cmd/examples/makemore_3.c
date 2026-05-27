@@ -17,8 +17,12 @@ void makemore_3() {
   f32 xData[12] = {2.0, 3.0, -1.0, 3.0, -1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, -1.0f};
   f32 yData[4] = {1.0, -1.0, -1.0, 1.0};
 
-  Tensor *xs = shapes_Make_FromContigousArray(&ctx, SHAPE2D(4, 3), &xData, F32);
-  Tensor *ys = shapes_Make_FromContigousArray(&ctx, SHAPE1D(4), &yData, F32);
+  Tensor *xs = allocate(ctx.memory, sizeof(Tensor));
+  PANIC_IF(xs == NULL, ALLOCATION_FAILED);
+  *xs = shapes_Make_FromContigousArray(&ctx, SHAPE2D(4, 3), &xData, F32);
+  Tensor *ys = allocate(ctx.memory, sizeof(Tensor));
+  PANIC_IF(ys == NULL, ALLOCATION_FAILED);
+  *ys = shapes_Make_FromContigousArray(&ctx, SHAPE1D(4), &yData, F32);
 
   FowardPassOp *dense = shapesnn_Dense(&ctx, F32, 3, 10, false);
   FowardPassOp *bn1 = shapesnn_BatchNorm(&ctx, F32, 10);
@@ -32,8 +36,8 @@ void makemore_3() {
     out = shapesnn_Forward(&ctx, bn1, out);
     Tensor *logits = shapesnn_Forward(&ctx, dense2, out);
 
-    Tensor *logitsSqueezed = shapes_Squeeze(&ctx, logits);
-    Tensor loss = shapesnn_Mse(&ctx, ys, logitsSqueezed);
+    Tensor logitsSqueezed = shapes_Squeeze(&ctx, logits);
+    Tensor loss = shapesnn_Mse(&ctx, ys, &logitsSqueezed);
 
     Value lossValue;
     VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
@@ -42,7 +46,7 @@ void makemore_3() {
 
     shapesnn_Backward(&ctx, &loss);
 
-    Array *parameters = MakeArray(ctx.memory, sizeof(Tensor *), 6);
+    Array *parameters = MakeArray(ctx.memory, sizeof(Tensor), 6);
 
     shapes_Array_AppendTensorArray(parameters, shapesnn_Parameters(&ctx, dense));
     shapes_Array_AppendTensorArray(parameters, shapesnn_Parameters(&ctx, dense2));

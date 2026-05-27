@@ -44,7 +44,10 @@ static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig,
       totalLoss += -rowLoss;
     }
 
-    return shapes_Make_Float64Tensor(ctx, SCALAR, totalLoss / (double)rows);
+    Tensor *out = allocate(ctx->memory, sizeof(Tensor));
+    PANIC_IF(out == NULL, ALLOCATION_FAILED);
+    *out = shapes_Make_Float64Tensor(ctx, SCALAR, totalLoss / (double)rows);
+    return out;
   } else {
     float *yVals = yContig->values;
     float *logitVals = logitsContig->values;
@@ -80,7 +83,10 @@ static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig,
       totalLoss += -rowLoss;
     }
 
-    return shapes_Make_FloatTensor(ctx, SCALAR, totalLoss / (double)rows);
+    Tensor *out = allocate(ctx->memory, sizeof(Tensor));
+    PANIC_IF(out == NULL, ALLOCATION_FAILED);
+    *out = shapes_Make_FloatTensor(ctx, SCALAR, totalLoss / (double)rows);
+    return out;
   }
 }
 
@@ -104,14 +110,18 @@ TensorPair shapes_loss_CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor
   Tensor *yContig = materializeTensorOnContext(ctx, yGround);
   Tensor *logitsContig = materializeTensorOnContext(ctx, logits);
 
-  Tensor *probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
+  Tensor *probs = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(probs == NULL, ALLOCATION_FAILED);
+  *probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
   Tensor *loss;
   Result res = OK;
 
   switch (ctx->device->type) {
     case CPU: loss = crossEnthropyFowardCpu(ctx, logitsContig, yContig, probs, rows, classCount); break;
     case CUDA:
-      loss = shapes_Make_ZerosTensor(ctx, SCALAR);
+      loss = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(loss == NULL, ALLOCATION_FAILED);
+      *loss = shapes_Make_ZerosTensor(ctx, SCALAR);
       res = runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values, rows, classCount, probs->values, loss->values);
       PANIC_IF(res != OK, res);
       break;
@@ -148,7 +158,7 @@ static inline void crossEnthropyBackwardCpu(Tensor *pContig, Tensor *yContig, Te
   }
 }
 
-Tensor *shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
+Tensor shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut) {
   PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(probs) || isInvalidTensor(gradOut), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(yGround->shape.numOfDims != probs->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(yGround->dtype != probs->dtype || yGround->dtype != gradOut->dtype, ERR_DTYPE_MISMATCH);
@@ -172,10 +182,10 @@ Tensor *shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *
   Tensor *pContig = materializeTensorOnContext(ctx, probs);
   Tensor *gContig = materializeTensorOnContext(ctx, gradOut);
 
-  Tensor *dLogits = t_Zeros(ctx, pContig->shape, pContig->dtype);
+  Tensor dLogits = t_Zeros(ctx, pContig->shape, pContig->dtype);
 
   switch (ctx->device->type) {
-    case CPU: crossEnthropyBackwardCpu(pContig, yContig, gContig, dLogits, scalarGradOut, rows); break;
+    case CPU: crossEnthropyBackwardCpu(pContig, yContig, gContig, &dLogits, scalarGradOut, rows); break;
 
     case CUDA: {
       Result res = runCudaCrossEntropyBackward(
@@ -186,7 +196,7 @@ Tensor *shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *
           gContig->values,
           rows, classCount,
           scalarGradOut,
-          dLogits->values
+          dLogits.values
       );
       PANIC_IF(res != OK, res);
       break;

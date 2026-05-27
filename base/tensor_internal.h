@@ -24,6 +24,8 @@ typedef struct {
 
 #define NUM_DIMS(tensor) ((tensor)->shape.numOfDims)
 
+u64 nextNodeId(void);
+
 static inline Tensor tensorView(Context *ctx, Memory *metadataMemory, void *values, tensor_size_t size, Dtype dtype, Dim shape, Range *boundary,
                                 bool isContigous) {
   return (Tensor){.context = ctx,
@@ -34,16 +36,17 @@ static inline Tensor tensorView(Context *ctx, Memory *metadataMemory, void *valu
                   .isContigous = isContigous,
                   .isView = true,
                   .boundary = boundary,
-                  .shape = shape};
+                  .shape = shape,
+                  .nodeId = nextNodeId()};
 }
 
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result);
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value);
 
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
-Tensor *t_Zeros(Context *ctx, Dim shape, Dtype type);
-Tensor *t_Empty(Context *ctx, Dim shape, Dtype type);
-Tensor *t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type);
+Tensor t_Zeros(Context *ctx, Dim shape, Dtype type);
+Tensor t_Empty(Context *ctx, Dim shape, Dtype type);
+Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type);
 Tensor *copyToContiguous(Context *ctx, Tensor *source);
 bool isSameContext(Context *a, Context *b);
 Tensor *materializeTensorOnContext(Context *ctx, Tensor *src);

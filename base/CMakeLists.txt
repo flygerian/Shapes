@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-option(SHAPES_ENABLE_CUDA "Enable CUDA support" ON)
+option(SHAPES_ENABLE_CUDA "Enable CUDA support" OFF)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)

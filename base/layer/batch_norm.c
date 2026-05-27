@@ -20,9 +20,15 @@ BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
   Tensor *betaContig = materializeTensorOnContext(ctx, beta);
 
-  Tensor *out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
-  Tensor *mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
-  Tensor *variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  Tensor *out = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(out == NULL, ALLOCATION_FAILED);
+  *out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
+  Tensor *mean = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(mean == NULL, ALLOCATION_FAILED);
+  *mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  Tensor *variance = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(variance == NULL, ALLOCATION_FAILED);
+  *variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
@@ -134,9 +140,15 @@ BatchNormBackwardResult shapes_layer_BatchNormBackward(Context *ctx, Tensor *x2d
   Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
 
-  Tensor *dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
-  Tensor *dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
-  Tensor *dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  Tensor *dX = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dX == NULL, ALLOCATION_FAILED);
+  *dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
+  Tensor *dGamma = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dGamma == NULL, ALLOCATION_FAILED);
+  *dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  Tensor *dBeta = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dBeta == NULL, ALLOCATION_FAILED);
+  *dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;

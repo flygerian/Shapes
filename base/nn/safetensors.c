@@ -291,7 +291,9 @@ Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
 
   for (RANGE(i, metas->size)) {
     ParsedTensorMeta *meta = (ParsedTensorMeta *)Array_Idx(metas, i);
-    Tensor *t = t_Zeros(ctx, meta->shape, meta->dtype);
+    Tensor *t = allocate(ctx->memory, sizeof(Tensor));
+    PANIC_IF(t == NULL, ALLOCATION_FAILED);
+    *t = t_Zeros(ctx, meta->shape, meta->dtype);
     t->label = STR(meta->name);
 
     size_t bytes = meta->endOffset - meta->startOffset;

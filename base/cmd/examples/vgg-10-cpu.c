@@ -115,11 +115,15 @@ static dataset getDataset(Context *ctx) {
 
       readAsNCHWIntoArray(image, r, g, b);
 
-      Tensor *imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
+      Tensor *imageTensor = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(imageTensor == NULL, ALLOCATION_FAILED);
+      *imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
       shapes_Array_AppendTensor(Xtrain, imageTensor);
 
       f32 lbl[1] = {F32_(label[0])};
-      Tensor *labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
+      Tensor *labelTensor = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(labelTensor == NULL, ALLOCATION_FAILED);
+      *labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
       shapes_Array_AppendTensor(Ytrain, labelTensor);
 
       Array_Reset(image);
@@ -136,11 +140,15 @@ static dataset getDataset(Context *ctx) {
     }
 
     readAsNCHWIntoArray(image, r, g, b);
-    Tensor *imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
+    Tensor *imageTensor = allocate(ctx->memory, sizeof(Tensor));
+    PANIC_IF(imageTensor == NULL, ALLOCATION_FAILED);
+    *imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
     shapes_Array_AppendTensor(Xtest, imageTensor);
 
     f32 lbl[1] = {F32_(label[0])};
-    Tensor *labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
+    Tensor *labelTensor = allocate(ctx->memory, sizeof(Tensor));
+    PANIC_IF(labelTensor == NULL, ALLOCATION_FAILED);
+    *labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
     shapes_Array_AppendTensor(Ytest, labelTensor);
     Array_Reset(image);
   }
@@ -162,11 +170,11 @@ static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
   while (true) {
     bool isAtEnd = (amountProcessed + counter) >= X->size;
     if (counter == BATCH_SIZE || isAtEnd) {
-      Tensor *batchedXTensor = shapes_Stack(ctx, currentXBatch);
-      Tensor *batchedYTensor = shapes_Stack(ctx, currentYBatch);
+      Tensor batchedXTensor = shapes_Stack(ctx, currentXBatch);
+      Tensor batchedYTensor = shapes_Stack(ctx, currentYBatch);
 
-      shapes_Array_AppendTensor(Xbatched, batchedXTensor);
-      shapes_Array_AppendTensor(Ybatched, batchedYTensor);
+      shapes_Array_AppendTensor(Xbatched, &batchedXTensor);
+      shapes_Array_AppendTensor(Ybatched, &batchedYTensor);
 
       counter = 0;
       Array_Reset(currentXBatch);
@@ -269,7 +277,11 @@ static FowardPassOp *runTraining(Context *hostCtx, dataset ds) {
       Tensor *logits = shapesnn_Forward(&scratch, model, batch);
 
       Tensor *ybatch = shapes_Array_TensorIdx(Ytrain, i);
-      Tensor *yOneHot = shapes_Squeeze(hostCtx, shapes_Make_OneHotTensor(&scratch, ybatch, numLabels));
+      Tensor *oneHotPtr = allocate(scratch.memory, sizeof(Tensor));
+      PANIC_IF(oneHotPtr == NULL, ALLOCATION_FAILED);
+      *oneHotPtr = shapes_Make_OneHotTensor(&scratch, ybatch, numLabels);
+      Tensor yOneHotVal = shapes_Squeeze(hostCtx, oneHotPtr);
+      Tensor *yOneHot = &yOneHotVal;
       Tensor loss = shapesnn_CrossEnthropy(&scratch, yOneHot, logits);
 
       Value *lossValue = shapes_GetAt(&loss, SHAPE1D(0));
@@ -309,10 +321,13 @@ static void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
 
     Tensor *logitsProbs = shapesnn_Softmax(&scratch, logits);
 
-    Tensor *predictions = shapes_ArgMax(&scratch, logitsProbs, logitsProbs->shape.numOfDims - 1);
+    Tensor predictionsVal = shapes_ArgMax(&scratch, logitsProbs, logitsProbs->shape.numOfDims - 1);
+    Tensor *predictions = &predictionsVal;
     PANIC_IF(predictions->shape.numOfDims != ybatch->shape.numOfDims, ERR_DIM_MISMATCH);
 
-    Tensor *compMask = shapes_Equal(&scratch, Cast(&scratch, predictions, F32), ybatch);
+    Tensor castedPred = Cast(&scratch, predictions, F32);
+    Tensor compMaskVal = shapes_Equal(&scratch, &castedPred, ybatch);
+    Tensor *compMask = &compMaskVal;
     bool *values = compMask->values;
     size_t ones = 0;
     for (RANGE(iv, compMask->size)) {
@@ -330,9 +345,7 @@ static void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
 
 void vgg10_cpu() {
   Context hostCtx = shapes_InitializeHostContext(25 * GB, 1);
-
   dataset ds = getDataset(&hostCtx);
-
   FowardPassOp *model = runTraining(&hostCtx, ds);
 
   runInference(&hostCtx, model, ds);

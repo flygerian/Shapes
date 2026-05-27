@@ -25,11 +25,17 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   for (size_t i = 0; i < parameters->size; i++) {
     Tensor *p = shapes_Array_TensorIdx(parameters, i);
     if (!PtrMap_Contains(m, p)) {
-      PtrMap_Put(m, p, shapes_Make_ZerosTensor(ctx, p->shape));
+      Tensor *mEntry = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(mEntry == NULL, ALLOCATION_FAILED);
+      *mEntry = shapes_Make_ZerosTensor(ctx, p->shape);
+      PtrMap_Put(m, p, mEntry);
     }
 
     if (!PtrMap_Contains(v, p)) {
-      PtrMap_Put(v, p, shapes_Make_ZerosTensor(ctx, p->shape));
+      Tensor *vEntry = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(vEntry == NULL, ALLOCATION_FAILED);
+      *vEntry = shapes_Make_ZerosTensor(ctx, p->shape);
+      PtrMap_Put(v, p, vEntry);
     }
   }
 

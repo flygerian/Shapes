@@ -74,7 +74,7 @@ void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path
   Array *loaded = shapesnn_SafeTensors_Load(ctx, path);
   Array *expected = shapesnn_Tensors(ctx, model);
 
-  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor *), expected->size);
+  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor), expected->size);
   for (RANGE(i, expected->size)) {
     NamedTensor *expectedNt = (NamedTensor *)Array_Idx(expected, i);
     Tensor *match = NULL;

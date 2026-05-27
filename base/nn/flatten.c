@@ -24,15 +24,18 @@ Tensor *flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
     flattenedSize *= dim;
   }
 
-  return shapes_Reshape(ctx, tensor, SHAPE2D(shape.dims[0], flattenedSize));
+  Tensor *out = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(out == NULL, ALLOCATION_FAILED);
+  *out = shapes_Reshape(ctx, tensor, SHAPE2D(shape.dims[0], flattenedSize));
+  return out;
 }
 
 Array *flattenParameters(Context *ctx) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 Array *flattenLayerTensors(Context *ctx) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 void flattenLayerLoad(Context *ctx, Array *tensors) {

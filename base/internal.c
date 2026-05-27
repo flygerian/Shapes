@@ -163,7 +163,9 @@ Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value) {
 }
 
 Tensor *copyToContiguous(Context *ctx, Tensor *source) {
-  Tensor *copy = t_Zeros(ctx, source->shape, source->dtype);
+  Tensor *copy = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(copy == NULL, ALLOCATION_FAILED);
+  *copy = t_Zeros(ctx, source->shape, source->dtype);
   if (copy == NULL) {
     return NULL;
   }
@@ -255,7 +257,9 @@ TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
-  Tensor *reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
+  Tensor *reshapedSmaller = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(reshapedSmaller == NULL, ALLOCATION_FAILED);
+  *reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
 
   if (smaller == a) {
     return (TensorPair){.a = reshapedSmaller, .b = b};
@@ -426,16 +430,16 @@ void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 d
 }
 
 Array *shapes_Make_DynamicTensorArray(Memory *memory) {
-  return MakeDynamicArray(memory, sizeof(Tensor *));
+  return MakeDynamicArray(memory, sizeof(Tensor));
 }
 
 Array *shapes_Make_TensorArray(Memory *memory, size_t capacity) {
-  return MakeArray(memory, sizeof(Tensor *), capacity);
+  return MakeArray(memory, sizeof(Tensor), capacity);
 }
 
 void shapes_Array_AppendTensor(Array *array, Tensor *tensor) {
-  PANIC_IF(array->elemSize != sizeof(Tensor *), ARRAY_ELEM_SIZE_MISMATCH);
-  Array_Append(array, (void *)&tensor);
+  PANIC_IF(array->elemSize != sizeof(Tensor), ARRAY_ELEM_SIZE_MISMATCH);
+  Array_Append(array, (void *)tensor);
 }
 
 void shapes_Array_AppendTensorArray(Array *array, Array *tensorArray) {

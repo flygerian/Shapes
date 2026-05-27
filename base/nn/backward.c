@@ -39,7 +39,9 @@ void backward(Context *ctx, Tensor *node) {
 Array *shapesnn_Backward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
-  Tensor *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1);
+  Tensor *ones = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(ones == NULL, ALLOCATION_FAILED);
+  *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1);
   shapes_AddInPlace(ctx, tensor->grad, ones);
 
   Array *graph = buildGraph(ctx, tensor);
@@ -53,7 +55,7 @@ Array *shapesnn_Backward(Context *ctx, Tensor *tensor) {
 }
 
 Array *buildGraph(Context *ctx, Tensor *tensor) {
-  Array *graph = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
+  Array *graph = shapes_Make_DynamicTensorArray(ctx->memory);
   PtrSet *visited = Make_PtrSet(ctx->memory);
   topoSort(graph, visited, tensor);
   return graph;
@@ -64,11 +66,12 @@ void topoSort(Array *graph, PtrSet *visited, Tensor *tensor) {
   PANIC_IF(visited == NULL, ERR_NULL_PTR);
   PANIC_IF(tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  if (PtrSet_Contains(visited, tensor)) {
+  void *key = (void *)(uintptr_t)tensor->nodeId;
+  if (PtrSet_Contains(visited, key)) {
     return;
   }
 
-  PtrSet_Put(visited, tensor);
+  PtrSet_Put(visited, key);
 
   if (tensor->inputs == NULL) {
     shapes_Array_AppendTensor(graph, tensor);

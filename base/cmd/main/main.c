@@ -7,7 +7,8 @@ int main(int argc, char *argv[]) {
   (void)argv;
 
   // vgg10();
-  makemore_5();
+  // makemore_5();
   // raylib_test();
+  vgg10_cpu();
   return 0;
 }

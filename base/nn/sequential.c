@@ -81,7 +81,7 @@ Array *sequentialModelParameters(Context *ctx, FowardPassOp *modelOp) {
 
 void sequentialModelLoad(Context *ctx, FowardPassOp *modelOp, Array *tensors) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
-  PANIC_IF(tensors->elemSize != sizeof(Tensor *), ARRAY_ELEM_SIZE_MISMATCH);
+  PANIC_IF(tensors->elemSize != sizeof(Tensor), ARRAY_ELEM_SIZE_MISMATCH);
 
   sequentialModel *model = modelOp->op;
   Array *layers = model->layers;
