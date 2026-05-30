@@ -66,9 +66,6 @@ CudaBlock AllocateOnCuda(CudaMemory *restrict cudaMemory, Memory *restrict hostM
     // start allocation from the scratch pointer
     CudaBlock *nextBlock = Array_CudaBlockIdx(cudaMemory->blocks, cudaMemory->allocationPointer + 1); 
     PANIC_IF(nextBlock->size != roundedSize, ERR_CUDA_BLOCK_MISMATCH);
-    // if (cudaMemory->allocationPointer == 6272) {
-    //   printf("block at 6272: %zu, roundedSize: %zu \n", nextBlock->size, roundedSize);
-    // }
     cudaMemory->allocationPointer += 1;
 
     return *nextBlock;

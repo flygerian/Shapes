@@ -385,7 +385,6 @@ void makemore_5() {
   printf("Starting training with %zu samples in %zu batches\n", dataset->size, batchedData.numBatches);
 
   Context scratchCtx = shapes_GetScratchContext(&ctx, scratchBufferSize);
-  printf("Scratch capacity: %zu MB\n", scratchCtx.memory->capacity / (1024 * 1024));
 
   for (size_t epoch = 0; epoch < NUM_EPOCHS; epoch++) {
     f32 totalLoss = 0.0f;

@@ -319,7 +319,6 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
   }
 
   shapesnn_SafeTensors_Save(&scratch, modelTensors, "vgg10.safetensors");
-
   FreeCudaScratchMemory(&dsCudaCtx.cudaMemory);
   // FreeCudaScratchMemory(&scratch.cudaMemory);
 
