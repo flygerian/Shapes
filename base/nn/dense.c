@@ -3,6 +3,7 @@
 #include "nn.h"
 #include "nn_internal.h"
 #include "result/result.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include <sched.h>
@@ -20,55 +21,49 @@ void denseBackward(Context *ctx, Tensor *tensor) {
 
   denseLayerData *layerData = tensor->opMetadata;
 
-  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
-  Tensor *weights = shapes_Array_TensorIdx(tensor->inputs, 1);
-  Tensor *bias = NULL;
+  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor weights = shapes_Array_TensorIdx(tensor->inputs, 1);
+  Tensor bias = {};
 
   if (layerData->withBias) {
     PANIC_IF(tensor != NULL, ERR_DIM_MISMATCH);
     bias = shapes_Array_TensorIdx(tensor->inputs, 2);
+    PANIC_IF(bias.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   }
 
-  PANIC_IF(input == NULL || weights == NULL || input->grad == NULL || weights->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(bias != NULL && bias->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(input.grad == NULL || weights.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Result result = shapes_layer_DenseBackward(ctx, input, weights, tensor->grad, input->grad, weights->grad, bias != NULL ? bias->grad : NULL);
+  Result result = shapes_layer_DenseBackward(ctx, &input, &weights, tensor->grad, input.grad, weights.grad, layerData->withBias ? bias.grad : NULL);
   PANIC_IF(result != OK, result);
 }
 
-Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
-  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights == NULL, ERR_NULL_TENSOR_PROVIDED);
+Tensor denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
+  PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights.values == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   denseLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
+  Tensor out = shapes_layer_DenseLinear(ctx, tensor, &layer->weights, &layer->bias, layerData->withBias);
+  out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
-  Tensor *out = shapes_layer_DenseLinear(ctx, tensor, layer->weights, layer->bias, layerData->withBias);
-
-  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
-
-  Tensor *inputRef = tensor;
-  Tensor *weightRef = layer->weights;
-  shapes_Array_AppendTensor(out->inputs, inputRef);
-  shapes_Array_AppendTensor(out->inputs, weightRef);
+  shapes_Array_AppendTensor(out.inputs, tensor);
+  shapes_Array_AppendTensor(out.inputs, &layer->weights);
 
   if (layerData->withBias) {
-    Tensor *biasRef = layer->bias;
-    Array_Append(out->inputs, (void *)&biasRef);
+    shapes_Array_AppendTensor(out.inputs, &layer->bias);
   }
 
-  out->opMetadata = layerData;
-  out->opType = OP_DENSE;
+  out.opMetadata = layerData;
+  out.opType = OP_DENSE;
   return out;
 }
 
 Array *denseLayerParameters(Context *ctx, Layer *layer) {
   denseLayerData *layerData = layer->layerData;
-  Array *params = MakeArray(ctx->memory, sizeof(Tensor *), 2);
-  shapes_Array_AppendTensor(params, (void *)layer->weights);
+  Array *params = MakeArray(ctx->memory, sizeof(Tensor), 2);
+  shapes_Array_AppendTensor(params, &layer->weights);
 
   if (layerData->withBias) {
-    shapes_Array_AppendTensor(params, (void *)layer->bias);
+    shapes_Array_AppendTensor(params, &layer->bias);
   }
 
   return params;
@@ -83,30 +78,32 @@ void denseLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
   size_t expected = layerData->withBias ? 2 : 1;
   PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
 
-  loadIntoTensor(ctx, layer->weights, shapes_Array_TensorIdx(tensors, 0));
+  Tensor temp = shapes_Array_TensorIdx(tensors, 0);
+  loadIntoTensor(ctx, &layer->weights, &temp);
   if (layerData->withBias) {
-    loadIntoTensor(ctx, layer->bias, shapes_Array_TensorIdx(tensors, 1));
+    temp = shapes_Array_TensorIdx(tensors, 1);
+    loadIntoTensor(ctx, &layer->bias, &temp);
   }
 }
 
-FowardPassOp *shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
+FowardPassOp shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
-  Tensor *w = shapes_Make_RandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
-  w->label = "weights";
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
 
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
-  *layer = (Layer){.weights = w, .layerData = layerData};
+  PANIC_IF(layer == NULL, ALLOCATION_FAILED);
+  layer->weights = shapes_Make_RandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
+  layer->weights.label = "weights";
+  layer->layerData = layerData;
 
   if (withBias) {
-    Tensor *b = shapes_Make_RandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
-    b->label = "bias";
-    layer->bias = b;
+    layer->bias = shapes_Make_RandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
+    layer->bias.label = "bias";
+  } else {
+    layer->bias = (Tensor){0};
   }
 
-  FowardPassOp *denseLayer = allocate(ctx->memory, sizeof(FowardPassOp));
-  *denseLayer = (FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};
-  return denseLayer;
+  return (FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};
 }

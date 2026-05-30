@@ -1,7 +1,6 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor_internal.h"
 #include "types.h"
 #include "value.h"
 #include "utils_lib/array.h"
@@ -15,14 +14,14 @@ void shapesnn_ZeroGrad(Context *ctx, Array *graph) {
   PANIC_IF(graph == NULL, ERR_NULL_PTR);
 
   for (size_t i = 0; i < graph->size; i++) {
-    Tensor *p = shapes_Array_TensorIdx(graph, i);
-    Tensor *g = p->grad;
+    Tensor p = shapes_Array_TensorIdx(graph, i);
+    Tensor *g = p.grad;
 
     shapes_SetValues(g, VALUE(g->dtype, 0));
   }
 }
 
-Tensor *shapesnn_Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
+Tensor shapesnn_Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
   PANIC_IF(fwdOp->ctx == NULL, NULL_CONTEXT);
   PANIC_IF(fwdOp == NULL, ERR_NULL_PTR);
   PANIC_IF(input == NULL, ERR_NULL_PTR);

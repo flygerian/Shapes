@@ -6,17 +6,16 @@
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include <alloca.h>
+#include <sched.h>
 #include <stddef.h>
 #include <stdio.h>
 
-Tensor *flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
-  PANIC_IF(layer != NULL, ERR_NO_OP);
+Tensor flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
+  PANIC_IF(layer != NULL, ERR_NO_OP); // there should be no layer
   PANIC_IF_NULL(tensor);
 
   Dim shape = tensor->shape;
-  if (shape.numOfDims < 2) {
-    return tensor;
-  }
+  PANIC_IF(shape.numOfDims < 2, ERR_NO_OP);
 
   size_t flattenedSize = 1;
   for (RANGE_FROM(1, shape.numOfDims, i)) {
@@ -28,11 +27,11 @@ Tensor *flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
 }
 
 Array *flattenParameters(Context *ctx) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 Array *flattenLayerTensors(Context *ctx) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 void flattenLayerLoad(Context *ctx, Array *tensors) {
@@ -40,10 +39,9 @@ void flattenLayerLoad(Context *ctx, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp *shapesnn_Flatten(Context *ctx, Dtype dtype) {
+FowardPassOp shapesnn_Flatten(Context *ctx, Dtype dtype) {
   PANIC_IF_NULL(ctx);
 
   FowardPassOp *flattenLayer = allocate(ctx->memory, sizeof(FowardPassOp));
-  *flattenLayer = (FowardPassOp){.ctx = ctx, .type = OP_FLATTEN, .dtype = dtype};
-  return flattenLayer;
+  return (FowardPassOp){.ctx = ctx, .type = OP_FLATTEN, .dtype = dtype};
 }

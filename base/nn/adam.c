@@ -23,27 +23,33 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PANIC_IF(parameters->size == 0, ERR_DIM_MISMATCH);
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = shapes_Array_TensorIdx(parameters, i);
-    if (!PtrMap_Contains(m, p)) {
-      PtrMap_Put(m, p, shapes_Make_ZerosTensor(ctx, p->shape));
+    Tensor p = shapes_Array_TensorIdx(parameters, i);
+    if (!PtrMap_Contains(m, &p)) {
+      Tensor *mEntry = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(mEntry == NULL, ALLOCATION_FAILED);
+      *mEntry = shapes_Make_ZerosTensor(ctx, p.shape);
+      PtrMap_Put(m, (void*) p.nodeId, mEntry);
     }
 
-    if (!PtrMap_Contains(v, p)) {
-      PtrMap_Put(v, p, shapes_Make_ZerosTensor(ctx, p->shape));
+    if (!PtrMap_Contains(v, &p)) {
+      Tensor *vEntry = allocate(ctx->memory, sizeof(Tensor));
+      PANIC_IF(vEntry == NULL, ALLOCATION_FAILED);
+      *vEntry = shapes_Make_ZerosTensor(ctx, p.shape);
+      PtrMap_Put(v, &p, vEntry);
     }
   }
 
   AdamData triplets[parameters->size];
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = shapes_Array_TensorIdx(parameters, i);
+    Tensor p = shapes_Array_TensorIdx(parameters, i);
     triplets[i] = (AdamData){
-        .m = ((Tensor *)PtrMap_Get(m, p))->values,
-        .v = ((Tensor *)PtrMap_Get(v, p))->values,
-        .param = p->values,
-        .grad = p->grad->values,
-        .size = p->size,
-        .dtype = p->dtype,
+        .m = ((Tensor *)PtrMap_Get(m, &p))->values,
+        .v = ((Tensor *)PtrMap_Get(v, &p))->values,
+        .param = p.values,
+        .grad = p.grad->values,
+        .size = p.size,
+        .dtype = p.dtype,
     };
   }
 
@@ -53,7 +59,7 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   PANIC_IF(res != OK, res);
 }
 
-Optimizer *shapesnn_Adam(Context *ctx, f32 learningRate) {
+Optimizer shapesnn_Adam(Context *ctx, f32 learningRate) {
   adamState state = {
       .episolon = 1e-8,
       .m = Make_PtrSet(ctx->memory),
@@ -66,7 +72,5 @@ Optimizer *shapesnn_Adam(Context *ctx, f32 learningRate) {
   adamState *aState = allocate(ctx->memory, sizeof(adamState));
   *aState = state;
 
-  Optimizer *opt = allocate(ctx->memory, sizeof(Optimizer));
-  *opt = (Optimizer){.learningRate = learningRate, .state = aState, .opType = OP_ADAM};
-  return opt;
+  return (Optimizer){.learningRate = learningRate, .state = aState, .opType = OP_ADAM};
 }

@@ -1,7 +1,6 @@
 #include "nn/nn.h"
 #include "result/result.h"
 #include "shapes.h"
-#include "tensor_internal.h"
 #include "types.h"
 #include "utils_lib/array.h"
 #include <stdbool.h>
@@ -10,24 +9,26 @@
 #include <string.h>
 #include "nn_internal.h"
 #include "utils_lib/memory.h"
+#include "utils_lib/utils_lib.h"
 
+#define MAX_EXPECTED_NUM_LAYER_PARAMS 5
 
-FowardPassOp *shapesnn_Sequential(Context *ctx, FowardPassOp **layerOps, size_t numLayers, Dtype dtype) {
+FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, Dtype dtype) {
   PANIC_IF(numLayers == 0, ZERO_LAYERS_PASSED);
   PANIC_IF_NULL(layerOps);
 
-  Array *layers = MakeArray(ctx->memory, sizeof(FowardPassOp *), numLayers);
-  Array *parameters = shapes_Make_DynamicTensorArray(ctx->memory);
+  Array *layers = MakeArray(ctx->memory, sizeof(FowardPassOp), numLayers);
+  Array *parameters = shapes_Make_TensorArray(ctx->memory, MAX_EXPECTED_NUM_LAYER_PARAMS * numLayers);
 
   for (size_t i = 0; i < numLayers; i++) {
-    FowardPassOp *op = layerOps[i];
+    FowardPassOp op = layerOps[i];
 
-    PANIC_IF(op->dtype != dtype, ERR_DTYPE_MISMATCH);
+    PANIC_IF(op.dtype != dtype, ERR_DTYPE_MISMATCH);
 
     bool isFowardPassOp = false;
     u8 counter = 0;
     while (true) {
-      if (op->type == LayerOps[counter]) {
+      if (op.type == LayerOps[counter]) {
         isFowardPassOp = true;
         break;
       } else if (LayerOps[counter] == OP_NONE) {
@@ -38,34 +39,31 @@ FowardPassOp *shapesnn_Sequential(Context *ctx, FowardPassOp **layerOps, size_t 
 
     PANIC_IF(!isFowardPassOp, NON_LAYER_OP_PASSED);
 
-    array_AppendFowardPassOp(layers, op);
+    array_AppendFowardPassOp(layers, &op);
 
-    // TODO: use scratch context here
-    Array *params = shapesnn_Parameters(ctx, op);
-    for (size_t ip = 0; ip < params->size; ip++) {
-      Tensor *p = shapes_Array_TensorIdx(params, ip);
-      shapes_Array_AppendTensor(parameters, p);
+    Array *params = shapesnn_Parameters(ctx, &op);
+    for (RANGE(ip, params->size)) {
+      Tensor p = shapes_Array_TensorIdx(params, ip);
+      shapes_Array_AppendTensor(parameters, &p);
     }
   }
 
   sequentialModel *model = allocate(ctx->memory, sizeof(sequentialModel));
   *model = (sequentialModel){.layers = layers, .parameters = parameters};
 
-  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
-  *op = (FowardPassOp){.type = OP_SEQUENTIAL, .op = model, .ctx = ctx, .dtype = dtype};
-  return op;
+  return (FowardPassOp){.type = OP_SEQUENTIAL, .op = model, .ctx = ctx, .dtype = dtype};
 }
 
-Tensor *sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *input) {
+Tensor sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *input) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
 
   sequentialModel *model = modelOp->op;
   Array *layers = model->layers;
 
-  Tensor *out = input;
+  Tensor out = *input;
   for (RANGE(i, layers->size)) {
-    FowardPassOp *layer = array_FowardPassOpIdx(layers, i);
-    out = shapesnn_Forward(ctx, layer, out);
+    FowardPassOp layer = array_FowardPassOpIdx(layers, i);
+    out = shapesnn_Forward(ctx, &layer, &out);
   }
 
   return out;
@@ -81,18 +79,18 @@ Array *sequentialModelParameters(Context *ctx, FowardPassOp *modelOp) {
 
 void sequentialModelLoad(Context *ctx, FowardPassOp *modelOp, Array *tensors) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
-  PANIC_IF(tensors->elemSize != sizeof(Tensor *), ARRAY_ELEM_SIZE_MISMATCH);
+  PANIC_IF(tensors->elemSize != sizeof(Tensor), ARRAY_ELEM_SIZE_MISMATCH);
 
   sequentialModel *model = modelOp->op;
   Array *layers = model->layers;
 
   size_t cursor = 0;
   for (RANGE(i, layers->size)) {
-    FowardPassOp *child = array_FowardPassOpIdx(layers, i);
-    size_t childCount = shapesnn_Tensors(ctx, child)->size;
+    FowardPassOp child = array_FowardPassOpIdx(layers, i);
+    size_t childCount = shapesnn_Tensors(ctx, &child)->size;
 
     Array *slice = Array_Slice(tensors, cursor, childCount);
-    shapesnn_Load(ctx, child, slice);
+    shapesnn_Load(ctx, &child, slice);
     cursor += childCount;
   }
 
@@ -107,8 +105,8 @@ Array *sequentialModelTensors(Context *ctx, FowardPassOp *modelOp) {
   Array *out = MakeDynamicArray(ctx->memory, sizeof(NamedTensor));
 
   for (RANGE(i, layers->size)) {
-    FowardPassOp *child = array_FowardPassOpIdx(layers, i);
-    Array *childTensors = shapesnn_Tensors(ctx, child);
+    FowardPassOp child = array_FowardPassOpIdx(layers, i);
+    Array *childTensors = shapesnn_Tensors(ctx, &child);
 
     for (RANGE(j, childTensors->size)) {
       NamedTensor *child_nt = (NamedTensor *)Array_Idx(childTensors, j);

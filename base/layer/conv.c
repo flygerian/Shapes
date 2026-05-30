@@ -156,7 +156,9 @@ Result shapes_layer_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, 
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
-  Tensor *createdGemmOutput = t_Zeros(ctx, SHAPE4D(batch, outputChannelHeight, outputChannelWidth, outChannels), t->dtype);
+  Tensor *createdGemmOutput = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(createdGemmOutput == NULL, ALLOCATION_FAILED);
+  *createdGemmOutput = t_Zeros(ctx, SHAPE4D(batch, outputChannelHeight, outputChannelWidth, outChannels), t->dtype);
   PANIC_IF(createdGemmOutput == NULL, ERR_OUT_OF_MEMORY);
   gemmOutput = *createdGemmOutput;
 
@@ -313,9 +315,8 @@ Result shapes_layer_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, 
 
     dim_t outputPositions = batch * outH * outW;
 
-    Tensor *dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F64);
-    PANIC_IF(dColBufferTensor == NULL, ALLOCATION_FAILED);
-    dColBuffer = dColBufferTensor->values;
+    Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F64);
+    dColBuffer = dColBufferTensor.values;
 
     runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBufferContig->values, kS, false, dWValues, kS);
 
@@ -334,9 +335,8 @@ Result shapes_layer_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, 
 
     dim_t outputPositions = batch * outH * outW;
 
-    Tensor *dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F32);
-    PANIC_IF(dColBufferTensor == NULL, ALLOCATION_FAILED);
-    dColBuffer = dColBufferTensor->values;
+    Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F32);
+    dColBuffer = dColBufferTensor.values;
 
     runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBufferContig->values, kS, false, dWValues, kS);
 
@@ -411,7 +411,9 @@ Result shapes_layer_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outC
   dim_t outH = (h - 1) * stride + kH;
   dim_t outW = (w - 1) * stride + kW;
 
-  Tensor *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, outChannels), t->dtype);
+  Tensor *createdDest = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
+  *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, outChannels), t->dtype);
   if (createdDest == NULL) {
     return ERR_OUT_OF_MEMORY;
   }
@@ -519,13 +521,17 @@ Result shapes_layer_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *ker
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor *createdDX = t_Zeros(ctx, x->shape, x->dtype);
+  Tensor *createdDX = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
+  *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   if (createdDX == NULL) {
     return ALLOCATION_FAILED;
   }
   *dX = *createdDX;
 
-  Tensor *createdDKernels = t_Zeros(ctx, kernels->shape, kernels->dtype);
+  Tensor *createdDKernels = allocate(ctx->memory, sizeof(Tensor));
+  PANIC_IF(createdDKernels == NULL, ALLOCATION_FAILED);
+  *createdDKernels = t_Zeros(ctx, kernels->shape, kernels->dtype);
   if (createdDKernels == NULL) {
     return ALLOCATION_FAILED;
   }

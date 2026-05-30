@@ -1,43 +1,44 @@
 #include "../shapes.h"
 #include "nn.h"
 #include "result/result.h"
-#include "../tensor_internal.h"
+#include "types.h"
 #include "utils_lib/array.h"
+#include <stdio.h>
 
 void reluBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
-  PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
-
-  Tensor *reducedGrad = shapes_ReduceBroadcast(ctx, input, dInput);
-  shapes_AddInPlace(ctx, input->grad, reducedGrad);
+  Tensor dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, &input, &dInput);
+  shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
-Tensor *reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
+  (void)layer;
+
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *out = shapes_Relu(ctx, tensor);
-
-  out->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor *));
-  PANIC_IF(out->inputs == NULL, ALLOCATION_FAILED);
+  Tensor out = shapes_Relu(ctx, tensor);
+  out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
   Tensor *inputRef = tensor;
-  shapes_Array_AppendTensor(out->inputs, inputRef);
+  shapes_Array_AppendTensor(out.inputs, inputRef);
 
-  out->opType = OP_RELU;
+  out.opType = OP_RELU;
   return out;
 }
 
 Array *reluLayerParameters(Context *ctx, Layer *state) {
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  (void)state;
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 Array *reluLayerTensors(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor *), 0);
+  return MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
 void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
@@ -46,13 +47,10 @@ void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp *shapesnn_Relu(Context *ctx, Dtype dtype) {
+FowardPassOp shapesnn_Relu(Context *ctx, Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
-  layer->weights = NULL;
-  layer->bias = NULL;
-  layer->layerData = NULL;
+  *layer = (Layer) {.weights = {}, .bias = {}, .layerData = NULL};
 
-  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
-  *op = (FowardPassOp){.ctx = ctx, .type = OP_RELU, .dtype = dtype, .op = layer};
+  FowardPassOp op = (FowardPassOp){.ctx = ctx, .type = OP_RELU, .dtype = dtype, .op = layer};
   return op;
 }

@@ -10,7 +10,7 @@ typedef struct sequentialModelData {
   Array *parameters;
 } sequentialModel;
 
-FowardPassOp *array_FowardPassOpIdx(Array *array, size_t idx);
+FowardPassOp array_FowardPassOpIdx(Array *array, size_t idx);
 void array_AppendFowardPassOp(Array *array, FowardPassOp *op);
 
 Array *denseLayerParameters(Context *ctx, Layer *layer);
@@ -29,18 +29,18 @@ Array *conv2dLayerTensors(Context *ctx, Layer *state);
 Array *flattenLayerTensors(Context *ctx);
 Array *sequentialModelTensors(Context *ctx, FowardPassOp *modelOp);
 
-Tensor *denseForward(Context *ctx, Layer *layer, Tensor *tensor);
-Tensor *embeddingForward(Context *ctx, Layer *layer, Tensor *indices);
-Tensor *batchNormForward(Context *ctx, Layer *layer, Tensor *inputs);
-Tensor *tanhForward(Context *ctx, Layer *layer, Tensor *tensor);
-Tensor *sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *input);
+Tensor denseForward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor embeddingForward(Context *ctx, Layer *layer, Tensor *indices);
+Tensor batchNormForward(Context *ctx, Layer *layer, Tensor *inputs);
+Tensor tanhForward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *input);
 Array *sequentialModelParameters(Context *ctx, FowardPassOp *modelOp);
 
 Result sgdStep(Context *ctx, Optimizer *opts, Array *parameters);
 void adamStep(Context *ctx, Optimizer *opts, Array *parameters);
 
 void denseBackward(Context *ctx, Tensor *tensor);
-void embeddingBackward(Context *ctx, Tensor *tensor);
+void embeddingBackward(Context *ctx, Tensor *out);
 void mseBackward(Context *ctx, Tensor *tensor);
 void batchnormBackward(Context *ctx, Tensor *output);
 void crossEnthropyBackward(Context *ctx, Tensor *tensor);
@@ -50,16 +50,16 @@ void maxPool2dBackward(Context *ctx, Tensor *tensor);
 void adaptiveAvgPool2dBackward(Context *ctx, Tensor *tensor);
 void conv2dBackward(Context *ctx, Tensor *tensor);
 
-Tensor *reluForward(Context *ctx, Layer *layer, Tensor *tensor);
-Tensor *maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor);
-Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor);
-Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor reluForward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor conv2dForward(Context *ctx, Layer *layer, Tensor *tensor);
 Array *reluLayerParameters(Context *ctx, Layer *state);
 Array *maxPool2dLayerParameters(Context *ctx, Layer *state);
 Array *adaptiveAvgPool2dLayerParameters(Context *ctx, Layer *state);
 Array *conv2dLayerParameters(Context *ctx, Layer *state);
 
-Tensor *flattenFoward(Context *ctx, Layer *layer, Tensor *tensor);
+Tensor flattenFoward(Context *ctx, Layer *layer, Tensor *tensor);
 Array *flattenParameters(Context *ctx);
 
 void loadIntoTensor(Context *ctx, Tensor *dst, Tensor *src);

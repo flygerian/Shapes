@@ -24,9 +24,9 @@
 #define IMAGES_WIDTH     32
 #define IMAGES_HEIGHT    32
 #define NUM_CHANNELS     3
-#define CHANNEL_PLANE    IMAGES_WIDTH *IMAGES_HEIGHT
+#define CHANNEL_PLANE    IMAGES_WIDTH * IMAGES_HEIGHT
 #define BATCH_SIZE       16
-#define NUM_EPOCHS       100
+#define NUM_EPOCHS       40
 #define LEARNING_RATE    0.001
 
 typedef struct dataset {
@@ -87,10 +87,10 @@ dataset getDataset(Context *ctx) {
     printf("\n%s\n", label);
   }
 
-  Array_Tensor Xtrain = shapes_Make_DynamicTensorArray(ctx->memory);
-  Array_Tensor Ytrain = shapes_Make_DynamicTensorArray(ctx->memory);
-  Array_Tensor Xtest = shapes_Make_DynamicTensorArray(ctx->memory);
-  Array_Tensor Ytest = shapes_Make_DynamicTensorArray(ctx->memory);
+  Array_Tensor Xtrain = shapes_Make_TensorArray(ctx->memory, 50000);
+  Array_Tensor Ytrain = shapes_Make_TensorArray(ctx->memory, 50000);
+  Array_Tensor Xtest = shapes_Make_TensorArray(ctx->memory, 10000);
+  Array_Tensor Ytest = shapes_Make_TensorArray(ctx->memory, 10000);
 
   byte label[1] = {0};
   byte r[CHANNEL_PLANE] = {0};
@@ -116,12 +116,12 @@ dataset getDataset(Context *ctx) {
 
       readAsNCHWIntoArray(image, r, g, b);
 
-      Tensor *imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
-      shapes_Array_AppendTensor(Xtrain, imageTensor);
+      Tensor imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
+      shapes_Array_AppendTensor(Xtrain, &imageTensor);
 
       f32 lbl[1] = {F32_(label[0])};
-      Tensor *labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
-      shapes_Array_AppendTensor(Ytrain, labelTensor);
+      Tensor labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
+      shapes_Array_AppendTensor(Ytrain, &labelTensor);
 
       Array_Reset(image);
       numImagesProcessed += 1;
@@ -137,12 +137,12 @@ dataset getDataset(Context *ctx) {
     }
 
     readAsNCHWIntoArray(image, r, g, b);
-    Tensor *imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
-    shapes_Array_AppendTensor(Xtest, imageTensor);
+    Tensor imageTensor = shapes_Make_FromContigousArray(ctx, SHAPE3D(IMAGES_HEIGHT, IMAGES_WIDTH, NUM_CHANNELS), image->items, F32);
+    shapes_Array_AppendTensor(Xtest, &imageTensor);
 
     f32 lbl[1] = {F32_(label[0])};
-    Tensor *labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
-    shapes_Array_AppendTensor(Ytest, labelTensor);
+    Tensor labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
+    shapes_Array_AppendTensor(Ytest, &labelTensor);
     Array_Reset(image);
   }
 
@@ -156,18 +156,18 @@ static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
   Array_Tensor currentXBatch = shapes_Make_TensorArray(ctx->memory, BATCH_SIZE);
   Array_Tensor currentYBatch = shapes_Make_TensorArray(ctx->memory, BATCH_SIZE);
 
-  Array *Xbatched = shapes_Make_DynamicTensorArray(ctx->memory);
-  Array *Ybatched = shapes_Make_DynamicTensorArray(ctx->memory);
+  Array *Xbatched = shapes_Make_TensorArray(ctx->memory, 4000);
+  Array *Ybatched = shapes_Make_TensorArray(ctx->memory, 4000);
 
   u8 counter = 0;
   while (true) {
     bool isAtEnd = (amountProcessed + counter) >= X->size;
     if (counter == BATCH_SIZE || isAtEnd) {
-      Tensor *batchedXTensor = shapes_Stack(ctx, currentXBatch);
-      Tensor *batchedYTensor = shapes_Stack(ctx, currentYBatch);
+      Tensor batchedXTensor = shapes_Stack(ctx, currentXBatch);
+      Tensor batchedYTensor = shapes_Stack(ctx, currentYBatch);
 
-      shapes_Array_AppendTensor(Xbatched, batchedXTensor);
-      shapes_Array_AppendTensor(Ybatched, batchedYTensor);
+      shapes_Array_AppendTensor(Xbatched, &batchedXTensor);
+      shapes_Array_AppendTensor(Ybatched, &batchedYTensor);
 
       counter = 0;
       Array_Reset(currentXBatch);
@@ -180,11 +180,11 @@ static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
       }
     }
 
-    Tensor *tXTrain = shapes_Array_TensorIdx(X, amountProcessed + counter);
-    shapes_Array_AppendTensor(currentXBatch, tXTrain);
+    Tensor tXTrain = shapes_Array_TensorIdx(X, amountProcessed + counter);
+    shapes_Array_AppendTensor(currentXBatch, &tXTrain);
 
-    Tensor *tYTrain = shapes_Array_TensorIdx(Y, amountProcessed + counter);
-    shapes_Array_AppendTensor(currentYBatch, tYTrain);
+    Tensor tYTrain = shapes_Array_TensorIdx(Y, amountProcessed + counter);
+    shapes_Array_AppendTensor(currentYBatch, &tYTrain);
 
     counter += 1;
   }
@@ -192,63 +192,72 @@ static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
   return ARRAY_PAIR(Xbatched, Ybatched);
 }
 
-FowardPassOp *Make_ConvBlock(Context *ctx) {
-  FowardPassOp *layers[] = {shapesnn_Conv2d(ctx, F32, 3, 64, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
-                            shapesnn_Conv2d(ctx, F32, 64, 64, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
+FowardPassOp Make_ConvBlock(Context *ctx) {
+  FowardPassOp layers[] = {
+    shapesnn_Conv2d(ctx, F32, 3, 64, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
+    shapesnn_Conv2d(ctx, F32, 64, 64, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
 
-                            shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
+    shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
 
-                            shapesnn_Conv2d(ctx, F32, 64, 128, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
-                            shapesnn_Conv2d(ctx, F32, 128, 128, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
+    shapesnn_Conv2d(ctx, F32, 64, 128, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
+    shapesnn_Conv2d(ctx, F32, 128, 128, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
 
-                            shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
+    shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
 
-                            shapesnn_Conv2d(ctx, F32, 128, 256, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
-                            shapesnn_Conv2d(ctx, F32, 256, 256, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
+    shapesnn_Conv2d(ctx, F32, 128, 256, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
+    shapesnn_Conv2d(ctx, F32, 256, 256, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
 
-                            shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
+    shapesnn_MaxPool2d(ctx, F32, 2, 2, 1),
 
-                            shapesnn_Conv2d(ctx, F32, 256, 512, 2, 2, 1, false),
-                            shapesnn_Relu(ctx, F32),
-                            shapesnn_AdaptiveAvgPool2d(ctx, F32, 1, 1)};
+    shapesnn_Conv2d(ctx, F32, 256, 512, 2, 2, 1, false),
+    shapesnn_Relu(ctx, F32),
+    shapesnn_AdaptiveAvgPool2d(ctx, F32, 1, 1)
+  };
 
   return shapesnn_Sequential(ctx, layers, 18, F32);
 }
 
-FowardPassOp *Make_LinearBlock(Context *ctx, u8 numLabels) {
-  FowardPassOp *layers[] = {shapesnn_Flatten(ctx, F32), shapesnn_Dense(ctx, F32, 512, 4000, false),      shapesnn_Relu(ctx, F32), shapesnn_Dense(ctx, F32, 4000, 1000, false),
-                            shapesnn_Relu(ctx, F32),    shapesnn_Dense(ctx, F32, 1000, numLabels, false)};
+FowardPassOp Make_LinearBlock(Context *ctx, u8 numLabels) {
+  FowardPassOp layers[] = {
+    shapesnn_Flatten(ctx, F32), 
+    shapesnn_Dense(ctx, F32, 512, 4000, false),      
+    shapesnn_Relu(ctx, F32), 
+    shapesnn_Dense(ctx, F32, 4000, 1000, false),
+    shapesnn_Relu(ctx, F32),    
+    shapesnn_Dense(ctx, F32, 1000, numLabels, false)
+  };
 
   return shapesnn_Sequential(ctx, layers, 6, F32);
 }
 
-FowardPassOp *Make_Model(Context *ctx, u8 numLabels) {
-  FowardPassOp *convBlock = Make_ConvBlock(ctx);
-  FowardPassOp *linearBlock = Make_LinearBlock(ctx, numLabels);
+FowardPassOp Make_Model(Context *ctx, u8 numLabels) {
+  FowardPassOp convBlock = Make_ConvBlock(ctx);
+  FowardPassOp linearBlock = Make_LinearBlock(ctx, numLabels);
 
-  FowardPassOp *blocks[2] = {convBlock, linearBlock};
+  FowardPassOp blocks[2] = {convBlock, linearBlock};
   return shapesnn_Sequential(ctx, blocks, 2, F32);
 }
 
-FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
+FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
   // Tensor *first = Array_TensorIdx(ds.Xtest, 246);
   // basicRaylibWindow(first);
 
   u8 numLabels = ds.labels->size;
-  FowardPassOp *model = Make_Model(cudaCtx, numLabels);
-  Optimizer *optimzer = shapesnn_SGD(cudaCtx, LEARNING_RATE);
+  FowardPassOp model = Make_Model(cudaCtx, numLabels);
+  Optimizer optimzer = shapesnn_SGD(cudaCtx, LEARNING_RATE);
 
   ArrayPair trainDs = toBatches(hostCtx, ds.Xtrain, ds.Ytrain);
   Array *Xtrain = trainDs.a;
   Array *Ytrain = trainDs.b;
 
   Context dsCudaCtx = shapes_GetScratchContext(cudaCtx, 1 * GB);
+
   shapes_MoveToCuda(&dsCudaCtx, Xtrain);
   shapes_MoveToCuda(&dsCudaCtx, Ytrain);
 
@@ -273,20 +282,22 @@ FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
         printf("Processing batch %zu of %zu \n", i, Xtrain->size - 1);
       }
 
-      Tensor *batch = shapes_Array_TensorIdx(Xtrain, i);
-      Tensor *logits = shapesnn_Forward(&scratch, model, batch);
+      Tensor batch = shapes_Array_TensorIdx(Xtrain, i);
+      Tensor logits = shapesnn_Forward(&scratch, &model, &batch);
 
-      Tensor *ybatch = shapes_Array_TensorIdx(Ytrain, i);
-      Tensor *yOneHot = shapes_Squeeze(hostCtx, shapes_Make_OneHotTensor(&scratch, ybatch, numLabels));
-      Tensor loss = shapesnn_CrossEnthropy(&scratch, yOneHot, logits);
+      Tensor ybatch = shapes_Array_TensorIdx(Ytrain, i);
+      Tensor oneHotPtr = shapes_Make_OneHotTensor(&scratch, &ybatch, numLabels);
+      Tensor yOneHotVal = shapes_Squeeze(hostCtx, &oneHotPtr);
+      Tensor *yOneHot = &yOneHotVal;
+      Tensor loss = shapesnn_CrossEnthropy(&scratch, yOneHot, &logits);
 
       Value *lossValue = shapes_GetAt(&loss, SHAPE1D(0));
       totalLoss += lossValue->as.f32;
       totalSamples += 1;
 
       shapesnn_Backward(&scratch, &loss);
-      Array *parameters = shapesnn_Parameters(&scratch, model);
-      shapesnn_OptimizerStep(&scratch, optimzer, parameters);
+      Array *parameters = shapesnn_Parameters(&scratch, &model);
+      shapesnn_OptimizerStep(&scratch, &optimzer, parameters);
       shapesnn_ZeroGrad(&scratch, parameters);
 
       resetArena(scratch.memory);
@@ -300,8 +311,18 @@ FowardPassOp *runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
     printf("Epoch %zu: Avg batch Loss = %f, CPU Time = %.3fs, Wall Time = %.3fs\n", e, totalLoss / totalSamples, epochTime, epochWallTime);
   }
 
+  Array_NamedTensor modelTensors = shapesnn_Tensors(&scratch, &model);
+  for(RANGE(i, modelTensors->size)) {
+    NamedTensor t = shapes_Array_NamedTensorIdx(modelTensors, i);
+    shapes_MoveTensorToHost(hostCtx, &t.tensor);
+    Array_SetAt(modelTensors, i, &t);
+  }
+
+  shapesnn_SafeTensors_Save(&scratch, modelTensors, "vgg10.safetensors");
+
   FreeCudaScratchMemory(&dsCudaCtx.cudaMemory);
   // FreeCudaScratchMemory(&scratch.cudaMemory);
+
   return model;
 }
 
@@ -314,20 +335,24 @@ void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
   shapes_MoveToCuda(&cudaCtx, Xtest);
   shapes_MoveToCuda(&cudaCtx, Ytest);
 
+
   Context scratch = shapes_GetScratchContext(&cudaCtx, 5 * GB);
   for (RANGE(i, BATCH_SIZE)) {
-    Tensor *batch = shapes_Array_TensorIdx(Xtest, i);
-    Tensor *logits = shapesnn_Forward(&scratch, model, batch);
+    Tensor batch = shapes_Array_TensorIdx(Xtest, i);
+    Tensor logits = shapesnn_Forward(&scratch, model, &batch);
 
     u8 oneInput = {1};
-    Tensor *ybatch = shapes_Array_TensorIdx(Ytest, i);
+    Tensor ybatch = shapes_Array_TensorIdx(Ytest, i);
 
-    Tensor *logitsProbs = shapesnn_Softmax(&scratch, logits);
+    Tensor logitsProbs = shapesnn_Softmax(&scratch, &logits);
 
-    Tensor *predictions = shapes_ArgMax(&scratch, logitsProbs, logitsProbs->shape.numOfDims - 1);
-    PANIC_IF(predictions->shape.numOfDims != ybatch->shape.numOfDims, ERR_DIM_MISMATCH);
+    Tensor predictionsVal = shapes_ArgMax(&scratch, &logitsProbs, logitsProbs.shape.numOfDims - 1);
+    Tensor *predictions = &predictionsVal;
+    PANIC_IF(predictions->shape.numOfDims != ybatch.shape.numOfDims, ERR_DIM_MISMATCH);
 
-    Tensor *compMask = shapes_Equal(&scratch, Cast(&scratch, predictions, F32), ybatch);
+    Tensor castedPred = Cast(&scratch, predictions, F32);
+    Tensor compMaskVal = shapes_Equal(&scratch, &castedPred, &ybatch);
+    Tensor *compMask = &compMaskVal;
     shapes_MoveTensorToHost(hostCtx, compMask);
     bool *values = compMask->values;
     size_t ones = 0;
@@ -346,13 +371,13 @@ void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
 }
 
 void vgg10() {
-  cudaDeviceReset();
   Context hostCtx = shapes_InitializeHostContext(25 * GB, 1);
   Context cudaCtx = shapes_InitializeCudaContext(10 * GB);
 
   dataset ds = getDataset(&hostCtx);
 
-  FowardPassOp *model = runTraining(&hostCtx, &cudaCtx, ds);
-
-  runInference(&hostCtx, model, ds);
+  // FowardPassOp model = runTraining(&hostCtx, &cudaCtx, ds);
+  FowardPassOp model = Make_Model(&cudaCtx, 10);
+  shapesnn_LoadFromSafeTensors(&hostCtx, &model, "vgg10.safetensors");
+  runInference(&hostCtx, &model, ds);
 }

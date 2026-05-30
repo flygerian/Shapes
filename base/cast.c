@@ -132,33 +132,29 @@ static bool isCastSafe(Dtype source, Dtype target) {
   return dtypeRank(target) >= dtypeRank(source);
 }
 
-static Tensor *castOnCpu(Context *ctx, Tensor *source, Dtype target) {
+static Tensor castOnCpu(Context *ctx, Tensor *source, Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
-  Tensor *dest = t_Zeros(ctx, source->shape, target);
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-
+  Tensor dest = t_Zeros(ctx, source->shape, target);
   for (tensor_size_t i = 0; i < src->size; i++) {
     Value v;
     VALUE_GET_FROM_ARR(src->values, i, &v, src->dtype);
     Value converted = castValue(v, target);
-    VALUE_SET(dest->values, i, converted);
+    VALUE_SET(dest.values, i, converted);
   }
 
   return dest;
 }
 
-static Tensor *castOnCuda(Context *ctx, Tensor *source, Dtype target) {
+static Tensor castOnCuda(Context *ctx, Tensor *source, Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
-  Tensor *dest = t_Zeros(ctx, src->shape, target);
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-
-  Result result = runCudaCast(ctx, src->dtype, src->values, target, dest->values, src->size);
+  Tensor dest = t_Zeros(ctx, src->shape, target);
+  Result result = runCudaCast(ctx, src->dtype, src->values, target, dest.values, src->size);
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   return dest;
 }
 
-Tensor *Cast(Context *ctx, Tensor *source, Dtype target) {
+Tensor Cast(Context *ctx, Tensor *source, Dtype target) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
   Dtype srcDtype = source->dtype;
@@ -179,7 +175,8 @@ Tensor *Cast(Context *ctx, Tensor *source, Dtype target) {
   PANIC_IF(!isCastSafe(srcDtype, target), ERR_TRUNCATING_CAST);
 
   if (srcDtype == target) {
-    return shapes_Clone(ctx, source);
+    Tensor cloned = shapes_Clone(ctx, source);
+    return cloned;
   }
 
   DeviceType deviceType = CPU;

@@ -40,23 +40,22 @@ static String buildHeader(Memory *memory, Array *named, size_t *outDataBytes) {
   for (RANGE(i, named->size)) {
     NamedTensor *nt = (NamedTensor *)Array_Idx(named, i);
     PANIC_IF(nt->name == NULL, ERR_NULL_PTR);
-    PANIC_IF(nt->tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-    Tensor *t = nt->tensor;
-    size_t bytes = t->size * getBytesForDtype(t->dtype);
+    Tensor t = nt->tensor;
+    size_t bytes = t.size * getBytesForDtype(t.dtype);
     size_t start = cursor;
     size_t end = cursor + bytes;
     cursor = end;
 
     String_AppendCString(json, ",\"");
     String_AppendCString(json, STR(nt->name));
-    String_AppendFormat(json, "\":{\"dtype\":\"%s\",\"shape\":[", dtypeName(t->dtype));
+    String_AppendFormat(json, "\":{\"dtype\":\"%s\",\"shape\":[", dtypeName(t.dtype));
 
-    for (u8 d = 0; d < t->shape.numOfDims; d++) {
+    for (u8 d = 0; d < t.shape.numOfDims; d++) {
       if (d > 0) {
         String_AppendCString(json, ",");
       }
-      String_AppendFormat(json, "%zu", t->shape.dims[d]);
+      String_AppendFormat(json, "%zu", t.shape.dims[d]);
     }
 
     String_AppendFormat(json, "],\"data_offsets\":[%zu,%zu]}", start, end);
@@ -94,8 +93,8 @@ void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path) {
 
   for (RANGE(i, named->size)) {
     NamedTensor *nt = (NamedTensor *)Array_Idx(named, i);
-    Tensor *t = nt->tensor;
-    Tensor *toWrite = t->isContigous ? t : copyToContiguous(ctx, t);
+    Tensor t = nt->tensor;
+    Tensor *toWrite = t.isContigous ? &t : copyToContiguous(ctx, &t);
     size_t bytes = toWrite->size * getBytesForDtype(toWrite->dtype);
 
     e = File_WriteBytes(file, (const byte *)toWrite->values, bytes);
@@ -291,11 +290,11 @@ Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
 
   for (RANGE(i, metas->size)) {
     ParsedTensorMeta *meta = (ParsedTensorMeta *)Array_Idx(metas, i);
-    Tensor *t = t_Zeros(ctx, meta->shape, meta->dtype);
-    t->label = STR(meta->name);
+    Tensor t = t_Zeros(ctx, meta->shape, meta->dtype);
+    t.label = STR(meta->name);
 
     size_t bytes = meta->endOffset - meta->startOffset;
-    PANIC_ON_ERROR(File_ReadBytesToBuffer(file, (byte *)t->values, bytes));
+    PANIC_ON_ERROR(File_ReadBytesToBuffer(file, (byte *)t.values, bytes));
 
     NamedTensor nt = {.name = meta->name, .tensor = t};
     Array_Append(named, &nt);
