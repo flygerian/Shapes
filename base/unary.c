@@ -729,15 +729,15 @@ void shapes_SqrtBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
            ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
-  PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor two = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 2.0f);
   Tensor twoTimesOutput = shapes_Multiply(ctx, &two, tensor);
   Tensor gradInput = shapes_Divide(ctx, tensor->grad, &twoTimesOutput);
 
-  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, input, &gradInput);
-  shapes_AddInPlace(ctx, input->grad, &reducedGrad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, &input, &gradInput);
+  shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
 Tensor shapes_Sqrt(Context *ctx, Tensor *t) {

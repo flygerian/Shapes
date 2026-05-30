@@ -134,20 +134,20 @@ typedef struct {
 } AdamData;
 
 typedef struct BatchNormFowardResult {
-  Tensor *out;
-  Tensor *mean;
-  Tensor *variance;
+  Tensor out;
+  Tensor mean;
+  Tensor variance;
 } BatchNormFowardResult;
 
 typedef struct BatchNormBackwardResult {
-  Tensor *dx2d;
-  Tensor *dGamma;
-  Tensor *dBeta;
+  Tensor dx2d;
+  Tensor dGamma;
+  Tensor dBeta;
 } BatchNormBackwardResult;
 
 typedef struct {
-  Tensor *a;
-  Tensor *b;
+  Tensor a;
+  Tensor b;
 } TensorPair;
 
 size_t getBytesForDtype(Dtype type);

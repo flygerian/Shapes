@@ -8,7 +8,7 @@
 #include <math.h>
 #include <sched.h>
 
-static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig, Tensor *yContig, Tensor *probs, tensor_size_t rows, dim_t classCount) {
+static inline Tensor crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig, Tensor *yContig, Tensor *probs, tensor_size_t rows, dim_t classCount) {
   if (logitsContig->dtype == F64) {
     double *yVals = yContig->values;
     double *logitVals = logitsContig->values;
@@ -44,10 +44,7 @@ static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig,
       totalLoss += -rowLoss;
     }
 
-    Tensor *out = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(out == NULL, ALLOCATION_FAILED);
-    *out = shapes_Make_Float64Tensor(ctx, SCALAR, totalLoss / (double)rows);
-    return out;
+    return shapes_Make_Float64Tensor(ctx, SCALAR, totalLoss / (double)rows);
   } else {
     float *yVals = yContig->values;
     float *logitVals = logitsContig->values;
@@ -83,10 +80,7 @@ static inline Tensor *crossEnthropyFowardCpu(Context *ctx, Tensor *logitsContig,
       totalLoss += -rowLoss;
     }
 
-    Tensor *out = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(out == NULL, ALLOCATION_FAILED);
-    *out = shapes_Make_FloatTensor(ctx, SCALAR, totalLoss / (double)rows);
-    return out;
+    return shapes_Make_FloatTensor(ctx, SCALAR, totalLoss / (double)rows);
   }
 }
 
@@ -110,19 +104,15 @@ TensorPair shapes_loss_CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor
   Tensor *yContig = materializeTensorOnContext(ctx, yGround);
   Tensor *logitsContig = materializeTensorOnContext(ctx, logits);
 
-  Tensor *probs = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(probs == NULL, ALLOCATION_FAILED);
-  *probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
-  Tensor *loss;
+  Tensor probs = t_Zeros(ctx, logitsContig->shape, logitsContig->dtype);
+  Tensor loss;
   Result res = OK;
 
   switch (ctx->device->type) {
-    case CPU: loss = crossEnthropyFowardCpu(ctx, logitsContig, yContig, probs, rows, classCount); break;
+    case CPU: loss = crossEnthropyFowardCpu(ctx, logitsContig, yContig, &probs, rows, classCount); break;
     case CUDA:
-      loss = allocate(ctx->memory, sizeof(Tensor));
-      PANIC_IF(loss == NULL, ALLOCATION_FAILED);
-      *loss = shapes_Make_ZerosTensor(ctx, SCALAR);
-      res = runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values, rows, classCount, probs->values, loss->values);
+      loss = shapes_Make_ZerosTensor(ctx, SCALAR);
+      res = runCudaCrossEntropyForward(ctx, logitsContig->dtype, yContig->values, logitsContig->values, rows, classCount, probs.values, loss.values);
       PANIC_IF(res != OK, res);
       break;
   }

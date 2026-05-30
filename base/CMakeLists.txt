@@ -151,10 +151,8 @@ add_library(shapes_core
     nn/softmax.c
     nn/persistence.c
     nn/safetensors.c
-    cmd/examples/makemore_3.c
     cmd/examples/makemore_5.c
     cmd/examples/vgg-10.c
-    cmd/examples/vgg-10-cpu.c
     cmd/examples/ui.c
     cmd/examples/raylib.c
 )
@@ -162,8 +160,10 @@ target_include_directories(shapes_core PUBLIC ${CMAKE_SOURCE_DIR})
 
 if(SHAPES_ENABLE_CUDA)
   target_link_libraries(shapes_core shapes_cuda raylib utils_lib ${OPENBLAS_LIB} CUDA::cublas CUDA::cudart stdc++ m)
-else()
+elseif (APPLE)
   target_link_libraries(shapes_core raylib utils_lib ${OPENBLAS_LIB} stdc++ m "-framework Accelerate")
+else() 
+  target_link_libraries(shapes_core raylib utils_lib ${OPENBLAS_LIB} stdc++)
 endif()
 
 if(APPLE)

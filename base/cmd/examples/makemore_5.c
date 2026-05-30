@@ -165,19 +165,11 @@ Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
   for (size_t i = 0; i < datasetPairs->size; i++) {
     DatasetPair *dp = (DatasetPair *)Array_Idx(datasetPairs, i);
 
-    Tensor *context = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(context == NULL, ALLOCATION_FAILED);
-    *context = shapes_Make_FromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
-    Tensor *target = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(target == NULL, ALLOCATION_FAILED);
-    *target = shapes_Make_FromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
+    Tensor context = shapes_Make_FromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
+    Tensor target = shapes_Make_FromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
 
-    Tensor *castedCtx = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(castedCtx == NULL, ALLOCATION_FAILED);
-    *castedCtx = Cast(ctx, context, F32);
-    Tensor *castedTgt = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(castedTgt == NULL, ALLOCATION_FAILED);
-    *castedTgt = Cast(ctx, target, F32);
+    Tensor castedCtx = Cast(ctx, &context, F32);
+    Tensor castedTgt = Cast(ctx, &target, F32);
     TensorPair tp = {.a = castedCtx, .b = castedTgt};
     Array_Append(tensorPairs, &tp);
   }
@@ -226,15 +218,15 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
 }
 
 typedef struct {
-  FowardPassOp *layers;
-  Optimizer *optimizer;
+  FowardPassOp layers;
+  Optimizer optimizer;
   Dtype datatype;
 } Model;
 
 Model Make_Model(Context *ctx) {
   Model model;
 
-  FowardPassOp *layers[] = {
+  FowardPassOp layers[] = {
       shapesnn_Embedding(ctx, F32, 27, 10),
       shapesnn_Flatten(ctx, F32),
       shapesnn_Dense(ctx, F32, 30, 100, false),
@@ -249,12 +241,12 @@ Model Make_Model(Context *ctx) {
   return model;
 }
 
-Tensor *Model_Forward(Context *ctx, Model *model, Tensor *input) {
-  return sequentialModelForward(ctx, model->layers, input);
+Tensor Model_Forward(Context *ctx, Model *model, Tensor *input) {
+  return sequentialModelForward(ctx, &model->layers, input);
 }
 
 Array *Model_Parameters(Context *ctx, Model *model) {
-  return sequentialModelParameters(ctx, model->layers);
+  return sequentialModelParameters(ctx, &model->layers);
 }
 
 Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
@@ -262,9 +254,9 @@ Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
   Array *gradNorms = MakeArray(ctx->memory, sizeof(Value), params->size);
 
   for (size_t i = 0; i < params->size; i++) {
-    Tensor *p = shapes_Array_TensorIdx(params, i);
-    Tensor squared = shapes_Pow(ctx, p->grad, 2);
-    Tensor flat = shapes_Reshape(ctx, &squared, SHAPE1D(p->grad->size));
+    Tensor p = shapes_Array_TensorIdx(params, i);
+    Tensor squared = shapes_Pow(ctx, p.grad, 2);
+    Tensor flat = shapes_Reshape(ctx, &squared, SHAPE1D(p.grad->size));
     Tensor totalSum = shapes_Sum(ctx, &flat, 0);
     Tensor norm = shapes_Sqrt(ctx, &totalSum);
 
@@ -317,8 +309,8 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
       PANIC_IF(input == NULL, ALLOCATION_FAILED);
       *input = shapes_Make_FromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
-      Tensor *logits = Model_Forward(ctx, model, input);
-      Tensor *probs = softmax(ctx, logits, 1);
+      Tensor logits = Model_Forward(ctx, model, input);
+      Tensor *probs = softmax(ctx, &logits, 1);
 
       int nextIdx = sampleFromProbs(probs, vocabSize);
 
@@ -343,10 +335,10 @@ static Array *loadItosFromFile(Context *ctx, string path) {
   for (RANGE(i, all->size)) {
     NamedTensor *nt = (NamedTensor *)Array_Idx(all, i);
     if (strcmp(STR(nt->name), "tokenizer.itos") == 0) {
-      Tensor *t = nt->tensor;
-      Array *itos = MakeArray(ctx->memory, sizeof(char), t->size);
-      memcpy(itos->items, t->values, t->size);
-      itos->size = t->size;
+      Tensor t = nt->tensor;
+      Array *itos = MakeArray(ctx->memory, sizeof(char), t.size);
+      memcpy(itos->items, t.values, t.size);
+      itos->size = t.size;
       return itos;
     }
   }
@@ -356,7 +348,7 @@ static Array *loadItosFromFile(Context *ctx, string path) {
 void runInference(string path) {
   Context ctx = shapes_InitializeHostContext(5 * GB, 1);
   Model model = Make_Model(&ctx);
-  shapesnn_LoadFromSafeTensors(&ctx, model.layers, path);
+  shapesnn_LoadFromSafeTensors(&ctx, &model.layers, path);
 
   Array *itos = loadItosFromFile(&ctx, path);
   Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
@@ -403,18 +395,15 @@ void makemore_5() {
     clock_t epochStart = clock();
 
     for (size_t b = 0; b < batchedData.numBatches; b++) {
-      Tensor *input = shapes_Array_TensorIdx(batchedData.inputs, b);
-      Tensor *target = shapes_Array_TensorIdx(batchedData.targets, b);
+      Tensor input = shapes_Array_TensorIdx(batchedData.inputs, b);
+      Tensor target = shapes_Array_TensorIdx(batchedData.targets, b);
 
-      dim_t batchSize = input->shape.dims[0];
+      dim_t batchSize = input.shape.dims[0];
       totalSamples += batchSize;
 
-      Tensor *logits = Model_Forward(&scratchCtx, &model, input);
-
-      Tensor *targetOneHot = allocate(scratchCtx.memory, sizeof(Tensor));
-      PANIC_IF(targetOneHot == NULL, ALLOCATION_FAILED);
-      *targetOneHot = shapes_Make_OneHotTensor(&scratchCtx, target, 27);
-      Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, targetOneHot, logits);
+      Tensor logits = Model_Forward(&scratchCtx, &model, &input);
+      Tensor targetOneHot = shapes_Make_OneHotTensor(&scratchCtx, &target, 27);
+      Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, &targetOneHot, &logits);
 
       Value lossValue;
       VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
@@ -437,7 +426,7 @@ void makemore_5() {
         printf("Scratch used per batch: %zu KB\n", scratchCtx.memory->allocated / 1024);
       }
 
-      shapesnn_OptimizerStep(&ctx, model.optimizer, params);
+      shapesnn_OptimizerStep(&ctx, &model.optimizer, params);
       shapesnn_ZeroGrad(&ctx, params);
 
       if (epoch == 0 && b == 0) {
@@ -458,13 +447,9 @@ void makemore_5() {
 
   string modelFilePath = "model.safetensors";
 
-  Array *named = shapesnn_Tensors(&ctx, model.layers);
-  Tensor *itosT = allocate(ctx.memory, sizeof(Tensor));
-  PANIC_IF(itosT == NULL, ALLOCATION_FAILED);
-  *itosT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(itos->size), itos->items, U8);
-  Tensor *stoiT = allocate(ctx.memory, sizeof(Tensor));
-  PANIC_IF(stoiT == NULL, ALLOCATION_FAILED);
-  *stoiT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(stoi->size), stoi->items, I32);
+  Array *named = shapesnn_Tensors(&ctx, &model.layers);
+  Tensor itosT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(itos->size), itos->items, U8);
+  Tensor stoiT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(stoi->size), stoi->items, I32);
   NamedTensor itosNt = {.name = MakeString(ctx.memory, "tokenizer.itos"), .tensor = itosT};
   NamedTensor stoiNt = {.name = MakeString(ctx.memory, "tokenizer.stoi"), .tensor = stoiT};
   Array_Append(named, &itosNt);
@@ -474,7 +459,6 @@ void makemore_5() {
   Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
 
   printf("Using saved model \n\n");
-
 
   runInference(modelFilePath);
 }

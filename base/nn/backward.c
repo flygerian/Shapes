@@ -47,8 +47,8 @@ Array *shapesnn_Backward(Context *ctx, Tensor *tensor) {
   Array *graph = buildGraph(ctx, tensor);
 
   for (size_t i = graph->size; i-- > 0;) {
-    Tensor *node = shapes_Array_TensorIdx(graph, i);
-    backward(ctx, node);
+    Tensor node = shapes_Array_TensorIdx(graph, i);
+    backward(ctx, &node);
   }
 
   return graph;
@@ -79,8 +79,8 @@ void topoSort(Array *graph, PtrSet *visited, Tensor *tensor) {
   }
 
   for (size_t i = 0; i < tensor->inputs->size; i++) {
-    Tensor *t = shapes_Array_TensorIdx(tensor->inputs, i);
-    topoSort(graph, visited, t);
+    Tensor t = shapes_Array_TensorIdx(tensor->inputs, i);
+    topoSort(graph, visited, &t);
   }
 
   shapes_Array_AppendTensor(graph, tensor);

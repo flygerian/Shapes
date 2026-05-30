@@ -285,13 +285,13 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
 static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
-  TensorPair ops = {.a = a, .b = b};
+  TensorPair ops = {};
   if (a->shape.numOfDims != b->shape.numOfDims) {
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  Tensor *opA = materializeTensorOnContext(ctx, ops.a);
-  Tensor *opB = materializeTensorOnContext(ctx, ops.b);
+  Tensor *opA = materializeTensorOnContext(ctx, &ops.a);
+  Tensor *opB = materializeTensorOnContext(ctx, &ops.b);
 
   Dim outputShape;
   if (opA->size > opB->size) {
@@ -320,13 +320,13 @@ static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 
 static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
 
-  TensorPair ops = {.a = a, .b = b};
+  TensorPair ops = {.a = *a, .b = *b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
     ops = padSmallerTensor(ctx, a, b);
   }
 
-  Tensor *opA = materializeTensorOnContext(ctx, ops.a);
-  Tensor *opB = materializeTensorOnContext(ctx, ops.b);
+  Tensor *opA = materializeTensorOnContext(ctx, &ops.a);
+  Tensor *opB = materializeTensorOnContext(ctx, &ops.b);
 
   PANIC_IF(!areBroadcastable(opA, opB), ERR_DIM_MISMATCH);
 
@@ -508,11 +508,9 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) 
   PANIC_IF(!areBroadcastable(a, b), ERR_DIM_MISMATCH);
 
   Tensor *opB = b;
-  Tensor *paddedB = NULL;
   if (a->shape.numOfDims != b->shape.numOfDims) {
     TensorPair ops = padSmallerTensor(ctx, a, b);
-    opB = ops.b;
-    paddedB = ops.b;
+    opB = &ops.b;
   }
 
   opB = materializeTensorOnContext(ctx, opB);

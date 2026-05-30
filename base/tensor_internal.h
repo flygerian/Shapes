@@ -6,11 +6,8 @@
   #define TRANSPOSE enum CBLAS_TRANSPOSE
 #else
   #include "cblas.h"
-  #define TRANSPOSE ( CBLAS_TRANSPOSE ) 
+  #define TRANSPOSE CBLAS_TRANSPOSE
 #endif
-
-
-
 
 #include "nn/nn.h"
 #include "result/result.h"

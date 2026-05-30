@@ -247,7 +247,7 @@ TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
 
   dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * larger->shape.numOfDims);
   if (newDims == NULL) {
-    return (TensorPair){.a = a, .b = b};
+    return (TensorPair){.a = *a, .b = *b};
   }
   for (u8 i = 0; i < diff; i++) {
     newDims[i] = 1;
@@ -257,14 +257,12 @@ TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
   }
 
   Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
-  Tensor *reshapedSmaller = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(reshapedSmaller == NULL, ALLOCATION_FAILED);
-  *reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
+  Tensor reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
 
   if (smaller == a) {
-    return (TensorPair){.a = reshapedSmaller, .b = b};
+    return (TensorPair){.a = reshapedSmaller, .b = *b};
   }
-  return (TensorPair){.a = a, .b = reshapedSmaller};
+  return (TensorPair){.a = *a, .b = reshapedSmaller};
 }
 
 Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result) {
@@ -446,10 +444,8 @@ void shapes_Array_AppendTensorArray(Array *array, Array *tensorArray) {
   PANIC_IF(array == NULL, ERR_NULL_PTR);
 
   for (size_t i = 0; i < tensorArray->size; i++) {
-    Tensor *tensor = shapes_Array_TensorIdx(tensorArray, i);
-    PANIC_IF(tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
-
-    shapes_Array_AppendTensor(array, tensor);
+    Tensor tensor = shapes_Array_TensorIdx(tensorArray, i);
+    shapes_Array_AppendTensor(array, &tensor);
   }
 }
 
@@ -567,32 +563,36 @@ void shapes_MoveTensorToHost(Context *destCtx, Tensor *t) {
   t->values = locationOnDest;
 }
 
-void shapes_MoveToCuda(Context *destCtx, Array *tensors) {
+void shapes_MoveToCuda(Context *destCtx, Array_Tensor tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
-    Tensor *t = shapes_Array_TensorIdx(tensors, x);
-    PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
-    PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
+    Tensor t = shapes_Array_TensorIdx(tensors, x);
+    PANIC_IF(t.context == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(!t.isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 
-    moveTensor(destCtx, t);
-    moveTensor(destCtx, t->grad);
+    moveTensor(destCtx, &t);
+    moveTensor(destCtx, t.grad);
+
+    Array_SetAt(tensors, x, &t);
   }
 }
 
-void shapes_MoveToHost(Context *destCtx, Array *tensors) {
+void shapes_MoveToHost(Context *destCtx, Array_Tensor tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
-  PANIC_IF(destCtx->device != NULL && destCtx->device->type != CPU, ERR_COPY_CTX_DEVICE_IS_NULL);
+  PANIC_IF(destCtx->device != NULL && destCtx->device->type == CPU, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
-    Tensor *t = shapes_Array_TensorIdx(tensors, x);
-    PANIC_IF(t == NULL || t->context == NULL, ERR_NULL_TENSOR_PROVIDED);
-    PANIC_IF(!t->isContigous, NON_CONTIGOUS_MOVE_TENSOR);
+    Tensor t = shapes_Array_TensorIdx(tensors, x);
+    PANIC_IF(t.context == NULL, ERR_NULL_TENSOR_PROVIDED);
+    PANIC_IF(!t.isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 
-    shapes_MoveTensorToHost(destCtx, t);
-    shapes_MoveTensorToHost(destCtx, t->grad);
+    shapes_MoveTensorToHost(destCtx, &t);
+    shapes_MoveTensorToHost(destCtx, t.grad);
+
+    Array_SetAt(tensors, x, &t);
   }
 }

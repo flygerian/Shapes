@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include "tensor_internal.h"
+#include "types.h"
 #include <string.h>
 
 BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {
@@ -20,24 +21,18 @@ BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
   Tensor *betaContig = materializeTensorOnContext(ctx, beta);
 
-  Tensor *out = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(out == NULL, ALLOCATION_FAILED);
-  *out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
-  Tensor *mean = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(mean == NULL, ALLOCATION_FAILED);
-  *mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
-  Tensor *variance = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(variance == NULL, ALLOCATION_FAILED);
-  *variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  Tensor out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
+  Tensor mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  Tensor variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
     f64 *gammaVals = gammaContig->values;
     f64 *betaVals = betaContig->values;
-    f64 *outVals = out->values;
+    f64 *outVals = out.values;
 
-    f64 *meanAcrossBatch = mean->values;
-    f64 *varianceAcrossBatch = variance->values;
+    f64 *meanAcrossBatch = mean.values;
+    f64 *varianceAcrossBatch = variance.values;
 
     f64 *invStd = allocate(ctx->memory, sizeof(f64) * numFeatures);
     PANIC_IF(invStd == NULL, ALLOCATION_FAILED);
@@ -80,9 +75,9 @@ BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor
     f32 *xVals = xContig->values;
     f32 *gammaVals = gammaContig->values;
     f32 *betaVals = betaContig->values;
-    f32 *outVals = out->values;
-    f32 *meanAcrossBatch = mean->values;
-    f32 *varianceAcrossBatch = variance->values;
+    f32 *outVals = out.values;
+    f32 *meanAcrossBatch = mean.values;
+    f32 *varianceAcrossBatch = variance.values;
     f32 *invStd = allocate(ctx->memory, sizeof(f32) * numFeatures);
     PANIC_IF(invStd == NULL, ERR_OUT_OF_MEMORY);
 
@@ -140,24 +135,18 @@ BatchNormBackwardResult shapes_layer_BatchNormBackward(Context *ctx, Tensor *x2d
   Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
   Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
 
-  Tensor *dX = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dX == NULL, ALLOCATION_FAILED);
-  *dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
-  Tensor *dGamma = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dGamma == NULL, ALLOCATION_FAILED);
-  *dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
-  Tensor *dBeta = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dBeta == NULL, ALLOCATION_FAILED);
-  *dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  Tensor dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
+  Tensor dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  Tensor dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
     f64 *dyVals = gradContig->values;
     f64 *gammaVals = gammaContig->values;
 
-    f64 *dxVals = dX->values;
-    f64 *dGammaVals = dGamma->values;
-    f64 *dBetaVals = dBeta->values;
+    f64 *dxVals = dX.values;
+    f64 *dGammaVals = dGamma.values;
+    f64 *dBetaVals = dBeta.values;
 
     f64 *mean = allocate(ctx->memory, sizeof(f64) * n);
     f64 *var = allocate(ctx->memory, sizeof(f64) * n);
@@ -228,9 +217,9 @@ BatchNormBackwardResult shapes_layer_BatchNormBackward(Context *ctx, Tensor *x2d
     f32 *dyVals = gradContig->values;
     f32 *gammaVals = gammaContig->values;
 
-    f32 *dxVals = dX->values;
-    f32 *dGammaVals = dGamma->values;
-    f32 *dBetaVals = dBeta->values;
+    f32 *dxVals = dX.values;
+    f32 *dGammaVals = dGamma.values;
+    f32 *dBetaVals = dBeta.values;
 
     f32 *mean = allocate(ctx->memory, sizeof(f32) * n);
     f32 *var = allocate(ctx->memory, sizeof(f32) * n);

@@ -3,6 +3,7 @@
 #include "nn.h"
 #include "result/result.h"
 #include "../tensor_internal.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 
@@ -14,21 +15,21 @@ typedef struct adaptiveAvgPool2dLayerData {
 void adaptiveAvgPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
-  PANIC_IF(input == NULL || input->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   adaptiveAvgPool2dLayerData *layerData = tensor->opMetadata;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
   Tensor dX;
-  Result result = shapes_layer_AdaptiveAvgPool2dBackward(ctx, input, tensor->grad, layerData->outH, layerData->outW, &dX);
+  Result result = shapes_layer_AdaptiveAvgPool2dBackward(ctx, &input, tensor->grad, layerData->outH, layerData->outW, &dX);
   PANIC_IF(result != OK, result);
 
-  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, input, &dX);
-  shapes_AddInPlace(ctx, input->grad, &reducedGrad);
+  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, &input, &dX);
+  shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
-Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   adaptiveAvgPool2dLayerData *layerData = layer->layerData;
@@ -37,22 +38,17 @@ Tensor *adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t batch = tensor->shape.dims[0];
   dim_t channels = tensor->shape.dims[3];
 
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = t_Zeros(ctx, SHAPE4D(batch, layerData->outH, layerData->outW, channels), tensor->dtype);
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-
-  Result result = shapes_layer_AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, dest);
+  Tensor dest = t_Zeros(ctx, SHAPE4D(batch, layerData->outH, layerData->outW, channels), tensor->dtype);
+  Result result = shapes_layer_AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, &dest);
   PANIC_IF(result != OK, result);
 
-  dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest->inputs == NULL, ALLOCATION_FAILED);
+  dest.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
   Tensor *inputRef = tensor;
-  shapes_Array_AppendTensor(dest->inputs, inputRef);
+  shapes_Array_AppendTensor(dest.inputs, inputRef);
 
-  dest->opMetadata = layerData;
-  dest->opType = OP_ADAPTIVE_AVG_POOL2D;
+  dest.opMetadata = layerData;
+  dest.opType = OP_ADAPTIVE_AVG_POOL2D;
   return dest;
 }
 
@@ -72,7 +68,7 @@ void adaptiveAvgPool2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp *shapesnn_AdaptiveAvgPool2d(Context *ctx, Dtype dtype, dim_t outH, dim_t outW) {
+FowardPassOp shapesnn_AdaptiveAvgPool2d(Context *ctx, Dtype dtype, dim_t outH, dim_t outW) {
   adaptiveAvgPool2dLayerData *layerData = allocate(ctx->memory, sizeof(adaptiveAvgPool2dLayerData));
   *layerData = (adaptiveAvgPool2dLayerData){.outH = outH, .outW = outW};
 
@@ -81,7 +77,5 @@ FowardPassOp *shapesnn_AdaptiveAvgPool2d(Context *ctx, Dtype dtype, dim_t outH, 
   layer->bias = (Tensor){0};
   layer->layerData = layerData;
 
-  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
-  *op = (FowardPassOp){.ctx = ctx, .type = OP_ADAPTIVE_AVG_POOL2D, .dtype = dtype, .op = layer};
-  return op;
+  return (FowardPassOp){.ctx = ctx, .type = OP_ADAPTIVE_AVG_POOL2D, .dtype = dtype, .op = layer};
 }

@@ -4,6 +4,7 @@
 #include "nn_internal.h"
 #include "result/result.h"
 #include "tensor_internal.h"
+#include "types.h"
 #include "utils_lib/array.h"
 #include "utils_lib/memory.h"
 #include <stdio.h>
@@ -24,51 +25,42 @@ void conv2dBackward(Context *ctx, Tensor *tensor) {
   conv2dLayerData *layerData = tensor->opMetadata;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  Tensor *input = shapes_Array_TensorIdx(tensor->inputs, 0);
-  Tensor *kernels = shapes_Array_TensorIdx(tensor->inputs, 1);
-  Tensor *bias = NULL;
+  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor kernels = shapes_Array_TensorIdx(tensor->inputs, 1);
+  Tensor bias = {};
 
   if (layerData->withBias) {
     bias = shapes_Array_TensorIdx(tensor->inputs, 2);
+    PANIC_IF(bias.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   }
 
-  PANIC_IF(input == NULL || kernels == NULL || input->grad == NULL || kernels->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
-  PANIC_IF(bias != NULL && bias->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
+  PANIC_IF(input.grad == NULL || kernels.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(layerData->colBuffer == NULL, ERR_NULL_PTR);
 
-  Tensor *dInput = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dInput == NULL, ALLOCATION_FAILED);
-  *dInput = t_Zeros(ctx, input->shape, input->dtype);
-  PANIC_IF(dInput == NULL, ALLOCATION_FAILED);
+  Tensor dInput = t_Zeros(ctx, input.shape, input.dtype);
+  Tensor dKernels = t_Zeros(ctx, kernels.shape, kernels.dtype);
 
-  Tensor *dKernels = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dKernels == NULL, ALLOCATION_FAILED);
-  *dKernels = t_Zeros(ctx, kernels->shape, kernels->dtype);
-  PANIC_IF(dKernels == NULL, ALLOCATION_FAILED);
-
-  Tensor *dBias = NULL;
+  Tensor dBias = {};
   if (layerData->withBias) {
-    dBias = allocate(ctx->memory, sizeof(Tensor));
-    PANIC_IF(dBias == NULL, ALLOCATION_FAILED);
-    *dBias = t_Zeros(ctx, bias->shape, bias->dtype);
+    dBias = t_Zeros(ctx, bias.shape, bias.dtype);
   }
 
-  Result result = shapes_layer_Conv2dBackward(ctx, input, dInput, kernels, dKernels, tensor->grad, layerData->colBuffer, dBias, layerData->withBias, layerData->stride);
+  Result result = shapes_layer_Conv2dBackward(ctx, &input, &dInput, &kernels, &dKernels, tensor->grad, layerData->colBuffer, &dBias, layerData->withBias, layerData->stride);
   PANIC_IF(result != OK, result);
 
-  Tensor reducedInputGrad = shapes_ReduceBroadcast(ctx, input, dInput);
-  shapes_AddInPlace(ctx, input->grad, &reducedInputGrad);
+  Tensor reducedInputGrad = shapes_ReduceBroadcast(ctx, &input, &dInput);
+  shapes_AddInPlace(ctx, input.grad, &reducedInputGrad);
 
-  Tensor reducedKernelGrad = shapes_ReduceBroadcast(ctx, kernels, dKernels);
-  shapes_AddInPlace(ctx, kernels->grad, &reducedKernelGrad);
+  Tensor reducedKernelGrad = shapes_ReduceBroadcast(ctx, &kernels, &dKernels);
+  shapes_AddInPlace(ctx, kernels.grad, &reducedKernelGrad);
 
   if (layerData->withBias) {
-    Tensor reducedBiasGrad = shapes_ReduceBroadcast(ctx, bias, dBias);
-    shapes_AddInPlace(ctx, bias->grad, &reducedBiasGrad);
+    Tensor reducedBiasGrad = shapes_ReduceBroadcast(ctx, &bias, &dBias);
+    shapes_AddInPlace(ctx, bias.grad, &reducedBiasGrad);
   }
 }
 
-Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights.values == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   conv2dLayerData *layerData = layer->layerData;
@@ -85,30 +77,28 @@ Tensor *conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t outH = (h - kH) / layerData->stride + 1;
   dim_t outW = (w - kW) / layerData->stride + 1;
 
-  Tensor *dest = allocate(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest == NULL, ALLOCATION_FAILED);
-  *dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, layerData->outChannels), tensor->dtype);
+  Tensor dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, layerData->outChannels), tensor->dtype);
 
   Tensor colBuffer;
-  Result result = shapes_layer_Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, dest, &colBuffer);
+  Result result = shapes_layer_Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, &dest, &colBuffer);
   PANIC_IF(result != OK, result);
 
   Tensor *colBufferPtr = allocate(ctx->memory, sizeof(Tensor));
   *colBufferPtr = colBuffer;
   layerData->colBuffer = colBufferPtr;
 
-  dest->inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
-  PANIC_IF(dest->inputs == NULL, ALLOCATION_FAILED);
+  dest.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  PANIC_IF(dest.inputs == NULL, ALLOCATION_FAILED);
 
-  shapes_Array_AppendTensor(dest->inputs, tensor);
-  shapes_Array_AppendTensor(dest->inputs, kernels);
+  shapes_Array_AppendTensor(dest.inputs, tensor);
+  shapes_Array_AppendTensor(dest.inputs, kernels);
 
   if (layerData->withBias) {
-    shapes_Array_AppendTensor(dest->inputs, bias);
+    shapes_Array_AppendTensor(dest.inputs, bias);
   }
 
-  dest->opMetadata = layerData;
-  dest->opType = OP_CONV2D;
+  dest.opMetadata = layerData;
+  dest.opType = OP_CONV2D;
   return dest;
 }
 
@@ -133,13 +123,15 @@ void conv2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
   size_t expected = layerData->withBias ? 2 : 1;
   PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
 
-  loadIntoTensor(ctx, &state->weights, shapes_Array_TensorIdx(tensors, 0));
+  Tensor temp = shapes_Array_TensorIdx(tensors, 0);
+  loadIntoTensor(ctx, &state->weights, &temp);
   if (layerData->withBias) {
-    loadIntoTensor(ctx, &state->bias, shapes_Array_TensorIdx(tensors, 1));
+    temp = shapes_Array_TensorIdx(tensors, 1);
+    loadIntoTensor(ctx, &state->bias, &temp);
   }
 }
 
-FowardPassOp *shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
+FowardPassOp shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
 
   conv2dLayerData *layerData = allocate(ctx->memory, sizeof(conv2dLayerData));
@@ -159,6 +151,5 @@ FowardPassOp *shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size
   }
 
   FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
-  *op = (FowardPassOp){.ctx = ctx, .type = OP_CONV2D, .dtype = dtype, .op = layer};
-  return op;
+  return (FowardPassOp){.ctx = ctx, .type = OP_CONV2D, .dtype = dtype, .op = layer};
 }
