@@ -11,4 +11,7 @@ build/openblas
 go/*gocache
 go/main
 base/cmd/examples/datasets/*
-
+*.safetensors
+*.data.old
+*.data
+names.txt

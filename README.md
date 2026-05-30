@@ -7,14 +7,14 @@ This is not the most performant thing in the world (there's lots of other places
 
 I'll do more work documenting the ideas here but the quickest way to see how it works is to look at the 
 
-[Makemore example](./base/cmd/examples/makemore_5.c) - Which is a recreation of Andrej Karpathy's character level language model and
-[Vgg](./base/cmd/examples/vgg-10.c) style model trained on [ cifar-10 ](https://www.cs.toronto.edu/~kriz/cifar.html) 
+- [Makemore example](./base/cmd/examples/makemore_5.c) - Which is a recreation of Andrej Karpathy's character level language model and
+- [Vgg](./base/cmd/examples/vgg-10.c) style model trained on [ cifar-10 ](https://www.cs.toronto.edu/~kriz/cifar.html) 
 
 # What I have so far
 
 - Arena allocation so you only allocate once at the beginning your programing
 - A context system for grouping resources (especially useful for deciding where you want computation to happen)
-- Both training on CPU and Cuda, with hand written cuda kernels (LLMs and the  [Programming massively parrallel processors book] (https://www.educate.elsevier.com/book/details/9780443439001) where of tremendous help here)
+- Both training on CPU and Cuda, with hand written cuda kernels (LLMs and the  [Programming massively parrallel processors book](https://www.educate.elsevier.com/book/details/9780443439001) where of tremendous help here)
 - Popular layers, like batchnorm, conv, etc (look in the [shapesnn](./base/nn) package to see)
 - Saving/loading the models in HF's [Safetensors](https://huggingface.co/docs/safetensors/index) format
 

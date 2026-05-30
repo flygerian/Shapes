@@ -1,5 +1,0 @@
-BatchNorm2d
-Adam
-AdaptiveAvgPool2d
-Conv ??
-Conv2d
