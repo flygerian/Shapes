@@ -1,9 +1,0 @@
-#include "types.h"
-
-void makemore_3();
-void makemore_5();
-void vgg10();
-void vgg10_cpu();
-void drawUI(Context *ctx);
-void basicRaylibWindow(Tensor *imageTensor);
-void raylib_test();
