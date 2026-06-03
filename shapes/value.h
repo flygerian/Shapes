@@ -1,7 +1,6 @@
 #ifndef shapes_value_h
 #define shapes_value_h
 
-#include "types.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -79,7 +78,6 @@
     }                                                                                              \
   } while (0)
 
-
 #define VALUE(type, data)                                                                          \
   ((type) == BOOL  ? (Value){.dtype = (type), .as.boolean = (bool)(data)}                          \
    : (type) == U8  ? (Value){.dtype = (type), .as.u8 = (u8)(data)}                                 \
@@ -143,7 +141,5 @@
       case F64: snprintf(dest, size, "%f", (double)(v).as.f64); break;                             \
     }                                                                                              \
   } while (0)
-
-static dim_t idx_zero[] = {0};
 
 #endif

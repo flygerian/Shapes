@@ -1,0 +1,368 @@
+[
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA  -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/olib.dir/olib/memory.c.o -c /home/olabode/repos/Shapes/olib/memory.c",
+  "file": "/home/olabode/repos/Shapes/olib/memory.c",
+  "output": "CMakeFiles/olib.dir/olib/memory.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA  -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/olib.dir/olib/array.c.o -c /home/olabode/repos/Shapes/olib/array.c",
+  "file": "/home/olabode/repos/Shapes/olib/array.c",
+  "output": "CMakeFiles/olib.dir/olib/array.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA  -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/olib.dir/olib/map.c.o -c /home/olabode/repos/Shapes/olib/map.c",
+  "file": "/home/olabode/repos/Shapes/olib/map.c",
+  "output": "CMakeFiles/olib.dir/olib/map.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA  -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/olib.dir/olib/bitset.c.o -c /home/olabode/repos/Shapes/olib/bitset.c",
+  "file": "/home/olabode/repos/Shapes/olib/bitset.c",
+  "output": "CMakeFiles/olib.dir/olib/bitset.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA  -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/olib.dir/olib/file.c.o -c /home/olabode/repos/Shapes/olib/file.c",
+  "file": "/home/olabode/repos/Shapes/olib/file.c",
+  "output": "CMakeFiles/olib.dir/olib/file.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/access.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/access.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/access.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/access.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/binary_op.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/binary_op.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/binary_op.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/binary_op.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/cast.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/cast.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/cast.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/cast.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/creation.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/creation.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/creation.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/creation.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/conv_bias.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/conv_bias.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/conv_bias.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/conv_bias.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/accumulate.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/accumulate.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/accumulate.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/accumulate.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/cross_entropy.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/cross_entropy.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/cross_entropy.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/cross_entropy.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/gemm.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/gemm.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/gemm.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/gemm.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/im2col.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/im2col.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/im2col.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/im2col.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/optimizer.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/optimizer.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/optimizer.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/optimizer.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/pool.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/pool.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/pool.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/pool.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/reduction.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/reduction.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/reduction.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/reduction.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler -ccbin=/usr/bin/g++-15 -DSHAPES_HAS_CUDA --options-file CMakeFiles/shapescuda.dir/includes_CUDA.rsp -g \"--generate-code=arch=compute_86,code=[compute_86,sm_86]\" -march=native -O0 -x cu -c /home/olabode/repos/Shapes/shapes/shapescuda/unary.cu -o CMakeFiles/shapescuda.dir/shapes/shapescuda/unary.cu.o",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/unary.cu",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/unary.cu.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapescuda.dir/shapes/shapescuda/cuda_memory.c.o -c /home/olabode/repos/Shapes/shapes/shapescuda/cuda_memory.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapescuda/cuda_memory.c",
+  "output": "CMakeFiles/shapescuda.dir/shapes/shapescuda/cuda_memory.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/context.c.o -c /home/olabode/repos/Shapes/shapes/base/context.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/context.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/context.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/device.c.o -c /home/olabode/repos/Shapes/shapes/base/device.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/device.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/device.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/dense.c.o -c /home/olabode/repos/Shapes/shapes/base/dense.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/dense.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/dense.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/batch_norm.c.o -c /home/olabode/repos/Shapes/shapes/base/batch_norm.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/batch_norm.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/batch_norm.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/im2col_v2.c.o -c /home/olabode/repos/Shapes/shapes/base/im2col_v2.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/im2col_v2.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/im2col_v2.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/conv.c.o -c /home/olabode/repos/Shapes/shapes/base/conv.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/conv.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/conv.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/pool.c.o -c /home/olabode/repos/Shapes/shapes/base/pool.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/pool.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/pool.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/cross_entropy.c.o -c /home/olabode/repos/Shapes/shapes/base/cross_entropy.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/cross_entropy.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/cross_entropy.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/optimizer/sgd.c.o -c /home/olabode/repos/Shapes/shapes/base/optimizer/sgd.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/optimizer/sgd.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/optimizer/sgd.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/optimizer/adam.c.o -c /home/olabode/repos/Shapes/shapes/base/optimizer/adam.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/optimizer/adam.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/optimizer/adam.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/internal.c.o -c /home/olabode/repos/Shapes/shapes/base/internal.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/internal.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/internal.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/binary_op.c.o -c /home/olabode/repos/Shapes/shapes/base/binary_op.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/binary_op.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/binary_op.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/shape_ops.c.o -c /home/olabode/repos/Shapes/shapes/base/shape_ops.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/shape_ops.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/shape_ops.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/access.c.o -c /home/olabode/repos/Shapes/shapes/base/access.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/access.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/access.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/reduction.c.o -c /home/olabode/repos/Shapes/shapes/base/reduction.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/reduction.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/reduction.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/creation.c.o -c /home/olabode/repos/Shapes/shapes/base/creation.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/creation.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/creation.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/unary.c.o -c /home/olabode/repos/Shapes/shapes/base/unary.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/unary.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/unary.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/cast.c.o -c /home/olabode/repos/Shapes/shapes/base/cast.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/cast.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/cast.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/accumulate.c.o -c /home/olabode/repos/Shapes/shapes/base/accumulate.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/accumulate.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/accumulate.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/gemm.c.o -c /home/olabode/repos/Shapes/shapes/base/gemm.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/gemm.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/gemm.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapes.dir/shapes/base/cuda_stubs.c.o -c /home/olabode/repos/Shapes/shapes/base/cuda_stubs.c",
+  "file": "/home/olabode/repos/Shapes/shapes/base/cuda_stubs.c",
+  "output": "CMakeFiles/shapes.dir/shapes/base/cuda_stubs.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/backward.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/backward.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/backward.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/backward.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/dense.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/dense.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/dense.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/dense.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/embedding.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/embedding.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/embedding.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/embedding.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/mse.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/mse.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/mse.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/mse.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/sgd.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/sgd.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/sgd.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/sgd.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/training.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/training.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/training.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/training.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/batchnorm.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/batchnorm.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/batchnorm.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/batchnorm.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/cross_enthropy.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/cross_enthropy.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/cross_enthropy.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/cross_enthropy.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/adam.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/adam.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/adam.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/adam.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/tanh.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/tanh.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/tanh.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/tanh.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/relu.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/relu.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/relu.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/relu.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/maxpool2d.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/maxpool2d.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/maxpool2d.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/maxpool2d.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/adaptive_avg_pool2d.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/adaptive_avg_pool2d.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/adaptive_avg_pool2d.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/adaptive_avg_pool2d.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/conv2d.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/conv2d.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/conv2d.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/conv2d.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/sequential.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/sequential.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/sequential.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/sequential.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/utils.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/utils.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/utils.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/utils.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/flatten.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/flatten.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/flatten.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/flatten.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/softmax.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/softmax.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/softmax.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/softmax.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/persistence.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/persistence.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/persistence.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/persistence.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/shapesnn.dir/shapes/shapesnn/safetensors.c.o -c /home/olabode/repos/Shapes/shapes/shapesnn/safetensors.c",
+  "file": "/home/olabode/repos/Shapes/shapes/shapesnn/safetensors.c",
+  "output": "CMakeFiles/shapesnn.dir/shapes/shapesnn/safetensors.c.o"
+},
+{
+  "directory": "/home/olabode/repos/Shapes/build-cuda",
+  "command": "/usr/bin/cc -DSHAPES_HAS_CUDA -I/home/olabode/repos/Shapes/shapes/shapesnn -I/home/olabode/repos/Shapes/deps -I/home/olabode/repos/Shapes/olib -I/home/olabode/repos/Shapes/shapes -I/home/olabode/repos/Shapes/shapes/base -I/home/olabode/repos/Shapes/shapes/shapescuda -isystem /home/olabode/repos/Shapes/build-cuda/openblas-install/include -isystem /opt/cuda/targets/x86_64-linux/include -isystem /opt/cuda/targets/x86_64-linux/include/cccl -g -std=gnu99 -march=native -O0 -fsanitize=address -fno-omit-frame-pointer -g -o CMakeFiles/makemore.dir/examples/makemore.c.o -c /home/olabode/repos/Shapes/examples/makemore.c",
+  "file": "/home/olabode/repos/Shapes/examples/makemore.c",
+  "output": "CMakeFiles/makemore.dir/examples/makemore.c.o"
+}
+]

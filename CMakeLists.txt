@@ -18,8 +18,39 @@ else()
   project(shapes C)
 endif()
 
-add_subdirectory("deps/raylib")
-add_subdirectory("deps/OpenBLAS")
+# add_subdirectory("deps/OpenBLAS")
+
+include(ExternalProject)
+set(OPENBLAS_INSTALL_DIR ${CMAKE_BINARY_DIR}/openblas-install)
+
+# Create it so CMake stops complaining at configure time
+file(MAKE_DIRECTORY ${OPENBLAS_INSTALL_DIR}/include)
+
+add_library(openblas STATIC IMPORTED GLOBAL)
+add_dependencies(openblas openblas_ext)
+set_target_properties(openblas PROPERTIES
+    IMPORTED_LOCATION ${OPENBLAS_INSTALL_DIR}/lib/libopenblas.a
+    INTERFACE_INCLUDE_DIRECTORIES ${OPENBLAS_INSTALL_DIR}/include
+)
+ExternalProject_Add(
+    openblas_ext
+    SOURCE_DIR  ${CMAKE_SOURCE_DIR}/deps/OpenBLAS
+    BINARY_DIR  ${CMAKE_BINARY_DIR}/openblas-build
+    INSTALL_DIR ${CMAKE_BINARY_DIR}/openblas-install
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+        -DBUILD_SHARED_LIBS=OFF
+        -DBUILD_TESTING=OFF
+    BUILD_BYPRODUCTS
+        ${CMAKE_BINARY_DIR}/openblas-install/lib/libopenblas.a
+)
+
+# Wrap it in an imported target your other targets can link against
+add_dependencies(openblas openblas_ext)
+set_target_properties(openblas PROPERTIES
+    IMPORTED_LOCATION ${OPENBLAS_INSTALL_DIR}/lib/libopenblas.a
+    INTERFACE_INCLUDE_DIRECTORIES ${OPENBLAS_INSTALL_DIR}/include
+)
 # Copy compile_commands.json to root automatically
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
   add_custom_target(copy_compile_commands ALL
@@ -63,20 +94,20 @@ if(SHAPES_ENABLE_CUDA)
   add_compile_definitions(SHAPES_HAS_CUDA)
 
   add_library(shapescuda
-      shapescuda/access.cu
-      shapescuda/binary_op.cu
-      shapescuda/cast.cu
-      shapescuda/creation.cu
-      shapescuda/conv_bias.cu
-      shapescuda/accumulate.cu
-      shapescuda/cross_entropy.cu
-      shapescuda/gemm.cu
-      shapescuda/im2col.cu
-      shapescuda/optimizer.cu
-      shapescuda/pool.cu
-      shapescuda/reduction.cu
-      shapescuda/unary.cu
-      shapescuda/cuda_memory.c
+      shapes/shapescuda/access.cu
+      shapes/shapescuda/binary_op.cu
+      shapes/shapescuda/cast.cu
+      shapes/shapescuda/creation.cu
+      shapes/shapescuda/conv_bias.cu
+      shapes/shapescuda/accumulate.cu
+      shapes/shapescuda/cross_entropy.cu
+      shapes/shapescuda/gemm.cu
+      shapes/shapescuda/im2col.cu
+      shapes/shapescuda/optimizer.cu
+      shapes/shapescuda/pool.cu
+      shapes/shapescuda/reduction.cu
+      shapes/shapescuda/unary.cu
+      shapes/shapescuda/cuda_memory.c
   )
   target_include_directories(shapescuda PUBLIC ${CMAKE_SOURCE_DIR}/olib)
   target_include_directories(shapescuda PUBLIC ${CMAKE_SOURCE_DIR}/shapes)
@@ -85,82 +116,90 @@ endif()
 
 # Core library
 add_library(shapes
-    shapes/context.c
-    shapes/device.c
-    shapes/dense.c
-    shapes/batch_norm.c
-    shapes/im2col_v2.c
-    shapes/conv.c
-    shapes/pool.c
-    shapes/cross_entropy.c
-    shapes/optimizer/sgd.c
-    shapes/optimizer/adam.c
-    shapes/internal.c
-    shapes/binary_op.c
-    shapes/shape_ops.c
-    shapes/access.c
-    shapes/reduction.c
-    shapes/creation.c
-    shapes/unary.c
-    shapes/cast.c
-    shapes/accumulate.c
-    shapes/gemm.c
-    shapes/cuda_stubs.c
+    shapes/base/context.c
+    shapes/base/device.c
+    shapes/base/dense.c
+    shapes/base/batch_norm.c
+    shapes/base/im2col_v2.c
+    shapes/base/conv.c
+    shapes/base/pool.c
+    shapes/base/cross_entropy.c
+    shapes/base/optimizer/sgd.c
+    shapes/base/optimizer/adam.c
+    shapes/base/internal.c
+    shapes/base/binary_op.c
+    shapes/base/shape_ops.c
+    shapes/base/access.c
+    shapes/base/reduction.c
+    shapes/base/creation.c
+    shapes/base/unary.c
+    shapes/base/cast.c
+    shapes/base/accumulate.c
+    shapes/base/gemm.c
+    shapes/base/cuda_stubs.c
 )
 
 target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/olib)
-target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapescuda)
+target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapes)
+target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapes/base)
+target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapescuda)
+
+
+add_library(shapesnn
+    shapes/shapesnn/backward.c
+    shapes/shapesnn/dense.c
+    shapes/shapesnn/embedding.c
+    shapes/shapesnn/mse.c
+    shapes/shapesnn/sgd.c
+    shapes/shapesnn/training.c
+    shapes/shapesnn/batchnorm.c
+    shapes/shapesnn/cross_enthropy.c
+    shapes/shapesnn/adam.c
+    shapes/shapesnn/tanh.c
+    shapes/shapesnn/relu.c
+    shapes/shapesnn/maxpool2d.c
+    shapes/shapesnn/adaptive_avg_pool2d.c
+    shapes/shapesnn/conv2d.c
+    shapes/shapesnn/sequential.c
+    shapes/shapesnn/utils.c
+    shapes/shapesnn/flatten.c
+    shapes/shapesnn/softmax.c
+    shapes/shapesnn/persistence.c
+    shapes/shapesnn/safetensors.c
+)
+
+target_include_directories(shapesnn PUBLIC ${CMAKE_SOURCE_DIR}/shapes)
 
 if(SHAPES_ENABLE_CUDA)
-  target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapescuda)
-  target_link_libraries(shapes shapescuda raylib olib openblas CUDA::cublas CUDA::cudart stdc++ m)
+  target_link_libraries(shapes PRIVATE shapescuda olib openblas CUDA::cublas CUDA::cudart stdc++ m)
+  target_link_libraries(shapesnn PRIVATE shapes olib CUDA::cublas CUDA::cudart stdc++ m)
 elseif (APPLE)
-  target_link_libraries(shapes raylib olib openblas stdc++ m "-framework Accelerate")
+  target_link_libraries(shapes olib openblas stdc++ m "-framework Accelerate")
+  target_link_libraries(shapesnn shapes olib stdc++ m "-framework Accelerate")
 else() 
-  target_link_libraries(shapes raylib olib openblas stdc++)
+  target_link_libraries(shapes olib openblas stdc++)
+  target_link_libraries(shapesnn shapes olib)
 endif()
 
 if(APPLE)
   target_compile_definitions(shapes PRIVATE ACCELERATE_NEW_LAPACK)
 endif()
-
-add_library(shapesnn
-    shapesnn/backward.c
-    shapesnn/dense.c
-    shapesnn/embedding.c
-    shapesnn/mse.c
-    shapesnn/sgd.c
-    shapesnn/training.c
-    shapesnn/batchnorm.c
-    shapesnn/cross_enthropy.c
-    shapesnn/adam.c
-    shapesnn/tanh.c
-    shapesnn/relu.c
-    shapesnn/maxpool2d.c
-    shapesnn/adaptive_avg_pool2d.c
-    shapesnn/conv2d.c
-    shapesnn/sequential.c
-    shapesnn/utils.c
-    shapesnn/flatten.c
-    shapesnn/softmax.c
-    shapesnn/persistence.c
-    shapesnn/safetensors.c
-)
-
-target_link_libraries(shapesnn shapes)
-target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapes)
-
 # Main executable
 add_executable(makemore
     examples/makemore.c
 )
 
-add_executable(vgg10
-    examples/vgg-10.c
-)
+# add_executable(vgg10
+#     examples/vgg-10.c
+# )
 
-target_link_libraries(makemore shapes shapesnn openblas)
-target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/shapesnn)
+if(SHAPES_ENABLE_CUDA)
+  target_link_libraries(makemore shapes shapesnn openblas CUDA::cublas CUDA::cudart stdc++ m)
+else()
+  target_link_libraries(makemore shapes shapesnn openblas m)
+endif()
+
+target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapesnn)
 target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/deps)
 
 # Enable CTest

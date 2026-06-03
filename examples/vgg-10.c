@@ -1,19 +1,19 @@
-#include "nn/nn.h"
+#include "nn.h"
 #include "result.h""
 #include "shapes.h"
 #include "shapes_internal.h"
 #include "types.h"
-#include "utils_lib/array.h"
+#include "array.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <glob.h>
 #include <time.h>
-#include "utils_lib/cuda_memory.h"
-#include "utils_lib/file.h"
-#include "utils_lib/memory.h"
-#include "utils_lib/utils_lib.h"
-#include "utils_lib/error.h"
+#include "shapescuda.h"
+#include "file.h"
+#include "memory.h"
+#include "utils_lib.h"
+#include "error.h"
 #include "string.h"
 #include "examples.h"
 

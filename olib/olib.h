@@ -26,8 +26,6 @@ typedef char* string;
 #define MB ((size_t)1024 * KB)
 #define GB ((size_t)1024 * MB)
 
-typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL } Dtype;
-
 #define RANGE(iterator, bufferSize) \
   size_t iterator = 0; iterator < (size_t) bufferSize; iterator++
 
