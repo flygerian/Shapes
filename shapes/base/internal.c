@@ -9,8 +9,9 @@
 #include "array.h"
 #include "memory.h"
 
-#ifdef SHAPES_ENABLE_CUDA 
+#ifdef SHAPES_HAS_CUDA 
 #include "shapescuda.h"
+#include "cuda_runtime.h"
 #endif
 
 #include "value.h"
@@ -123,7 +124,7 @@ Result clearTensorValues(Tensor *t) {
   }
 
 
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   cudaError_t clearResult = cudaMemset(t->values, 0, valueBytes);
   PANIC_WITH_MSG_IF(clearResult != cudaSuccess, cudaGetErrorString(clearResult));
   #endif
@@ -551,7 +552,7 @@ void shapes_PrintTensor(Tensor *tensor) {
 }
 
 void moveTensor(Context *destCtx, Tensor *t) {
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   size_t valueBytes = t->size * getBytesForDtype(t->dtype);
   CudaBlock block = AllocateOnCuda(&destCtx->cudaMemory, destCtx->cudaMetadataMemory, valueBytes);
   PANIC_IF(block.ptr == NULL, ALLOCATION_FAILED);

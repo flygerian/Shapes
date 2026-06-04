@@ -1,14 +1,14 @@
-
 #include "shapes.h"
-
-#ifdef SHAPES_ENABLE_CUDA 
-#include "cuda_memory.h"
+#ifdef SHAPES_HAS_CUDA 
+  #include "shapescuda.h"
+  #include <cublas_v2.h>
+  #include "cuda_runtime.h"
 #endif
 #include <string.h>
 
 
 void attachCudaDevice(Context *ctx) {
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   int deviceCount = 0;
   cudaError_t countResult = cudaGetDeviceCount(&deviceCount);
 
@@ -49,7 +49,7 @@ Result shapes_CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *
     return OK;
   }
 
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   if (srcType == CPU && destType == CUDA) {
     cudaError_t err = cudaMemcpy(destPtr, srcPtr, size, cudaMemcpyHostToDevice);
     PANIC_WITH_MSG_IF(err != cudaSuccess, cudaGetErrorString(err));

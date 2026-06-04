@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include "shapes_common_types.h"
 
-#ifdef SHAPES_ENABLE_CUDA 
+#ifdef SHAPES_HAS_CUDA
 #include <cublas_v2.h>
 #endif
 
@@ -27,7 +27,7 @@ void FreeCudaScratchMemory(CudaMemory *cudaMemory);
 extern "C" {
 #endif
 
-#ifdef SHAPES_ENABLE_CUDA 
+#ifdef SHAPES_HAS_CUDA
 void runCudaGemm(cublasHandle_t handle, Dtype dtype, cublasOperation_t transA, cublasOperation_t transB, int m, int n, int k, const void *a, int lda,
                  const void *b, int ldb, bool accumulate, void *c, int ldc);
 #endif

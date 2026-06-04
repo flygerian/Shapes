@@ -1,8 +1,10 @@
 #include "result.h"
 #include "shapes.h"
 #include "memory.h"
-#ifdef SHAPES_ENABLE_CUDA 
-#include "cuda_memory.h"
+#ifdef SHAPES_HAS_CUDA 
+  #include "shapescuda.h"
+  #include "cuda_runtime.h"
+  #include <cublas_v2.h>
 #endif
 #include <stdarg.h>
 #include <stddef.h>
@@ -36,7 +38,7 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
   Context scratch = {
       .device = ctx->device,
 
-      #ifdef SHAPES_ENABLE_CUDA 
+      #ifdef SHAPES_HAS_CUDA 
       .handle = ctx->handle,
       #endif
       .isTraining = ctx->isTraining,
@@ -48,7 +50,7 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
 
   scratch.memory = GetScratchArena(ctx->memory, bufferSize);
   
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   if(ctx->device->type == CUDA) {
     scratch.cudaMemory = GetCudaMemoryScratchCheckPoint(&ctx->cudaMemory);
   }
@@ -59,7 +61,7 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
 
 void shapes_DestroyContext(Context *ctx) {
 
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     ReleaseCudaBlocks(&ctx->cudaMemory);
     cublasDestroy(ctx->handle);
@@ -85,7 +87,7 @@ Result shapes_Flush(Context *ctx) {
   switch (ctx->device->type) {
     case CPU: return OK;
     case CUDA: {
-      #ifdef SHAPES_ENABLE_CUDA 
+      #ifdef SHAPES_HAS_CUDA 
       cudaError_t syncResult = cudaDeviceSynchronize();
       PANIC_WITH_MSG_IF(syncResult != cudaSuccess, cudaGetErrorString(syncResult));
       #endif

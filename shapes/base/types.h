@@ -8,6 +8,9 @@
 #include "olib.h"
 #include "shapes_common_types.h"
 #include "shapescuda.h"
+#ifdef SHAPES_HAS_CUDA 
+  #include <cublas_v2.h>
+#endif
 
 typedef size_t dim_t;
 typedef size_t multiplier_t;
@@ -43,7 +46,7 @@ typedef struct Context {
   Device *device;
   bool isTraining;
 
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA
   cublasHandle_t handle;
   #endif
   struct Context *parent;

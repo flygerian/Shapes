@@ -1,7 +1,6 @@
 #include "nn.h"
-#include "result.h""
+#include "result.h"
 #include "shapes.h"
-#include "shapes_internal.h"
 #include "types.h"
 #include "array.h"
 #include <stdbool.h>
@@ -12,14 +11,12 @@
 #include "shapescuda.h"
 #include "file.h"
 #include "memory.h"
-#include "utils_lib.h"
 #include "error.h"
 #include "string.h"
-#include "examples.h"
 
-#define DATASET_PATH     "base/cmd/examples/datasets/cifar-10-binary/cifar-10-batches-bin/data_batch_*.bin"
-#define LABELS_FILE_PATH "base/cmd/examples/datasets/cifar-10-binary/cifar-10-batches-bin/batches.meta.txt"
-#define TEST_BATCH_FILE  "base/cmd/examples/datasets/cifar-10-binary/cifar-10-batches-bin/test_batch.bin"
+#define DATASET_PATH     "cifar-10-batches-bin/data_batch_*.bin"
+#define LABELS_FILE_PATH "cifar-10-batches-bin/batches.meta.txt"
+#define TEST_BATCH_FILE  "cifar-10-batches-bin/test_batch.bin"
 #define IMAGES_WIDTH     32
 #define IMAGES_HEIGHT    32
 #define NUM_CHANNELS     3
@@ -375,8 +372,14 @@ void vgg10() {
 
   dataset ds = getDataset(&hostCtx);
 
-  // FowardPassOp model = runTraining(&hostCtx, &cudaCtx, ds);
-  FowardPassOp model = Make_Model(&cudaCtx, 10);
-  shapesnn_LoadFromSafeTensors(&hostCtx, &model, "vgg10.safetensors");
+  FowardPassOp model = runTraining(&hostCtx, &cudaCtx, ds);
+  // FowardPassOp model = Make_Model(&cudaCtx, 10);
+  // shapesnn_LoadFromSafeTensors(&hostCtx, &model, "vgg10.safetensors");
   runInference(&hostCtx, &model, ds);
+}
+
+int main() {
+  vgg10();
+
+  return 0;
 }

@@ -1,6 +1,11 @@
 #include "shapes_internal.h"
 #include <sched.h>
 #include <string.h>
+#ifdef SHAPES_HAS_CUDA 
+  #include "shapescuda.h"
+  #include "cuda_runtime.h"
+  #include <cublas_v2.h>
+#endif
 
 static const char *dtypeName(Dtype dtype) {
   switch (dtype) {
@@ -28,7 +33,7 @@ static const char *deviceTypeName(DeviceType type) {
   }
 }
 
-#ifdef SHAPES_ENABLE_CUDA 
+#ifdef SHAPES_HAS_CUDA 
 static cublasOperation_t toCudaTranspose(TRANSPOSE trans) {
   switch (trans) {
     case CblasNoTrans: return CUBLAS_OP_N;
@@ -59,7 +64,7 @@ void runGemm(Context *ctx, Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int 
 
     case CUDA:
 
-      #ifdef SHAPES_ENABLE_CUDA 
+      #ifdef SHAPES_HAS_CUDA 
       // cuBLAS assumes column-major storage; swapping operands/op flags makes it
       // compute the same result as the row-major CBLAS entry points used elsewhere.
       return runCudaGemm(ctx->handle, dtype, toCudaTranspose(transB), toCudaTranspose(transA), n, m, k, b, ldb, a, lda, accumulate, c, ldc);

@@ -3,7 +3,7 @@
 #include "types.h"
 #include "value.h"
 
-#ifdef SHAPES_ENABLE_CUDA 
+#ifdef SHAPES_HAS_CUDA 
 #include "shapescuda.h"
 #endif
 #include <complex.h>
@@ -124,7 +124,7 @@ static Value randomValueForRange(f32 minValue, f32 maxValue, Dtype dtype) {
 
 static inline void *allocateTensorValues(Context *ctx, size_t size) {
 
-  #ifdef SHAPES_ENABLE_CUDA 
+  #ifdef SHAPES_HAS_CUDA 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     CudaBlock block = AllocateOnCuda(&ctx->cudaMemory, ctx->cudaMetadataMemory, size);
     return block.ptr;

@@ -76,7 +76,7 @@ add_compile_options(
 )
 # Enable AddressSanitizer in Debug builds (can be disabled with -DENABLE_ASAN=OFF)
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_ASAN AND NOT SHAPES_ENABLE_CUDA)
   add_compile_options($<$<COMPILE_LANGUAGE:C>:-fsanitize=address> $<$<COMPILE_LANGUAGE:C>:-fno-omit-frame-pointer> $<$<COMPILE_LANGUAGE:C>:-g>)
   add_link_options(-fsanitize=address)
 endif()
@@ -136,8 +136,11 @@ add_library(shapes
     shapes/base/cast.c
     shapes/base/accumulate.c
     shapes/base/gemm.c
-    shapes/base/cuda_stubs.c
 )
+
+if(NOT SHAPES_ENABLE_CUDA)
+  target_sources(shapes PRIVATE shapes/base/cuda_stubs.c)
+endif()
 
 target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/olib)
 target_include_directories(shapes PUBLIC ${CMAKE_SOURCE_DIR}/shapes)
@@ -189,18 +192,22 @@ add_executable(makemore
     examples/makemore.c
 )
 
-# add_executable(vgg10
-#     examples/vgg-10.c
-# )
+add_executable(vgg10
+    examples/vgg-10.c
+)
 
 if(SHAPES_ENABLE_CUDA)
   target_link_libraries(makemore shapes shapesnn openblas CUDA::cublas CUDA::cudart stdc++ m)
+  target_link_libraries(vgg10 shapes shapesnn openblas CUDA::cublas CUDA::cudart stdc++ m)
 else()
   target_link_libraries(makemore shapes shapesnn openblas m)
+  target_link_libraries(vgg10 shapes shapesnn openblas m)
 endif()
 
 target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapesnn)
 target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/deps)
+target_include_directories(vgg10 PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapesnn)
+target_include_directories(vgg10 PUBLIC ${CMAKE_SOURCE_DIR}/deps)
 
 # Enable CTest
 enable_testing()
