@@ -31,21 +31,6 @@ static Result validateAccumulateTensorArgs(Tensor *dest, Tensor *srcGrad) {
   return OK;
 }
 
-static dim_t indexValueToDim(Value *idxVal, Dtype dtype) {
-  switch (dtype) {
-    case U8: return idxVal->as.u8;
-    case U16: return idxVal->as.u16;
-    case U32: return idxVal->as.u32;
-    case U64: return idxVal->as.u64;
-    case I8: return (dim_t)idxVal->as.i8;
-    case I16: return (dim_t)idxVal->as.i16;
-    case I32: return (dim_t)idxVal->as.i32;
-    case I64: return (dim_t)idxVal->as.i64;
-    default: PANIC_WITH_CODE(ERR_DTYPE_MISMATCH);
-  }
-  return -1;
-}
-
 static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad) {
 
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
@@ -60,7 +45,7 @@ static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, 
     Value idxVal;
     VALUE_GET_FROM_ARR(indicesContig->values, i, &idxVal, indicesContig->dtype);
 
-    dim_t idx = indexValueToDim(&idxVal, indicesContig->dtype);
+    dim_t idx = indexValueToDim(idxVal, indicesContig->dtype);
     PANIC_IF(idx >= dest->shape.dims[0], ERR_OUT_OF_BOUNDS);
 
     dim_t destCoords[dest->shape.numOfDims];
@@ -99,8 +84,8 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
     VALUE_GET_FROM_ARR(rowContig->values, i, &rowValue, rowContig->dtype);
     VALUE_GET_FROM_ARR(colContig->values, i, &colValue, colContig->dtype);
 
-    dim_t row = indexValueToDim(&rowValue, rowContig->dtype);
-    dim_t col = indexValueToDim(&colValue, colContig->dtype);
+    dim_t row = indexValueToDim(rowValue, rowContig->dtype);
+    dim_t col = indexValueToDim(colValue, colContig->dtype);
 
     PANIC_IF(row >= dest->shape.dims[0] || col >= dest->shape.dims[1], ERR_OUT_OF_BOUNDS);
 

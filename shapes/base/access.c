@@ -1,6 +1,8 @@
+#include "olib.h"
 #include "result.h"
 #include "shapes.h"
 #include "types.h"
+#include "shapes_internal.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,24 +14,6 @@ static bool isOutOfBounds(Tensor *t, Dim dim) {
     }
   }
   return false;
-}
-
-static Result indexValueToDim(Value idxVal, dim_t *idx) {
-  if (idx == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  switch (idxVal.dtype) {
-    case U8: *idx = idxVal.as.u8; return OK;
-    case U16: *idx = idxVal.as.u16; return OK;
-    case U32: *idx = idxVal.as.u32; return OK;
-    case U64: *idx = idxVal.as.u64; return OK;
-    case I8: *idx = (dim_t)idxVal.as.i8; return OK;
-    case I16: *idx = (dim_t)idxVal.as.i16; return OK;
-    case I32: *idx = (dim_t)idxVal.as.i32; return OK;
-    case I64: *idx = (dim_t)idxVal.as.i64; return OK;
-    default: return ERR_DTYPE_MISMATCH;
-  }
 }
 
 Value *shapes_GetAt(Tensor *t, Dim dim) {
@@ -72,18 +56,18 @@ Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   }
 
-  for (u8 i = 0; i < workingIndices->shape.numOfDims; i++) {
+  for (RANGE(i, workingIndices->shape.numOfDims)) {
     newDims[i] = workingIndices->shape.dims[i];
   }
 
-  for (u8 i = 0; i < workingSource->shape.numOfDims - 1; i++) {
+  for (RANGE(i, workingIndices->shape.numOfDims)) {
     newDims[workingIndices->shape.numOfDims + i] = workingSource->shape.dims[i + 1];
   }
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
   tensor_size_t sliceSize = 1;
-  for (u8 i = 1; i < workingSource->shape.numOfDims; i++) {
+  for (RANGE(i, workingIndices->shape.numOfDims)) {
     sliceSize *= workingSource->shape.dims[i];
   }
 
@@ -96,18 +80,17 @@ Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
 
   tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
-  for (u64 i = 0; i < workingIndices->size; i++) {
+  for (RANGE(i, workingIndices->size)) {
     Value idxVal;
     Result result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
     PANIC_IF(result != OK, result);
 
-    dim_t idx = 0;
-    result = indexValueToDim(idxVal, &idx);
+    dim_t idx = indexValueToDim(idxVal, workingIndices->dtype);
     PANIC_IF(result != OK, result);
 
     dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = idx;
-    for (u8 d = 1; d < workingSource->shape.numOfDims; d++) {
+    for (RANGE(d, workingSource->shape.numOfDims)) {
       srcCoords[d] = 0;
     }
     u64 srcOffset = getContigousIdxFromCoord(workingSource, srcCoords);
@@ -139,11 +122,11 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
     newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   }
 
-  for (u8 i = 0; i < workingRows->shape.numOfDims; i++) {
+  for (RANGE(i, workingRows->shape.numOfDims)) {
     newDims[i] = workingRows->shape.dims[i];
   }
 
-  for (u8 i = 0; i < workingSource->shape.numOfDims - 2; i++) {
+  for (RANGE(i, workingSource->shape.numOfDims)) {
     newDims[workingRows->shape.numOfDims + i] = workingSource->shape.dims[i + 2];
   }
 
@@ -172,13 +155,8 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
     result = readTensorValueAtFlatIndex(workingCols, i, &colVal);
     PANIC_IF(result != OK, result);
 
-    dim_t rowIdx = 0;
-    dim_t colIdx = 0;
-    result = indexValueToDim(rowVal, &rowIdx);
-    PANIC_IF(result != OK, result);
-
-    result = indexValueToDim(colVal, &colIdx);
-    PANIC_IF(result != OK, result);
+    dim_t rowIdx = indexValueToDim(rowVal, workingRows->dtype);
+    dim_t colIdx = indexValueToDim(colVal, workingCols->dtype);
 
     dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = rowIdx;
@@ -197,6 +175,7 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
 }
 
 Result shapes_AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
+  (void)ctx;
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

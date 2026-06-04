@@ -1,11 +1,9 @@
 #include "result.h"
 #include "shapes.h"
 #include <assert.h>
-#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 #ifdef __APPLE__
   #include <vecLib/vDSP.h>
@@ -63,29 +61,6 @@ static const char *unaryResultName(Result result) {
     case ERR_OUT_OF_MEMORY: return " ERR_OUT_OF_MEMORY";
     default: return "UNKNOWN_RESULT";
   }
-}
-
-static bool shouldLogRelu(void) {
-  const char *value = getenv("SHAPES_LOG_RELU");
-  return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
-}
-
-static void logReluTensorState(const char *phase, Context *ctx, Tensor *t, Result result) {
-  if (!shouldLogRelu()) {
-    return;
-  }
-
-  Context *tensorCtx = t != NULL ? t->context : NULL;
-  const char *dtypeName = t != NULL ? unaryDtypeName(t->dtype) : "NULL";
-  unsigned long long size = t != NULL ? (unsigned long long)t->size : 0ULL;
-  int contiguous = t != NULL && t->isContigous ? 1 : 0;
-
-  fprintf(stderr,
-          "[shapes_Relu] phase=%s ctx=%p ctxDevice=%s tensorCtx=%p tensorDevice=%s dtype=%s "
-          "size=%llu contiguous=%d result=%s(%d)\n",
-          phase, (void *)ctx, unaryContextDeviceName(ctx), (void *)tensorCtx,
-          unaryContextDeviceName(tensorCtx), dtypeName, size, contiguous, unaryResultName(result),
-          (int)result);
 }
 
 static Result validateUnaryOpTensor(Tensor *t) {
@@ -532,10 +507,6 @@ static Tensor unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 param
   Result result =
       runCudaUnaryOp(input->dtype, opType, input->values, output.values, input->size, param);
 
-  if (opType == UNARY_OP_RELU) {
-    logReluTensorState("cuda_kernel", ctx, input, result);
-  }
-
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   return output;
@@ -564,7 +535,6 @@ Tensor shapes_Tanh(Context *ctx, Tensor *t) {
 }
 
 Tensor shapes_Relu(Context *ctx, Tensor *t) {
-  logReluTensorState("entry", ctx, t, OK);
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -575,9 +545,6 @@ Tensor shapes_Relu(Context *ctx, Tensor *t) {
     default: out = reluCpu(ctx, t); break;
   }
 
-  if (shouldLogRelu()) {
-    fprintf(stderr, "[shapes_Relu] phase=return result=OK(0)\n");
-  }
   return out;
 }
 

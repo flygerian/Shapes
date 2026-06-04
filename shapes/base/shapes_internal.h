@@ -42,6 +42,7 @@ void attachCudaDevice(Context *ctx);
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result);
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value);
 
+dim_t indexValueToDim(Value idxVal, Dtype dtype);
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
 Tensor t_Zeros(Context *ctx, Dim shape, Dtype type);
 Tensor t_Empty(Context *ctx, Dim shape, Dtype type);

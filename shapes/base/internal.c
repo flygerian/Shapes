@@ -34,6 +34,21 @@ size_t getBytesForDtype(Dtype type) {
   }
 }
 
+dim_t indexValueToDim(Value idxVal, Dtype dtype) {
+  switch (dtype) {
+    case U8: return idxVal.as.u8;
+    case U16: return idxVal.as.u16;
+    case U32: return idxVal.as.u32;
+    case U64: return idxVal.as.u64;
+    case I8: return (dim_t)idxVal.as.i8;
+    case I16: return (dim_t)idxVal.as.i16;
+    case I32: return (dim_t)idxVal.as.i32;
+    case I64: return (dim_t)idxVal.as.i64;
+    default: PANIC_WITH_CODE(ERR_DTYPE_MISMATCH);
+  }
+  return -1;
+}
+
 void shapes_PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};

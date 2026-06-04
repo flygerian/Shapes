@@ -7,7 +7,6 @@
 #include <sched.h>
 #include <stdlib.h>
 #include <time.h>
-#include "cuda_compat.h"
 
 typedef struct denseLayerData {
   bool withBias;
