@@ -42,7 +42,7 @@ typedef struct {
 typedef struct Context {
   Memory *memory;
   Memory *cudaMetadataMemory;
-  CudaMemory cudaMemory;
+  shapescuda_Memory cudaMemory;
   Device *device;
   bool isTraining;
 

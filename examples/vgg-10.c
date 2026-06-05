@@ -297,7 +297,7 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
       shapesnn_ZeroGrad(&scratch, parameters);
 
       resetArena(scratch.memory);
-      Rewind(&scratch.cudaMemory);
+      shapescuda_RewindMemory(&scratch.cudaMemory);
     }
 
     double epochTime = (double)(clock() - epochStart) / CLOCKS_PER_SEC;
@@ -315,8 +315,7 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
   }
 
   shapesnn_SafeTensors_Save(&scratch, modelTensors, "vgg10.safetensors");
-
-  FreeCudaScratchMemory(&dsCudaCtx.cudaMemory);
+  shapescuda_FreeScratchMemory(&dsCudaCtx.cudaMemory);
   // FreeCudaScratchMemory(&scratch.cudaMemory);
 
   return model;
@@ -362,7 +361,7 @@ void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
     printf("\n Batch Result %zu of %zu\n", ones, compMask->size);
     printf("===============================================================================");
     resetArena(scratch.memory);
-    Rewind(&scratch.cudaMemory);
+    shapescuda_RewindMemory(&scratch.cudaMemory);
   }
 }
 

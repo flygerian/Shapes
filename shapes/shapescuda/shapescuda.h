@@ -10,18 +10,23 @@
 #include <cublas_v2.h>
 #endif
 
-typedef struct CudaMemory {
+typedef struct {
+  void *ptr;
+  size_t size;
+} shapescuda_Block;
+
+typedef struct shapescuda_Memory {
   Array *blocks;
   size_t allocationPointer;
   i64 allocationCheckpoint;
-} CudaMemory;
+} shapescuda_Memory;
 
-CudaBlock AllocateOnCuda(CudaMemory *cudaMemory, Memory *hostMemory, size_t size);
-void ReleaseCudaBlocks(CudaMemory *cudaMemory);
-CudaMemory Make_CudaMemory(Memory *hostMemory);
-CudaMemory GetCudaMemoryScratchCheckPoint(CudaMemory *cudaMemory);
-void Rewind(CudaMemory *cudaMemory);
-void FreeCudaScratchMemory(CudaMemory *cudaMemory);
+shapescuda_Block shapescuda_Allocate(shapescuda_Memory *cudaMemory, Memory *hostMemory, size_t size);
+void shapescuda_ReleaseBlocks(shapescuda_Memory *cudaMemory);
+shapescuda_Memory shapescuda_Make_Memory(Memory *hostMemory);
+shapescuda_Memory shapescuda_GetMemoryScratchCheckPoint(shapescuda_Memory *cudaMemory);
+void shapescuda_RewindMemory(shapescuda_Memory *cudaMemory);
+void shapescuda_FreeScratchMemory(shapescuda_Memory *cudaMemory);
 
 #ifdef __cplusplus
 extern "C" {

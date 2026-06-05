@@ -3,34 +3,34 @@
 #include "shapes_internal.h"
 #include "shapescuda.h"
 
-// ---- CudaMemory functions ----
+// ---- shapescuda_Memory functions ----
 
-CudaMemory Make_CudaMemory(Memory *restrict hostMemory) {
-  return (CudaMemory){.blocks = MakeDynamicArray(hostMemory, sizeof(CudaBlock *)),
+shapescuda_Memory Make_CudaMemory(Memory *restrict hostMemory) {
+  return (shapescuda_Memory){.blocks = MakeDynamicArray(hostMemory, sizeof(CudaBlock *)),
                       .allocationPointer = 0,
                       .allocationCheckpoint = -1};
 }
 
-CudaMemory GetCudaMemoryScratchCheckPoint(CudaMemory *restrict cudaMemory) {
+shapescuda_Memory GetCudaMemoryScratchCheckPoint(shapescuda_Memory *restrict cudaMemory) {
   size_t currentAllocPoint = cudaMemory->blocks->size - 1;
-  return (CudaMemory){.allocationPointer = currentAllocPoint,
+  return (shapescuda_Memory){.allocationPointer = currentAllocPoint,
                       .allocationCheckpoint = currentAllocPoint,
                       .blocks = cudaMemory->blocks};
 }
 
-void Rewind(CudaMemory *restrict cudaMemory) {
+void Rewind(shapescuda_Memory *restrict cudaMemory) {
   cudaMemory->allocationPointer = cudaMemory->allocationCheckpoint;
 }
 
-void ReleaseCudaBlocks(CudaMemory *restrict cudaMemory) {
+void ReleaseCudaBlocks(shapescuda_Memory *restrict cudaMemory) {
   (void)cudaMemory;
 }
 
-void FreeCudaScratchMemory(CudaMemory *restrict cudaMemory) {
+void FreeCudaScratchMemory(shapescuda_Memory *restrict cudaMemory) {
   (void)cudaMemory;
 }
 
-CudaBlock AllocateOnCuda(CudaMemory *restrict cudaMemory, Memory *restrict hostMemory,
+CudaBlock AllocateOnCuda(shapescuda_Memory *restrict cudaMemory, Memory *restrict hostMemory,
                          size_t size) {
   (void)cudaMemory;
   (void)hostMemory;

@@ -27,7 +27,7 @@ void attachCudaDevice(Context *ctx) {
       *device = (Device){.id = "cuda:0", .type = CUDA};
       ctx->handle = handle;
       ctx->device = device;
-      ctx->cudaMemory = Make_CudaMemory(ctx->memory);
+      ctx->cudaMemory = shapescuda_Make_Memory(ctx->memory);
     }
   }
   #endif

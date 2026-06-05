@@ -52,7 +52,7 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
   
   #ifdef SHAPES_HAS_CUDA 
   if(ctx->device->type == CUDA) {
-    scratch.cudaMemory = GetCudaMemoryScratchCheckPoint(&ctx->cudaMemory);
+    scratch.cudaMemory = shapescuda_GetMemoryScratchCheckPoint(&ctx->cudaMemory);
   }
   #endif
 
@@ -63,7 +63,7 @@ void shapes_DestroyContext(Context *ctx) {
 
   #ifdef SHAPES_HAS_CUDA 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    ReleaseCudaBlocks(&ctx->cudaMemory);
+    shapescuda_ReleaseBlocks(&ctx->cudaMemory);
     cublasDestroy(ctx->handle);
   }
   #endif

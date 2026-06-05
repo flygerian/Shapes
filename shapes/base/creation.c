@@ -127,7 +127,7 @@ static inline void *allocateTensorValues(Context *ctx, size_t size) {
 
   #ifdef SHAPES_HAS_CUDA 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    CudaBlock block = AllocateOnCuda(&ctx->cudaMemory, ctx->cudaMetadataMemory, size);
+     shapescuda_Block block =  shapescuda_Allocate(&ctx->cudaMemory, ctx->cudaMetadataMemory, size);
     return block.ptr;
   }
   #endif

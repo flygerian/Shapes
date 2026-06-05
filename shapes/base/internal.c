@@ -8,6 +8,7 @@
 #include "shapes_internal.h"
 #include "array.h"
 #include "memory.h"
+#include "shapescuda.h"
 
 #ifdef SHAPES_HAS_CUDA 
 #include "shapescuda.h"
@@ -554,7 +555,7 @@ void shapes_PrintTensor(Tensor *tensor) {
 void moveTensor(Context *destCtx, Tensor *t) {
   #ifdef SHAPES_HAS_CUDA 
   size_t valueBytes = t->size * getBytesForDtype(t->dtype);
-  CudaBlock block = AllocateOnCuda(&destCtx->cudaMemory, destCtx->cudaMetadataMemory, valueBytes);
+  shapescuda_Block block = shapescuda_Allocate(&destCtx->cudaMemory, destCtx->cudaMetadataMemory, valueBytes);
   PANIC_IF(block.ptr == NULL, ALLOCATION_FAILED);
   void *locationOnDest = block.ptr;
   Result copyResult = shapes_CopyBetweenDevices(t->context->device->type, destCtx->device->type, t->values, locationOnDest, valueBytes);
