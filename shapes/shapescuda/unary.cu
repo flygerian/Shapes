@@ -165,9 +165,9 @@ static Result launchReluBackwardAccumulateKernel(const void *output,
   return OK;
 }
 
-extern "C" Result runCudaUnaryOp(shapes_Dtype dtype, shapes_UnaryOpType opType,
-                                 const void *src, void *dest, size_t n,
-                                 f32 param) {
+extern "C" Result shapescuda_UnaryOp(shapes_Dtype dtype,
+                                     shapes_UnaryOpType opType, const void *src,
+                                     void *dest, size_t n, f32 param) {
   switch (dtype) {
   case I8:
     return launchUnaryOpKernel<i8>(src, dest, n, opType, param);
@@ -188,9 +188,10 @@ extern "C" Result runCudaUnaryOp(shapes_Dtype dtype, shapes_UnaryOpType opType,
   }
 }
 
-extern "C" Result runCudaReluBackward(shapes_Dtype dtype, const void *output,
-                                      const void *gradOut, void *dest,
-                                      size_t n) {
+extern "C" Result shapescuda_ReluBackward(shapes_Dtype dtype,
+                                          const void *output,
+                                          const void *gradOut, void *dest,
+                                          size_t n) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;
@@ -203,10 +204,10 @@ extern "C" Result runCudaReluBackward(shapes_Dtype dtype, const void *output,
   }
 }
 
-extern "C" Result runCudaReluBackwardAccumulate(shapes_Dtype dtype,
-                                                const void *output,
-                                                const void *gradOut, void *dest,
-                                                size_t n) {
+extern "C" Result shapescuda_ReluBackwardAccumulate(shapes_Dtype dtype,
+                                                    const void *output,
+                                                    const void *gradOut,
+                                                    void *dest, size_t n) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;

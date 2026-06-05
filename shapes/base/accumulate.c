@@ -170,7 +170,7 @@ static Result indexAccumulate1dCuda(Context *ctx, Tensor *dest, Tensor *indices,
     sliceSize *= dest->shape.dims[i];
   }
 
-  Result result = runCudaIndexAccumulate1d(dest->dtype, dest->values, indicesContig->values, indicesContig->dtype, srcContig->values, indicesContig->size, sliceSize);
+  Result result = shapescuda_IndexAccumulate1d(dest->dtype, dest->values, indicesContig->values, indicesContig->dtype, srcContig->values, indicesContig->size, sliceSize);
 
   return result;
 }
@@ -189,7 +189,7 @@ static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndic
     sliceSize *= dest->shape.dims[i];
   }
 
-  Result result = runCudaIndexAccumulate2d(dest->dtype, dest->values, dest->shape.dims[1], rowContig->values, rowContig->dtype, colConfig->values, colConfig->dtype, srcGradContig->values,
+  Result result = shapescuda_IndexAccumulate2d(dest->dtype, dest->values, dest->shape.dims[1], rowContig->values, rowContig->dtype, colConfig->values, colConfig->dtype, srcGradContig->values,
                                            rowContig->size, sliceSize);
 
   return result;
@@ -202,7 +202,7 @@ static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, shapes_Range *rang
 
   Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  Result result = runCudaSliceAccumulate(dest->dtype, dest->values, dest->shape.numOfDims, dest->shape.multipliers, ranges, srcContig->values, srcContig->shape.dims, srcContig->shape.numOfDims,
+  Result result = shapescuda_SliceAccumulate(dest->dtype, dest->values, dest->shape.numOfDims, dest->shape.multipliers, ranges, srcContig->values, srcContig->shape.dims, srcContig->shape.numOfDims,
                                          srcContig->size);
 
   return result;

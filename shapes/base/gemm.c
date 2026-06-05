@@ -67,7 +67,7 @@ void runGemm(Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOSE trans
       #ifdef SHAPES_HAS_CUDA 
       // cuBLAS assumes column-major storage; swapping operands/op flags makes it
       // compute the same result as the row-major CBLAS entry points used elsewhere.
-      return runCudaGemm(ctx->handle, dtype, toCudaTranspose(transB), toCudaTranspose(transA), n, m, k, b, ldb, a, lda, accumulate, c, ldc);
+      return shapescuda_Gemm(ctx->handle, dtype, toCudaTranspose(transB), toCudaTranspose(transA), n, m, k, b, ldb, a, lda, accumulate, c, ldc);
       #else
       return;
       #endif

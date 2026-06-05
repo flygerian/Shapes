@@ -147,7 +147,7 @@ static Tensor castOnCpu(Context *ctx, Tensor *source, shapes_Dtype target) {
 static Tensor castOnCuda(Context *ctx, Tensor *source, shapes_Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
   Tensor dest = t_Zeros(ctx, src->shape, target);
-  Result result = runCudaCast(src->dtype, src->values, target, dest.values, src->size);
+  Result result = shapescuda_Cast(src->dtype, src->values, target, dest.values, src->size);
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
   return dest;

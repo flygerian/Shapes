@@ -42,7 +42,7 @@ CudaBlock AllocateOnCuda(shapescuda_Memory *restrict cudaMemory, Memory *restric
 // ---- Tensor ops ----
 
 #ifdef SHAPES_HAS_CUDA 
-void runCudaGemm(cublasHandle_t handle, shapes_Dtype dtype, cublasOperation_t transA, cublasOperation_t transB,
+void shapescuda_Gemm(cublasHandle_t handle, shapes_Dtype dtype, cublasOperation_t transA, cublasOperation_t transB,
                  int m, int n, int k, const void *a, int lda, const void *b, int ldb,
                  bool accumulate, void *c, int ldc) {
   
@@ -63,7 +63,7 @@ void runCudaGemm(cublasHandle_t handle, shapes_Dtype dtype, cublasOperation_t tr
 }
 #endif
 
-Result runCudaBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, const void *a, const void *b,
+Result shapescuda_BinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, const void *a, const void *b,
                        void *dest, tensor_size_t n) {
   
   (void)dtype;
@@ -75,7 +75,7 @@ Result runCudaBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, const vo
   return ERR_NO_OP;
 }
 
-Result runCudaBroadcastBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, void *larger,
+Result shapescuda_BroadcastBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, void *larger,
                                 void *smaller, void *dest, size_t outerDimSize,
                                 size_t broadcastDimSize, size_t innerDimSize) {
   
@@ -90,7 +90,7 @@ Result runCudaBroadcastBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType,
   return ERR_NO_OP;
 }
 
-Result runCudaUnaryOp(shapes_Dtype shapes_UnaryOpTypeyOpType opType, const void *src, void *dest,
+Result shapescuda_UnaryOp(shapes_Dtype shapes_UnaryOpTypeyOpType opType, const void *src, void *dest,
                       tensor_size_t n, f32 param) {
   
   (void)dtype;
@@ -102,7 +102,7 @@ Result runCudaUnaryOp(shapes_Dtype shapes_UnaryOpTypeyOpType opType, const void 
   return ERR_NO_OP;
 }
 
-Result runCudaReluBackward(shapes_Dtype dtype, const void *output, const void *gradOut,
+Result shapescuda_ReluBackward(shapes_Dtype dtype, const void *output, const void *gradOut,
                            void *dest, tensor_size_t n) {
   
   (void)dtype;
@@ -113,7 +113,7 @@ Result runCudaReluBackward(shapes_Dtype dtype, const void *output, const void *g
   return ERR_NO_OP;
 }
 
-Result runCudaReluBackwardAccumulate(shapes_Dtype dtype, const void *output,
+Result shapescuda_ReluBackwardAccumulate(shapes_Dtype dtype, const void *output,
                                      const void *gradOut, void *dest, tensor_size_t n) {
   
   (void)dtype;
@@ -124,7 +124,7 @@ Result runCudaReluBackwardAccumulate(shapes_Dtype dtype, const void *output,
   return ERR_NO_OP;
 }
 
-Result runCudaReduceDim(shapes_Dtype inputDtype, shapes_Dtypeshapes_ReductionOpTypeeductionOpType opType,
+Result shapescuda_ReduceDim(shapes_Dtype inputDtype, shapes_Dtypeshapes_ReductionOpTypeeductionOpType opType,
                         const void *src, void *dest, tensor_size_t numBeforeDim,
                         tensor_size_t numAfterDim, dim_t reduce) {
   
@@ -139,7 +139,7 @@ Result runCudaReduceDim(shapes_Dtype inputDtype, shapes_Dtypeshapes_ReductionOpT
   return ERR_NO_OP;
 }
 
-Result runCudaReduceAll(shapes_Dtype shapes_ReductionOpTypenOpType opType, const void *src,
+Result shapescuda_ReduceAll(shapes_Dtype shapes_ReductionOpTypenOpType opType, const void *src,
                         void *dest, tensor_size_t n) {
   
   (void)dtype;
@@ -150,7 +150,7 @@ Result runCudaReduceAll(shapes_Dtype shapes_ReductionOpTypenOpType opType, const
   return ERR_NO_OP;
 }
 
-Result runCudaStd(shapes_Dtype dtype, const void *src, void *dest, tensor_size_t n) {
+Result shapescuda_Std(shapes_Dtype dtype, const void *src, void *dest, tensor_size_t n) {
   
   (void)dtype;
   (void)src;
@@ -159,7 +159,7 @@ Result runCudaStd(shapes_Dtype dtype, const void *src, void *dest, tensor_size_t
   return ERR_NO_OP;
 }
 
-Result runCudaIndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *indices,
+Result shapescuda_IndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *indices,
                                  shapes_Dtype indexDtype, const void *srcGrad,
                                  tensor_size_t numIndices, tensor_size_t sliceSize) {
   
@@ -173,7 +173,7 @@ Result runCudaIndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *indi
   return ERR_NO_OP;
 }
 
-Result runCudaIndexAccumulate2d(shapes_Dtype dtype, void *dest, dim_t destDim1,
+Result shapescuda_IndexAccumulate2d(shapes_Dtype dtype, void *dest, dim_t destDim1,
                                  const void *rowIndices, shapes_Dtype rowIndexDtype,
                                  const void *colIndices, shapes_Dtype colIndexDtype,
                                  const void *srcGrad, tensor_size_t numIndices,
@@ -192,7 +192,7 @@ Result runCudaIndexAccumulate2d(shapes_Dtype dtype, void *dest, dim_t destDim1,
   return ERR_NO_OP;
 }
 
-Result runCudaSliceAccumulate(shapes_Dtype dtype, void *dest,
+Result shapescuda_SliceAccumulate(shapes_Dtype dtype, void *dest,
                                tensor_size_t destNumDims, const multiplier_t *destMultipliers,
                                const Range *ranges, const void *srcGrad, const dim_t *srcDims,
                                tensor_size_t srcNumDims, tensor_size_t srcSize) {
@@ -209,7 +209,7 @@ Result runCudaSliceAccumulate(shapes_Dtype dtype, void *dest,
   return ERR_NO_OP;
 }
 
-Result runCudaCast(shapes_Dtype sourceDtype, const void *src, shapes_Dtype targetDtype, void *dest,
+Result shapescuda_Cast(shapes_Dtype sourceDtype, const void *src, shapes_Dtype targetDtype, void *dest,
                    tensor_size_t n) {
   
   (void)sourceDtype;
@@ -220,7 +220,7 @@ Result runCudaCast(shapes_Dtype sourceDtype, const void *src, shapes_Dtype targe
   return ERR_NO_OP;
 }
 
-Result runCudaFillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, Value value) {
+Result shapescuda_FillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, Value value) {
   
   (void)dtype;
   (void)dest;
@@ -229,7 +229,7 @@ Result runCudaFillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, Value 
   return ERR_NO_OP;
 }
 
-Result runCudaArange(f32 start, f32 step, void *dest, tensor_size_t n) {
+Result shapescuda_Arange(f32 start, f32 step, void *dest, tensor_size_t n) {
   
   (void)start;
   (void)step;
@@ -238,7 +238,7 @@ Result runCudaArange(f32 start, f32 step, void *dest, tensor_size_t n) {
   return ERR_NO_OP;
 }
 
-Result runCudaOneHot(shapes_Dtype indexDtype, const void *indices, tensor_size_t n,
+Result shapescuda_OneHot(shapes_Dtype indexDtype, const void *indices, tensor_size_t n,
                      dim_t numClasses, void *dest) {
   
   (void)indexDtype;
@@ -249,7 +249,7 @@ Result runCudaOneHot(shapes_Dtype indexDtype, const void *indices, tensor_size_t
   return ERR_NO_OP;
 }
 
-Result runCudaIndexSelect1d(shapes_Dtype dtype, const void *src, const void *indices,
+Result shapescuda_IndexSelect1d(shapes_Dtype dtype, const void *src, const void *indices,
                               shapes_Dtype indexDtype, void *dest, tensor_size_t numIndices,
                               tensor_size_t sliceSize) {
   
@@ -263,7 +263,7 @@ Result runCudaIndexSelect1d(shapes_Dtype dtype, const void *src, const void *ind
   return ERR_NO_OP;
 }
 
-Result runCudaIndexSelect2d(shapes_Dtype dtype, const void *src, dim_t sourceDim1,
+Result shapescuda_IndexSelect2d(shapes_Dtype dtype, const void *src, dim_t sourceDim1,
                               const void *rowIndices, shapes_Dtype rowIndexDtype,
                               const void *colIndices, shapes_Dtype colIndexDtype, void *dest,
                               tensor_size_t numIndices, tensor_size_t sliceSize) {
@@ -281,7 +281,7 @@ Result runCudaIndexSelect2d(shapes_Dtype dtype, const void *src, dim_t sourceDim
   return ERR_NO_OP;
 }
 
-Result runCudaSgd(shapes_Dtype dtype, void *param, const void *grad, tensor_size_t n,
+Result shapescuda_Sgd(shapes_Dtype dtype, void *param, const void *grad, tensor_size_t n,
                    f32 learningRate) {
   
   (void)dtype;
@@ -294,7 +294,7 @@ Result runCudaSgd(shapes_Dtype dtype, void *param, const void *grad, tensor_size
 
 // ---- Layer ops ----
 
-Result runCudaIm2col(shapes_Dtype dtype, const void *input, dim_t batch, dim_t inChannels,
+Result shapescuda_Im2col(shapes_Dtype dtype, const void *input, dim_t batch, dim_t inChannels,
                      dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *colBuffer) {
   
   (void)dtype;
@@ -310,7 +310,7 @@ Result runCudaIm2col(shapes_Dtype dtype, const void *input, dim_t batch, dim_t i
   return ERR_NO_OP;
 }
 
-Result runCudaCol2imAccumulate(shapes_Dtype dtype, void *dest, const void *colBuffer,
+Result shapescuda_Col2imAccumulate(shapes_Dtype dtype, void *dest, const void *colBuffer,
                                 dim_t batch, dim_t inChannels, dim_t h, dim_t w, dim_t kH,
                                 dim_t kW, u8 stride) {
   
@@ -327,7 +327,7 @@ Result runCudaCol2imAccumulate(shapes_Dtype dtype, void *dest, const void *colBu
   return ERR_NO_OP;
 }
 
-Result runCudaMaxPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
+Result shapescuda_MaxPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
                         dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride,
                         void *output) {
   
@@ -344,7 +344,7 @@ Result runCudaMaxPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
   return ERR_NO_OP;
 }
 
-Result runCudaMaxPool2dWithIndices(shapes_Dtype dtype, const void *input, dim_t batch,
+Result shapescuda_MaxPool2dWithIndices(shapes_Dtype dtype, const void *input, dim_t batch,
                                    dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride,
                                    void *output, void *indices) {
   
@@ -362,7 +362,7 @@ Result runCudaMaxPool2dWithIndices(shapes_Dtype dtype, const void *input, dim_t 
   return ERR_NO_OP;
 }
 
-Result runCudaMaxPool2dBackward(shapes_Dtype dtype, const void *input, const void *gradOut,
+Result shapescuda_MaxPool2dBackward(shapes_Dtype dtype, const void *input, const void *gradOut,
                                 dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW,
                                 u8 stride, void *dX) {
   
@@ -380,7 +380,7 @@ Result runCudaMaxPool2dBackward(shapes_Dtype dtype, const void *input, const voi
   return ERR_NO_OP;
 }
 
-Result runCudaMaxPool2dBackwardWithIndices(shapes_Dtype dtype, const void *gradOut,
+Result shapescuda_MaxPool2dBackwardWithIndices(shapes_Dtype dtype, const void *gradOut,
                                            const void *indices, tensor_size_t numGradValues,
                                            void *dX) {
   
@@ -392,7 +392,7 @@ Result runCudaMaxPool2dBackwardWithIndices(shapes_Dtype dtype, const void *gradO
   return ERR_NO_OP;
 }
 
-Result runCudaAdaptiveAvgPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
+Result shapescuda_AdaptiveAvgPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
                                 dim_t channels, dim_t h, dim_t w, dim_t outH, dim_t outW,
                                 void *output) {
   
@@ -408,7 +408,7 @@ Result runCudaAdaptiveAvgPool2d(shapes_Dtype dtype, const void *input, dim_t bat
   return ERR_NO_OP;
 }
 
-Result runCudaAdaptiveAvgPool2dBackward(shapes_Dtype dtype, const void *gradOut,
+Result shapescuda_AdaptiveAvgPool2dBackward(shapes_Dtype dtype, const void *gradOut,
                                         dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t outH,
                                         dim_t outW, void *dX) {
   
@@ -426,7 +426,7 @@ Result runCudaAdaptiveAvgPool2dBackward(shapes_Dtype dtype, const void *gradOut,
 
 // ---- Loss ops ----
 
-Result runCudaCrossEntropyForward(shapes_Dtype dtype, const void *yGround,
+Result shapescuda_CrossEntropyForward(shapes_Dtype dtype, const void *yGround,
                                   const void *logits, tensor_size_t rows, dim_t classCount,
                                   void *probs, void *loss) {
   
@@ -440,7 +440,7 @@ Result runCudaCrossEntropyForward(shapes_Dtype dtype, const void *yGround,
   return ERR_NO_OP;
 }
 
-Result runCudaCrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
+Result shapescuda_CrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
                                    const void *probs, const void *gradOut, tensor_size_t rows,
                                    dim_t classCount, bool scalarGradOut, void *dLogits) {
   
@@ -457,7 +457,7 @@ Result runCudaCrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
 
 // ---- Conv bias (declared locally in layer/conv.c) ----
 
-Result runCudaConvBiasAdd(shapes_Dtype dtype, void *output, const void *bias,
+Result shapescuda_ConvBiasAdd(shapes_Dtype dtype, void *output, const void *bias,
                           tensor_size_t numValues, dim_t channels) {
   
   (void)dtype;
@@ -468,7 +468,7 @@ Result runCudaConvBiasAdd(shapes_Dtype dtype, void *output, const void *bias,
   return ERR_NO_OP;
 }
 
-Result runCudaConvBiasBackward(shapes_Dtype dtype, const void *outputGrad, void *dBias,
+Result shapescuda_ConvBiasBackward(shapes_Dtype dtype, const void *outputGrad, void *dBias,
                                tensor_size_t numValues, dim_t channels) {
   
   (void)dtype;

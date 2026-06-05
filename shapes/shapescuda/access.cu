@@ -180,10 +180,11 @@ dispatchIndexSelect2dByValueDtype(shapes_Dtype valueDtype, const void *src,
   }
 }
 
-extern "C" Result runCudaIndexSelect1d(shapes_Dtype dtype, const void *src,
-                                       const void *indices,
-                                       shapes_Dtype indexDtype, void *dest,
-                                       size_t numIndices, size_t sliceSize) {
+extern "C" Result shapescuda_IndexSelect1d(shapes_Dtype dtype, const void *src,
+                                           const void *indices,
+                                           shapes_Dtype indexDtype, void *dest,
+                                           size_t numIndices,
+                                           size_t sliceSize) {
   switch (indexDtype) {
   case U8:
     return dispatchIndexSelect1dByValueDtype<u8>(dtype, src, indices, dest,
@@ -215,10 +216,10 @@ extern "C" Result runCudaIndexSelect1d(shapes_Dtype dtype, const void *src,
 }
 
 extern "C" Result
-runCudaIndexSelect2d(shapes_Dtype dtype, const void *src, size_t sourceDim1,
-                     const void *rowIndices, shapes_Dtype rowIndexDtype,
-                     const void *colIndices, shapes_Dtype colIndexDtype,
-                     void *dest, size_t numIndices, size_t sliceSize) {
+shapescuda_IndexSelect2d(shapes_Dtype dtype, const void *src, size_t sourceDim1,
+                         const void *rowIndices, shapes_Dtype rowIndexDtype,
+                         const void *colIndices, shapes_Dtype colIndexDtype,
+                         void *dest, size_t numIndices, size_t sliceSize) {
 
 #define DISPATCH_COL_CASES(RowType)                                            \
   switch (colIndexDtype) {                                                     \

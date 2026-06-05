@@ -506,7 +506,7 @@ static Tensor unaryOpCuda(Context *ctx, Tensor *t, shapes_UnaryOpType opType, f3
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
   Result result =
-      runCudaUnaryOp(input->dtype, opType, input->values, output.values, input->size, param);
+      shapescuda_UnaryOp(input->dtype, opType, input->values, output.values, input->size, param);
 
   PANIC_IF(result != OK, CUDA_OP_FAILED);
 
@@ -569,7 +569,7 @@ Tensor shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
 
   Tensor dInput = t_Zeros(ctx, outputWork->shape, outputWork->dtype);
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    result = runCudaReluBackward(outputWork->dtype, outputWork->values, gradWork->values,
+    result = shapescuda_ReluBackward(outputWork->dtype, outputWork->values, gradWork->values,
                                  dInput.values, outputWork->size);
     PANIC_IF(result != OK, CUDA_OP_FAILED);
 
@@ -622,7 +622,7 @@ void shapes_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut
   Tensor *gradWork = materializeTensorOnContext(ctx, gradOut);
 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    result = runCudaReluBackwardAccumulate(outputWork->dtype, outputWork->values,
+    result = shapescuda_ReluBackwardAccumulate(outputWork->dtype, outputWork->values,
                                            gradWork->values, dest->values, outputWork->size);
     PANIC_IF(result != OK, CUDA_OP_FAILED);
     return;

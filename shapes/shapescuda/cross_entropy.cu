@@ -105,11 +105,11 @@ static Result launchCrossEntropyBackward(const void *yGround, const void *probs,
   return finishCrossEntropyLaunch();
 }
 
-extern "C" Result runCudaCrossEntropyForward(shapes_Dtype dtype,
-                                             const void *yGround,
-                                             const void *logits, size_t rows,
-                                             size_t classCount, void *probs,
-                                             void *loss) {
+extern "C" Result shapescuda_CrossEntropyForward(shapes_Dtype dtype,
+                                                 const void *yGround,
+                                                 const void *logits,
+                                                 size_t rows, size_t classCount,
+                                                 void *probs, void *loss) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;
@@ -125,10 +125,10 @@ extern "C" Result runCudaCrossEntropyForward(shapes_Dtype dtype,
 }
 
 extern "C" Result
-runCudaCrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
-                            const void *probs, const void *gradOut, size_t rows,
-                            size_t classCount, bool scalarGradOut,
-                            void *dLogits) {
+shapescuda_CrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
+                                const void *probs, const void *gradOut,
+                                size_t rows, size_t classCount,
+                                bool scalarGradOut, void *dLogits) {
 
   size_t size = rows * classCount;
   switch (dtype) {

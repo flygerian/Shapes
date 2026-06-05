@@ -276,7 +276,7 @@ void shapes_Copy(Context *ctx, Tensor *src, Tensor *dest) {
 
 void shapes_SetValues(Tensor *t, shapes_Value value) {
   if (t->context != NULL && t->context->device != NULL && t->context->device->type == CUDA) {
-    Result result = runCudaFillTensor(t->dtype, t->values, t->size, value);
+    Result result = shapescuda_FillTensor(t->dtype, t->values, t->size, value);
     if (result == OK) {
       return;
     }
@@ -385,7 +385,7 @@ Tensor shapes_Make_ArangeTensor(Context *ctx, f32 start, f32 end, f32 step) {
   Tensor t = t_Zeros(ctx, SHAPE1D(n), F32);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    Result result = runCudaArange(start, step, t.values, n);
+    Result result = shapescuda_Arange(start, step, t.values, n);
     if (result == OK) {
       return t;
     }
@@ -418,7 +418,7 @@ Tensor shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses)
   Tensor out = shapes_Make_ZerosTensor(ctx, SHAPE(outDims, outNumDims));
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    Result result = runCudaOneHot(source->dtype, source->values, source->size, numClasses, out.values);
+    Result result = shapescuda_OneHot(source->dtype, source->values, source->size, numClasses, out.values);
     PANIC_IF(result != OK, result);
     return out;
   }

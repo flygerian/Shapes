@@ -333,33 +333,34 @@ dispatchIndexDtype2d(shapes_Dtype valueDtype, const void *dest, size_t destDim1,
   }
 }
 
-extern "C" Result
-runCudaIndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *indices,
-                         shapes_Dtype indexDtype, const void *srcGrad,
-                         size_t numIndices, size_t sliceSize) {
+extern "C" Result shapescuda_IndexAccumulate1d(shapes_Dtype dtype, void *dest,
+                                               const void *indices,
+                                               shapes_Dtype indexDtype,
+                                               const void *srcGrad,
+                                               size_t numIndices,
+                                               size_t sliceSize) {
   return dispatchIndexDtype1d(dtype, dest, indices, indexDtype, srcGrad,
                               numIndices, sliceSize);
 }
 
 extern "C" Result
-runCudaIndexAccumulate2d(shapes_Dtype dtype, void *dest, size_t destDim1,
-                         const void *rowIndices, shapes_Dtype rowIndexDtype,
-                         const void *colIndices, shapes_Dtype colIndexDtype,
-                         const void *srcGrad, size_t numIndices,
-                         size_t sliceSize) {
+shapescuda_IndexAccumulate2d(shapes_Dtype dtype, void *dest, size_t destDim1,
+                             const void *rowIndices, shapes_Dtype rowIndexDtype,
+                             const void *colIndices, shapes_Dtype colIndexDtype,
+                             const void *srcGrad, size_t numIndices,
+                             size_t sliceSize) {
 
   return dispatchIndexDtype2d(dtype, dest, destDim1, rowIndices, rowIndexDtype,
                               colIndices, colIndexDtype, srcGrad, numIndices,
                               sliceSize);
 }
 
-extern "C" Result runCudaSliceAccumulate(shapes_Dtype dtype, void *dest,
-                                         size_t destNumDims,
-                                         const size_t *destMultipliers,
-                                         const shapes_Range *ranges,
-                                         const void *srcGrad,
-                                         const size_t *srcDims,
-                                         size_t srcNumDims, size_t srcSize) {
+extern "C" Result
+shapescuda_SliceAccumulate(shapes_Dtype dtype, void *dest, size_t destNumDims,
+                           const size_t *destMultipliers,
+                           const shapes_Range *ranges, const void *srcGrad,
+                           const size_t *srcDims, size_t srcNumDims,
+                           size_t srcSize) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;

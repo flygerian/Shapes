@@ -191,9 +191,9 @@ static Result launchStdKernel(const void *src, void *dest, size_t n) {
 }
 
 extern "C" Result
-runCudaReduceDim(shapes_Dtype inputDtype, shapes_Dtype outputDtype,
-                 shapes_ReductionOpType opType, const void *src, void *dest,
-                 size_t numBeforeDim, size_t numAfterDim, size_t reduce) {
+shapescuda_ReduceDim(shapes_Dtype inputDtype, shapes_Dtype outputDtype,
+                     shapes_ReductionOpType opType, const void *src, void *dest,
+                     size_t numBeforeDim, size_t numAfterDim, size_t reduce) {
   switch (opType) {
   case REDUCTION_OP_ARGMAX:
     switch (inputDtype) {
@@ -285,9 +285,9 @@ runCudaReduceDim(shapes_Dtype inputDtype, shapes_Dtype outputDtype,
   }
 }
 
-extern "C" Result runCudaReduceAll(shapes_Dtype dtype,
-                                   shapes_ReductionOpType opType,
-                                   const void *src, void *dest, size_t n) {
+extern "C" Result shapescuda_ReduceAll(shapes_Dtype dtype,
+                                       shapes_ReductionOpType opType,
+                                       const void *src, void *dest, size_t n) {
   switch (opType) {
   case REDUCTION_OP_SUM:
   case REDUCTION_OP_MEAN:
@@ -324,8 +324,8 @@ extern "C" Result runCudaReduceAll(shapes_Dtype dtype,
   }
 }
 
-extern "C" Result runCudaStd(shapes_Dtype dtype, const void *src, void *dest,
-                             size_t n) {
+extern "C" Result shapescuda_Std(shapes_Dtype dtype, const void *src,
+                                 void *dest, size_t n) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;

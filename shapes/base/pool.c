@@ -74,9 +74,9 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     if (indices != NULL) {
-      res = runCudaMaxPool2dWithIndices(x->dtype, xContig->values, batch, channels, h, w, kH, kW, stride, dest->values, indices->values);
+      res = shapescuda_MaxPool2dWithIndices(x->dtype, xContig->values, batch, channels, h, w, kH, kW, stride, dest->values, indices->values);
     } else {
-      res = runCudaMaxPool2d(x->dtype, xContig->values, batch, channels, h, w, kH, kW, stride, dest->values);
+      res = shapescuda_MaxPool2d(x->dtype, xContig->values, batch, channels, h, w, kH, kW, stride, dest->values);
     }
 
     return res;
@@ -215,7 +215,7 @@ Result shapes_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim ke
   PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    res = runCudaMaxPool2dBackward(x->dtype, xContig->values, gradContig->values, batch, channels, h, w, kH, kW, stride, dX->values);
+    res = shapescuda_MaxPool2dBackward(x->dtype, xContig->values, gradContig->values, batch, channels, h, w, kH, kW, stride, dX->values);
     return res;
   }
 
@@ -319,7 +319,7 @@ Result shapes_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *grad
   PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    res = runCudaMaxPool2dBackwardWithIndices(x->dtype, gradContig->values, indicesContig->values, gradContig->size, dX->values);
+    res = shapescuda_MaxPool2dBackwardWithIndices(x->dtype, gradContig->values, indicesContig->values, gradContig->size, dX->values);
     return res;
   }
 
@@ -374,7 +374,7 @@ Result shapes_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW,
   *dest = *createdDest;
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    res = runCudaAdaptiveAvgPool2d(x->dtype, xContig->values, batch, channels, h, w, outH, outW, dest->values);
+    res = shapescuda_AdaptiveAvgPool2d(x->dtype, xContig->values, batch, channels, h, w, outH, outW, dest->values);
     return res;
   }
 
@@ -472,7 +472,7 @@ Result shapes_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut
   PANIC_IF(res != OK, res);
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    res = runCudaAdaptiveAvgPool2dBackward(x->dtype, gradContig->values, batch, channels, h, w, outH, outW, dX->values);
+    res = shapescuda_AdaptiveAvgPool2dBackward(x->dtype, gradContig->values, batch, channels, h, w, outH, outW, dX->values);
     return res;
   }
 

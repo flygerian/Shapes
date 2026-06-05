@@ -61,8 +61,9 @@ static Result dispatchCudaCastTarget(shapes_Dtype targetDtype, const void *src,
   }
 }
 
-extern "C" Result runCudaCast(shapes_Dtype sourceDtype, const void *src,
-                              shapes_Dtype targetDtype, void *dest, size_t n) {
+extern "C" Result shapescuda_Cast(shapes_Dtype sourceDtype, const void *src,
+                                  shapes_Dtype targetDtype, void *dest,
+                                  size_t n) {
   switch (sourceDtype) {
   case BOOL:
     return dispatchCudaCastTarget<bool>(targetDtype, src, dest, n);

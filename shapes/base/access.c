@@ -74,7 +74,7 @@ Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims};
   Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
   if (isCudaCtx) {
-    Result result = runCudaIndexSelect1d(workingSource->dtype, workingSource->values, workingIndices->values, workingIndices->dtype, dest.values, workingIndices->size, sliceSize);
+    Result result = shapescuda_IndexSelect1d(workingSource->dtype, workingSource->values, workingIndices->values, workingIndices->dtype, dest.values, workingIndices->size, sliceSize);
     PANIC_IF(result != OK, result);
   }
 
@@ -140,7 +140,7 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
   Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers};
   Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
   if (isCudaCtx) {
-    Result result = runCudaIndexSelect2d(workingSource->dtype, workingSource->values, workingSource->shape.dims[1], workingRows->values, workingRows->dtype, workingCols->values,
+    Result result = shapescuda_IndexSelect2d(workingSource->dtype, workingSource->values, workingSource->shape.dims[1], workingRows->values, workingRows->dtype, workingCols->values,
                                          workingCols->dtype, dest.values, workingRows->size, sliceSize);
     PANIC_IF(result != OK, result);
   }

@@ -291,7 +291,7 @@ static Tensor sumCuda(Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(result != OK, result);
 
   Tensor dest = t_Reduced(ctx, input, dim, input->dtype);
-  result = runCudaReduceDim(input->dtype, input->dtype, REDUCTION_OP_SUM, input->values,
+  result = shapescuda_ReduceDim(input->dtype, input->dtype, REDUCTION_OP_SUM, input->values,
                             dest.values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
   return dest;
@@ -301,7 +301,7 @@ static Tensor meanCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
-  Result result = runCudaReduceAll(input->dtype, REDUCTION_OP_MEAN, input->values,
+  Result result = shapescuda_ReduceAll(input->dtype, REDUCTION_OP_MEAN, input->values,
                                    dest.values, input->size);
   PANIC_IF(result != OK, result);
   return dest;
@@ -317,7 +317,7 @@ static Tensor meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(result != OK, result);
 
   Tensor dest = t_Reduced(ctx, input, dim, input->dtype);
-  result = runCudaReduceDim(input->dtype, input->dtype, REDUCTION_OP_MEAN, input->values,
+  result = shapescuda_ReduceDim(input->dtype, input->dtype, REDUCTION_OP_MEAN, input->values,
                             dest.values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
   return dest;
@@ -327,7 +327,7 @@ static Tensor stdCuda(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
-  Result result = runCudaStd(input->dtype, input->values, dest.values, input->size);
+  Result result = shapescuda_Std(input->dtype, input->values, dest.values, input->size);
   PANIC_IF(result != OK, result);
   return dest;
 }
@@ -342,7 +342,7 @@ static Tensor maxCuda(Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(result != OK, result);
 
   Tensor dest = t_Reduced(ctx, input, dim, input->dtype);
-  result = runCudaReduceDim(input->dtype, input->dtype, REDUCTION_OP_MAX, input->values,
+  result = shapescuda_ReduceDim(input->dtype, input->dtype, REDUCTION_OP_MAX, input->values,
                             dest.values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
   return dest;
@@ -359,7 +359,7 @@ static Tensor argMaxCuda(Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(result != OK, result);
 
   Tensor dest = t_Reduced(ctx, input, dim, I64);
-  result = runCudaReduceDim(input->dtype, I64, REDUCTION_OP_ARGMAX, input->values,
+  result = shapescuda_ReduceDim(input->dtype, I64, REDUCTION_OP_ARGMAX, input->values,
                             dest.values, numBeforeDim, numAfterDim, reduce);
   PANIC_IF(result != OK, result);
   return dest;

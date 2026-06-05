@@ -4,11 +4,11 @@
 #include <cuda_runtime.h>
 #include <stddef.h>
 
-extern "C" void runCudaGemm(cublasHandle_t handle, shapes_Dtype dtype,
-                            cublasOperation_t transA, cublasOperation_t transB,
-                            int m, int n, int k, const void *a, int lda,
-                            const void *b, int ldb, bool accumulate, void *c,
-                            int ldc) {
+extern "C" void shapescuda_Gemm(cublasHandle_t handle, shapes_Dtype dtype,
+                                cublasOperation_t transA,
+                                cublasOperation_t transB, int m, int n, int k,
+                                const void *a, int lda, const void *b, int ldb,
+                                bool accumulate, void *c, int ldc) {
   if (dtype == F64) {
     double alpha = 1.0;
     double beta = accumulate ? 1.0 : 0.0;

@@ -178,10 +178,10 @@ static Result launchCol2imKernel(void *dest, const void *colBuffer,
   return OK;
 }
 
-extern "C" Result runCudaIm2col(shapes_Dtype dtype, const void *input,
-                                size_t batch, size_t inChannels, size_t h,
-                                size_t w, size_t kH, size_t kW, u8 stride,
-                                void *colBuffer) {
+extern "C" Result shapescuda_Im2col(shapes_Dtype dtype, const void *input,
+                                    size_t batch, size_t inChannels, size_t h,
+                                    size_t w, size_t kH, size_t kW, u8 stride,
+                                    void *colBuffer) {
   switch (dtype) {
   case F32: {
     if (kH == 3 && kW == 3) {
@@ -216,10 +216,11 @@ extern "C" Result runCudaIm2col(shapes_Dtype dtype, const void *input,
   }
 }
 
-extern "C" Result runCudaCol2imAccumulate(shapes_Dtype dtype, void *dest,
-                                          const void *colBuffer, size_t batch,
-                                          size_t inChannels, size_t h, size_t w,
-                                          size_t kH, size_t kW, u8 stride) {
+extern "C" Result shapescuda_Col2imAccumulate(shapes_Dtype dtype, void *dest,
+                                              const void *colBuffer,
+                                              size_t batch, size_t inChannels,
+                                              size_t h, size_t w, size_t kH,
+                                              size_t kW, u8 stride) {
   switch (dtype) {
   case F32:
     return launchCol2imKernel<f32>(dest, colBuffer, batch, inChannels, h, w, kH,

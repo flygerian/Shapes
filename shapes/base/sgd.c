@@ -34,7 +34,7 @@ Result shapes_optimizer_Sgd(Context *ctx, Array *parameters, f32 learningRate) {
     Tensor *gWork = materializeTensorOnContext(ctx, g);
 
     if (ctx->device != NULL && ctx->device->type == CUDA) {
-      Result res = runCudaSgd(pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
+      Result res = shapescuda_Sgd(pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);
       PANIC_IF(res != OK, res);
     } else {
       if (p.dtype == F16) {

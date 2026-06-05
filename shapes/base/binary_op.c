@@ -343,7 +343,7 @@ static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opT
   shapes_Dtype outputDtype = isComparisonOp(opType) ? BOOL : opA->dtype;
   Tensor output = t_Zeros(ctx, outputShape, outputDtype);
   if (areTensorsSameShape(opA, opB)) {
-    Result res = runCudaBinaryOp(opA->dtype, opType, opA->values, opB->values, output.values, output.size);
+    Result res = shapescuda_BinaryOp(opA->dtype, opType, opA->values, opB->values, output.values, output.size);
     PANIC_IF(res != OK, res);
     return output;
   }
@@ -371,7 +371,7 @@ static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opT
   // All broadcast dimensions are collapsed into one, innerSize is 1
   tensor_size_t broadcastDimSize = larger->size / outerSize;
 
-  Result res = runCudaBroadcastBinaryOp(opA->dtype, opType, larger->values, smaller->values, output.values, outerSize, broadcastDimSize, 1);
+  Result res = shapescuda_BroadcastBinaryOp(opA->dtype, opType, larger->values, smaller->values, output.values, outerSize, broadcastDimSize, 1);
   PANIC_IF(res != OK, res);
   return output;
 }
@@ -517,7 +517,7 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType o
 
   PANIC_IF(!areTensorsSameShape(a, opB), ERR_DTYPE_MISMATCH);
 
-  Result res = runCudaBinaryOp(a->dtype, opType, a->values, opB->values, a->values, a->size);
+  Result res = shapescuda_BinaryOp(a->dtype, opType, a->values, opB->values, a->values, a->size);
   PANIC_IF(res != OK, res);
 }
 

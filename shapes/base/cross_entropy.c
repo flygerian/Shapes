@@ -108,7 +108,7 @@ TensorPair shapes_loss_CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor
     case CPU: loss = crossEnthropyFowardCpu(ctx, logitsContig, yContig, &probs, rows, classCount); break;
     case CUDA:
       loss = shapes_Make_ZerosTensor(ctx, SCALAR);
-      res = runCudaCrossEntropyForward(logitsContig->dtype, yContig->values, logitsContig->values, rows, classCount, probs.values, loss.values);
+      res = shapescuda_CrossEntropyForward(logitsContig->dtype, yContig->values, logitsContig->values, rows, classCount, probs.values, loss.values);
       PANIC_IF(res != OK, res);
       break;
   }
@@ -174,7 +174,7 @@ Tensor shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *p
     case CPU: crossEnthropyBackwardCpu(pContig, yContig, gContig, &dLogits, scalarGradOut, rows); break;
 
     case CUDA: {
-      Result res = runCudaCrossEntropyBackward(
+      Result res = shapescuda_CrossEntropyBackward(
           pContig->dtype,
           yContig->values,
           pContig->values,

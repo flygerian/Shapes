@@ -38,7 +38,7 @@ static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
 
 static Result addConvBias(Context *ctx, Tensor *output, Tensor *bias) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
-    return runCudaConvBiasAdd(output->dtype, output->values, bias->values, output->size, output->shape.dims[3]);
+    return shapescuda_ConvBiasAdd(output->dtype, output->values, bias->values, output->size, output->shape.dims[3]);
   }
 
   return addConvBiasCpu(output, bias);
@@ -62,7 +62,7 @@ static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor 
     one.as.f32 = 1.0f;
   }
 
-  Result res = runCudaFillTensor(outputGrad->dtype, ones, rows, one);
+  Result res = shapescuda_FillTensor(outputGrad->dtype, ones, rows, one);
   PANIC_IF(res != OK, res);
 
   runGemm(ctx, outputGrad->dtype, CblasNoTrans, CblasNoTrans, 1, (int)channels, (int)rows, ones, (int)rows, outputGrad->values, (int)channels, false, dBias->values, (int)channels);

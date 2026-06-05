@@ -737,10 +737,12 @@ static const CudaBroadcastBinaryOpFn *cudaBroadcastBinaryOpTable[9] = {
 // Public API
 // ============================================================================
 
-extern "C" Result
-runCudaBroadcastBinaryOp(shapes_Dtype dtype, shapes_OpType opType, void *larger,
-                         void *smaller, void *dest, size_t outerDimSize,
-                         size_t broadcastDimSize, size_t innerDimSize) {
+extern "C" Result shapescuda_BroadcastBinaryOp(shapes_Dtype dtype,
+                                               shapes_OpType opType,
+                                               void *larger, void *smaller,
+                                               void *dest, size_t outerDimSize,
+                                               size_t broadcastDimSize,
+                                               size_t innerDimSize) {
   if (opType < OP_ADD || opType > OP_EQUAL) {
     return ERR_NOT_A_BINOP;
   }
@@ -763,9 +765,9 @@ runCudaBroadcastBinaryOp(shapes_Dtype dtype, shapes_OpType opType, void *larger,
             innerDimSize);
 }
 
-extern "C" Result runCudaBinaryOp(shapes_Dtype dtype, shapes_OpType opType,
-                                  const void *a, const void *b, void *dest,
-                                  size_t n) {
+extern "C" Result shapescuda_BinaryOp(shapes_Dtype dtype, shapes_OpType opType,
+                                      const void *a, const void *b, void *dest,
+                                      size_t n) {
   if (opType < OP_ADD || opType > OP_EQUAL) {
     return ERR_NOT_A_BINOP;
   }
