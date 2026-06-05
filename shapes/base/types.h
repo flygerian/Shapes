@@ -39,7 +39,7 @@ typedef struct {
   char *id;
 } Device;
 
-typedef struct Context {
+typedef struct shapes_Context {
   olib_Memory *memory;
   olib_Memory *cudaMetadataMemory;
   shapescuda_Memory cudaMemory;
@@ -49,11 +49,11 @@ typedef struct Context {
   #ifdef SHAPES_HAS_CUDA
   cublasHandle_t handle;
   #endif
-  struct Context *parent;
-} Context;
+  struct shapes_Context *parent;
+} shapes_Context;
 
 typedef struct Tensor {
-  Context *context;
+  shapes_Context *context;
   string label;
   olib_Memory *metadataMemory;
   void *values;

@@ -5,12 +5,12 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-Result shapes_optimizer_Sgd(Context *ctx, olib_Array *parameters, f32 learningRate) {
+Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 learningRate) {
   PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE);
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor p = shapes_Array_TensorIdx(parameters, i);
+    Tensor p = shapes_ArrayTensorIdx(parameters, i);
     Tensor *g = p.grad;
 
     if (p.dtype != g->dtype) {
@@ -27,7 +27,7 @@ Result shapes_optimizer_Sgd(Context *ctx, olib_Array *parameters, f32 learningRa
   }
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor p = shapes_Array_TensorIdx(parameters, i);
+    Tensor p = shapes_ArrayTensorIdx(parameters, i);
     Tensor *g = p.grad;
 
     Tensor *pWork = materializeTensorOnContext(ctx, &p);

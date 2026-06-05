@@ -6,8 +6,8 @@
 #include <math.h>
 
 static void test_sgd_updates_f32_parameters(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
 
   Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
   Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F32);
@@ -23,8 +23,8 @@ static void test_sgd_updates_f32_parameters(void) {
 
   p->grad = g;
 
-  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
-  Array_Append(params, &p);
+  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_ArrayAppend(params, &p);
   Result r = Sgd(&ctx, params, 0.5f);
 
   ASSERT_EQ(r, OK, "SGD should return OK for valid F32 tensors");
@@ -34,8 +34,8 @@ static void test_sgd_updates_f32_parameters(void) {
 }
 
 static void test_sgd_updates_f64_parameters(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
 
   Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F64);
   Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F64);
@@ -49,8 +49,8 @@ static void test_sgd_updates_f64_parameters(void) {
 
   p->grad = g;
 
-  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
-  Array_Append(params, &p);
+  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_ArrayAppend(params, &p);
   f32 learningRate = 0.1f;
   Result r = Sgd(&ctx, params, learningRate);
   f64 expected0 = 10.0 - (0.5 * (f64)learningRate);
@@ -62,67 +62,67 @@ static void test_sgd_updates_f64_parameters(void) {
 }
 
 static void test_sgd_null_inputs(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
   Result r = Sgd(&ctx, NULL, 0.1f);
   ASSERT_EQ(r, ERR_NULL_TENSOR_PROVIDED, "NULL parameter array should return ERR_NULL_TENSOR_PROVIDED");
 }
 
 static void test_sgd_invalid_learning_rate(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
 
   Tensor *p = t_Zeros(&ctx, SHAPE1D(1), F32);
   Tensor *g = t_Zeros(&ctx, SHAPE1D(1), F32);
   p->grad = g;
 
-  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
-  Array_Append(params, &p);
+  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.0f);
   ASSERT_EQ(r, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE, "zero learning rate should return dedicated error");
 }
 
 static void test_sgd_dtype_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
 
   Tensor *p = t_Zeros(&ctx, SHAPE1D(2), F32);
   Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F64);
   p->grad = g;
 
-  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
-  Array_Append(params, &p);
+  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_GRAD_DTYPE_MISMATCH, "dtype mismatch should return SGD dtype error");
 }
 
 static void test_sgd_size_mismatch(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
 
   Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
   Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F32);
   p->grad = g;
 
-  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
-  Array_Append(params, &p);
+  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_NUMBER_MISMATCH, "size mismatch should return SGD size error");
 }
 
 static void test_sgd_requires_float_tensors(void) {
-  Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  olib_Memory *mem = olib_InitializeMemory();
+  shapes_Context ctx = {.memory = mem};
 
   Tensor *p = t_Zeros(&ctx, SHAPE1D(2), I32);
   Tensor *g = t_Zeros(&ctx, SHAPE1D(2), I32);
   p->grad = g;
 
-  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
-  Array_Append(params, &p);
+  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
   ASSERT_EQ(r, ERR_SGD_PARAMS_HAVE_TO_BE_FLOAT, "non-float tensors should be rejected");

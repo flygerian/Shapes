@@ -1,6 +1,4 @@
 #include "result.h"
-#include "shapes.h"
-#include "shapes_internal.h"
 #include "shapescuda.h"
 
 // ---- shapescuda_Memory functions ----
@@ -289,7 +287,7 @@ Result shapescuda_Sgd(shapes_Dtype dtype, void *param, const void *grad, tensor_
   return ERR_NO_OP;
 }
 
-// ---- Layer ops ----
+// ---- shapesnn_layer ops ----
 
 Result shapescuda_Im2col(shapes_Dtype dtype, const void *input, dim_t batch, dim_t inChannels,
                      dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *colBuffer) {

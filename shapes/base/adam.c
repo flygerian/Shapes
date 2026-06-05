@@ -72,7 +72,7 @@ static bool isFloatDtype(shapes_Dtype dt) {
   return dt == F16 || dt == F32 || dt == F64;
 }
 
-Result shapes_optimizer_Adam(Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
+Result shapes_optimizer_Adam(shapes_Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
   (void)ctx;
 
   if (triplets == NULL) {

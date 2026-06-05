@@ -10,10 +10,10 @@ typedef struct maxPool2dLayerData {
   u8 stride;
 } maxPool2dLayerData;
 
-void maxPool2dBackward(Context *ctx, Tensor *tensor) {
+void maxPool2dBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
   PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   maxPool2dLayerData *layerData = tensor->opMetadata;
@@ -27,7 +27,7 @@ void maxPool2dBackward(Context *ctx, Tensor *tensor) {
   shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
-Tensor maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor maxPool2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   maxPool2dLayerData *layerData = layer->layerData;
@@ -42,7 +42,7 @@ Tensor maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t outH = (h - kH) / layerData->stride + 1;
   dim_t outW = (w - kW) / layerData->stride + 1;
 
-  Tensor dest = shapes_Make_FloatTensor(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
+  Tensor dest = shapes_MakeFloatTensor(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
 
   Result result = shapes_MaxPool2d(ctx, tensor, layerData->kernel, layerData->stride, &dest);
   PANIC_IF(result != OK, result);
@@ -50,30 +50,30 @@ Tensor maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
   Tensor *inputRef = tensor;
-  shapes_Array_AppendTensor(dest.inputs, inputRef);
+  shapes_ArrayAppendTensor(dest.inputs, inputRef);
 
   dest.opMetadata = layerData;
   dest.opType = OP_MAXPOOL2D;
   return dest;
 }
 
-olib_Array *maxPool2dLayerParameters(Context *ctx, Layer *state) {
+olib_Array *maxPool2dLayerParameters(shapes_Context *ctx, shapesnn_layer *state) {
   (void)state;
   return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-olib_Array *maxPool2dLayerTensors(Context *ctx, Layer *state) {
+olib_Array *maxPool2dLayerTensors(shapes_Context *ctx, shapesnn_layer *state) {
   (void)state;
   return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-void maxPool2dLayerLoad(Context *ctx, Layer *state, olib_Array *tensors) {
+void maxPool2dLayerLoad(shapes_Context *ctx, shapesnn_layer *state, olib_Array *tensors) {
   (void)ctx;
   (void)state;
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_MaxPool2d(Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
+shapesnn_FowardPassOp shapesnn_MaxPool2d(shapes_Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
   maxPool2dLayerData *layerData = olib_Allocate(ctx->memory, sizeof(maxPool2dLayerData));
   dim_t *kernelDims = olib_Allocate(ctx->memory, sizeof(dim_t) * 2);
   kernelDims[0] = kernelH;
@@ -83,10 +83,10 @@ FowardPassOp shapesnn_MaxPool2d(Context *ctx, shapes_Dtype dtype, dim_t kernelH,
       .stride = stride,
   };
 
-  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
+  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(shapesnn_layer));
   layer->weights = (Tensor){0};
   layer->bias = (Tensor){0};
   layer->layerData = layerData;
 
-  return (FowardPassOp){.ctx = ctx, .type = OP_MAXPOOL2D, .dtype = dtype, .op = layer};
+  return (shapesnn_FowardPassOp){.ctx = ctx, .type = OP_MAXPOOL2D, .dtype = dtype, .op = layer};
 }

@@ -3,7 +3,7 @@
 #include "common.h"
 #include <math.h>
 
-static Tensor create1DTensor(Context *ctx, dim_t size, shapes_Dtype dtype) {
+static Tensor create1DTensor(shapes_Context *ctx, dim_t size, shapes_Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
   dims[0] = size;
@@ -22,7 +22,7 @@ static Tensor create1DTensor(Context *ctx, dim_t size, shapes_Dtype dtype) {
 // Test 1: Basic single step with closed-form expected values
 static void test_adam_single_step(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   // Create tensors: param, paramGrad, m, v
   Tensor param = create1DTensor(&ctx, 3, F32);
@@ -89,7 +89,7 @@ static void test_adam_single_step(void) {
 // Test 2: Two steps to verify momentum and velocity accumulation
 static void test_adam_two_steps_accumulation(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, F32);
   Tensor paramGrad = create1DTensor(&ctx, 1, F32);
@@ -133,7 +133,7 @@ static void test_adam_two_steps_accumulation(void) {
 // Test 3: Compare with PyTorch reference (known good values)
 static void test_adam_pytorch_reference(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 2, F32);
   Tensor paramGrad = create1DTensor(&ctx, 2, F32);
@@ -171,7 +171,7 @@ static void test_adam_pytorch_reference(void) {
 // Test 4: NULL triplets error
 static void test_adam_null_triplets(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Result r = Adam(&ctx, NULL, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_TRIPLETS, "NULL triplets should return ERR_ADAM_NULL_TRIPLETS");
@@ -180,7 +180,7 @@ static void test_adam_null_triplets(void) {
 // Test 5: NULL individual tensors
 static void test_adam_null_tensors(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, F32);
   Tensor paramGrad = create1DTensor(&ctx, 1, F32);
@@ -211,7 +211,7 @@ static void test_adam_null_tensors(void) {
 // Test 6: Non-float type rejection
 static void test_adam_non_float_type(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, I32);
   Tensor paramGrad = create1DTensor(&ctx, 1, I32);
@@ -226,7 +226,7 @@ static void test_adam_non_float_type(void) {
 // Test 7: Size mismatch
 static void test_adam_size_mismatch(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 3, F32);
   Tensor paramGrad = create1DTensor(&ctx, 3, F32);
@@ -241,7 +241,7 @@ static void test_adam_size_mismatch(void) {
 // Test 8: Multiple triplets in one call
 static void test_adam_multiple_triplets(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   // First parameter group
   Tensor param1 = create1DTensor(&ctx, 2, F32);
@@ -289,7 +289,7 @@ static void test_adam_multiple_triplets(void) {
 // Test 9: Bias correction verification
 static void test_adam_bias_correction(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, F32);
   Tensor paramGrad = create1DTensor(&ctx, 1, F32);
@@ -332,7 +332,7 @@ static void test_adam_bias_correction(void) {
 // Test 10: Very small gradients (numerical stability)
 static void test_adam_small_gradients(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, F32);
   Tensor paramGrad = create1DTensor(&ctx, 1, F32);
@@ -360,7 +360,7 @@ static void test_adam_small_gradients(void) {
 // Test 11: F64 precision
 static void test_adam_f64_precision(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, F64);
   Tensor paramGrad = create1DTensor(&ctx, 1, F64);
@@ -389,7 +389,7 @@ static void test_adam_f64_precision(void) {
 // Test 12: Zero learning rate
 static void test_adam_zero_learning_rate(void) {
   Memory *mem = initializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   Tensor param = create1DTensor(&ctx, 1, F32);
   Tensor paramGrad = create1DTensor(&ctx, 1, F32);

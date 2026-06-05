@@ -2,11 +2,11 @@
 #include "result.h"
 #include "shapes.h"
 
-void sgdStep(Context *ctx, Optimizer *opts, olib_Array *parameters) {
+void sgdStep(shapes_Context *ctx, shapesnn_Optimizer *opts, olib_Array *parameters) {
   Result res = shapes_optimizer_Sgd(ctx, parameters, opts->learningRate);
   PANIC_IF(res != OK, res);
 }
 
-Optimizer shapesnn_SGD(Context *ctx, f32 learningRate) {
-  return (Optimizer) {.learningRate = learningRate, .opType = OP_SGD};
+shapesnn_Optimizer shapesnn_SGD(shapes_Context *ctx, f32 learningRate) {
+  return (shapesnn_Optimizer) {.learningRate = learningRate, .opType = OP_SGD};
 }

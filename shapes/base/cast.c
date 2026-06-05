@@ -131,7 +131,7 @@ static bool isCastSafe(shapes_Dtype source, shapes_Dtype target) {
   return dtypeRank(target) >= dtypeRank(source);
 }
 
-static Tensor castOnCpu(Context *ctx, Tensor *source, shapes_Dtype target) {
+static Tensor castOnCpu(shapes_Context *ctx, Tensor *source, shapes_Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
   Tensor dest = t_Zeros(ctx, source->shape, target);
   for (tensor_size_t i = 0; i < src->size; i++) {
@@ -144,7 +144,7 @@ static Tensor castOnCpu(Context *ctx, Tensor *source, shapes_Dtype target) {
   return dest;
 }
 
-static Tensor castOnCuda(Context *ctx, Tensor *source, shapes_Dtype target) {
+static Tensor castOnCuda(shapes_Context *ctx, Tensor *source, shapes_Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
   Tensor dest = t_Zeros(ctx, src->shape, target);
   Result result = shapescuda_Cast(src->dtype, src->values, target, dest.values, src->size);
@@ -153,7 +153,7 @@ static Tensor castOnCuda(Context *ctx, Tensor *source, shapes_Dtype target) {
   return dest;
 }
 
-Tensor Cast(Context *ctx, Tensor *source, shapes_Dtype target) {
+Tensor Cast(shapes_Context *ctx, Tensor *source, shapes_Dtype target) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
   shapes_Dtype srcDtype = source->dtype;

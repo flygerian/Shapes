@@ -10,10 +10,10 @@
 #include <time.h>
 #include "nn_internal.h"
 
-olib_Array *buildGraph(Context *ctx, Tensor *tensor);
+olib_Array *buildGraph(shapes_Context *ctx, Tensor *tensor);
 void topoSort(olib_Array *graph, PtrSet *visited, Tensor *tensor);
 
-void backward(Context *ctx, Tensor *node) {
+void backward(shapes_Context *ctx, Tensor *node) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(node == NULL, NULL_CONTEXT);
 
@@ -35,25 +35,25 @@ void backward(Context *ctx, Tensor *node) {
   }
 }
 
-olib_Array *shapesnn_Backward(Context *ctx, Tensor *tensor) {
+olib_Array *shapesnn_Backward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   Tensor *ones = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(ones == NULL, ALLOCATION_FAILED);
-  *ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1);
+  *ones = shapes_MakeFloatTensor(ctx, SHAPE1D(1), 1);
   shapes_AddInPlace(ctx, tensor->grad, ones);
 
   olib_Array *graph = buildGraph(ctx, tensor);
 
   for (size_t i = graph->size; i-- > 0;) {
-    Tensor node = shapes_Array_TensorIdx(graph, i);
+    Tensor node = shapes_ArrayTensorIdx(graph, i);
     backward(ctx, &node);
   }
 
   return graph;
 }
 
-olib_Array *buildGraph(Context *ctx, Tensor *tensor) {
+olib_Array *buildGraph(shapes_Context *ctx, Tensor *tensor) {
   olib_Array *graph = shapes_Make_DynamicTensorArray(ctx->memory);
   PtrSet *visited = Make_PtrSet(ctx->memory);
   topoSort(graph, visited, tensor);
@@ -73,14 +73,14 @@ void topoSort(olib_Array *graph, PtrSet *visited, Tensor *tensor) {
   PtrSet_Put(visited, key);
 
   if (tensor->inputs == NULL) {
-    shapes_Array_AppendTensor(graph, tensor);
+    shapes_ArrayAppendTensor(graph, tensor);
     return;
   }
 
   for (size_t i = 0; i < tensor->inputs->size; i++) {
-    Tensor t = shapes_Array_TensorIdx(tensor->inputs, i);
+    Tensor t = shapes_ArrayTensorIdx(tensor->inputs, i);
     topoSort(graph, visited, &t);
   }
 
-  shapes_Array_AppendTensor(graph, tensor);
+  shapes_ArrayAppendTensor(graph, tensor);
 }

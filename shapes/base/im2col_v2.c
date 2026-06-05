@@ -6,7 +6,7 @@
 #include "shapes_internal.h"
 #include "shapes_common_types.h"
 
-Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride) {
+Tensor *im2colF32(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride) {
   dim_t batch = t->shape.dims[0];
   dim_t height = t->shape.dims[1];
   dim_t width = t->shape.dims[2];
@@ -59,7 +59,7 @@ Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth
   return colBuffer;
 }
 
-Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride) {
+Tensor *im2colF64(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride) {
   dim_t batch = t->shape.dims[0];
   dim_t height = t->shape.dims[1];
   dim_t width = t->shape.dims[2];

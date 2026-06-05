@@ -16,7 +16,7 @@ static bool isArithmeticOp(shapes_OpType opType) {
   return opType == OP_ADD || opType == OP_SUBTRACT || opType == OP_MULTIPLY;
 }
 
-static bool isCudaContext(Context *ctx) {
+static bool isCudaContext(shapes_Context *ctx) {
   return ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA;
 }
 
@@ -282,7 +282,7 @@ static Result broadcastBinop(Tensor *opA, Tensor *opB, Tensor *output, shapes_Op
   return OK;
 }
 
-static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
+static Tensor binaryOpCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
   TensorPair ops = {.a = *a, .b = *b};
@@ -318,7 +318,7 @@ static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opTy
   return output;
 }
 
-static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
+static Tensor binaryOpCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
 
   TensorPair ops = {.a = *a, .b = *b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -376,7 +376,7 @@ static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opT
   return output;
 }
 
-static Tensor binaryOp(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
+static Tensor binaryOp(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
@@ -389,7 +389,7 @@ static Tensor binaryOp(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType)
   }
 }
 
-Tensor shapes_Add(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_Add(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_ADD);
 }
 
@@ -465,7 +465,7 @@ static inline void inPlaceBinopDivide(Tensor *a, Tensor *opB) {
   }
 }
 
-static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
+static void inPlaceBinopCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   Tensor *opA = a;
   Tensor *opB = b;
   Tensor *paddedB = NULL;
@@ -500,7 +500,7 @@ static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, shapes_OpType op
   }
 }
 
-static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
+static void inPlaceBinopCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(!isArithmeticOp(opType) || !a->isContigous || a->isView, ERR_NO_OP);
   PANIC_IF(a->context->device->type != CUDA, ERR_DEVICE_MISMATCH);
   PANIC_IF(b->context->device->type != CUDA, ERR_DEVICE_MISMATCH);
@@ -521,7 +521,7 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType o
   PANIC_IF(res != OK, res);
 }
 
-static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
+static void inPlaceBinop(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:
@@ -533,27 +533,27 @@ static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opTyp
   }
 }
 
-void shapes_AddInPlace(Context *ctx, Tensor *a, Tensor *b) {
+void shapes_AddInPlace(shapes_Context *ctx, Tensor *a, Tensor *b) {
   inPlaceBinop(ctx, a, b, OP_ADD);
 }
 
-void shapes_SubtractInPlace(Context *ctx, Tensor *a, Tensor *b) {
+void shapes_SubtractInPlace(shapes_Context *ctx, Tensor *a, Tensor *b) {
   inPlaceBinop(ctx, a, b, OP_SUBTRACT);
 }
 
-void shapes_MultiplyInPlace(Context *ctx, Tensor *a, Tensor *b) {
+void shapes_MultiplyInPlace(shapes_Context *ctx, Tensor *a, Tensor *b) {
   inPlaceBinop(ctx, a, b, OP_MULTIPLY);
 }
 
-Tensor shapes_Subtract(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_Subtract(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_SUBTRACT);
 }
 
-Tensor shapes_Multiply(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_Multiply(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_MULTIPLY);
 }
 
-Tensor shapes_Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
+Tensor shapes_Divide(shapes_Context *ctx, Tensor *numerator, Tensor *denominator) {
   // Implement division as: numerator / denominator = numerator * (denominator^-1)
   // This automatically gets correct gradients through the computation graph!
 
@@ -561,22 +561,22 @@ Tensor shapes_Divide(Context *ctx, Tensor *numerator, Tensor *denominator) {
   return shapes_Multiply(ctx, numerator, &denom_inv);
 }
 
-Tensor shapes_GreaterThan(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_GreaterThan(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_GREATER);
 }
 
-Tensor shapes_GreaterThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_GreaterThanOrEqual(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_GREATER_OR_EQUAL);
 }
 
-Tensor shapes_Equal(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_Equal(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_EQUAL);
 }
 
-Tensor shapes_LessThan(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_LessThan(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_LESS);
 }
 
-Tensor shapes_LessThanOrEqual(Context *ctx, Tensor *a, Tensor *b) {
+Tensor shapes_LessThanOrEqual(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_LESS_OR_EQUAL);
 }

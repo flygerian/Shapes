@@ -36,7 +36,7 @@ static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
   return OK;
 }
 
-static Result addConvBias(Context *ctx, Tensor *output, Tensor *bias) {
+static Result addConvBias(shapes_Context *ctx, Tensor *output, Tensor *bias) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     return shapescuda_ConvBiasAdd(output->dtype, output->values, bias->values, output->size, output->shape.dims[3]);
   }
@@ -44,7 +44,7 @@ static Result addConvBias(Context *ctx, Tensor *output, Tensor *bias) {
   return addConvBiasCpu(output, bias);
 }
 
-static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+static void accumulateConvBiasGradCuda(shapes_Context *ctx, Tensor *outputGrad, Tensor *dBias) {
   PANIC_IF(ctx == NULL || outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   dim_t channels = outputGrad->shape.dims[3];
@@ -98,7 +98,7 @@ static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
   }
 }
 
-static void accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+static void accumulateConvBiasGrad(shapes_Context *ctx, Tensor *outputGrad, Tensor *dBias) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     return accumulateConvBiasGradCuda(ctx, outputGrad, dBias);
   }
@@ -106,7 +106,7 @@ static void accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBi
   return accumulateConvBiasGradCpu(outputGrad, dBias);
 }
 
-Result shapes_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
+Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   Tensor *biasContig = bias;
@@ -203,7 +203,7 @@ Result shapes_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 str
   return result;
 }
 
-Result shapes_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias, bool withBias, u8 stride) {
+Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias, bool withBias, u8 stride) {
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
@@ -349,7 +349,7 @@ Result shapes_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor
   return res;
 }
 
-Result shapes_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
+Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
   if (t == NULL || dest == NULL || ctx == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -475,7 +475,7 @@ Result shapes_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannel
   return OK;
 }
 
-Result shapes_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
+Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
   if (isInvalidTensor(x) || isInvalidTensor(kernels) || isInvalidTensor(gradOut) || dX == NULL || dKernels == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

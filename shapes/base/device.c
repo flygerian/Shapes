@@ -7,7 +7,7 @@
 #include <string.h>
 
 
-void attachCudaDevice(Context *ctx) {
+void attachCudaDevice(shapes_Context *ctx) {
   #ifdef SHAPES_HAS_CUDA 
   int deviceCount = 0;
   cudaError_t countResult = cudaGetDeviceCount(&deviceCount);
@@ -33,7 +33,7 @@ void attachCudaDevice(Context *ctx) {
   #endif
 }
 
-void attachHostDevice(Context *ctx) {
+void attachHostDevice(shapes_Context *ctx) {
   Device *device = olib_Allocate(ctx->memory, sizeof(Device));
   *device = (Device){.id = "host", .type = CPU};
   ctx->device = device;

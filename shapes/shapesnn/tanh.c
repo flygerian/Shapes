@@ -4,13 +4,13 @@
 #include "types.h"
 #include "array.h"
 
-void tanhBackward(Context *ctx, Tensor *tensor) {
+void tanhBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
   PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor ones = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1.0f);
+  Tensor ones = shapes_MakeFloatTensor(ctx, SHAPE1D(1), 1.0f);
   Tensor tanhSquared = shapes_Multiply(ctx, tensor, tensor);
   Tensor oneMinusTanhSquared = shapes_Subtract(ctx, &ones, &tanhSquared);
   Tensor gradInput = shapes_Multiply(ctx, tensor->grad, &oneMinusTanhSquared);
@@ -19,7 +19,7 @@ void tanhBackward(Context *ctx, Tensor *tensor) {
   shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
-Tensor tanhForward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor tanhForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
   (void)layer;
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
@@ -28,33 +28,33 @@ Tensor tanhForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(out.inputs == NULL, ALLOCATION_FAILED);
 
   Tensor *inputRef = tensor;
-  shapes_Array_AppendTensor(out.inputs, inputRef);
+  shapes_ArrayAppendTensor(out.inputs, inputRef);
   out.opType = OP_TANH;
 
   return out;
 }
 
-olib_Array *tanhLayerParameters(Context *ctx, Layer *state) {
+olib_Array *tanhLayerParameters(shapes_Context *ctx, shapesnn_layer *state) {
   (void)state;
   return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-olib_Array *tanhLayerTensors(Context *ctx, Layer *state) {
+olib_Array *tanhLayerTensors(shapes_Context *ctx, shapesnn_layer *state) {
   (void)state;
   return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-void tanhLayerLoad(Context *ctx, Layer *state, olib_Array *tensors) {
+void tanhLayerLoad(shapes_Context *ctx, shapesnn_layer *state, olib_Array *tensors) {
   (void)ctx;
   (void)state;
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_Tanh(Context *ctx, shapes_Dtype dtype) {
-  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
+shapesnn_FowardPassOp shapesnn_Tanh(shapes_Context *ctx, shapes_Dtype dtype) {
+  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(shapesnn_layer));
   layer->weights = (Tensor){0};
   layer->bias = (Tensor){0};
   layer->layerData = NULL;
 
-  return (FowardPassOp){.ctx = ctx, .type = OP_TANH, .dtype = dtype, .op = layer};
+  return (shapesnn_FowardPassOp){.ctx = ctx, .type = OP_TANH, .dtype = dtype, .op = layer};
 }

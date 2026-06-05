@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include "shapes_internal.h"
 
-Tensor shapes_Slice(Context *ctx, Tensor *source, ...) {
+Tensor shapes_Slice(shapes_Context *ctx, Tensor *source, ...) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
   shapes_Range *ranges = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
@@ -68,7 +68,7 @@ Tensor shapes_Slice(Context *ctx, Tensor *source, ...) {
   return dest;
 }
 
-Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
+Tensor shapes_Reshape(shapes_Context *ctx, Tensor *source, Dim newShape) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(newShape.dims == NULL, ERR_NULL_SHAPE_PROVIDED);
 
@@ -112,27 +112,27 @@ Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
 
   dest.opType = OP_RESHAPE;
   dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
-  shapes_Array_AppendTensor(dest.inputs, source);
+  shapes_ArrayAppendTensor(dest.inputs, source);
 
   Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
-  *gradPtr = shapes_Make_ZerosTensor(ctx, dest.shape);
+  *gradPtr = shapes_MakeZerosTensor(ctx, dest.shape);
   dest.grad = gradPtr;
 
   return dest;
 }
 
-void shapes_ReshapeBackward(Context *ctx, Tensor *node) {
+void shapes_ReshapeBackward(shapes_Context *ctx, Tensor *node) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(node == NULL || node->inputs == NULL || node->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor input = shapes_Array_TensorIdx(node->inputs, 0);
+  Tensor input = shapes_ArrayTensorIdx(node->inputs, 0);
 
   Tensor gradReshaped = shapes_Reshape(ctx, node->grad, input.shape);
   shapes_AddInPlace(ctx, input.grad, &gradReshaped);
 }
 
-Tensor shapes_Transpose(Context *ctx, Tensor *source, ...) {
+Tensor shapes_Transpose(shapes_Context *ctx, Tensor *source, ...) {
   dim_t transposeDims[2];
   u8 expectedDims = 2;
 
@@ -186,7 +186,7 @@ Tensor shapes_Transpose(Context *ctx, Tensor *source, ...) {
   return dest;
 }
 
-Tensor shapes_Permute(Context *ctx, Tensor *source, Dim order) {
+Tensor shapes_Permute(shapes_Context *ctx, Tensor *source, Dim order) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(order.dims == NULL, ERR_NULL_SHAPE_PROVIDED);
   PANIC_IF(order.numOfDims != source->shape.numOfDims, ERR_DIM_MISMATCH);
@@ -231,7 +231,7 @@ Tensor shapes_Permute(Context *ctx, Tensor *source, Dim order) {
   return dest;
 }
 
-Tensor shapes_Squeeze(Context *ctx, Tensor *t) {
+Tensor shapes_Squeeze(shapes_Context *ctx, Tensor *t) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 
   Tensor dest;
@@ -315,7 +315,7 @@ Tensor shapes_Squeeze(Context *ctx, Tensor *t) {
   return dest;
 }
 
-Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(t->shape.dims[dim] != 1, ERR_DIM_MISMATCH);
@@ -376,7 +376,7 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
   return destSqueezed;
 }
 
-Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_UnSqueeze(shapes_Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim > t->shape.numOfDims, ERR_DIM_MISMATCH);
 
@@ -428,7 +428,7 @@ Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_ArrayTensor tensors) {
+Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shapes_ArrayTensor tensors) {
   shapes_ArrayTensor tensorsContig = NULL;
 
   PANIC_IF(tensors->size <= 0, ERR_NO_OP);
@@ -447,11 +447,11 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_Array
   result = calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
   PANIC_IF(result != OK, result);
 
-  tensorsContig = shapes_Make_TensorArray(ctx->memory, tensors->size); 
+  tensorsContig = shapes_MakeTensorArray(ctx->memory, tensors->size); 
   PANIC_IF(tensorsContig == NULL, ALLOCATION_FAILED);
 
   for (RANGE(it, tensors->size)) {
-    Tensor currentTensor = shapes_Array_TensorIdx(tensors, it); //tensors[it];
+    Tensor currentTensor = shapes_ArrayTensorIdx(tensors, it); //tensors[it];
 
     PANIC_IF(currentTensor.shape.numOfDims != workingTarget->shape.numOfDims,
              ERR_CONCAT_TENSORS_UNEQUAL_DIMS);
@@ -463,7 +463,7 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_Array
     }
 
     Tensor *currentTensorContig = materializeTensorOnContext(ctx, &currentTensor);
-    shapes_Array_AppendTensor(tensorsContig, currentTensorContig);
+    shapes_ArrayAppendTensor(tensorsContig, currentTensorContig);
   }
 
   dim_t *outputDims = olib_Allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
@@ -471,7 +471,7 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_Array
   dim_t dimsToAdd = 0;
 
   for (RANGE(ist, tensors->size)) {
-    dimsToAdd += shapes_Array_TensorIdx(tensorsContig, ist).shape.dims[targetDim]; // tensorsContig[ist]->shape.dims[targetDim];
+    dimsToAdd += shapes_ArrayTensorIdx(tensorsContig, ist).shape.dims[targetDim]; // tensorsContig[ist]->shape.dims[targetDim];
   }
 
   for (RANGE(io, workingTarget->shape.numOfDims)) {
@@ -505,7 +505,7 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_Array
 
     dim_t dimOffset = currDimSize;
     for (RANGE(ist, tensors->size)) {
-      Tensor curr = shapes_Array_TensorIdx(tensorsContig, ist); //tensorsContig[ist];
+      Tensor curr = shapes_ArrayTensorIdx(tensorsContig, ist); //tensorsContig[ist];
       dim_t currTargetDimSize = curr.shape.dims[targetDim];
       tensor_size_t currDestOffset = destSliceOffset + (dimOffset * numElementsAfterTargetDim);
       tensor_size_t currSrcOffset = inb * currTargetDimSize * numElementsAfterTargetDim;
@@ -519,20 +519,20 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_Array
   return dest;
 }
 
-Tensor shapes_Stack(Context *ctx, shapes_ArrayTensor tensors) {
+Tensor shapes_Stack(shapes_Context *ctx, shapes_ArrayTensor tensors) {
   PANIC_IF_NULL(ctx);
   PANIC_IF_NULL(tensors);
   PANIC_IF(tensors->size < 2, ERR_STACKING_LESS_THAN_TWO_TENSORS);
 
-  Tensor firstTensor = shapes_Array_TensorIdx(tensors, 0);
+  Tensor firstTensor = shapes_ArrayTensorIdx(tensors, 0);
   olib_Array *unsqueezed = shapes_Make_DynamicTensorArray(ctx->memory);
 
   for (RANGE_FROM(1, tensors->size, i)) {
-    Tensor currentTensor = shapes_Array_TensorIdx(tensors, i);
+    Tensor currentTensor = shapes_ArrayTensorIdx(tensors, i);
     PANIC_IF(!isSameShape(&firstTensor, &currentTensor), ERR_DIM_MISMATCH);
 
     Tensor currentTensorUnsqueezed = shapes_UnSqueeze(ctx, &currentTensor, 0); 
-    shapes_Array_AppendTensor(unsqueezed, &currentTensorUnsqueezed);
+    shapes_ArrayAppendTensor(unsqueezed, &currentTensorUnsqueezed);
   }
 
   Tensor firstTensorUnsqueezed = shapes_UnSqueeze(ctx, &firstTensor, 0);

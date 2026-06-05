@@ -13,20 +13,20 @@
 #include <time.h>
 #include "shapes_internal.h"
 
-Context shapes_InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
+shapes_Context shapes_InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
   olib_Memory *mem = olib_InitializeArena(arenaSize, minBlockSize);
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
   attachHostDevice(&ctx);
 
   return ctx;
 }
 
-Context shapes_InitializeCudaContext(size_t hostArenaSize) {
+shapes_Context shapes_InitializeCudaContext(size_t hostArenaSize) {
 #ifndef SHAPES_HAS_CUDA
   PANIC_WITH_MSG_IF(1, "CUDA support is not compiled in");
 #endif
   olib_Memory *mem = olib_InitializeArena(hostArenaSize, 1);
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
   attachCudaDevice(&ctx);
   PANIC_WITH_MSG_IF(ctx.device == NULL, "No CUDA device available");
   ctx.cudaMetadataMemory = olib_InitializeArena(hostArenaSize, 1);
@@ -34,8 +34,8 @@ Context shapes_InitializeCudaContext(size_t hostArenaSize) {
   return ctx;
 }
 
-Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
-  Context scratch = {
+shapes_Context shapes_GetScratchContext(shapes_Context *ctx, size_t bufferSize) {
+  shapes_Context scratch = {
       .device = ctx->device,
 
       #ifdef SHAPES_HAS_CUDA 
@@ -59,7 +59,7 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
   return scratch;
 }
 
-void shapes_DestroyContext(Context *ctx) {
+void shapes_DestroyContext(shapes_Context *ctx) {
 
   #ifdef SHAPES_HAS_CUDA 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
@@ -71,7 +71,7 @@ void shapes_DestroyContext(Context *ctx) {
   olib_FreeMemory(ctx->memory);
 }
 
-void shapes_FreeContext(Context *ctx) {
+void shapes_FreeContext(shapes_Context *ctx) {
   if (ctx == NULL) {
     return;
   }
@@ -79,7 +79,7 @@ void shapes_FreeContext(Context *ctx) {
   shapes_DestroyContext(ctx);
 }
 
-Result shapes_Flush(Context *ctx) {
+Result shapes_Flush(shapes_Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
     return OK;
   }

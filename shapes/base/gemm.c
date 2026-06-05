@@ -53,7 +53,7 @@ void runCpuGemm(shapes_Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, i
   cblas_sgemm(CblasRowMajor, transA, transB, m, n, k, 1.0f, (const float *)a, lda, (const float *)b, ldb, accumulate ? 1.0f : 0.0f, (float *)c, ldc);
 }
 
-void runGemm(Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c, int ldc) {
+void runGemm(shapes_Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b, int ldb, bool accumulate, void *c, int ldc) {
 
   if (ctx->device == NULL) {
     return runCpuGemm(dtype, transA, transB, m, n, k, a, lda, b, ldb, accumulate, c, ldc);

@@ -13,15 +13,15 @@
 
 #define MAX_EXPECTED_NUM_LAYER_PARAMS 5
 
-FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype) {
+shapesnn_FowardPassOp shapesnn_Sequential(shapes_Context *ctx, shapesnn_FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype) {
   PANIC_IF(numLayers == 0, ZERO_LAYERS_PASSED);
   PANIC_IF_NULL(layerOps);
 
-  olib_Array *layers = olib_MakeArray(ctx->memory, sizeof(FowardPassOp), numLayers);
-  olib_Array *parameters = shapes_Make_TensorArray(ctx->memory, MAX_EXPECTED_NUM_LAYER_PARAMS * numLayers);
+  olib_Array *layers = olib_MakeArray(ctx->memory, sizeof(shapesnn_FowardPassOp), numLayers);
+  olib_Array *parameters = shapes_MakeTensorArray(ctx->memory, MAX_EXPECTED_NUM_LAYER_PARAMS * numLayers);
 
   for (size_t i = 0; i < numLayers; i++) {
-    FowardPassOp op = layerOps[i];
+    shapesnn_FowardPassOp op = layerOps[i];
 
     PANIC_IF(op.dtype != dtype, ERR_DTYPE_MISMATCH);
 
@@ -43,18 +43,18 @@ FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t nu
 
     olib_Array *params = shapesnn_Parameters(ctx, &op);
     for (RANGE(ip, params->size)) {
-      Tensor p = shapes_Array_TensorIdx(params, ip);
-      shapes_Array_AppendTensor(parameters, &p);
+      Tensor p = shapes_ArrayTensorIdx(params, ip);
+      shapes_ArrayAppendTensor(parameters, &p);
     }
   }
 
   sequentialModel *model = olib_Allocate(ctx->memory, sizeof(sequentialModel));
   *model = (sequentialModel){.layers = layers, .parameters = parameters};
 
-  return (FowardPassOp){.type = OP_SEQUENTIAL, .op = model, .ctx = ctx, .dtype = dtype};
+  return (shapesnn_FowardPassOp){.type = OP_SEQUENTIAL, .op = model, .ctx = ctx, .dtype = dtype};
 }
 
-Tensor sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *input) {
+Tensor sequentialModelForward(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, Tensor *input) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
 
   sequentialModel *model = modelOp->op;
@@ -62,14 +62,14 @@ Tensor sequentialModelForward(Context *ctx, FowardPassOp *modelOp, Tensor *input
 
   Tensor out = *input;
   for (RANGE(i, layers->size)) {
-    FowardPassOp layer = array_FowardPassOpIdx(layers, i);
+    shapesnn_FowardPassOp layer = array_FowardPassOpIdx(layers, i);
     out = shapesnn_Forward(ctx, &layer, &out);
   }
 
   return out;
 }
 
-olib_Array *sequentialModelParameters(Context *ctx, FowardPassOp *modelOp) {
+olib_Array *sequentialModelParameters(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp) {
   (void)ctx;
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
 
@@ -77,7 +77,7 @@ olib_Array *sequentialModelParameters(Context *ctx, FowardPassOp *modelOp) {
   return model->parameters;
 }
 
-void sequentialModelLoad(Context *ctx, FowardPassOp *modelOp, olib_Array *tensors) {
+void sequentialModelLoad(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, olib_Array *tensors) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
   PANIC_IF(tensors->elemSize != sizeof(Tensor), ARRAY_ELEM_SIZE_MISMATCH);
 
@@ -86,7 +86,7 @@ void sequentialModelLoad(Context *ctx, FowardPassOp *modelOp, olib_Array *tensor
 
   size_t cursor = 0;
   for (RANGE(i, layers->size)) {
-    FowardPassOp child = array_FowardPassOpIdx(layers, i);
+    shapesnn_FowardPassOp child = array_FowardPassOpIdx(layers, i);
     size_t childCount = shapesnn_Tensors(ctx, &child)->size;
 
     olib_Array *slice = olib_ArraySlice(tensors, cursor, childCount);
@@ -97,26 +97,26 @@ void sequentialModelLoad(Context *ctx, FowardPassOp *modelOp, olib_Array *tensor
   PANIC_IF(cursor != tensors->size, ERR_DIM_MISMATCH);
 }
 
-olib_Array *sequentialModelTensors(Context *ctx, FowardPassOp *modelOp) {
+olib_Array *sequentialModelTensors(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
 
   sequentialModel *model = modelOp->op;
   olib_Array *layers = model->layers;
-  olib_Array *out = olib_MakeDynamicArray(ctx->memory, sizeof(NamedTensor));
+  olib_Array *out = olib_MakeDynamicArray(ctx->memory, sizeof(shapesnn_NamedTensor));
 
   for (RANGE(i, layers->size)) {
-    FowardPassOp child = array_FowardPassOpIdx(layers, i);
+    shapesnn_FowardPassOp child = array_FowardPassOpIdx(layers, i);
     olib_Array *childTensors = shapesnn_Tensors(ctx, &child);
 
     for (RANGE(j, childTensors->size)) {
-      NamedTensor *child_nt = (NamedTensor *)olib_ArrayIdx(childTensors, j);
+      shapesnn_NamedTensor *child_nt = (shapesnn_NamedTensor *)olib_ArrayIdx(childTensors, j);
       PANIC_IF(child_nt->name == NULL, ERR_NULL_PTR);
 
       char buf[256];
       int written = snprintf(buf, sizeof(buf), "layer.%zu.%s", i, STR(child_nt->name));
       PANIC_IF(written < 0 || (size_t)written >= sizeof(buf), ERR_OUT_OF_BOUNDS);
 
-      NamedTensor nt = {
+      shapesnn_NamedTensor nt = {
           .name = olib_MakeStringN(ctx->memory, buf, (size_t)written),
           .tensor = child_nt->tensor,
       };

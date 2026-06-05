@@ -11,7 +11,7 @@
   #include <vecLib/vForce.h>
 #endif
 
-static DeviceType getUnaryDispatchDevice(Context *ctx) {
+static DeviceType getUnaryDispatchDevice(shapes_Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
     return CPU;
   }
@@ -27,7 +27,7 @@ static const char *unaryDeviceTypeName(DeviceType type) {
   }
 }
 
-static const char *unaryContextDeviceName(Context *ctx) {
+static const char *unaryContextDeviceName(shapes_Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
     return "CPU(default)";
   }
@@ -161,7 +161,7 @@ static void tanhCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t
   #endif
 }
 
-static Tensor tanhCpu(Context *ctx, Tensor *t) {
+static Tensor tanhCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -189,7 +189,7 @@ static void reluCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t
   }
 }
 
-static Tensor reluCpu(Context *ctx, Tensor *t) {
+static Tensor reluCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -227,7 +227,7 @@ static void powCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor powCpu(Context *ctx, Tensor *t, f32 power) {
+static Tensor powCpu(shapes_Context *ctx, Tensor *t, f32 power) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -269,7 +269,7 @@ static void sqrtCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t
   #endif
 }
 
-static Tensor sqrtCpu(Context *ctx, Tensor *t) {
+static Tensor sqrtCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -307,7 +307,7 @@ static void expCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor expCpu(Context *ctx, Tensor *t) {
+static Tensor expCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -345,7 +345,7 @@ static void logCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor logCpu(Context *ctx, Tensor *t) {
+static Tensor logCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -383,7 +383,7 @@ static void absCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t 
   #endif
 }
 
-static Tensor absCpu(Context *ctx, Tensor *t) {
+static Tensor absCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -451,7 +451,7 @@ static void negateCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size
   #endif
 }
 
-static Tensor negateCpu(Context *ctx, Tensor *t) {
+static Tensor negateCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -501,7 +501,7 @@ static Tensor negateCpu(Context *ctx, Tensor *t) {
   return output;
 }
 
-static Tensor unaryOpCuda(Context *ctx, Tensor *t, shapes_UnaryOpType opType, f32 param) {
+static Tensor unaryOpCuda(shapes_Context *ctx, Tensor *t, shapes_UnaryOpType opType, f32 param) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);
@@ -513,7 +513,7 @@ static Tensor unaryOpCuda(Context *ctx, Tensor *t, shapes_UnaryOpType opType, f3
   return output;
 }
 
-Tensor shapes_Pow(Context *ctx, Tensor *t, f32 power) {
+Tensor shapes_Pow(shapes_Context *ctx, Tensor *t, f32 power) {
   Result result = validatePowTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -524,7 +524,7 @@ Tensor shapes_Pow(Context *ctx, Tensor *t, f32 power) {
   }
 }
 
-Tensor shapes_Tanh(Context *ctx, Tensor *t) {
+Tensor shapes_Tanh(shapes_Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_TANH_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -535,7 +535,7 @@ Tensor shapes_Tanh(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_Relu(Context *ctx, Tensor *t) {
+Tensor shapes_Relu(shapes_Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -549,7 +549,7 @@ Tensor shapes_Relu(Context *ctx, Tensor *t) {
   return out;
 }
 
-Tensor shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
+Tensor shapes_ReluBackward(shapes_Context *ctx, Tensor *output, Tensor *gradOut) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -592,7 +592,7 @@ Tensor shapes_ReluBackward(Context *ctx, Tensor *output, Tensor *gradOut) {
   return dInput;
 }
 
-void shapes_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
+void shapes_ReluBackwardAccumulate(shapes_Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest) {
   Result result = validateFloatUnaryTensor(output, ERR_RELU_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -647,7 +647,7 @@ void shapes_ReluBackwardAccumulate(Context *ctx, Tensor *output, Tensor *gradOut
   }
 }
 
-Tensor shapes_Negate(Context *ctx, Tensor *t) {
+Tensor shapes_Negate(shapes_Context *ctx, Tensor *t) {
   Result result = validateNegateTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -658,7 +658,7 @@ Tensor shapes_Negate(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_Exp(Context *ctx, Tensor *t) {
+Tensor shapes_Exp(shapes_Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_EXP_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -669,7 +669,7 @@ Tensor shapes_Exp(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_Log(Context *ctx, Tensor *t) {
+Tensor shapes_Log(shapes_Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_LOG_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -680,7 +680,7 @@ Tensor shapes_Log(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_Abs(Context *ctx, Tensor *t) {
+Tensor shapes_Abs(shapes_Context *ctx, Tensor *t) {
   Result result = validateAbsTensor(t);
   PANIC_IF(result != OK, result);
 
@@ -691,14 +691,14 @@ Tensor shapes_Abs(Context *ctx, Tensor *t) {
   }
 }
 
-void shapes_SqrtBackward(Context *ctx, Tensor *tensor) {
+void shapes_SqrtBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL,
            ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
+  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
   PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor two = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 2.0f);
+  Tensor two = shapes_MakeFloatTensor(ctx, SHAPE1D(1), 2.0f);
   Tensor twoTimesOutput = shapes_Multiply(ctx, &two, tensor);
   Tensor gradInput = shapes_Divide(ctx, tensor->grad, &twoTimesOutput);
 
@@ -706,7 +706,7 @@ void shapes_SqrtBackward(Context *ctx, Tensor *tensor) {
   shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
-Tensor shapes_Sqrt(Context *ctx, Tensor *t) {
+Tensor shapes_Sqrt(shapes_Context *ctx, Tensor *t) {
   Result result = validateFloatUnaryTensor(t, ERR_SQRT_VALUE_NOT_FLOAT);
   PANIC_IF(result != OK, result);
 
@@ -718,11 +718,11 @@ Tensor shapes_Sqrt(Context *ctx, Tensor *t) {
   }
 
   out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
-  shapes_Array_AppendTensor(out.inputs, t);
+  shapes_ArrayAppendTensor(out.inputs, t);
   out.opType = OP_SQRT;
   Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
-  *gradPtr = shapes_Make_ZerosTensor(ctx, out.shape);
+  *gradPtr = shapes_MakeZerosTensor(ctx, out.shape);
   out.grad = gradPtr;
 
   return out;

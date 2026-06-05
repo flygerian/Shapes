@@ -39,7 +39,7 @@ shapes_Value *shapes_GetAt(Tensor *t, Dim dim) {
   return result;
 }
 
-Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
+Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indices) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(indices), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(source->shape.numOfDims == 0, ERR_ZERO_DIM_TENSOR_ADVANCED_INDEXING);
@@ -102,7 +102,7 @@ Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   return dest;
 }
 
-Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices) {
+Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(rowIndices), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(colIndices), ERR_NULL_TENSOR_PROVIDED);
@@ -174,7 +174,7 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
   return dest;
 }
 
-Result shapes_AssignValueAt(Context *ctx, Tensor *t, Dim dim, shapes_Value value) {
+Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, Dim dim, shapes_Value value) {
   (void)ctx;
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;

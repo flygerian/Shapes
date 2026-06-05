@@ -14,7 +14,7 @@ static bool hasCudaDevice(void) {
 
 static void test_cast_i8_to_i16(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -35,7 +35,7 @@ static void test_cast_i8_to_i16(void) {
 
 static void test_cast_i8_to_i32(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -53,7 +53,7 @@ static void test_cast_i8_to_i32(void) {
 
 static void test_cast_i8_to_i64(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -71,7 +71,7 @@ static void test_cast_i8_to_i64(void) {
 
 static void test_cast_i16_to_i32(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -91,7 +91,7 @@ static void test_cast_i16_to_i32(void) {
 
 static void test_cast_f32_to_f64(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 2};
   Dim shape = {.dims = dims, .numOfDims = 2};
@@ -113,7 +113,7 @@ static void test_cast_f32_to_f64(void) {
 
 static void test_cast_u8_to_u16(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -136,7 +136,7 @@ static void test_cast_u8_to_u16(void) {
 
 static void test_cast_u8_to_u32(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -155,7 +155,7 @@ static void test_cast_u8_to_u32(void) {
 
 static void test_cast_i8_to_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -173,7 +173,7 @@ static void test_cast_i8_to_f32(void) {
 
 static void test_cast_i32_to_f64(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -192,7 +192,7 @@ static void test_cast_i32_to_f64(void) {
 
 static void test_cast_i8_to_bool(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -211,7 +211,7 @@ static void test_cast_i8_to_bool(void) {
 
 static void test_cast_u8_to_bool(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -231,7 +231,7 @@ static void test_cast_u8_to_bool(void) {
 
 static void test_cast_f32_to_bool(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -250,7 +250,7 @@ static void test_cast_f32_to_bool(void) {
 
 static void test_cast_bool_to_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -271,7 +271,7 @@ static void test_cast_bool_to_f32(void) {
 
 static void test_cast_same_dtype_clones(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -290,7 +290,7 @@ static void test_cast_same_dtype_clones(void) {
 
 static void test_cast_f32_to_i32(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -309,7 +309,7 @@ static void test_cast_f32_to_i32(void) {
 
 static void test_cast_f64_to_i64(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
   Dim shape = {.dims = dims, .numOfDims = 1};
@@ -328,7 +328,7 @@ static void test_cast_f64_to_i64(void) {
 
 static void test_cast_preserves_2d_shape(void) {
   olib_Memory *mem = olib_InitializeMemory();
-  Context ctx = {.memory = mem};
+  shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3, 4};
   Dim shape = {.dims = dims, .numOfDims = 2};
@@ -347,8 +347,8 @@ static void test_cast_same_dtype_cuda_clone(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {3};
   Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 2.5f);
@@ -373,8 +373,8 @@ static void test_cast_cuda_dtype_change(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {2};
   Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
@@ -403,8 +403,8 @@ static void test_cast_cuda_f32_to_i64(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {3};
   f32 values[] = {0.0f, 7.9f, -2.1f};
@@ -441,8 +441,8 @@ static void test_cast_cuda_bool_to_f32(void) {
     return;
   }
 
-  Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
-  Context hostCtx = {.memory = ctx.memory};
+  shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
+  shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {2};
   Tensor *src = T_Int(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0);

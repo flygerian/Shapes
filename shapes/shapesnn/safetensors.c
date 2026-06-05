@@ -38,7 +38,7 @@ static olib_String buildHeader(olib_Memory *memory, olib_Array *named, size_t *o
   size_t cursor = 0;
 
   for (RANGE(i, named->size)) {
-    NamedTensor *nt = (NamedTensor *)olib_ArrayIdx(named, i);
+    shapesnn_NamedTensor *nt = (shapesnn_NamedTensor *)olib_ArrayIdx(named, i);
     PANIC_IF(nt->name == NULL, ERR_NULL_PTR);
 
     Tensor t = nt->tensor;
@@ -74,7 +74,7 @@ static olib_String buildHeader(olib_Memory *memory, olib_Array *named, size_t *o
   return json;
 }
 
-void shapesnn_SafeTensors_Save(Context *ctx, olib_Array *named, string path) {
+void shapesnn_SafeTensors_Save(shapes_Context *ctx, olib_Array *named, string path) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(named == NULL, ERR_NULL_PTR);
   PANIC_IF(path == NULL, ERR_NULL_PTR);
@@ -92,7 +92,7 @@ void shapesnn_SafeTensors_Save(Context *ctx, olib_Array *named, string path) {
   PANIC_ON_ERROR(e);
 
   for (RANGE(i, named->size)) {
-    NamedTensor *nt = (NamedTensor *)olib_ArrayIdx(named, i);
+    shapesnn_NamedTensor *nt = (shapesnn_NamedTensor *)olib_ArrayIdx(named, i);
     Tensor t = nt->tensor;
     Tensor *toWrite = t.isContigous ? &t : copyToContiguous(ctx, &t);
     size_t bytes = toWrite->size * getBytesForDtype(toWrite->dtype);
@@ -267,7 +267,7 @@ static olib_Array *parseHeader(olib_Memory *memory, const char *json, size_t jso
   return out;
 }
 
-olib_Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
+olib_Array *shapesnn_SafeTensors_Load(shapes_Context *ctx, string path) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(path == NULL, ERR_NULL_PTR);
 
@@ -286,17 +286,17 @@ olib_Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
   size_t dataBytesAvail = fileSize - sizeof(u64) - headerLen;
   olib_Array *metas = parseHeader(ctx->memory, headerBuf, headerLen, dataBytesAvail);
 
-  olib_Array *named = olib_MakeArray(ctx->memory, sizeof(NamedTensor), metas->size);
+  olib_Array *named = olib_MakeArray(ctx->memory, sizeof(shapesnn_NamedTensor), metas->size);
 
   for (RANGE(i, metas->size)) {
     ParsedTensorMeta *meta = (ParsedTensorMeta *)olib_ArrayIdx(metas, i);
-    Tensor t = shapes_Make_ZerosTensor(ctx, meta->shape);
+    Tensor t = shapes_MakeZerosTensor(ctx, meta->shape);
     t.label = STR(meta->name);
 
     size_t bytes = meta->endOffset - meta->startOffset;
     PANIC_ON_ERROR(File_ReadBytesToBuffer(file, (byte *)t.values, bytes));
 
-    NamedTensor nt = {.name = meta->name, .tensor = t};
+    shapesnn_NamedTensor nt = {.name = meta->name, .tensor = t};
     olib_ArrayAppend(named, &nt);
   }
 

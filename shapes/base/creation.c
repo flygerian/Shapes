@@ -123,7 +123,7 @@ static shapes_Value randomValueForRange(f32 minValue, f32 maxValue, shapes_Dtype
   return VALUE(dtype, minValue);
 }
 
-static inline void *allocateTensorValues(Context *ctx, size_t size) {
+static inline void *allocateTensorValues(shapes_Context *ctx, size_t size) {
 
   #ifdef SHAPES_HAS_CUDA 
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
@@ -134,7 +134,7 @@ static inline void *allocateTensorValues(Context *ctx, size_t size) {
   return olib_Allocate(ctx->memory, size);
 }
 
-static Result initTensor(Context *ctx, Tensor *dest, Dim shape, shapes_Dtype dtype) {
+static Result initTensor(shapes_Context *ctx, Tensor *dest, Dim shape, shapes_Dtype dtype) {
   if (dest == NULL) {
     return ERR_NULL_PTR;
   }
@@ -162,13 +162,13 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, shapes_Dtype dty
   return OK;
 }
 
-Tensor t_Empty(Context *ctx, Dim shape, shapes_Dtype type) {
+Tensor t_Empty(shapes_Context *ctx, Dim shape, shapes_Dtype type) {
   Tensor t = {};
   PANIC_IF(initTensor(ctx, &t, shape, type) != OK, ALLOCATION_FAILED);
   return t;
 }
 
-static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, shapes_Dtype type, bool withGrad) {
+static Tensor zeroTensorWithGrad(shapes_Context *ctx, Dim shape, shapes_Dtype type, bool withGrad) {
   Dim tShape = {.numOfDims = shape.numOfDims};
   if (shape.numOfDims > 0) {
     tShape.dims = olib_Allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
@@ -189,11 +189,11 @@ static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, shapes_Dtype type, boo
   return t;
 }
 
-Tensor t_Zeros(Context *ctx, Dim shape, shapes_Dtype type) {
+Tensor t_Zeros(shapes_Context *ctx, Dim shape, shapes_Dtype type) {
   return zeroTensorWithGrad(ctx, shape, type, true);
 }
 
-Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type) {
+Tensor t_Reduced(shapes_Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type) {
   PANIC_IF(source == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim >= source->shape.numOfDims, ERR_OUT_OF_BOUNDS);
 
@@ -214,11 +214,11 @@ Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type) {
   return t;
 }
 
-Tensor shapes_Make_ZerosTensor(Context *ctx, Dim shape) {
+Tensor shapes_MakeZerosTensor(shapes_Context *ctx, Dim shape) {
   return t_Zeros(ctx, shape, F32);
 }
 
-Tensor shapes_Clone(Context *ctx, Tensor *t) {
+Tensor shapes_Clone(shapes_Context *ctx, Tensor *t) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *source = t;
@@ -255,7 +255,7 @@ Tensor shapes_Clone(Context *ctx, Tensor *t) {
   return dest;
 }
 
-void shapes_Copy(Context *ctx, Tensor *src, Tensor *dest) {
+void shapes_Copy(shapes_Context *ctx, Tensor *src, Tensor *dest) {
   PANIC_IF(isInvalidTensor(src) || isInvalidTensor(dest), ERR_COPY_REQUIRES_INITIALIZED_TENSORS);
   PANIC_IF(dest->isView, ERR_COPY_DESTINATION_VIEW);
   PANIC_IF(src->size != dest->size, ERR_COPY_REQUIRES_TENSORS_OF_THE_SAME_SIZE);
@@ -287,35 +287,35 @@ void shapes_SetValues(Tensor *t, shapes_Value value) {
   }
 }
 
-Tensor shapes_Make_IntTensor(Context *ctx, Dim shape, i8 initialValue) {
+Tensor shapes_MakeIntTensor(shapes_Context *ctx, Dim shape, i8 initialValue) {
   Tensor init = t_Zeros(ctx, shape, I8);
   shapes_Value v = (shapes_Value){.dtype = I8, .as.i8 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
-Tensor shapes_Make_UIntTensor(Context *ctx, Dim shape, u8 initialValue) {
+Tensor shapes_MakeUIntTensor(shapes_Context *ctx, Dim shape, u8 initialValue) {
   Tensor init = t_Zeros(ctx, shape, U8);
   shapes_Value v = (shapes_Value){.dtype = U8, .as.u8 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
-Tensor shapes_Make_FloatTensor(Context *ctx, Dim shape, f32 initialValue) {
+Tensor shapes_MakeFloatTensor(shapes_Context *ctx, Dim shape, f32 initialValue) {
   Tensor init = t_Zeros(ctx, shape, F32);
   shapes_Value v = (shapes_Value){.dtype = F32, .as.f32 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
-Tensor shapes_Make_Float64Tensor(Context *ctx, Dim shape, f64 initialValue) {
+Tensor shapes_MakeFloat64Tensor(shapes_Context *ctx, Dim shape, f64 initialValue) {
   Tensor init = t_Zeros(ctx, shape, F64);
   shapes_Value v = (shapes_Value){.dtype = F64, .as.f64 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
-Tensor shapes_Make_FromContigousArray(Context *ctx, Dim shape, void *values, shapes_Dtype dtype) {
+Tensor shapes_MakeFromContigousArray(shapes_Context *ctx, Dim shape, void *values, shapes_Dtype dtype) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(values == NULL, ERR_NULL_PTR);
 
@@ -332,7 +332,7 @@ Tensor shapes_Make_FromContigousArray(Context *ctx, Dim shape, void *values, sha
   return tensor;
 }
 
-Tensor shapes_Make_RandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype) {
+Tensor shapes_MakeRandomTensor(shapes_Context *ctx, Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype) {
   PANIC_IF(minValue > maxValue, ERR_INVALID_RANGE);
 
   Tensor tensor = t_Zeros(ctx, shape, dtype);
@@ -357,7 +357,7 @@ Tensor shapes_Make_RandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxVa
   return tensor;
 }
 
-Tensor shapes_Make_ArangeTensor(Context *ctx, f32 start, f32 end, f32 step) {
+Tensor shapes_MakeArangeTensor(shapes_Context *ctx, f32 start, f32 end, f32 step) {
   if (step == 0.0f) {
     step = 1.0f;
   }
@@ -399,7 +399,7 @@ Tensor shapes_Make_ArangeTensor(Context *ctx, f32 start, f32 end, f32 step) {
   return t;
 }
 
-Tensor shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses) {
+Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, dim_t numClasses) {
   PANIC_IF(isInvalidTensor(indices), ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *source = materializeTensorOnContext(ctx, indices);
@@ -415,7 +415,7 @@ Tensor shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses)
   outDims[outNumDims - 1] = numClasses;
 
   // Create output tensor filled with zeros
-  Tensor out = shapes_Make_ZerosTensor(ctx, SHAPE(outDims, outNumDims));
+  Tensor out = shapes_MakeZerosTensor(ctx, SHAPE(outDims, outNumDims));
 
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     Result result = shapescuda_OneHot(source->dtype, source->values, source->size, numClasses, out.values);

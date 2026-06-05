@@ -6,77 +6,64 @@
 #include "map.h"
 #include "olib.h"
 
-typedef struct Layer {
+typedef struct {
   Tensor weights;
   Tensor bias;
   void *layerData;
-} Layer;
+} shapesnn_layer;
 
-typedef struct FowardPassOp {
-  Context *ctx;
+typedef struct shapesnn_FowardPassOp {
+  shapes_Context *ctx;
   shapes_OpType type;
   shapes_Dtype dtype;
   string label;
   void *op;
-} FowardPassOp;
+} shapesnn_FowardPassOp;
 
-typedef struct NamedTensor {
+typedef struct shapes_NamedTensor {
   olib_String name;
   Tensor tensor;
-} NamedTensor;
+} shapesnn_NamedTensor;
 
-typedef struct Optimzer {
+typedef struct shapes_Optimzer {
   f32 learningRate;
   void *state;
   shapes_OpType opType;
-} Optimizer;
+} shapesnn_Optimizer;
 
-typedef PtrMap TensorPtrMap;
-typedef olib_Array* Array_NamedTensor;
-static inline NamedTensor shapes_Array_NamedTensorIdx(olib_Array *array, size_t idx) {
-  return *((NamedTensor *)olib_ArrayIdx(array, idx));
+typedef PtrMap shapesnn_TensorPtrMap;
+typedef olib_Array* shapes_ArrayNamedTensor;
+static inline shapesnn_NamedTensor shapes_Array_NamedTensorIdx(olib_Array *array, size_t idx) {
+  return *((shapesnn_NamedTensor *)olib_ArrayIdx(array, idx));
 }
 
-void shapesnn_Array_AppendLayer(olib_Array *array, Layer *layer);
-Layer *shapesnn_Array_LayerIdx(olib_Array *array, size_t idx);
-
-TensorPtrMap *Make_TensorPtrMap(olib_Memory *memory);
-void TensorPtrMap_Put(TensorPtrMap *map, void *key, Tensor *t);
-Tensor *TensorPtrMap_Get(TensorPtrMap *map, void *key);
-
-Tensor shapesnn_Forward(Context *ctx, FowardPassOp *op, Tensor *input);
-olib_Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op);
-Array_NamedTensor shapesnn_Tensors(Context *ctx, FowardPassOp *op);
-void shapesnn_SaveAsSafeTensors(Context *ctx, FowardPassOp *model, string path);
-void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path);
-
-void shapesnn_SafeTensors_Save(Context *ctx, olib_Array *named, string path);
-olib_Array *shapesnn_SafeTensors_Load(Context *ctx, string path);
-
-FowardPassOp shapesnn_Dense(Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
-FowardPassOp shapesnn_Embedding(Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim);
-Optimizer shapesnn_SGD(Context *ctx, f32 learningRate);
-Optimizer shapesnn_Adam(Context *ctx, f32 learningRate);
-Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
-Tensor shapesnn_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits);
-FowardPassOp shapesnn_BatchNorm(Context *ctx, shapes_Dtype dtype, size_t numFeatures);
-FowardPassOp shapesnn_BatchNorm2d(Context *ctx, shapes_Dtype dtype, size_t numFeatures);
-FowardPassOp shapesnn_Tanh(Context *ctx, shapes_Dtype dtype);
-FowardPassOp shapesnn_Relu(Context *ctx, shapes_Dtype dtype);
-FowardPassOp shapesnn_MaxPool2d(Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride);
-FowardPassOp shapesnn_AdaptiveAvgPool2d(Context *ctx, shapes_Dtype dtype, dim_t outH, dim_t outW);
-FowardPassOp shapesnn_Conv2d(Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias);
-FowardPassOp shapesnn_Flatten(Context *ctx, shapes_Dtype type);
-
-FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype);
-
-olib_Array *shapesnn_Backward(Context *ctx, Tensor *tensor);
-void shapesnn_ZeroGrad(Context *ctx, olib_Array *graph);
-
-void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, olib_Array *parameters);
-
-void shapesnn_Array_AppendLayer(olib_Array *array, Layer *layer);
-Layer *shapesnn_Array_LayerIdx(olib_Array *array, size_t idx);
-
-Tensor shapesnn_Softmax(Context *ctx, Tensor *logits);
+shapesnn_TensorPtrMap *shapesnn_MakeTensorPtrMap(olib_Memory *memory);
+void shapes_TensorPtrMapPut(shapesnn_TensorPtrMap *map, void *key, Tensor *t);
+Tensor *shapes_TensorPtrMapGet(shapesnn_TensorPtrMap *map, void *key);
+Tensor shapesnn_Forward(shapes_Context *ctx, shapesnn_FowardPassOp *op, Tensor *input);
+olib_Array *shapesnn_Parameters(shapes_Context *ctx, shapesnn_FowardPassOp *op);
+shapes_ArrayNamedTensor shapesnn_Tensors(shapes_Context *ctx, shapesnn_FowardPassOp *op);
+void shapesnn_SaveAsSafeTensors(shapes_Context *ctx, shapesnn_FowardPassOp *model, string path);
+void shapesnn_LoadFromSafeTensors(shapes_Context *ctx, shapesnn_FowardPassOp *model, string path);
+void shapesnn_SafeTensors_Save(shapes_Context *ctx, olib_Array *named, string path);
+olib_Array *shapesnn_SafeTensors_Load(shapes_Context *ctx, string path);
+shapesnn_FowardPassOp shapesnn_Dense(shapes_Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
+shapesnn_FowardPassOp shapesnn_Embedding(shapes_Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim);
+shapesnn_Optimizer shapesnn_SGD(shapes_Context *ctx, f32 learningRate);
+shapesnn_Optimizer shapesnn_Adam(shapes_Context *ctx, f32 learningRate);
+Tensor shapesnn_Mse(shapes_Context *ctx, Tensor *yGround, Tensor *yPred);
+Tensor shapesnn_CrossEnthropy(shapes_Context *ctx, Tensor *yGround, Tensor *logits);
+shapesnn_FowardPassOp shapesnn_BatchNorm(shapes_Context *ctx, shapes_Dtype dtype, size_t numFeatures);
+shapesnn_FowardPassOp shapesnn_BatchNorm2d(shapes_Context *ctx, shapes_Dtype dtype, size_t numFeatures);
+shapesnn_FowardPassOp shapesnn_Tanh(shapes_Context *ctx, shapes_Dtype dtype);
+shapesnn_FowardPassOp shapesnn_Relu(shapes_Context *ctx, shapes_Dtype dtype);
+shapesnn_FowardPassOp shapesnn_MaxPool2d(shapes_Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride);
+shapesnn_FowardPassOp shapesnn_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Dtype dtype, dim_t outH, dim_t outW);
+shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias);
+shapesnn_FowardPassOp shapesnn_Flatten(shapes_Context *ctx, shapes_Dtype type);
+shapesnn_FowardPassOp shapesnn_Sequential(shapes_Context *ctx, shapesnn_FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype);
+olib_Array *shapesnn_Backward(shapes_Context *ctx, Tensor *tensor);
+void shapesnn_ZeroGrad(shapes_Context *ctx, olib_Array *graph);
+void shapesnn_OptimizerStep(shapes_Context *ctx, shapesnn_Optimizer *optimizer, olib_Array *parameters);
+Tensor shapesnn_Softmax(shapes_Context *ctx, Tensor *logits);
 #endif

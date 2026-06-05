@@ -22,7 +22,7 @@ typedef struct {
 
 u64 nextNodeId(void);
 
-static inline Tensor tensorView(Context *ctx, olib_Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, Dim shape, shapes_Range *boundary,
+static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, Dim shape, shapes_Range *boundary,
                                 bool isContigous) {
   return (Tensor){.context = ctx,
                   .metadataMemory = metadataMemory,
@@ -36,39 +36,39 @@ static inline Tensor tensorView(Context *ctx, olib_Memory *metadataMemory, void 
                   .nodeId = nextNodeId()};
 }
 
-void attachHostDevice(Context *ctx);
-void attachCudaDevice(Context *ctx);
+void attachHostDevice(shapes_Context *ctx);
+void attachCudaDevice(shapes_Context *ctx);
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value *result);
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value value);
 
 dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype);
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
-Tensor t_Zeros(Context *ctx, Dim shape, shapes_Dtype type);
-Tensor t_Empty(Context *ctx, Dim shape, shapes_Dtype type);
-Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type);
-Tensor *copyToContiguous(Context *ctx, Tensor *source);
-bool isSameContext(Context *a, Context *b);
-Tensor *materializeTensorOnContext(Context *ctx, Tensor *src);
+Tensor t_Zeros(shapes_Context *ctx, Dim shape, shapes_Dtype type);
+Tensor t_Empty(shapes_Context *ctx, Dim shape, shapes_Dtype type);
+Tensor t_Reduced(shapes_Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type);
+Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source);
+bool isSameContext(shapes_Context *a, shapes_Context *b);
+Tensor *materializeTensorOnContext(shapes_Context *ctx, Tensor *src);
 Result clearTensorValues(Tensor *t);
 bool areBroadcastable(Tensor *a, Tensor *b);
-TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b);
+TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b);
 
-sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 numOfDims);
+sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, dim_t *dims, u8 numOfDims);
 Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
-Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result);
+Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, Dim *result);
 
 void accumulateStridedByDtype(shapes_Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
 
-void runGemm(Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b,
+void runGemm(shapes_Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOSE transB, int m, int n, int k, const void *a, int lda, const void *b,
              int ldb, bool accumulate, void *c, int ldc);
 
 
 void im2colNchwF32(const f32 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f32 *colBuffer);
 
-Tensor *im2colF32(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
-Tensor *im2colF64(Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+Tensor *im2colF32(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+Tensor *im2colF64(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
 
 void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
 void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth, u8 stride);

@@ -12,20 +12,20 @@ typedef struct denseLayerData {
   bool withBias;
 } denseLayerData;
 
-void denseBackward(Context *ctx, Tensor *tensor) {
+void denseBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->opType != OP_DENSE, NOT_A_DENSE_LAYER);
 
   denseLayerData *layerData = tensor->opMetadata;
 
-  Tensor input = shapes_Array_TensorIdx(tensor->inputs, 0);
-  Tensor weights = shapes_Array_TensorIdx(tensor->inputs, 1);
+  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
+  Tensor weights = shapes_ArrayTensorIdx(tensor->inputs, 1);
   Tensor bias = {};
 
   if (layerData->withBias) {
     PANIC_IF(tensor != NULL, ERR_DIM_MISMATCH);
-    bias = shapes_Array_TensorIdx(tensor->inputs, 2);
+    bias = shapes_ArrayTensorIdx(tensor->inputs, 2);
     PANIC_IF(bias.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   }
 
@@ -35,7 +35,7 @@ void denseBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(result != OK, result);
 }
 
-Tensor denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor denseForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights.values == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   denseLayerData *layerData = layer->layerData;
@@ -43,11 +43,11 @@ Tensor denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Tensor out = shapes_DenseLinear(ctx, tensor, &layer->weights, &layer->bias, layerData->withBias);
   out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
-  shapes_Array_AppendTensor(out.inputs, tensor);
-  shapes_Array_AppendTensor(out.inputs, &layer->weights);
+  shapes_ArrayAppendTensor(out.inputs, tensor);
+  shapes_ArrayAppendTensor(out.inputs, &layer->weights);
 
   if (layerData->withBias) {
-    shapes_Array_AppendTensor(out.inputs, &layer->bias);
+    shapes_ArrayAppendTensor(out.inputs, &layer->bias);
   }
 
   out.opMetadata = layerData;
@@ -55,53 +55,53 @@ Tensor denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
   return out;
 }
 
-olib_Array *denseLayerParameters(Context *ctx, Layer *layer) {
+olib_Array *denseLayerParameters(shapes_Context *ctx, shapesnn_layer *layer) {
   denseLayerData *layerData = layer->layerData;
   olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
-  shapes_Array_AppendTensor(params, &layer->weights);
+  shapes_ArrayAppendTensor(params, &layer->weights);
 
   if (layerData->withBias) {
-    shapes_Array_AppendTensor(params, &layer->bias);
+    shapes_ArrayAppendTensor(params, &layer->bias);
   }
 
   return params;
 }
 
-olib_Array* denseLayerTensors(Context *ctx, Layer *layer) {
+olib_Array* denseLayerTensors(shapes_Context *ctx, shapesnn_layer *layer) {
   return denseLayerParameters(ctx, layer);
 }
 
-void denseLayerLoad(Context *ctx, Layer *layer, olib_Array *tensors) {
+void denseLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *tensors) {
   denseLayerData *layerData = layer->layerData;
   size_t expected = layerData->withBias ? 2 : 1;
   PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
 
-  Tensor temp = shapes_Array_TensorIdx(tensors, 0);
+  Tensor temp = shapes_ArrayTensorIdx(tensors, 0);
   loadIntoTensor(ctx, &layer->weights, &temp);
   if (layerData->withBias) {
-    temp = shapes_Array_TensorIdx(tensors, 1);
+    temp = shapes_ArrayTensorIdx(tensors, 1);
     loadIntoTensor(ctx, &layer->bias, &temp);
   }
 }
 
-FowardPassOp shapesnn_Dense(Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
+shapesnn_FowardPassOp shapesnn_Dense(shapes_Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
 
   denseLayerData *layerData = olib_Allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
 
-  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
+  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
-  layer->weights = shapes_Make_RandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
+  layer->weights = shapes_MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
   layer->weights.label = "weights";
   layer->layerData = layerData;
 
   if (withBias) {
-    layer->bias = shapes_Make_RandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
+    layer->bias = shapes_MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
     layer->bias.label = "bias";
   } else {
     layer->bias = (Tensor){0};
   }
 
-  return (FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};
+  return (shapesnn_FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};
 }

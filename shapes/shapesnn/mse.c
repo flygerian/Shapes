@@ -4,16 +4,16 @@
 #include <stddef.h>
 #include "array.h"
 
-void mseBackward(Context *ctx, Tensor *tensor) {
+void mseBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor yGround = shapes_Array_TensorIdx(tensor->inputs, 0);
-  Tensor yPred = shapes_Array_TensorIdx(tensor->inputs, 1);
+  Tensor yGround = shapes_ArrayTensorIdx(tensor->inputs, 0);
+  Tensor yPred = shapes_ArrayTensorIdx(tensor->inputs, 1);
 
   // ∂L/∂yPred = upstream_grad * 2*(yPred - yGround)
   Tensor diff = shapes_Subtract(ctx, &yPred, &yGround);
-  Tensor two = shapes_Make_FloatTensor(ctx, diff.shape, 2.0);
+  Tensor two = shapes_MakeFloatTensor(ctx, diff.shape, 2.0);
   Tensor localGrad = shapes_Multiply(ctx, &two, &diff);
   Tensor gradYPred = shapes_Multiply(ctx, tensor->grad, &localGrad);
   Tensor reducedGradYPred = shapes_ReduceBroadcast(ctx, &yPred, &gradYPred);
@@ -26,7 +26,7 @@ void mseBackward(Context *ctx, Tensor *tensor) {
   shapes_AddInPlace(ctx, yGround.grad, &reducedGradYGround);
 }
 
-Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
+Tensor shapesnn_Mse(shapes_Context *ctx, Tensor *yGround, Tensor *yPred) {
   Tensor diffVal = shapes_Subtract(ctx, yPred, yGround);
 
   Tensor *loss = olib_Allocate(ctx->memory, sizeof(Tensor));
@@ -44,8 +44,8 @@ Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
   }
 
   loss->inputs = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
-  shapes_Array_AppendTensor(loss->inputs, yGround);
-  shapes_Array_AppendTensor(loss->inputs, yPred);
+  shapes_ArrayAppendTensor(loss->inputs, yGround);
+  shapes_ArrayAppendTensor(loss->inputs, yPred);
 
   loss->opType = OP_MSE;
   return *loss;

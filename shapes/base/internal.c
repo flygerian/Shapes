@@ -8,7 +8,6 @@
 #include "shapes_internal.h"
 #include "array.h"
 #include "memory.h"
-#include "shapescuda.h"
 
 #ifdef SHAPES_HAS_CUDA 
 #include "shapescuda.h"
@@ -60,7 +59,7 @@ void shapes_PrintItem(Tensor *t) {
   PRINT_VALUE(*val);
 }
 
-char *shapes_GetItem(Context *ctx, Tensor *t) {
+char *shapes_GetItem(shapes_Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
@@ -91,7 +90,7 @@ Result shapes_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
   return OK;
 }
 
-sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 numOfDims) {
+sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, dim_t *dims, u8 numOfDims) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   if (dims == NULL || numOfDims == 0) {
@@ -109,7 +108,7 @@ sizeAndMultipliers calculateSizeAndMultipliers(Context *ctx, dim_t *dims, u8 num
   return (sizeAndMultipliers){.multipliers = multipliers, .size = size};
 }
 
-bool isSameContext(Context *a, Context *b) {
+bool isSameContext(shapes_Context *a, shapes_Context *b) {
   return a == b;
 }
 
@@ -184,7 +183,7 @@ Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value value) {
   return OK;
 }
 
-Tensor *copyToContiguous(Context *ctx, Tensor *source) {
+Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source) {
   Tensor *copy = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(copy == NULL, ALLOCATION_FAILED);
   *copy = t_Zeros(ctx, source->shape, source->dtype);
@@ -217,7 +216,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
   return copy;
 }
 
-Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
+Tensor *materializeTensorOnContext(shapes_Context *ctx, Tensor *src) {
   PANIC_IF(ctx == NULL || src == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   // Check if tensors are on the same device (both NULL = CPU, or same device pointer)
@@ -226,7 +225,7 @@ Tensor *materializeTensorOnContext(Context *ctx, Tensor *src) {
 
   Tensor *working = src;
   if (!src->isContigous) {
-    Context *materializeCtx = src->context != NULL ? src->context : ctx;
+    shapes_Context *materializeCtx = src->context != NULL ? src->context : ctx;
     working = copyToContiguous(materializeCtx, src);
     PANIC_IF(working == NULL, ALLOCATION_FAILED);
   }
@@ -262,7 +261,7 @@ bool areBroadcastable(Tensor *a, Tensor *b) {
   return true;
 }
 
-TensorPair padSmallerTensor(Context *ctx, Tensor *a, Tensor *b) {
+TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b) {
   Tensor *smaller = a->shape.numOfDims < b->shape.numOfDims ? a : b;
   Tensor *larger = a->shape.numOfDims < b->shape.numOfDims ? b : a;
   u8 diff = larger->shape.numOfDims - smaller->shape.numOfDims;
@@ -309,7 +308,7 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
   return OK;
 }
 
-Result getDimsBefore(Context *ctx, Tensor *t, dim_t dim, Dim *result) {
+Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, Dim *result) {
   (void)ctx;
   if (dim == 0) {
     return OK;
@@ -453,21 +452,21 @@ olib_Array *shapes_Make_DynamicTensorArray(olib_Memory *memory) {
   return olib_MakeDynamicArray(memory, sizeof(Tensor));
 }
 
-olib_Array *shapes_Make_TensorArray(olib_Memory *memory, size_t capacity) {
+olib_Array *shapes_MakeTensorArray(olib_Memory *memory, size_t capacity) {
   return olib_MakeArray(memory, sizeof(Tensor), capacity);
 }
 
-void shapes_Array_AppendTensor(olib_Array *array, Tensor *tensor) {
+void shapes_ArrayAppendTensor(olib_Array *array, Tensor *tensor) {
   PANIC_IF(array->elemSize != sizeof(Tensor), ARRAY_ELEM_SIZE_MISMATCH);
   olib_ArrayAppend(array, (void *)tensor);
 }
 
-void shapes_Array_AppendTensorArray(olib_Array *array, olib_Array *tensorArray) {
+void shapes_ArrayAppendTensorArray(olib_Array *array, olib_Array *tensorArray) {
   PANIC_IF(array == NULL, ERR_NULL_PTR);
 
   for (size_t i = 0; i < tensorArray->size; i++) {
-    Tensor tensor = shapes_Array_TensorIdx(tensorArray, i);
-    shapes_Array_AppendTensor(array, &tensor);
+    Tensor tensor = shapes_ArrayTensorIdx(tensorArray, i);
+    shapes_ArrayAppendTensor(array, &tensor);
   }
 }
 
@@ -552,7 +551,7 @@ void shapes_PrintTensor(Tensor *tensor) {
   printf("\n)\n");
 }
 
-void moveTensor(Context *destCtx, Tensor *t) {
+void moveTensor(shapes_Context *destCtx, Tensor *t) {
   #ifdef SHAPES_HAS_CUDA 
   size_t valueBytes = t->size * getBytesForDtype(t->dtype);
   shapescuda_Block block = shapescuda_Allocate(&destCtx->cudaMemory, destCtx->cudaMetadataMemory, valueBytes);
@@ -567,7 +566,7 @@ void moveTensor(Context *destCtx, Tensor *t) {
   #endif
 }
 
-void shapes_MoveTensorToHost(Context *destCtx, Tensor *t) {
+void shapes_MoveTensorToHost(shapes_Context *destCtx, Tensor *t) {
   size_t valueBytes = t->size * getBytesForDtype(t->dtype);
   void *locationOnDest = olib_Allocate(destCtx->memory, valueBytes);
   PANIC_IF(locationOnDest == NULL, ALLOCATION_FAILED);
@@ -579,13 +578,13 @@ void shapes_MoveTensorToHost(Context *destCtx, Tensor *t) {
   t->values = locationOnDest;
 }
 
-void shapes_MoveToCuda(Context *destCtx, shapes_ArrayTensor tensors) {
+void shapes_MoveToCuda(shapes_Context *destCtx, shapes_ArrayTensor tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(destCtx->device == NULL || destCtx->device->type != CUDA, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
-    Tensor t = shapes_Array_TensorIdx(tensors, x);
+    Tensor t = shapes_ArrayTensorIdx(tensors, x);
     PANIC_IF(t.context == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(!t.isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 
@@ -596,13 +595,13 @@ void shapes_MoveToCuda(Context *destCtx, shapes_ArrayTensor tensors) {
   }
 }
 
-void shapes_MoveToHost(Context *destCtx, shapes_ArrayTensor tensors) {
+void shapes_MoveToHost(shapes_Context *destCtx, shapes_ArrayTensor tensors) {
   PANIC_IF(destCtx == NULL, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(destCtx->device != NULL && destCtx->device->type == CPU, ERR_COPY_CTX_DEVICE_IS_NULL);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
 
   for (size_t x = 0; x < tensors->size; x++) {
-    Tensor t = shapes_Array_TensorIdx(tensors, x);
+    Tensor t = shapes_ArrayTensorIdx(tensors, x);
     PANIC_IF(t.context == NULL, ERR_NULL_TENSOR_PROVIDED);
     PANIC_IF(!t.isContigous, NON_CONTIGOUS_MOVE_TENSOR);
 

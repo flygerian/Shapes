@@ -8,16 +8,16 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-void embeddingBackward(Context *ctx, Tensor *out) {
+void embeddingBackward(shapes_Context *ctx, Tensor *out) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
-  Tensor input = shapes_Array_TensorIdx(out->inputs, 0);
+  Tensor input = shapes_ArrayTensorIdx(out->inputs, 0);
   Tensor *indices = (Tensor *)out->opMetadata;
 
   shapes_IndexAccumulate1d(ctx, input.grad, indices, out->grad);
 }
 
-Tensor embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
+Tensor embeddingForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *indices) {
   PANIC_IF(layer == NULL, ERR_NULL_PTR);
   PANIC_IF(layer->weights.values == NULL, ERR_NULL_PTR);
   PANIC_IF(indices == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -27,42 +27,42 @@ Tensor embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
 
   Tensor out = shapes_IndexWithTensor(ctx, &layer->weights, indices);
   out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
-  shapes_Array_AppendTensor(out.inputs, &layer->weights);
+  shapes_ArrayAppendTensor(out.inputs, &layer->weights);
 
   out.opMetadata = olib_Allocate(ctx->memory, sizeof(Tensor));
   *((Tensor*) out.opMetadata ) = *indices;
   out.opType = OP_EMBEDDING;
   Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
-  *gradPtr = shapes_Make_ZerosTensor(ctx, out.shape);
+  *gradPtr = shapes_MakeZerosTensor(ctx, out.shape);
   out.grad = gradPtr;
   return out;
 }
 
-olib_Array *embeddingParameters(Context *ctx, Layer *layer) {
+olib_Array *embeddingParameters(shapes_Context *ctx, shapesnn_layer *layer) {
   olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 1);
-  shapes_Array_AppendTensor(params, &layer->weights);
+  shapes_ArrayAppendTensor(params, &layer->weights);
 
   return params;
 }
 
-olib_Array *embeddingLayerTensors(Context *ctx, Layer *layer) {
+olib_Array *embeddingLayerTensors(shapes_Context *ctx, shapesnn_layer *layer) {
   return embeddingParameters(ctx, layer);
 }
 
-void embeddingLayerLoad(Context *ctx, Layer *layer, olib_Array *tensors) {
+void embeddingLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *tensors) {
   PANIC_IF(tensors->size != 1, ERR_DIM_MISMATCH);
-  Tensor temp = shapes_Array_TensorIdx(tensors, 0);
+  Tensor temp = shapes_ArrayTensorIdx(tensors, 0);
   loadIntoTensor(ctx, &layer->weights, &temp);
 }
 
-FowardPassOp shapesnn_Embedding(Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
-  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
+shapesnn_FowardPassOp shapesnn_Embedding(shapes_Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
+  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(shapesnn_layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
-  layer->weights = shapes_Make_RandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
+  layer->weights = shapes_MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
   layer->weights.label = "weights";
   layer->bias = (Tensor){0};
   layer->layerData = NULL;
 
-  return (FowardPassOp){.ctx = ctx, .type = OP_EMBEDDING, .dtype = dtype, .op = layer};
+  return (shapesnn_FowardPassOp){.ctx = ctx, .type = OP_EMBEDDING, .dtype = dtype, .op = layer};
 }

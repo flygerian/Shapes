@@ -5,7 +5,7 @@
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
 // the last dim (feature width). Dense uses this to preserve any batch axes.
-static Dim swapLastDim(Context *ctx, Dim dim, dim_t lastDim) {
+static Dim swapLastDim(shapes_Context *ctx, Dim dim, dim_t lastDim) {
   u8 numDims = dim.numOfDims;
   dim_t *dims = olib_Allocate(ctx->memory, sizeof(dim_t) * numDims);
   PANIC_IF(dims == NULL, ALLOCATION_FAILED);
@@ -61,7 +61,7 @@ static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, shapes
   return OK;
 }
 
-static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
+static void promoteDenseBackwardInput(shapes_Context *ctx, Tensor *src, Tensor *dest) {
   if (src->shape.numOfDims == 1) {
     *dest = shapes_UnSqueeze(ctx, src, 0);
     return;
@@ -70,7 +70,7 @@ static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
   *dest = *src;
 }
 
-Tensor shapes_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
+Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
   // w: [outputSize, inputSize]
@@ -99,7 +99,7 @@ Tensor shapes_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool wi
   tensor_size_t rows = x->size / inputSize;
 
   Dim newDims = swapLastDim(ctx, x->shape, outputSize);
-  Tensor out = shapes_Make_ZerosTensor(ctx, newDims);
+  Tensor out = shapes_MakeZerosTensor(ctx, newDims);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
@@ -112,7 +112,7 @@ Tensor shapes_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool wi
   return out;
 }
 
-Result shapes_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
+Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
   // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL

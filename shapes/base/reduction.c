@@ -39,7 +39,7 @@ static shapes_Value *contigousSum(olib_Memory *m, void *position, tensor_size_t 
   return sum;
 }
 
-static DeviceType getReductionDispatchDevice(Context *ctx) {
+static DeviceType getReductionDispatchDevice(shapes_Context *ctx) {
   if (ctx == NULL || ctx->device == NULL) {
     return CPU;
   }
@@ -84,7 +84,7 @@ static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numB
   return calculateNumElementsAfterDim(t, dim, numAfterDim);
 }
 
-static Tensor sumCpu(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor sumCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -113,7 +113,7 @@ static Tensor sumCpu(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor meanCpu(Context *ctx, Tensor *t) {
+static Tensor meanCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   shapes_Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
@@ -121,11 +121,11 @@ static Tensor meanCpu(Context *ctx, Tensor *t) {
   shapes_Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
 
-  Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
+  Tensor dest = shapes_MakeZerosTensor(ctx, SCALAR);
   return dest;
 }
 
-static Tensor meanDimCpu(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor meanDimCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -167,7 +167,7 @@ static Tensor meanDimCpu(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor stdCpu(Context *ctx, Tensor *t) {
+static Tensor stdCpu(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   shapes_Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
@@ -198,7 +198,7 @@ static Tensor stdCpu(Context *ctx, Tensor *t) {
 
   f64 std = sqrt(deviationSquaredSum / (f64)(input->size - 1));
 
-  Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
+  Tensor dest = shapes_MakeZerosTensor(ctx, SCALAR);
   switch (input->dtype) {
     case F16: ((f16 *)dest.values)[0] = (f16)std; break;
     case F32: ((f32 *)dest.values)[0] = (f32)std; break;
@@ -209,7 +209,7 @@ static Tensor stdCpu(Context *ctx, Tensor *t) {
   return dest;
 }
 
-static Tensor maxCpu(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor maxCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -244,7 +244,7 @@ static Tensor maxCpu(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor argMaxCpu(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor argMaxCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -281,7 +281,7 @@ static Tensor argMaxCpu(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor sumCuda(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor sumCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -297,17 +297,17 @@ static Tensor sumCuda(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor meanCuda(Context *ctx, Tensor *t) {
+static Tensor meanCuda(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
+  Tensor dest = shapes_MakeZerosTensor(ctx, SCALAR);
   Result result = shapescuda_ReduceAll(input->dtype, REDUCTION_OP_MEAN, input->values,
                                    dest.values, input->size);
   PANIC_IF(result != OK, result);
   return dest;
 }
 
-static Tensor meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor meanDimCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -323,16 +323,16 @@ static Tensor meanDimCuda(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor stdCuda(Context *ctx, Tensor *t) {
+static Tensor stdCuda(shapes_Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
+  Tensor dest = shapes_MakeZerosTensor(ctx, SCALAR);
   Result result = shapescuda_Std(input->dtype, input->values, dest.values, input->size);
   PANIC_IF(result != OK, result);
   return dest;
 }
 
-static Tensor maxCuda(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor maxCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -348,7 +348,7 @@ static Tensor maxCuda(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor argMaxCuda(Context *ctx, Tensor *t, dim_t dim) {
+static Tensor argMaxCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   tensor_size_t numBeforeDim = 0;
@@ -365,7 +365,7 @@ static Tensor argMaxCuda(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-Tensor shapes_Sum(Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_Sum(shapes_Context *ctx, Tensor *t, dim_t dim) {
   validateReduceDim(t, dim, ERR_SUM_DIM_OUT_OF_BOUNDS);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -375,7 +375,7 @@ Tensor shapes_Sum(Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor shapes_ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
+Tensor shapes_ReduceBroadcast(shapes_Context *ctx, Tensor *input, Tensor *grad) {
   validateReductionTensor(input);
   validateReductionTensor(grad);
 
@@ -409,7 +409,7 @@ Tensor shapes_ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
   return out;
 }
 
-Tensor shapes_Mean(Context *ctx, Tensor *t) {
+Tensor shapes_Mean(shapes_Context *ctx, Tensor *t) {
   validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -419,7 +419,7 @@ Tensor shapes_Mean(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_MeanDim(Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_MeanDim(shapes_Context *ctx, Tensor *t, dim_t dim) {
   validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
   PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
 
@@ -430,7 +430,7 @@ Tensor shapes_MeanDim(Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor shapes_Std(Context *ctx, Tensor *t) {
+Tensor shapes_Std(shapes_Context *ctx, Tensor *t) {
   validateStdTensor(t);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -440,7 +440,7 @@ Tensor shapes_Std(Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_Max(Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_Max(shapes_Context *ctx, Tensor *t, dim_t dim) {
   validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -450,7 +450,7 @@ Tensor shapes_Max(Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor shapes_ArgMax(Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_ArgMax(shapes_Context *ctx, Tensor *t, dim_t dim) {
   validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {

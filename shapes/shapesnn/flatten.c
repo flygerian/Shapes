@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-Tensor flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
+Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
   PANIC_IF(layer != NULL, ERR_NO_OP); // there should be no layer
   PANIC_IF_NULL(tensor);
 
@@ -24,22 +24,22 @@ Tensor flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
   return shapes_Reshape(ctx, tensor, SHAPE2D(shape.dims[0], flattenedSize));
 }
 
-olib_Array *flattenParameters(Context *ctx) {
+olib_Array *flattenParameters(shapes_Context *ctx) {
   return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-olib_Array *flattenLayerTensors(Context *ctx) {
+olib_Array *flattenLayerTensors(shapes_Context *ctx) {
   return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-void flattenLayerLoad(Context *ctx, olib_Array *tensors) {
+void flattenLayerLoad(shapes_Context *ctx, olib_Array *tensors) {
   (void)ctx;
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_Flatten(Context *ctx, shapes_Dtype dtype) {
+shapesnn_FowardPassOp shapesnn_Flatten(shapes_Context *ctx, shapes_Dtype dtype) {
   PANIC_IF_NULL(ctx);
 
-  FowardPassOp *flattenLayer = olib_Allocate(ctx->memory, sizeof(FowardPassOp));
-  return (FowardPassOp){.ctx = ctx, .type = OP_FLATTEN, .dtype = dtype};
+  shapesnn_FowardPassOp *flattenLayer = olib_Allocate(ctx->memory, sizeof(shapesnn_FowardPassOp));
+  return (shapesnn_FowardPassOp){.ctx = ctx, .type = OP_FLATTEN, .dtype = dtype};
 }
