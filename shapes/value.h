@@ -79,18 +79,18 @@
   } while (0)
 
 #define VALUE(type, data)                                                                          \
-  ((type) == BOOL  ? (Value){.dtype = (type), .as.boolean = (bool)(data)}                          \
-   : (type) == U8  ? (Value){.dtype = (type), .as.u8 = (u8)(data)}                                 \
-   : (type) == U16 ? (Value){.dtype = (type), .as.u16 = (u16)(data)}                               \
-   : (type) == U32 ? (Value){.dtype = (type), .as.u32 = (u32)(data)}                               \
-   : (type) == U64 ? (Value){.dtype = (type), .as.u64 = (u64)(data)}                               \
-   : (type) == I8  ? (Value){.dtype = (type), .as.i8 = (i8)(data)}                                 \
-   : (type) == I16 ? (Value){.dtype = (type), .as.i16 = (i16)(data)}                               \
-   : (type) == I32 ? (Value){.dtype = (type), .as.i32 = (i32)(data)}                               \
-   : (type) == I64 ? (Value){.dtype = (type), .as.i64 = (i64)(data)}                               \
-   : (type) == F16 ? (Value){.dtype = (type), .as.f16 = (float)(data)}                             \
-   : (type) == F32 ? (Value){.dtype = (type), .as.f32 = (float)(data)}                             \
-                   : (Value){.dtype = (type), .as.f64 = (double)(data)})
+  ((type) == BOOL  ? (shapes_Value){.dtype = (type), .as.boolean = (bool)(data)}                          \
+   : (type) == U8  ? (shapes_Value){.dtype = (type), .as.u8 = (u8)(data)}                                 \
+   : (type) == U16 ? (shapes_Value){.dtype = (type), .as.u16 = (u16)(data)}                               \
+   : (type) == U32 ? (shapes_Value){.dtype = (type), .as.u32 = (u32)(data)}                               \
+   : (type) == U64 ? (shapes_Value){.dtype = (type), .as.u64 = (u64)(data)}                               \
+   : (type) == I8  ? (shapes_Value){.dtype = (type), .as.i8 = (i8)(data)}                                 \
+   : (type) == I16 ? (shapes_Value){.dtype = (type), .as.i16 = (i16)(data)}                               \
+   : (type) == I32 ? (shapes_Value){.dtype = (type), .as.i32 = (i32)(data)}                               \
+   : (type) == I64 ? (shapes_Value){.dtype = (type), .as.i64 = (i64)(data)}                               \
+   : (type) == F16 ? (shapes_Value){.dtype = (type), .as.f16 = (float)(data)}                             \
+   : (type) == F32 ? (shapes_Value){.dtype = (type), .as.f32 = (float)(data)}                             \
+                   : (shapes_Value){.dtype = (type), .as.f64 = (double)(data)})
 
 #define VALUE_CMP(a, b, op, dtype)                                                                 \
   ((dtype) == BOOL  ? (a).as.boolean op(b).as.boolean                                              \

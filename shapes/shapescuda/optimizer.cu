@@ -36,7 +36,7 @@ static Result launchSgd(void *param, const void *grad, size_t n,
   return finishSgdLaunch();
 }
 
-extern "C" Result runCudaSgd(Dtype dtype, void *param, const void *grad,
+extern "C" Result runCudaSgd(shapes_Dtype dtype, void *param, const void *grad,
                              size_t n, f32 learningRate) {
   switch (dtype) {
   case F16:

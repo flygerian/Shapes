@@ -462,8 +462,8 @@ launchBroadcastEqualKernel(const void *larger, const void *smaller, void *dest,
 // Dispatch tables
 // ============================================================================
 
-// Dtype enum order: F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL
-// Indices:          0    1    2    3   4    5    6    7   8    9    10   11
+// shapes_Dtype enum order: F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64,
+// BOOL Indices:          0    1    2    3   4    5    6    7   8    9    10 11
 
 typedef Result (*CudaBinaryOpFn)(const void *, const void *, void *, size_t);
 typedef Result (*CudaBroadcastBinaryOpFn)(const void *, const void *, void *,
@@ -737,11 +737,10 @@ static const CudaBroadcastBinaryOpFn *cudaBroadcastBinaryOpTable[9] = {
 // Public API
 // ============================================================================
 
-extern "C" Result runCudaBroadcastBinaryOp(Dtype dtype, OpType opType,
-                                           void *larger, void *smaller,
-                                           void *dest, size_t outerDimSize,
-                                           size_t broadcastDimSize,
-                                           size_t innerDimSize) {
+extern "C" Result
+runCudaBroadcastBinaryOp(shapes_Dtype dtype, shapes_OpType opType, void *larger,
+                         void *smaller, void *dest, size_t outerDimSize,
+                         size_t broadcastDimSize, size_t innerDimSize) {
   if (opType < OP_ADD || opType > OP_EQUAL) {
     return ERR_NOT_A_BINOP;
   }
@@ -764,8 +763,9 @@ extern "C" Result runCudaBroadcastBinaryOp(Dtype dtype, OpType opType,
             innerDimSize);
 }
 
-extern "C" Result runCudaBinaryOp(Dtype dtype, OpType opType, const void *a,
-                                  const void *b, void *dest, size_t n) {
+extern "C" Result runCudaBinaryOp(shapes_Dtype dtype, shapes_OpType opType,
+                                  const void *a, const void *b, void *dest,
+                                  size_t n) {
   if (opType < OP_ADD || opType > OP_EQUAL) {
     return ERR_NOT_A_BINOP;
   }

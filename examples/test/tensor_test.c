@@ -16,7 +16,7 @@ static TestTensor createZerosTensor(dim_t *dims, u8 numOfDims) {
   return (TestTensor){.tensor = *t, .mem = mem};
 }
 
-static Tensor createScalarTensor(Context *ctx, Dtype dtype) {
+static Tensor createScalarTensor(Context *ctx, shapes_Dtype dtype) {
   Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
               .values = allocate(ctx->memory, getBytesForDtype(dtype)),

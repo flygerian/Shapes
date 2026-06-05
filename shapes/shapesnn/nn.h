@@ -14,8 +14,8 @@ typedef struct Layer {
 
 typedef struct FowardPassOp {
   Context *ctx;
-  OpType type;
-  Dtype dtype;
+  shapes_OpType type;
+  shapes_Dtype dtype;
   string label;
   void *op;
 } FowardPassOp;
@@ -28,7 +28,7 @@ typedef struct NamedTensor {
 typedef struct Optimzer {
   f32 learningRate;
   void *state;
-  OpType opType;
+  shapes_OpType opType;
 } Optimizer;
 
 typedef PtrMap TensorPtrMap;
@@ -53,22 +53,22 @@ void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path
 void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path);
 Array *shapesnn_SafeTensors_Load(Context *ctx, string path);
 
-FowardPassOp shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
-FowardPassOp shapesnn_Embedding(Context *ctx, Dtype dtype, size_t vocabSize, dim_t embeddingDim);
+FowardPassOp shapesnn_Dense(Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
+FowardPassOp shapesnn_Embedding(Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim);
 Optimizer shapesnn_SGD(Context *ctx, f32 learningRate);
 Optimizer shapesnn_Adam(Context *ctx, f32 learningRate);
 Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred);
 Tensor shapesnn_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits);
-FowardPassOp shapesnn_BatchNorm(Context *ctx, Dtype dtype, size_t numFeatures);
-FowardPassOp shapesnn_BatchNorm2d(Context *ctx, Dtype dtype, size_t numFeatures);
-FowardPassOp shapesnn_Tanh(Context *ctx, Dtype dtype);
-FowardPassOp shapesnn_Relu(Context *ctx, Dtype dtype);
-FowardPassOp shapesnn_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t kW, u8 stride);
-FowardPassOp shapesnn_AdaptiveAvgPool2d(Context *ctx, Dtype dtype, dim_t outH, dim_t outW);
-FowardPassOp shapesnn_Conv2d(Context *ctx, Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias);
-FowardPassOp shapesnn_Flatten(Context *ctx, Dtype type);
+FowardPassOp shapesnn_BatchNorm(Context *ctx, shapes_Dtype dtype, size_t numFeatures);
+FowardPassOp shapesnn_BatchNorm2d(Context *ctx, shapes_Dtype dtype, size_t numFeatures);
+FowardPassOp shapesnn_Tanh(Context *ctx, shapes_Dtype dtype);
+FowardPassOp shapesnn_Relu(Context *ctx, shapes_Dtype dtype);
+FowardPassOp shapesnn_MaxPool2d(Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride);
+FowardPassOp shapesnn_AdaptiveAvgPool2d(Context *ctx, shapes_Dtype dtype, dim_t outH, dim_t outW);
+FowardPassOp shapesnn_Conv2d(Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias);
+FowardPassOp shapesnn_Flatten(Context *ctx, shapes_Dtype type);
 
-FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, Dtype dtype);
+FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype);
 
 Array *shapesnn_Backward(Context *ctx, Tensor *tensor);
 void shapesnn_ZeroGrad(Context *ctx, Array *graph);

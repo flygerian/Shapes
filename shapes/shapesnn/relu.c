@@ -47,7 +47,7 @@ void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_Relu(Context *ctx, Dtype dtype) {
+FowardPassOp shapesnn_Relu(Context *ctx, shapes_Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   *layer = (Layer) {.weights = {}, .bias = {}, .layerData = NULL};
 

@@ -65,7 +65,7 @@ __global__ static void indexAccumulate2dKernel(ValueType *dest, size_t destDim1,
 template <typename ValueType>
 __global__ static void
 sliceAccumulateKernel(ValueType *dest, size_t destNumDims,
-                      const size_t *destMultipliers, const Range *ranges,
+                      const size_t *destMultipliers, const shapes_Range *ranges,
                       const ValueType *srcGrad, const size_t *srcDims,
                       size_t srcNumDims, size_t srcSize) {
   size_t flatIdx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
@@ -128,17 +128,17 @@ static Result launchIndexAccumulate2d(const void *dest, size_t destDim1,
 template <typename ValueType>
 static Result launchSliceAccumulate(const void *dest, size_t destNumDims,
                                     const size_t *destMultipliers,
-                                    const Range *ranges, const void *srcGrad,
-                                    const size_t *srcDims, size_t srcNumDims,
-                                    size_t srcSize) {
+                                    const shapes_Range *ranges,
+                                    const void *srcGrad, const size_t *srcDims,
+                                    size_t srcNumDims, size_t srcSize) {
   size_t *deviceMultipliers = NULL;
-  Range *deviceRanges = NULL;
+  shapes_Range *deviceRanges = NULL;
   size_t *deviceSrcDims = NULL;
 
   cudaError_t allocError =
       cudaMalloc(&deviceMultipliers, sizeof(size_t) * destNumDims);
   PANIC_WITH_MSG_IF(allocError != cudaSuccess, cudaGetErrorString(allocError));
-  allocError = cudaMalloc(&deviceRanges, sizeof(Range) * srcNumDims);
+  allocError = cudaMalloc(&deviceRanges, sizeof(shapes_Range) * srcNumDims);
   PANIC_WITH_MSG_IF(allocError != cudaSuccess, cudaGetErrorString(allocError));
   allocError = cudaMalloc(&deviceSrcDims, sizeof(size_t) * srcNumDims);
   PANIC_WITH_MSG_IF(allocError != cudaSuccess, cudaGetErrorString(allocError));
@@ -147,8 +147,9 @@ static Result launchSliceAccumulate(const void *dest, size_t destNumDims,
       cudaMemcpy(deviceMultipliers, destMultipliers,
                  sizeof(size_t) * destNumDims, cudaMemcpyHostToDevice);
   PANIC_WITH_MSG_IF(memcpyErr != cudaSuccess, cudaGetErrorString(memcpyErr));
-  memcpyErr = cudaMemcpy(deviceRanges, ranges, sizeof(Range) * srcNumDims,
-                         cudaMemcpyHostToDevice);
+  memcpyErr =
+      cudaMemcpy(deviceRanges, ranges, sizeof(shapes_Range) * srcNumDims,
+                 cudaMemcpyHostToDevice);
   PANIC_WITH_MSG_IF(memcpyErr != cudaSuccess, cudaGetErrorString(memcpyErr));
   memcpyErr = cudaMemcpy(deviceSrcDims, srcDims, sizeof(size_t) * srcNumDims,
                          cudaMemcpyHostToDevice);
@@ -171,8 +172,8 @@ static Result launchSliceAccumulate(const void *dest, size_t destNumDims,
   return OK;
 }
 
-static Result dispatchIndexDtype1d(Dtype valueDtype, const void *dest,
-                                   const void *indices, Dtype indexDtype,
+static Result dispatchIndexDtype1d(shapes_Dtype valueDtype, const void *dest,
+                                   const void *indices, shapes_Dtype indexDtype,
                                    const void *srcGrad, size_t numIndices,
                                    size_t sliceSize) {
   switch (valueDtype) {
@@ -241,11 +242,11 @@ static Result dispatchIndexDtype1d(Dtype valueDtype, const void *dest,
   }
 }
 
-static Result dispatchIndexDtype2d(Dtype valueDtype, const void *dest,
-                                   size_t destDim1, const void *rowIndices,
-                                   Dtype rowIndexDtype, const void *colIndices,
-                                   Dtype colIndexDtype, const void *srcGrad,
-                                   size_t numIndices, size_t sliceSize) {
+static Result
+dispatchIndexDtype2d(shapes_Dtype valueDtype, const void *dest, size_t destDim1,
+                     const void *rowIndices, shapes_Dtype rowIndexDtype,
+                     const void *colIndices, shapes_Dtype colIndexDtype,
+                     const void *srcGrad, size_t numIndices, size_t sliceSize) {
   if (rowIndexDtype != colIndexDtype) {
     return ERR_DTYPE_MISMATCH;
   }
@@ -333,28 +334,32 @@ static Result dispatchIndexDtype2d(Dtype valueDtype, const void *dest,
 }
 
 extern "C" Result
-runCudaIndexAccumulate1d(Dtype dtype, void *dest, const void *indices,
-                         Dtype indexDtype, const void *srcGrad,
+runCudaIndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *indices,
+                         shapes_Dtype indexDtype, const void *srcGrad,
                          size_t numIndices, size_t sliceSize) {
   return dispatchIndexDtype1d(dtype, dest, indices, indexDtype, srcGrad,
                               numIndices, sliceSize);
 }
 
-extern "C" Result runCudaIndexAccumulate2d(
-    Dtype dtype, void *dest, size_t destDim1, const void *rowIndices,
-    Dtype rowIndexDtype, const void *colIndices, Dtype colIndexDtype,
-    const void *srcGrad, size_t numIndices, size_t sliceSize) {
+extern "C" Result
+runCudaIndexAccumulate2d(shapes_Dtype dtype, void *dest, size_t destDim1,
+                         const void *rowIndices, shapes_Dtype rowIndexDtype,
+                         const void *colIndices, shapes_Dtype colIndexDtype,
+                         const void *srcGrad, size_t numIndices,
+                         size_t sliceSize) {
 
   return dispatchIndexDtype2d(dtype, dest, destDim1, rowIndices, rowIndexDtype,
                               colIndices, colIndexDtype, srcGrad, numIndices,
                               sliceSize);
 }
 
-extern "C" Result
-runCudaSliceAccumulate(Dtype dtype, void *dest, size_t destNumDims,
-                       const size_t *destMultipliers, const Range *ranges,
-                       const void *srcGrad, const size_t *srcDims,
-                       size_t srcNumDims, size_t srcSize) {
+extern "C" Result runCudaSliceAccumulate(shapes_Dtype dtype, void *dest,
+                                         size_t destNumDims,
+                                         const size_t *destMultipliers,
+                                         const shapes_Range *ranges,
+                                         const void *srcGrad,
+                                         const size_t *srcDims,
+                                         size_t srcNumDims, size_t srcSize) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;

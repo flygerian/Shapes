@@ -16,13 +16,13 @@ static bool isOutOfBounds(Tensor *t, Dim dim) {
   return false;
 }
 
-Value *shapes_GetAt(Tensor *t, Dim dim) {
+shapes_Value *shapes_GetAt(Tensor *t, Dim dim) {
   PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS);
 
   u64 idx = getContigousIdxFromCoord(t, dim.dims);
 
-  Value *result = allocate(t->context->memory, sizeof(Value));
+  shapes_Value *result = allocate(t->context->memory, sizeof(shapes_Value));
   size_t valueBytes = getBytesForDtype(t->dtype);
 
   byte *values;
@@ -81,7 +81,7 @@ Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
   for (RANGE(i, workingIndices->size)) {
-    Value idxVal;
+    shapes_Value idxVal;
     Result result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
     PANIC_IF(result != OK, result);
 
@@ -148,7 +148,7 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
   tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
   for (u64 i = 0; i < workingRows->size; i++) {
-    Value rowVal, colVal;
+    shapes_Value rowVal, colVal;
     Result result = readTensorValueAtFlatIndex(workingRows, i, &rowVal);
     PANIC_IF(result != OK, result);
 
@@ -174,7 +174,7 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
   return dest;
 }
 
-Result shapes_AssignValueAt(Context *ctx, Tensor *t, Dim dim, Value value) {
+Result shapes_AssignValueAt(Context *ctx, Tensor *t, Dim dim, shapes_Value value) {
   (void)ctx;
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;

@@ -19,7 +19,7 @@ static Dim swapLastDim(Context *ctx, Dim dim, dim_t lastDim) {
   return shape;
 }
 
-static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, Dtype dtype) {
+static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, shapes_Dtype dtype) {
   if (isInvalidTensor(grad)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -41,7 +41,7 @@ static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, Dtype dty
   return OK;
 }
 
-static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, Dtype dtype) {
+static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, shapes_Dtype dtype) {
   if (grad == NULL) {
     return OK;
   }
@@ -70,7 +70,7 @@ static void promoteDenseBackwardInput(Context *ctx, Tensor *src, Tensor *dest) {
   *dest = *src;
 }
 
-Tensor shapes_layer_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
+Tensor shapes_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
   // Dense expects:
   // x: [..., inputSize]
   // w: [outputSize, inputSize]
@@ -112,7 +112,7 @@ Tensor shapes_layer_DenseLinear(Context *ctx, Tensor *x, Tensor *w, Tensor *b, b
   return out;
 }
 
-Result shapes_layer_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
+Result shapes_DenseBackward(Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
   // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL

@@ -73,7 +73,7 @@ typedef struct binop {
   binopFn F64;
 } binop;
 
-static inline binopFn getBinopFn(binop op, Dtype dt) {
+static inline binopFn getBinopFn(binop op, shapes_Dtype dt) {
   switch (dt) {
     case U8: return op.U8;
     case U16: return op.U16;

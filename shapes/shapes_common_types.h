@@ -27,14 +27,14 @@ typedef enum {
   OP_CONV2D,
   OP_SEQUENTIAL,
   OP_FLATTEN
-} OpType;
+} shapes_OpType;
 
 typedef enum {
   REDUCTION_OP_SUM,
   REDUCTION_OP_MEAN,
   REDUCTION_OP_MAX,
   REDUCTION_OP_ARGMAX
-} ReductionOpType;
+} shapes_ReductionOpType;
 
 typedef enum {
   UNARY_OP_POW,
@@ -45,12 +45,12 @@ typedef enum {
   UNARY_OP_LOG,
   UNARY_OP_ABS,
   UNARY_OP_SQRT
-} UnaryOpType;
+} shapes_UnaryOpType;
 
-typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL } Dtype;
+typedef enum { F16, F32, F64, U8, U16, U32, U64, I8, I16, I32, I64, BOOL } shapes_Dtype;
 
 typedef struct {
-  Dtype dtype;
+  shapes_Dtype dtype;
   union {
     bool boolean;
     u8 u8;
@@ -67,10 +67,11 @@ typedef struct {
     f32 f32;
     f64 f64;
   } as;
-} Value;
+} shapes_Value;
 
 typedef struct {
   size_t start;
   size_t end;
-} Range;
+} shapes_Range;
+
 #endif

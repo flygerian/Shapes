@@ -3,7 +3,7 @@
 #include "common.h"
 #include <math.h>
 
-static Tensor create1DTensor(Context *ctx, dim_t size, Dtype dtype) {
+static Tensor create1DTensor(Context *ctx, dim_t size, shapes_Dtype dtype) {
   dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
   multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
   dims[0] = size;

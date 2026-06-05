@@ -8,11 +8,11 @@
 #include <stdlib.h>
 #include "binary_op_helpers.h"
 
-static bool isComparisonOp(OpType opType) {
+static bool isComparisonOp(shapes_OpType opType) {
   return opType == OP_GREATER || opType == OP_GREATER_OR_EQUAL || opType == OP_LESS || opType == OP_LESS_OR_EQUAL || opType == OP_EQUAL;
 }
 
-static bool isArithmeticOp(OpType opType) {
+static bool isArithmeticOp(shapes_OpType opType) {
   return opType == OP_ADD || opType == OP_SUBTRACT || opType == OP_MULTIPLY;
 }
 
@@ -34,7 +34,7 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
   return true;
 }
 
-static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
+static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, shapes_OpType opType) {
   tensor_size_t n = dest->size;
 
   switch (a->dtype) {
@@ -120,7 +120,7 @@ static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opTy
   }
 }
 
-static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, OpType opType) {
+static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, shapes_OpType opType) {
   if (opType == OP_ADD || opType == OP_SUBTRACT || opType == OP_MULTIPLY) {
     return straightArithBinop(a, b, dest, opType);
   }
@@ -219,7 +219,7 @@ static inline void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destC
   }
 }
 
-static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *output, OpType opType) {
+static Result broadcastBinop(Tensor *opA, Tensor *opB, Tensor *output, shapes_OpType opType) {
   dim_t currentCoord[output->shape.numOfDims];
   dim_t aCoords[output->shape.numOfDims];
   dim_t bCoords[output->shape.numOfDims];
@@ -282,7 +282,7 @@ static Result broadcastBinop(Dim outputShape, Tensor *opA, Tensor *opB, Tensor *
   return OK;
 }
 
-static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
   TensorPair ops = {.a = *a, .b = *b};
@@ -300,7 +300,7 @@ static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
     outputShape = opB->shape;
   }
 
-  Dtype outputDtype = opA->dtype;
+  shapes_Dtype outputDtype = opA->dtype;
   if (isComparisonOp(opType)) {
     outputDtype = BOOL;
   }
@@ -310,7 +310,7 @@ static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   if (areTensorsSameShape(opA, opB)) {
     res = straightBinop(opA, opB, &output, opType);
   } else {
-    res = broadcastBinop(outputShape, opA, opB, &output, opType);
+    res = broadcastBinop(opA, opB, &output, opType);
   }
 
   PANIC_IF(res != OK, res);
@@ -318,7 +318,7 @@ static Tensor binaryOpCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   return output;
 }
 
-static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
 
   TensorPair ops = {.a = *a, .b = *b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
@@ -340,7 +340,7 @@ static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
     outputSize = opB->size;
   }
 
-  Dtype outputDtype = isComparisonOp(opType) ? BOOL : opA->dtype;
+  shapes_Dtype outputDtype = isComparisonOp(opType) ? BOOL : opA->dtype;
   Tensor output = t_Zeros(ctx, outputShape, outputDtype);
   if (areTensorsSameShape(opA, opB)) {
     Result res = runCudaBinaryOp(opA->dtype, opType, opA->values, opB->values, output.values, output.size);
@@ -376,7 +376,7 @@ static Tensor binaryOpCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
   return output;
 }
 
-static Tensor binaryOp(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static Tensor binaryOp(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
@@ -403,10 +403,10 @@ static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, 
     bCoords[d] = currentCoord[d] % opB->shape.dims[d];
   }
 
-  Value aVal;
+  shapes_Value aVal;
   VALUE_GET_FROM_ARR(a->values, aStorageIdx, &aVal, a->dtype);
 
-  Value bVal;
+  shapes_Value bVal;
   u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
   VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
 
@@ -419,7 +419,7 @@ static inline void inPlaceBinopAdd(Tensor *a, Tensor *opB) {
   for (tensor_size_t x = 0; x < a->size; x++) {
     ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
-    Value result;
+    shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, +);
     u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
     VALUE_SET(a->values, aStorageIdx, result);
@@ -432,7 +432,7 @@ static inline void inPlaceBinopMultiply(Tensor *a, Tensor *opB) {
   for (tensor_size_t x = 0; x < a->size; x++) {
     ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
-    Value result;
+    shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, *);
     u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
     VALUE_SET(a->values, aStorageIdx, result);
@@ -445,7 +445,7 @@ static inline void inPlaceBinopSubtract(Tensor *a, Tensor *opB) {
   for (tensor_size_t x = 0; x < a->size; x++) {
     ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
-    Value result;
+    shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, -);
     u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
     VALUE_SET(a->values, aStorageIdx, result);
@@ -458,14 +458,14 @@ static inline void inPlaceBinopDivide(Tensor *a, Tensor *opB) {
   for (tensor_size_t x = 0; x < a->size; x++) {
     ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
-    Value result;
+    shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, /);
     u64 aStorageIdx = getContigousIdxFromCoord(a, currentCoord);
     VALUE_SET(a->values, aStorageIdx, result);
   }
 }
 
-static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   Tensor *opA = a;
   Tensor *opB = b;
   Tensor *paddedB = NULL;
@@ -496,11 +496,11 @@ static void inPlaceBinopCpu(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
     fn(opA->values, opB->values, opA->values, opA->size);
   } else {
     Dim outputShape = opA->size > opB->size ? opA->shape : opB->shape;
-    broadcastBinop(outputShape, opA, opB, opA, opType);
+    broadcastBinop(opA, opB, opA, opType);
   }
 }
 
-static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(!isArithmeticOp(opType) || !a->isContigous || a->isView, ERR_NO_OP);
   PANIC_IF(a->context->device->type != CUDA, ERR_DEVICE_MISMATCH);
   PANIC_IF(b->context->device->type != CUDA, ERR_DEVICE_MISMATCH);
@@ -521,7 +521,7 @@ static void inPlaceBinopCuda(Context *ctx, Tensor *a, Tensor *b, OpType opType) 
   PANIC_IF(res != OK, res);
 }
 
-static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, OpType opType) {
+static void inPlaceBinop(Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
   switch (ctx != NULL && ctx->device != NULL ? ctx->device->type : CPU) {
     case CUDA:

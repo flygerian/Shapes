@@ -124,8 +124,8 @@ add_library(shapes
     shapes/base/conv.c
     shapes/base/pool.c
     shapes/base/cross_entropy.c
-    shapes/base/optimizer/sgd.c
-    shapes/base/optimizer/adam.c
+    shapes/base/sgd.c
+    shapes/base/adam.c
     shapes/base/internal.c
     shapes/base/binary_op.c
     shapes/base/shape_ops.c

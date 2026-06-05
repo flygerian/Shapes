@@ -17,7 +17,7 @@
 #include "value.h"
 #include <stdlib.h>
 
-size_t getBytesForDtype(Dtype type) {
+size_t getBytesForDtype(shapes_Dtype type) {
   switch (type) {
     case BOOL: return sizeof(bool);
     case U8: return sizeof(u8);
@@ -35,7 +35,7 @@ size_t getBytesForDtype(Dtype type) {
   }
 }
 
-dim_t indexValueToDim(Value idxVal, Dtype dtype) {
+dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype) {
   switch (dtype) {
     case U8: return idxVal.as.u8;
     case U16: return idxVal.as.u16;
@@ -54,7 +54,7 @@ void shapes_PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value *val = shapes_GetAt(t, zeroIdx);
+  shapes_Value *val = shapes_GetAt(t, zeroIdx);
 
   PRINT_VALUE(*val);
 }
@@ -63,7 +63,7 @@ char *shapes_GetItem(Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
   Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
-  Value *val = shapes_GetAt(t, zeroIdx);
+  shapes_Value *val = shapes_GetAt(t, zeroIdx);
 
   size_t size = sizeof(char) * 32;
   char *valueStr = allocate(ctx->memory, size);
@@ -146,7 +146,7 @@ u64 getContigousIdxFromCoord(Tensor *restrict t, dim_t *restrict idx) {
   return result;
 }
 
-Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result) {
+Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value *result) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -165,7 +165,7 @@ Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, Value *result) {
   return OK;
 }
 
-Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, Value value) {
+Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value value) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -199,7 +199,7 @@ Tensor *copyToContiguous(Context *ctx, Tensor *source) {
 
   for (tensor_size_t i = 0; i < source->size; i++) {
     Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
-    Value *val = shapes_GetAt(source, idx);
+    shapes_Value *val = shapes_GetAt(source, idx);
     writeTensorValueAtFlatIndex(copy, i, *val);
 
     for (int d = source->shape.numOfDims - 1; d >= 0; d--) {
@@ -347,7 +347,7 @@ Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result)
   return OK;
 }
 
-void accumulateStridedByDtype(Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
+void accumulateStridedByDtype(shapes_Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count) {
   switch (dtype) {
     case BOOL: {
       bool *d = (bool *)destValues;
@@ -485,7 +485,7 @@ static void printTensorDim(Tensor *t, size_t *flatIdx, u8 dim, u8 indent) {
     }
 
     if (dim == t->shape.numOfDims - 1) {
-      Value val;
+      shapes_Value val;
       (void)readTensorValueAtFlatIndex(t, (*flatIdx)++, &val);
       switch (t->dtype) {
         case BOOL: printf("%s", val.as.boolean ? "true" : "false"); break;
@@ -516,7 +516,7 @@ void shapes_PrintTensor(Tensor *tensor) {
 
   if (tensor->shape.numOfDims == 0) {
     printf("tensor(");
-    Value val;
+    shapes_Value val;
     (void)readTensorValueAtFlatIndex(tensor, 0, &val);
     switch (tensor->dtype) {
       case BOOL: printf("%s", val.as.boolean ? "true" : "false"); break;

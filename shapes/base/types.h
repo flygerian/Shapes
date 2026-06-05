@@ -23,8 +23,8 @@ typedef struct {
 } Dim;
 
 typedef struct ValuePair {
-  Value a;
-  Value b;
+  shapes_Value a;
+  shapes_Value b;
 } ValuePair;
 
 typedef struct sizeAndMultipliers {
@@ -57,16 +57,16 @@ typedef struct Tensor {
   string label;
   Memory *metadataMemory;
   void *values;
-  Range *boundary;
+  shapes_Range *boundary;
   size_t size;
   Dim shape;
-  Dtype dtype;
+  shapes_Dtype dtype;
   bool isView;
   bool isContigous;
   bool isContigousCopy;
   struct Tensor *grad;
   Array *inputs;
-  OpType opType;
+  shapes_OpType opType;
   void *opMetadata;
   u64 nodeId;
 } Tensor;
@@ -77,7 +77,7 @@ typedef struct {
   void *m;
   void *v;
   size_t size;
-  Dtype dtype;
+  shapes_Dtype dtype;
 } AdamData;
 
 typedef struct BatchNormFowardResult {
@@ -97,6 +97,6 @@ typedef struct {
   Tensor b;
 } TensorPair;
 
-size_t getBytesForDtype(Dtype type);
+size_t getBytesForDtype(shapes_Dtype type);
 
 #endif

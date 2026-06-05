@@ -42,7 +42,7 @@ static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, 
   }
 
   for (u64 i = 0; i < indicesContig->size; i++) {
-    Value idxVal;
+    shapes_Value idxVal;
     VALUE_GET_FROM_ARR(indicesContig->values, i, &idxVal, indicesContig->dtype);
 
     dim_t idx = indexValueToDim(idxVal, indicesContig->dtype);
@@ -57,7 +57,7 @@ static Result indexAccumulate1dCpu(Context *ctx, Tensor *dest, Tensor *indices, 
     u64 destBase = getContigousIdxFromCoord(dest, destCoords);
     u64 srcBase = i * sliceSize;
     for (tensor_size_t j = 0; j < sliceSize; j++) {
-      Value destValue, srcValue, resultValue;
+      shapes_Value destValue, srcValue, resultValue;
       VALUE_GET_FROM_ARR(dest->values, destBase + j, &destValue, dest->dtype);
       VALUE_GET_FROM_ARR(srcContig->values, srcBase + j, &srcValue, srcContig->dtype);
       VALUE_BINOP(resultValue, destValue, srcValue, +);
@@ -80,7 +80,7 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
   }
 
   for (u64 i = 0; i < rowContig->size; i++) {
-    Value rowValue, colValue;
+    shapes_Value rowValue, colValue;
     VALUE_GET_FROM_ARR(rowContig->values, i, &rowValue, rowContig->dtype);
     VALUE_GET_FROM_ARR(colContig->values, i, &colValue, colContig->dtype);
 
@@ -99,7 +99,7 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
     u64 destBase = getContigousIdxFromCoord(dest, destCoords);
     u64 srcBase = i * sliceSize;
     for (tensor_size_t j = 0; j < sliceSize; j++) {
-      Value destValue, srcValue, resultValue;
+      shapes_Value destValue, srcValue, resultValue;
       VALUE_GET_FROM_ARR(dest->values, destBase + j, &destValue, dest->dtype);
       VALUE_GET_FROM_ARR(srcContig->values, srcBase + j, &srcValue, srcContig->dtype);
       VALUE_BINOP(resultValue, destValue, srcValue, +);
@@ -110,7 +110,7 @@ static Result indexAccumulate2dCpu(Context *ctx, Tensor *dest, Tensor *rowIndice
   return OK;
 }
 
-static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+static Result sliceAccumulateCpu(Context *ctx, Tensor *dest, shapes_Range *ranges, Tensor *srcGrad) {
   Tensor *srcGradContig = materializeTensorOnContext(ctx, srcGrad);
 
   u8 ndims = dest->shape.numOfDims;
@@ -195,7 +195,7 @@ static Result indexAccumulate2dCuda(Context *ctx, Tensor *dest, Tensor *rowIndic
   return result;
 }
 
-static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+static Result sliceAccumulateCuda(Context *ctx, Tensor *dest, shapes_Range *ranges, Tensor *srcGrad) {
   if (!dest->isContigous || dest->isView) {
     return ERR_NO_OP;
   }
@@ -247,7 +247,7 @@ void shapes_IndexAccumulate2d(Context *ctx, Tensor *dest, Tensor *rowIndices, Te
   }
 }
 
-void shapes_SliceAccumulate(Context *ctx, Tensor *dest, Range *ranges, Tensor *srcGrad) {
+void shapes_SliceAccumulate(Context *ctx, Tensor *dest, shapes_Range *ranges, Tensor *srcGrad) {
   PANIC_IF(isInvalidTensor(dest) || isInvalidTensor(srcGrad) || ranges == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Result result = validateAccumulateTensorArgs(dest, srcGrad);

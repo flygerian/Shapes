@@ -50,7 +50,7 @@ void tanhLayerLoad(Context *ctx, Layer *state, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_Tanh(Context *ctx, Dtype dtype) {
+FowardPassOp shapesnn_Tanh(Context *ctx, shapes_Dtype dtype) {
   Layer *layer = allocate(ctx->memory, sizeof(Layer));
   layer->weights = (Tensor){0};
   layer->bias = (Tensor){0};

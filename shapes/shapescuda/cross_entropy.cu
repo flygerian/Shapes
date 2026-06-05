@@ -105,7 +105,8 @@ static Result launchCrossEntropyBackward(const void *yGround, const void *probs,
   return finishCrossEntropyLaunch();
 }
 
-extern "C" Result runCudaCrossEntropyForward(Dtype dtype, const void *yGround,
+extern "C" Result runCudaCrossEntropyForward(shapes_Dtype dtype,
+                                             const void *yGround,
                                              const void *logits, size_t rows,
                                              size_t classCount, void *probs,
                                              void *loss) {
@@ -124,9 +125,10 @@ extern "C" Result runCudaCrossEntropyForward(Dtype dtype, const void *yGround,
 }
 
 extern "C" Result
-runCudaCrossEntropyBackward(Dtype dtype, const void *yGround, const void *probs,
-                            const void *gradOut, size_t rows, size_t classCount,
-                            bool scalarGradOut, void *dLogits) {
+runCudaCrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
+                            const void *probs, const void *gradOut, size_t rows,
+                            size_t classCount, bool scalarGradOut,
+                            void *dLogits) {
 
   size_t size = rows * classCount;
   switch (dtype) {

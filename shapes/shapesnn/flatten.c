@@ -37,7 +37,7 @@ void flattenLayerLoad(Context *ctx, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_Flatten(Context *ctx, Dtype dtype) {
+FowardPassOp shapesnn_Flatten(Context *ctx, shapes_Dtype dtype) {
   PANIC_IF_NULL(ctx);
 
   FowardPassOp *flattenLayer = allocate(ctx->memory, sizeof(FowardPassOp));

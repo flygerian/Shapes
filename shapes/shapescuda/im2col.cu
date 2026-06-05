@@ -178,9 +178,9 @@ static Result launchCol2imKernel(void *dest, const void *colBuffer,
   return OK;
 }
 
-extern "C" Result runCudaIm2col(Dtype dtype, const void *input, size_t batch,
-                                size_t inChannels, size_t h, size_t w,
-                                size_t kH, size_t kW, u8 stride,
+extern "C" Result runCudaIm2col(shapes_Dtype dtype, const void *input,
+                                size_t batch, size_t inChannels, size_t h,
+                                size_t w, size_t kH, size_t kW, u8 stride,
                                 void *colBuffer) {
   switch (dtype) {
   case F32: {
@@ -216,7 +216,7 @@ extern "C" Result runCudaIm2col(Dtype dtype, const void *input, size_t batch,
   }
 }
 
-extern "C" Result runCudaCol2imAccumulate(Dtype dtype, void *dest,
+extern "C" Result runCudaCol2imAccumulate(shapes_Dtype dtype, void *dest,
                                           const void *colBuffer, size_t batch,
                                           size_t inChannels, size_t h, size_t w,
                                           size_t kH, size_t kW, u8 stride) {

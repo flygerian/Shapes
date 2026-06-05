@@ -13,7 +13,7 @@
 
 #define MAX_EXPECTED_NUM_LAYER_PARAMS 5
 
-FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, Dtype dtype) {
+FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype) {
   PANIC_IF(numLayers == 0, ZERO_LAYERS_PASSED);
   PANIC_IF_NULL(layerOps);
 

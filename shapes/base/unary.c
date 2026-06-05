@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include "shapes_internal.h"
 #ifdef __APPLE__
   #include <vecLib/vDSP.h>
   #include <vecLib/vForce.h>
@@ -34,7 +35,7 @@ static const char *unaryContextDeviceName(Context *ctx) {
   return unaryDeviceTypeName(ctx->device->type);
 }
 
-static const char *unaryDtypeName(Dtype dtype) {
+static const char *unaryDtypeName(shapes_Dtype dtype) {
   switch (dtype) {
     case F16: return "F16";
     case F32: return "F32";
@@ -500,7 +501,7 @@ static Tensor negateCpu(Context *ctx, Tensor *t) {
   return output;
 }
 
-static Tensor unaryOpCuda(Context *ctx, Tensor *t, UnaryOpType opType, f32 param) {
+static Tensor unaryOpCuda(Context *ctx, Tensor *t, shapes_UnaryOpType opType, f32 param) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
   Tensor output = t_Zeros(ctx, input->shape, input->dtype);

@@ -68,7 +68,7 @@ static Result adamF64(AdamData *triplets, size_t numParameters, f64 b1, f64 b2, 
   return OK;
 }
 
-static bool isFloatDtype(Dtype dt) {
+static bool isFloatDtype(shapes_Dtype dt) {
   return dt == F16 || dt == F32 || dt == F64;
 }
 

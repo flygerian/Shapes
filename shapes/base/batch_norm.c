@@ -5,7 +5,7 @@
 #include "types.h"
 #include <string.h>
 
-BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {
+BatchNormFowardResult shapes_BatchNormForwardTraining(Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {
   PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1, ERR_DIM_MISMATCH);
 
@@ -119,7 +119,7 @@ BatchNormFowardResult shapes_layer_BatchNormForwardTraining(Context *ctx, Tensor
   return (BatchNormFowardResult){.out = out, .mean = mean, .variance = variance};
 }
 
-BatchNormBackwardResult shapes_layer_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon) {
+BatchNormBackwardResult shapes_BatchNormBackward(Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon) {
   PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(x2d->shape.numOfDims != 2 || grad2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1, ERR_DIM_MISMATCH);
   PANIC_IF(x2d->dtype != grad2d->dtype || x2d->dtype != gamma->dtype, ERR_DTYPE_MISMATCH);

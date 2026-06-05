@@ -85,8 +85,8 @@ static Result launchOneHotKernel(const void *indices, size_t n,
   return OK;
 }
 
-extern "C" Result runCudaFillTensor(Dtype dtype, void *dest, size_t n,
-                                    Value value) {
+extern "C" Result runCudaFillTensor(shapes_Dtype dtype, void *dest, size_t n,
+                                    shapes_Value value) {
   switch (dtype) {
   case BOOL:
     return launchFillKernel<bool>(dest, n, value.as.boolean);
@@ -130,8 +130,8 @@ extern "C" Result runCudaArange(f32 start, f32 step, void *dest, size_t n) {
   return OK;
 }
 
-extern "C" Result runCudaOneHot(Dtype indexDtype, const void *indices, size_t n,
-                                size_t numClasses, void *dest) {
+extern "C" Result runCudaOneHot(shapes_Dtype indexDtype, const void *indices,
+                                size_t n, size_t numClasses, void *dest) {
   switch (indexDtype) {
   case BOOL:
     return launchOneHotKernel<bool>(indices, n, numClasses, dest);

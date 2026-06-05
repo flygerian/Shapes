@@ -20,7 +20,7 @@ void maxPool2dBackward(Context *ctx, Tensor *tensor) {
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
   Tensor dX;
-  Result result = shapes_layer_MaxPool2dBackward(ctx, &input, tensor->grad, layerData->kernel, layerData->stride, &dX);
+  Result result = shapes_MaxPool2dBackward(ctx, &input, tensor->grad, layerData->kernel, layerData->stride, &dX);
   PANIC_IF(result != OK, result);
 
   Tensor reducedGrad = shapes_ReduceBroadcast(ctx, &input, &dX);
@@ -42,9 +42,9 @@ Tensor maxPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   dim_t outH = (h - kH) / layerData->stride + 1;
   dim_t outW = (w - kW) / layerData->stride + 1;
 
-  Tensor dest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
+  Tensor dest = shapes_Make_FloatTensor(ctx, SHAPE4D(batch, outH, outW, channels), tensor->dtype);
 
-  Result result = shapes_layer_MaxPool2d(ctx, tensor, layerData->kernel, layerData->stride, &dest);
+  Result result = shapes_MaxPool2d(ctx, tensor, layerData->kernel, layerData->stride, &dest);
   PANIC_IF(result != OK, result);
 
   dest.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
@@ -73,7 +73,7 @@ void maxPool2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-FowardPassOp shapesnn_MaxPool2d(Context *ctx, Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
+FowardPassOp shapesnn_MaxPool2d(Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride) {
   maxPool2dLayerData *layerData = allocate(ctx->memory, sizeof(maxPool2dLayerData));
   dim_t *kernelDims = allocate(ctx->memory, sizeof(dim_t) * 2);
   kernelDims[0] = kernelH;

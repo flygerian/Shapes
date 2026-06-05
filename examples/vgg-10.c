@@ -287,7 +287,7 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
       Tensor *yOneHot = &yOneHotVal;
       Tensor loss = shapesnn_CrossEnthropy(&scratch, yOneHot, &logits);
 
-      Value *lossValue = shapes_GetAt(&loss, SHAPE1D(0));
+      shapes_Value *lossValue = shapes_GetAt(&loss, SHAPE1D(0));
       totalLoss += lossValue->as.f32;
       totalSamples += 1;
 

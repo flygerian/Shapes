@@ -11,7 +11,7 @@
 // Signed family: I8=0, I16=1, I32=2, I64=3
 // Unsigned family: U8=0, U16=1, U32=2, U64=3
 // Bool family: BOOL=0
-static int dtypeRank(Dtype d) {
+static int dtypeRank(shapes_Dtype d) {
   switch (d) {
     case F16: return 0;
     case F32: return 1;
@@ -35,7 +35,7 @@ static int dtypeRank(Dtype d) {
 //   2 = unsigned int (U8, U16, U32, U64)
 //   3 = bool (BOOL)
 //  -1 = unknown
-static int dtypeFamily(Dtype d) {
+static int dtypeFamily(shapes_Dtype d) {
   switch (d) {
     case F16:
     case F32:
@@ -55,7 +55,7 @@ static int dtypeFamily(Dtype d) {
 
 // castValue reads a Value in the source dtype and writes it into the
 // destination dtype. This performs the actual numeric conversion.
-static Value castValue(Value src, Dtype target) {
+static shapes_Value castValue(shapes_Value src, shapes_Dtype target) {
   // First widen the source to the largest type in its family,
   // then convert to the target type.
   double asDouble;
@@ -75,7 +75,7 @@ static Value castValue(Value src, Dtype target) {
     default: asDouble = 0.0; break;
   }
 
-  Value dest;
+  shapes_Value dest;
   dest.dtype = target;
   switch (target) {
     case F16: dest.as.f16 = (f16)asDouble; break;
@@ -103,7 +103,7 @@ static Value castValue(Value src, Dtype target) {
 //   - Within the same family: only widening (target rank >= source rank).
 //   - Unsigned: only within the unsigned family, widening only.
 //   - Unsigned <-> Float or Signed: never allowed (sign mismatch).
-static bool isCastSafe(Dtype source, Dtype target) {
+static bool isCastSafe(shapes_Dtype source, shapes_Dtype target) {
   if (source == target) {
     return true;
   }
@@ -131,20 +131,20 @@ static bool isCastSafe(Dtype source, Dtype target) {
   return dtypeRank(target) >= dtypeRank(source);
 }
 
-static Tensor castOnCpu(Context *ctx, Tensor *source, Dtype target) {
+static Tensor castOnCpu(Context *ctx, Tensor *source, shapes_Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
   Tensor dest = t_Zeros(ctx, source->shape, target);
   for (tensor_size_t i = 0; i < src->size; i++) {
-    Value v;
+    shapes_Value v;
     VALUE_GET_FROM_ARR(src->values, i, &v, src->dtype);
-    Value converted = castValue(v, target);
+    shapes_Value converted = castValue(v, target);
     VALUE_SET(dest.values, i, converted);
   }
 
   return dest;
 }
 
-static Tensor castOnCuda(Context *ctx, Tensor *source, Dtype target) {
+static Tensor castOnCuda(Context *ctx, Tensor *source, shapes_Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
   Tensor dest = t_Zeros(ctx, src->shape, target);
   Result result = runCudaCast(src->dtype, src->values, target, dest.values, src->size);
@@ -153,10 +153,10 @@ static Tensor castOnCuda(Context *ctx, Tensor *source, Dtype target) {
   return dest;
 }
 
-Tensor Cast(Context *ctx, Tensor *source, Dtype target) {
+Tensor Cast(Context *ctx, Tensor *source, shapes_Dtype target) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
-  Dtype srcDtype = source->dtype;
+  shapes_Dtype srcDtype = source->dtype;
 
   // Check cast safety (sign compatibility + truncation)
   int srcFamily = dtypeFamily(srcDtype);

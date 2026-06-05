@@ -219,7 +219,7 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
 typedef struct {
   FowardPassOp layers;
   Optimizer optimizer;
-  Dtype datatype;
+  shapes_Dtype datatype;
 } Model;
 
 Model Make_Model(Context *ctx) {
@@ -250,7 +250,7 @@ Array *Model_Parameters(Context *ctx, Model *model) {
 
 Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
   Array *params = Model_Parameters(ctx, model);
-  Array *gradNorms = MakeArray(ctx->memory, sizeof(Value), params->size);
+  Array *gradNorms = MakeArray(ctx->memory, sizeof(shapes_Value), params->size);
 
   for (size_t i = 0; i < params->size; i++) {
     Tensor p = shapes_Array_TensorIdx(params, i);
@@ -259,7 +259,7 @@ Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
     Tensor totalSum = shapes_Sum(ctx, &flat, 0);
     Tensor norm = shapes_Sqrt(ctx, &totalSum);
 
-    Value normValue;
+    shapes_Value normValue;
     VALUE_GET_FROM_ARR(norm.values, 0, &normValue, norm.dtype);
     Array_Append(gradNorms, &normValue);
   }
@@ -284,7 +284,7 @@ static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
 
   for (dim_t i = 0; i < numClasses; i++) {
     dim_t idx[2] = {0, i};
-    Value *p = shapes_GetAt(probs, (Dim){.dims = idx, .numOfDims = 2});
+    shapes_Value *p = shapes_GetAt(probs, (Dim){.dims = idx, .numOfDims = 2});
     cumulative += p->as.f32;
     if (r <= cumulative) {
       return (int)i;
@@ -405,7 +405,7 @@ void makemore() {
 
       Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, &targetOneHot, &logits);
 
-      Value lossValue;
+      shapes_Value lossValue;
       VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
       totalLoss += lossValue.as.f32 * batchSize;
 
@@ -415,7 +415,7 @@ void makemore() {
         printf("\nGradient norms after first batch:\n");
         Array *gradNorms = Model_ParameterGradNorms(&ctx, &model);
         for (size_t i = 0; i < gradNorms->size; i++) {
-          Value *norm = Array_Idx(gradNorms, i);
+          shapes_Value *norm = Array_Idx(gradNorms, i);
           printf("  Param %zu grad norm: ", i);
           PRINT_VALUE(*norm);
           printf("\n");

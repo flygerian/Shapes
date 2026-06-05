@@ -252,9 +252,9 @@ static Result launchAdaptiveAvgPool2dBackward(const void *gradOut, size_t batch,
   return finishPoolLaunch();
 }
 
-extern "C" Result runCudaMaxPool2d(Dtype dtype, const void *input, size_t batch,
-                                   size_t channels, size_t h, size_t w,
-                                   size_t kH, size_t kW, u8 stride,
+extern "C" Result runCudaMaxPool2d(shapes_Dtype dtype, const void *input,
+                                   size_t batch, size_t channels, size_t h,
+                                   size_t w, size_t kH, size_t kW, u8 stride,
                                    void *output) {
   switch (dtype) {
   case F32:
@@ -268,11 +268,10 @@ extern "C" Result runCudaMaxPool2d(Dtype dtype, const void *input, size_t batch,
   }
 }
 
-extern "C" Result runCudaMaxPool2dWithIndices(Dtype dtype, const void *input,
-                                              size_t batch, size_t channels,
-                                              size_t h, size_t w, size_t kH,
-                                              size_t kW, u8 stride,
-                                              void *output, void *indices) {
+extern "C" Result
+runCudaMaxPool2dWithIndices(shapes_Dtype dtype, const void *input, size_t batch,
+                            size_t channels, size_t h, size_t w, size_t kH,
+                            size_t kW, u8 stride, void *output, void *indices) {
   switch (dtype) {
   case F32:
     return launchMaxPool2d<f32>(input, batch, channels, h, w, kH, kW, stride,
@@ -285,7 +284,8 @@ extern "C" Result runCudaMaxPool2dWithIndices(Dtype dtype, const void *input,
   }
 }
 
-extern "C" Result runCudaMaxPool2dBackward(Dtype dtype, const void *input,
+extern "C" Result runCudaMaxPool2dBackward(shapes_Dtype dtype,
+                                           const void *input,
                                            const void *gradOut, size_t batch,
                                            size_t channels, size_t h, size_t w,
                                            size_t kH, size_t kW, u8 stride,
@@ -302,7 +302,7 @@ extern "C" Result runCudaMaxPool2dBackward(Dtype dtype, const void *input,
   }
 }
 
-extern "C" Result runCudaMaxPool2dBackwardWithIndices(Dtype dtype,
+extern "C" Result runCudaMaxPool2dBackwardWithIndices(shapes_Dtype dtype,
                                                       const void *gradOut,
                                                       const void *indices,
                                                       size_t numGradValues,
@@ -319,10 +319,11 @@ extern "C" Result runCudaMaxPool2dBackwardWithIndices(Dtype dtype,
   }
 }
 
-extern "C" Result runCudaAdaptiveAvgPool2d(Dtype dtype, const void *input,
-                                           size_t batch, size_t channels,
-                                           size_t h, size_t w, size_t outH,
-                                           size_t outW, void *output) {
+extern "C" Result runCudaAdaptiveAvgPool2d(shapes_Dtype dtype,
+                                           const void *input, size_t batch,
+                                           size_t channels, size_t h, size_t w,
+                                           size_t outH, size_t outW,
+                                           void *output) {
   switch (dtype) {
   case F32:
     return launchAdaptiveAvgPool2d<f32>(input, batch, channels, h, w, outH,
@@ -336,9 +337,9 @@ extern "C" Result runCudaAdaptiveAvgPool2d(Dtype dtype, const void *input,
 }
 
 extern "C" Result
-runCudaAdaptiveAvgPool2dBackward(Dtype dtype, const void *gradOut, size_t batch,
-                                 size_t channels, size_t h, size_t w,
-                                 size_t outH, size_t outW, void *dX) {
+runCudaAdaptiveAvgPool2dBackward(shapes_Dtype dtype, const void *gradOut,
+                                 size_t batch, size_t channels, size_t h,
+                                 size_t w, size_t outH, size_t outW, void *dX) {
   switch (dtype) {
   case F32:
     return launchAdaptiveAvgPool2dBackward<f32>(gradOut, batch, channels, h, w,

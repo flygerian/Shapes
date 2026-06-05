@@ -29,7 +29,7 @@ static Result launchCastKernel(const void *src, void *dest, size_t n) {
 }
 
 template <typename Src>
-static Result dispatchCudaCastTarget(Dtype targetDtype, const void *src,
+static Result dispatchCudaCastTarget(shapes_Dtype targetDtype, const void *src,
                                      void *dest, size_t n) {
   switch (targetDtype) {
   case BOOL:
@@ -61,8 +61,8 @@ static Result dispatchCudaCastTarget(Dtype targetDtype, const void *src,
   }
 }
 
-extern "C" Result runCudaCast(Dtype sourceDtype, const void *src,
-                              Dtype targetDtype, void *dest, size_t n) {
+extern "C" Result runCudaCast(shapes_Dtype sourceDtype, const void *src,
+                              shapes_Dtype targetDtype, void *dest, size_t n) {
   switch (sourceDtype) {
   case BOOL:
     return dispatchCudaCastTarget<bool>(targetDtype, src, dest, n);

@@ -31,7 +31,7 @@ void denseBackward(Context *ctx, Tensor *tensor) {
 
   PANIC_IF(input.grad == NULL || weights.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Result result = shapes_layer_DenseBackward(ctx, &input, &weights, tensor->grad, input.grad, weights.grad, layerData->withBias ? bias.grad : NULL);
+  Result result = shapes_DenseBackward(ctx, &input, &weights, tensor->grad, input.grad, weights.grad, layerData->withBias ? bias.grad : NULL);
   PANIC_IF(result != OK, result);
 }
 
@@ -40,7 +40,7 @@ Tensor denseForward(Context *ctx, Layer *layer, Tensor *tensor) {
 
   denseLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
-  Tensor out = shapes_layer_DenseLinear(ctx, tensor, &layer->weights, &layer->bias, layerData->withBias);
+  Tensor out = shapes_DenseLinear(ctx, tensor, &layer->weights, &layer->bias, layerData->withBias);
   out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
   shapes_Array_AppendTensor(out.inputs, tensor);
@@ -84,7 +84,7 @@ void denseLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
   }
 }
 
-FowardPassOp shapesnn_Dense(Context *ctx, Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
+FowardPassOp shapesnn_Dense(Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inputSize, 0.5f);
 
   denseLayerData *layerData = allocate(ctx->memory, sizeof(denseLayerData));

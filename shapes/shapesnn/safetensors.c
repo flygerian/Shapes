@@ -1,5 +1,6 @@
 #include "nn.h"
 #include "nn_internal.h"
+#include "shapes.h"
 #include "shapes_internal.h"
 #include "result.h"
 #include "types.h"
@@ -13,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *dtypeName(Dtype d) {
+static const char *dtypeName(shapes_Dtype d) {
   switch (d) {
     case F16: return "F16";
     case F32: return "F32";
@@ -103,7 +104,7 @@ void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path) {
   CloseFile(&file);
 }
 
-static Dtype dtypeFromName(const char *s, size_t len) {
+static shapes_Dtype dtypeFromName(const char *s, size_t len) {
 #define DTYPE_MATCH(lit, val)                                                                      \
   if (len == sizeof(lit) - 1 && strncmp(s, lit, len) == 0)                                         \
     return val
@@ -163,7 +164,7 @@ static int skipSubtree(jsmntok_t *tokens, int idx) {
 
 typedef struct ParsedTensorMeta {
   String name;
-  Dtype dtype;
+  shapes_Dtype dtype;
   Dim shape;
   size_t startOffset;
   size_t endOffset;
@@ -289,7 +290,7 @@ Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
 
   for (RANGE(i, metas->size)) {
     ParsedTensorMeta *meta = (ParsedTensorMeta *)Array_Idx(metas, i);
-    Tensor t = t_Zeros(ctx, meta->shape, meta->dtype);
+    Tensor t = shapes_Make_ZerosTensor(ctx, meta->shape);
     t.label = STR(meta->name);
 
     size_t bytes = meta->endOffset - meta->startOffset;

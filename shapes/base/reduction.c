@@ -5,9 +5,9 @@
 #include "shapes_internal.h"
 #include "value.h"
 
-static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype dtype) {
+static shapes_Value *contigousSum(Memory *m, void *position, tensor_size_t limit, shapes_Dtype dtype) {
   tensor_size_t x = 0;
-  Value sums[MAX_PARALLEL_SUMS] = {};
+  shapes_Value sums[MAX_PARALLEL_SUMS] = {};
 
   for (u8 i = 0; i < MAX_PARALLEL_SUMS; i++) {
     sums[i] = VALUE(dtype, 0);
@@ -20,7 +20,7 @@ static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype
         break;
       }
 
-      Value val;
+      shapes_Value val;
       VALUE_GET_FROM_ARR(position, x + y, &val, dtype);
       VALUE_BINOP(sums[y], sums[y], val, +);
       numComputations++;
@@ -28,7 +28,7 @@ static Value *contigousSum(Memory *m, void *position, tensor_size_t limit, Dtype
     x += numComputations;
   }
 
-  Value *sum = allocate(m, sizeof(Value));
+  shapes_Value *sum = allocate(m, sizeof(shapes_Value));
   PANIC_IF(sum == NULL, ALLOCATION_FAILED);
 
   *sum = VALUE(dtype, 0);
@@ -97,10 +97,10 @@ static Tensor sumCpu(Context *ctx, Tensor *t, dim_t dim) {
   Tensor dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
-      Value acc = VALUE(workingTensor->dtype, 0);
+      shapes_Value acc = VALUE(workingTensor->dtype, 0);
       for (dim_t r = 0; r < reduce; r++) {
         tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
-        Value value;
+        shapes_Value value;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &value, workingTensor->dtype);
         VALUE_BINOP(acc, acc, value, +);
       }
@@ -116,9 +116,9 @@ static Tensor sumCpu(Context *ctx, Tensor *t, dim_t dim) {
 static Tensor meanCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
-  Value size = VALUE(input->dtype, input->size);
-  Value mean = VALUE(input->dtype, 0);
+  shapes_Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
+  shapes_Value size = VALUE(input->dtype, input->size);
+  shapes_Value mean = VALUE(input->dtype, 0);
   VALUE_BINOP(mean, *tensorSum, size, /);
 
   Tensor dest = shapes_Make_ZerosTensor(ctx, SCALAR);
@@ -142,7 +142,7 @@ static Tensor meanDimCpu(Context *ctx, Tensor *t, dim_t dim) {
       f64 sum = 0.0;
       for (dim_t r = 0; r < reduce; r++) {
         tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
-        Value value;
+        shapes_Value value;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &value, workingTensor->dtype);
 
         switch (workingTensor->dtype) {
@@ -170,7 +170,7 @@ static Tensor meanDimCpu(Context *ctx, Tensor *t, dim_t dim) {
 static Tensor stdCpu(Context *ctx, Tensor *t) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
+  shapes_Value *tensorSum = contigousSum(ctx->memory, input->values, input->size, input->dtype);
   f64 mean = 0.0;
   switch (input->dtype) {
     case F16: mean = (f64)tensorSum->as.f16 / (f64)input->size; break;
@@ -181,7 +181,7 @@ static Tensor stdCpu(Context *ctx, Tensor *t) {
 
   f64 deviationSquaredSum = 0.0;
   for (tensor_size_t i = 0; i < input->size; i++) {
-    Value value;
+    shapes_Value value;
     VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
     f64 current = 0.0;
@@ -224,12 +224,12 @@ static Tensor maxCpu(Context *ctx, Tensor *t, dim_t dim) {
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
       tensor_size_t firstIdx = outer * reduce * numAfterDim + inner;
-      Value maxValue;
+      shapes_Value maxValue;
       VALUE_GET_FROM_ARR(workingTensor->values, firstIdx, &maxValue, workingTensor->dtype);
 
       for (dim_t r = 1; r < reduce; r++) {
         tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
-        Value candidate;
+        shapes_Value candidate;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &candidate, workingTensor->dtype);
         if (VALUE_CMP(candidate, maxValue, >, workingTensor->dtype)) {
           maxValue = candidate;
@@ -259,13 +259,13 @@ static Tensor argMaxCpu(Context *ctx, Tensor *t, dim_t dim) {
   for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
     for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
       tensor_size_t firstIdx = outer * reduce * numAfterDim + inner;
-      Value maxValue;
+      shapes_Value maxValue;
       VALUE_GET_FROM_ARR(workingTensor->values, firstIdx, &maxValue, workingTensor->dtype);
 
       i64 argMax = 0;
       for (dim_t r = 1; r < reduce; r++) {
         tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
-        Value candidate;
+        shapes_Value candidate;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &candidate, workingTensor->dtype);
         if (VALUE_CMP(candidate, maxValue, >, workingTensor->dtype)) {
           maxValue = candidate;

@@ -151,15 +151,15 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
   return OK;
 }
 
-Result shapes_layer_MaxPool2d(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest) {
+Result shapes_MaxPool2d(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, NULL);
 }
 
-Result shapes_layer_MaxPool2dWithIndices(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
+Result shapes_MaxPool2dWithIndices(Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, indices);
 }
 
-Result shapes_layer_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelShape, u8 stride, Tensor *dX) {
+Result shapes_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelShape, u8 stride, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -280,7 +280,7 @@ Result shapes_layer_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, 
   return OK;
 }
 
-Result shapes_layer_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX) {
+Result shapes_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut) || isInvalidTensor(indices)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -342,7 +342,7 @@ Result shapes_layer_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor
   return OK;
 }
 
-Result shapes_layer_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest) {
+Result shapes_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest) {
   if (ctx == NULL || dest == NULL || x == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -433,7 +433,7 @@ Result shapes_layer_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t
   return OK;
 }
 
-Result shapes_layer_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW, Tensor *dX) {
+Result shapes_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

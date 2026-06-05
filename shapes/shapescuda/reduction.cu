@@ -6,9 +6,9 @@
 #include <stddef.h>
 
 template <typename T>
-__global__ static void reduceDimKernel(const T *src, T *dest,
-                                       size_t numBeforeDim, size_t numAfterDim,
-                                       size_t reduce, ReductionOpType opType) {
+__global__ static void
+reduceDimKernel(const T *src, T *dest, size_t numBeforeDim, size_t numAfterDim,
+                size_t reduce, shapes_ReductionOpType opType) {
   size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   size_t resultSize = numBeforeDim * numAfterDim;
   if (idx >= resultSize) {
@@ -81,7 +81,7 @@ __global__ static void argmaxDimKernel(const T *src, i64 *dest,
 
 template <typename T>
 __global__ static void reduceAllKernel(const T *src, T *dest, size_t n,
-                                       ReductionOpType opType) {
+                                       shapes_ReductionOpType opType) {
   if (blockIdx.x != 0 || threadIdx.x != 0) {
     return;
   }
@@ -133,7 +133,8 @@ __global__ static void stdAllKernel(const T *src, T *dest, size_t n) {
 template <typename T>
 static Result launchReduceDimKernel(const void *src, void *dest,
                                     size_t numBeforeDim, size_t numAfterDim,
-                                    size_t reduce, ReductionOpType opType) {
+                                    size_t reduce,
+                                    shapes_ReductionOpType opType) {
   int threadsPerBlock = 256;
   size_t resultSize = numBeforeDim * numAfterDim;
   int blocks = (int)((resultSize + (size_t)threadsPerBlock - 1) /
@@ -168,7 +169,7 @@ static Result launchArgmaxDimKernel(const void *src, void *dest,
 
 template <typename T>
 static Result launchReduceAllKernel(const void *src, void *dest, size_t n,
-                                    ReductionOpType opType) {
+                                    shapes_ReductionOpType opType) {
   reduceAllKernel<<<1, 1>>>((const T *)src, (T *)dest, n, opType);
 
   cudaError_t launchError = cudaGetLastError();
@@ -189,10 +190,10 @@ static Result launchStdKernel(const void *src, void *dest, size_t n) {
   return OK;
 }
 
-extern "C" Result runCudaReduceDim(Dtype inputDtype, Dtype outputDtype,
-                                   ReductionOpType opType, const void *src,
-                                   void *dest, size_t numBeforeDim,
-                                   size_t numAfterDim, size_t reduce) {
+extern "C" Result
+runCudaReduceDim(shapes_Dtype inputDtype, shapes_Dtype outputDtype,
+                 shapes_ReductionOpType opType, const void *src, void *dest,
+                 size_t numBeforeDim, size_t numAfterDim, size_t reduce) {
   switch (opType) {
   case REDUCTION_OP_ARGMAX:
     switch (inputDtype) {
@@ -284,7 +285,8 @@ extern "C" Result runCudaReduceDim(Dtype inputDtype, Dtype outputDtype,
   }
 }
 
-extern "C" Result runCudaReduceAll(Dtype dtype, ReductionOpType opType,
+extern "C" Result runCudaReduceAll(shapes_Dtype dtype,
+                                   shapes_ReductionOpType opType,
                                    const void *src, void *dest, size_t n) {
   switch (opType) {
   case REDUCTION_OP_SUM:
@@ -322,7 +324,7 @@ extern "C" Result runCudaReduceAll(Dtype dtype, ReductionOpType opType,
   }
 }
 
-extern "C" Result runCudaStd(Dtype dtype, const void *src, void *dest,
+extern "C" Result runCudaStd(shapes_Dtype dtype, const void *src, void *dest,
                              size_t n) {
   switch (dtype) {
   case F16:

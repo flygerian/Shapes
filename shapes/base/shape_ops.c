@@ -9,18 +9,19 @@
 #include "types.h"
 #include "olib.h"
 #include <stdlib.h>
+#include "shapes_internal.h"
 
 Tensor shapes_Slice(Context *ctx, Tensor *source, ...) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
-  Range *ranges = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+  shapes_Range *ranges = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
   PANIC_IF(ranges == NULL, ERR_OUT_OF_MEMORY);
 
   va_list args;
   va_start(args, source);
 
   for (u8 x = 0; x < source->shape.numOfDims; x++) {
-    ranges[x] = va_arg(args, Range);
+    ranges[x] = va_arg(args, shapes_Range);
 
     if (ranges[x].end < ranges[x].start) {
       va_end(args);
@@ -39,17 +40,17 @@ Tensor shapes_Slice(Context *ctx, Tensor *source, ...) {
                   .numOfDims = source->shape.numOfDims,
                   .multipliers =
                       allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
-  Range *boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+  shapes_Range *boundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
   PANIC_IF(newShape.dims == NULL || newShape.multipliers == NULL || boundary == NULL,
            ALLOCATION_FAILED);
 
   for (u8 x = 0; x < source->shape.numOfDims; x++) {
-    Range r = ranges[x];
+    shapes_Range r = ranges[x];
     u32 dimsize = (r.end - r.start);
     newShape.dims[x] = dimsize;
 
     if (source->isView && source->boundary) {
-      boundary[x] = (Range){.start = source->boundary[x].start + ranges[x].start,
+      boundary[x] = (shapes_Range){.start = source->boundary[x].start + ranges[x].start,
                             .end = source->boundary[x].start + ranges[x].end};
     } else {
       boundary[x] = ranges[x];
@@ -76,7 +77,7 @@ Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
 
   void *values;
   bool isView = true;
-  Range *boundary = NULL;
+  shapes_Range *boundary = NULL;
 
   if (!source->isContigous) {
     Tensor *contiguous = copyToContiguous(ctx, source);
@@ -86,9 +87,9 @@ Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
   } else {
     values = source->values;
     if (source->boundary != NULL) {
-      boundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+      boundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
       PANIC_IF(boundary == NULL, ALLOCATION_FAILED);
-      memcpy(boundary, source->boundary, sizeof(Range) * source->shape.numOfDims);
+      memcpy(boundary, source->boundary, sizeof(shapes_Range) * source->shape.numOfDims);
     }
   }
 
@@ -168,12 +169,12 @@ Tensor shapes_Transpose(Context *ctx, Tensor *source, ...) {
   newMultipliers[transposeDims[1]] = tempMultiplier;
 
   // Deep-copy and permute boundary to avoid shared-pointer double-free.
-  Range *newBoundary = NULL;
+  shapes_Range *newBoundary = NULL;
   if (source->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
-    memcpy(newBoundary, source->boundary, sizeof(Range) * source->shape.numOfDims);
-    Range tmp = newBoundary[transposeDims[0]];
+    memcpy(newBoundary, source->boundary, sizeof(shapes_Range) * source->shape.numOfDims);
+    shapes_Range tmp = newBoundary[transposeDims[0]];
     newBoundary[transposeDims[0]] = newBoundary[transposeDims[1]];
     newBoundary[transposeDims[1]] = tmp;
   }
@@ -213,9 +214,9 @@ Tensor shapes_Permute(Context *ctx, Tensor *source, Dim order) {
     newMultipliers[i] = source->shape.multipliers[sourceDim];
   }
 
-  Range *newBoundary = NULL;
+  shapes_Range *newBoundary = NULL;
   if (source->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(Range) * source->shape.numOfDims);
+    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < order.numOfDims; i++) {
       dim_t sourceDim = order.dims[i];
@@ -286,9 +287,9 @@ Tensor shapes_Squeeze(Context *ctx, Tensor *t) {
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
   // Deep-copy boundary for surviving dims only to avoid shared-pointer double-free.
-  Range *newBoundary = NULL;
+  shapes_Range *newBoundary = NULL;
   if (t->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     u8 bIdx = 0;
     if (newNumDims == 1 && t->shape.dims[0] == 1) {
@@ -327,9 +328,9 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
     PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
     newMultipliers[0] = 1;
 
-    Range *newBoundary = NULL;
+    shapes_Range *newBoundary = NULL;
     if (t->boundary != NULL) {
-      newBoundary = allocate(ctx->memory, sizeof(Range));
+      newBoundary = allocate(ctx->memory, sizeof(shapes_Range));
       PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
       newBoundary[0] = t->boundary[0];
     }
@@ -355,9 +356,9 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
   // Deep-copy boundary excluding the squeezed dim to avoid shared-pointer double-free.
-  Range *newBoundary = NULL;
+  shapes_Range *newBoundary = NULL;
   if (t->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     u8 bIdx = 0;
     for (u8 i = 0; i < t->shape.numOfDims; i++) {
@@ -406,15 +407,15 @@ Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
   }
 
   // Deep-copy boundary with the new dimension inserted to avoid shared-pointer double-free.
-  Range *newBoundary = NULL;
+  shapes_Range *newBoundary = NULL;
   if (t->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(Range) * newNumDims);
+    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < newNumDims; i++) {
       if (i < dim) {
         newBoundary[i] = t->boundary[i];
       } else if (i == dim) {
-        newBoundary[i] = (Range){.start = 0, .end = 1};
+        newBoundary[i] = (shapes_Range){.start = 0, .end = 1};
       } else {
         newBoundary[i] = t->boundary[i - 1];
       }

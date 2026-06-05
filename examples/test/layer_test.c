@@ -15,7 +15,7 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static Tensor createScalarTensor(Context *ctx, Dtype dtype) {
+static Tensor createScalarTensor(Context *ctx, shapes_Dtype dtype) {
   Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
               .values = allocate(ctx->memory, getBytesForDtype(dtype)),

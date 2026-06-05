@@ -55,7 +55,7 @@ static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor 
 
   PANIC_IF(ones == NULL, ERR_OUT_OF_MEMORY);
 
-  Value one = {.dtype = outputGrad->dtype};
+  shapes_Value one = {.dtype = outputGrad->dtype};
   if (outputGrad->dtype == F64) {
     one.as.f64 = 1.0;
   } else {
@@ -106,7 +106,7 @@ static void accumulateConvBiasGrad(Context *ctx, Tensor *outputGrad, Tensor *dBi
   return accumulateConvBiasGradCpu(outputGrad, dBias);
 }
 
-Result shapes_layer_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
+Result shapes_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
   Tensor *inputContig = t;
   Tensor *kernelContig = kernels;
   Tensor *biasContig = bias;
@@ -203,7 +203,7 @@ Result shapes_layer_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, 
   return result;
 }
 
-Result shapes_layer_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias, bool withBias, u8 stride) {
+Result shapes_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias, bool withBias, u8 stride) {
   Tensor *inputContig = input;
   Tensor *kernelContig = kernels;
   Tensor *outputGradContig = outputGrad;
@@ -349,7 +349,7 @@ Result shapes_layer_Conv2dBackward(Context *ctx, Tensor *input, Tensor *dInput, 
   return res;
 }
 
-Result shapes_layer_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
+Result shapes_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
   if (t == NULL || dest == NULL || ctx == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -475,7 +475,7 @@ Result shapes_layer_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outC
   return OK;
 }
 
-Result shapes_layer_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
+Result shapes_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
   if (isInvalidTensor(x) || isInvalidTensor(kernels) || isInvalidTensor(gradOut) || dX == NULL || dKernels == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

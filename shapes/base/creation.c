@@ -2,6 +2,7 @@
 #include "shapes.h"
 #include "types.h"
 #include "value.h"
+#include "shapes_internal.h"
 
 #ifdef SHAPES_HAS_CUDA 
 #include "shapescuda.h"
@@ -39,83 +40,83 @@ static f64 nextRandomUnit(void) {
   return (f64)nextRandomBits() / (f64)UINT64_MAX;
 }
 
-static Value randomValueForRange(f32 minValue, f32 maxValue, Dtype dtype) {
+static shapes_Value randomValueForRange(f32 minValue, f32 maxValue, shapes_Dtype dtype) {
   switch (dtype) {
     case BOOL: {
       bool minBool = minValue != 0.0f;
       bool maxBool = maxValue != 0.0f;
       if (minBool == maxBool) {
-        return (Value){.dtype = BOOL, .as.boolean = minBool};
+        return (shapes_Value){.dtype = BOOL, .as.boolean = minBool};
       }
-      return (Value){.dtype = BOOL, .as.boolean = nextRandomBits() % 2 == 0};
+      return (shapes_Value){.dtype = BOOL, .as.boolean = nextRandomBits() % 2 == 0};
     }
     case U8: {
       u8 min = (u8)minValue;
       u8 max = (u8)maxValue;
       u64 range = (u64)max - (u64)min + 1;
-      return (Value){.dtype = U8, .as.u8 = (u8)(min + (u8)(nextRandomBits() % range))};
+      return (shapes_Value){.dtype = U8, .as.u8 = (u8)(min + (u8)(nextRandomBits() % range))};
     }
     case U16: {
       u16 min = (u16)minValue;
       u16 max = (u16)maxValue;
       u64 range = (u64)max - (u64)min + 1;
-      return (Value){.dtype = U16, .as.u16 = (u16)(min + (u16)(nextRandomBits() % range))};
+      return (shapes_Value){.dtype = U16, .as.u16 = (u16)(min + (u16)(nextRandomBits() % range))};
     }
     case U32: {
       u32 min = (u32)minValue;
       u32 max = (u32)maxValue;
       u64 range = (u64)max - (u64)min + 1;
-      return (Value){.dtype = U32, .as.u32 = (u32)(min + (u32)(nextRandomBits() % range))};
+      return (shapes_Value){.dtype = U32, .as.u32 = (u32)(min + (u32)(nextRandomBits() % range))};
     }
     case U64: {
       u64 min = (u64)minValue;
       u64 max = (u64)maxValue;
       u64 range = max - min;
       if (range == UINT64_MAX) {
-        return (Value){.dtype = U64, .as.u64 = nextRandomBits()};
+        return (shapes_Value){.dtype = U64, .as.u64 = nextRandomBits()};
       }
-      return (Value){.dtype = U64, .as.u64 = min + (nextRandomBits() % (range + 1))};
+      return (shapes_Value){.dtype = U64, .as.u64 = min + (nextRandomBits() % (range + 1))};
     }
     case I8: {
       i8 min = (i8)minValue;
       i8 max = (i8)maxValue;
       i64 range = (i64)max - (i64)min + 1;
-      return (Value){.dtype = I8, .as.i8 = (i8)(min + (i8)(nextRandomBits() % (u64)range))};
+      return (shapes_Value){.dtype = I8, .as.i8 = (i8)(min + (i8)(nextRandomBits() % (u64)range))};
     }
     case I16: {
       i16 min = (i16)minValue;
       i16 max = (i16)maxValue;
       i64 range = (i64)max - (i64)min + 1;
-      return (Value){.dtype = I16, .as.i16 = (i16)(min + (i16)(nextRandomBits() % (u64)range))};
+      return (shapes_Value){.dtype = I16, .as.i16 = (i16)(min + (i16)(nextRandomBits() % (u64)range))};
     }
     case I32: {
       i32 min = (i32)minValue;
       i32 max = (i32)maxValue;
       i64 range = (i64)max - (i64)min + 1;
-      return (Value){.dtype = I32, .as.i32 = (i32)(min + (i32)(nextRandomBits() % (u64)range))};
+      return (shapes_Value){.dtype = I32, .as.i32 = (i32)(min + (i32)(nextRandomBits() % (u64)range))};
     }
     case I64: {
       i64 min = (i64)minValue;
       i64 max = (i64)maxValue;
       u64 range = (u64)max - (u64)min;
       if (range == UINT64_MAX) {
-        return (Value){.dtype = I64, .as.i64 = (i64)nextRandomBits()};
+        return (shapes_Value){.dtype = I64, .as.i64 = (i64)nextRandomBits()};
       }
-      return (Value){.dtype = I64, .as.i64 = min + (i64)(nextRandomBits() % (range + 1))};
+      return (shapes_Value){.dtype = I64, .as.i64 = min + (i64)(nextRandomBits() % (range + 1))};
     }
     case F16: {
       f64 scale = (f64)maxValue - (f64)minValue;
-      return (Value){.dtype = F16, .as.f16 = (f16)(minValue + (f32)(nextRandomUnit() * scale))};
+      return (shapes_Value){.dtype = F16, .as.f16 = (f16)(minValue + (f32)(nextRandomUnit() * scale))};
     }
     case F32: {
       f64 scale = (f64)maxValue - (f64)minValue;
-      return (Value){.dtype = F32, .as.f32 = minValue + (f32)(nextRandomUnit() * scale)};
+      return (shapes_Value){.dtype = F32, .as.f32 = minValue + (f32)(nextRandomUnit() * scale)};
     }
     case F64: {
       f64 min = (f64)minValue;
       f64 max = (f64)maxValue;
       f64 scale = max - min;
-      return (Value){.dtype = F64, .as.f64 = min + nextRandomUnit() * scale};
+      return (shapes_Value){.dtype = F64, .as.f64 = min + nextRandomUnit() * scale};
     }
   }
 
@@ -133,7 +134,7 @@ static inline void *allocateTensorValues(Context *ctx, size_t size) {
   return allocate(ctx->memory, size);
 }
 
-static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
+static Result initTensor(Context *ctx, Tensor *dest, Dim shape, shapes_Dtype dtype) {
   if (dest == NULL) {
     return ERR_NULL_PTR;
   }
@@ -161,13 +162,13 @@ static Result initTensor(Context *ctx, Tensor *dest, Dim shape, Dtype dtype) {
   return OK;
 }
 
-Tensor t_Empty(Context *ctx, Dim shape, Dtype type) {
+Tensor t_Empty(Context *ctx, Dim shape, shapes_Dtype type) {
   Tensor t = {};
   PANIC_IF(initTensor(ctx, &t, shape, type) != OK, ALLOCATION_FAILED);
   return t;
 }
 
-static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, Dtype type, bool withGrad) {
+static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, shapes_Dtype type, bool withGrad) {
   Dim tShape = {.numOfDims = shape.numOfDims};
   if (shape.numOfDims > 0) {
     tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
@@ -188,11 +189,11 @@ static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, Dtype type, bool withG
   return t;
 }
 
-Tensor t_Zeros(Context *ctx, Dim shape, Dtype type) {
+Tensor t_Zeros(Context *ctx, Dim shape, shapes_Dtype type) {
   return zeroTensorWithGrad(ctx, shape, type, true);
 }
 
-Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, Dtype type) {
+Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type) {
   PANIC_IF(source == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim >= source->shape.numOfDims, ERR_OUT_OF_BOUNDS);
 
@@ -273,7 +274,7 @@ void shapes_Copy(Context *ctx, Tensor *src, Tensor *dest) {
   PANIC_IF(copyRes != OK, copyRes);
 }
 
-void shapes_SetValues(Tensor *t, Value value) {
+void shapes_SetValues(Tensor *t, shapes_Value value) {
   if (t->context != NULL && t->context->device != NULL && t->context->device->type == CUDA) {
     Result result = runCudaFillTensor(t->dtype, t->values, t->size, value);
     if (result == OK) {
@@ -288,33 +289,33 @@ void shapes_SetValues(Tensor *t, Value value) {
 
 Tensor shapes_Make_IntTensor(Context *ctx, Dim shape, i8 initialValue) {
   Tensor init = t_Zeros(ctx, shape, I8);
-  Value v = (Value){.dtype = I8, .as.i8 = initialValue};
+  shapes_Value v = (shapes_Value){.dtype = I8, .as.i8 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
 Tensor shapes_Make_UIntTensor(Context *ctx, Dim shape, u8 initialValue) {
   Tensor init = t_Zeros(ctx, shape, U8);
-  Value v = (Value){.dtype = U8, .as.u8 = initialValue};
+  shapes_Value v = (shapes_Value){.dtype = U8, .as.u8 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
 Tensor shapes_Make_FloatTensor(Context *ctx, Dim shape, f32 initialValue) {
   Tensor init = t_Zeros(ctx, shape, F32);
-  Value v = (Value){.dtype = F32, .as.f32 = initialValue};
+  shapes_Value v = (shapes_Value){.dtype = F32, .as.f32 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
 Tensor shapes_Make_Float64Tensor(Context *ctx, Dim shape, f64 initialValue) {
   Tensor init = t_Zeros(ctx, shape, F64);
-  Value v = (Value){.dtype = F64, .as.f64 = initialValue};
+  shapes_Value v = (shapes_Value){.dtype = F64, .as.f64 = initialValue};
   shapes_SetValues(&init, v);
   return init;
 }
 
-Tensor shapes_Make_FromContigousArray(Context *ctx, Dim shape, void *values, Dtype dtype) {
+Tensor shapes_Make_FromContigousArray(Context *ctx, Dim shape, void *values, shapes_Dtype dtype) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(values == NULL, ERR_NULL_PTR);
 
@@ -331,7 +332,7 @@ Tensor shapes_Make_FromContigousArray(Context *ctx, Dim shape, void *values, Dty
   return tensor;
 }
 
-Tensor shapes_Make_RandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, Dtype dtype) {
+Tensor shapes_Make_RandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype) {
   PANIC_IF(minValue > maxValue, ERR_INVALID_RANGE);
 
   Tensor tensor = t_Zeros(ctx, shape, dtype);
@@ -426,7 +427,7 @@ Tensor shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses)
   // For each element in indices, set the corresponding position to 1.0
   dim_t lastDimStride = numClasses;
   for (tensor_size_t i = 0; i < source->size; i++) {
-    Value idxVal;
+    shapes_Value idxVal;
     Result readResult = readTensorValueAtFlatIndex(source, i, &idxVal);
     PANIC_IF(readResult != OK, readResult);
 
@@ -450,7 +451,7 @@ Tensor shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses)
     }
 
     tensor_size_t outIdx = i * lastDimStride + (tensor_size_t)classIdx;
-    Result writeResult = writeTensorValueAtFlatIndex(&out, outIdx, (Value){.dtype = F32, .as.f32 = 1.0f});
+    Result writeResult = writeTensorValueAtFlatIndex(&out, outIdx, (shapes_Value){.dtype = F32, .as.f32 = 1.0f});
     PANIC_IF(writeResult != OK, ERR_NO_OP);
   }
 

@@ -62,7 +62,7 @@ static Result launchConvBiasBackward(const void *outputGrad, void *dBias,
   return OK;
 }
 
-extern "C" Result runCudaConvBiasAdd(Dtype dtype, void *output,
+extern "C" Result runCudaConvBiasAdd(shapes_Dtype dtype, void *output,
                                      const void *bias, size_t numValues,
                                      size_t channels) {
   switch (dtype) {
@@ -77,9 +77,9 @@ extern "C" Result runCudaConvBiasAdd(Dtype dtype, void *output,
   }
 }
 
-extern "C" Result runCudaConvBiasBackward(Dtype dtype, const void *outputGrad,
-                                          void *dBias, size_t numValues,
-                                          size_t channels) {
+extern "C" Result runCudaConvBiasBackward(shapes_Dtype dtype,
+                                          const void *outputGrad, void *dBias,
+                                          size_t numValues, size_t channels) {
   switch (dtype) {
   case F16:
     return ERR_DTYPE_MISMATCH;

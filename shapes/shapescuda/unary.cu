@@ -27,7 +27,8 @@ static void logCudaReluError(const char *phase, cudaError_t error, size_t n,
 }
 
 template <typename T>
-__device__ static T applyUnaryOp(T value, UnaryOpType opType, float param) {
+__device__ static T applyUnaryOp(T value, shapes_UnaryOpType opType,
+                                 float param) {
   switch (opType) {
   case UNARY_OP_POW:
     return (T)pow((double)value, (double)param);
@@ -51,7 +52,7 @@ __device__ static T applyUnaryOp(T value, UnaryOpType opType, float param) {
 }
 
 template <>
-__device__ bool applyUnaryOp<bool>(bool value, UnaryOpType opType,
+__device__ bool applyUnaryOp<bool>(bool value, shapes_UnaryOpType opType,
                                    float param) {
   (void)opType;
   (void)param;
@@ -60,7 +61,7 @@ __device__ bool applyUnaryOp<bool>(bool value, UnaryOpType opType,
 
 template <typename T>
 __global__ static void unaryOpKernel(const T *src, T *dest, size_t n,
-                                     UnaryOpType opType, float param) {
+                                     shapes_UnaryOpType opType, float param) {
   size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n) {
     return;
@@ -94,7 +95,7 @@ __global__ static void reluBackwardAccumulateKernel(const T *output,
 
 template <typename T>
 static Result launchUnaryOpKernel(const void *src, void *dest, size_t n,
-                                  UnaryOpType opType, float param) {
+                                  shapes_UnaryOpType opType, float param) {
   int threadsPerBlock = 256;
   int blocks =
       (int)((n + (size_t)threadsPerBlock - 1) / (size_t)threadsPerBlock);
@@ -164,7 +165,7 @@ static Result launchReluBackwardAccumulateKernel(const void *output,
   return OK;
 }
 
-extern "C" Result runCudaUnaryOp(Dtype dtype, UnaryOpType opType,
+extern "C" Result runCudaUnaryOp(shapes_Dtype dtype, shapes_UnaryOpType opType,
                                  const void *src, void *dest, size_t n,
                                  f32 param) {
   switch (dtype) {
@@ -187,7 +188,7 @@ extern "C" Result runCudaUnaryOp(Dtype dtype, UnaryOpType opType,
   }
 }
 
-extern "C" Result runCudaReluBackward(Dtype dtype, const void *output,
+extern "C" Result runCudaReluBackward(shapes_Dtype dtype, const void *output,
                                       const void *gradOut, void *dest,
                                       size_t n) {
   switch (dtype) {
@@ -202,7 +203,8 @@ extern "C" Result runCudaReluBackward(Dtype dtype, const void *output,
   }
 }
 
-extern "C" Result runCudaReluBackwardAccumulate(Dtype dtype, const void *output,
+extern "C" Result runCudaReluBackwardAccumulate(shapes_Dtype dtype,
+                                                const void *output,
                                                 const void *gradOut, void *dest,
                                                 size_t n) {
   switch (dtype) {
