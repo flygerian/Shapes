@@ -58,14 +58,14 @@ static Result maxPool2dImpl(Context *ctx, Tensor *x, Dim kernelShape, u8 stride,
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Result res = OK;
 
-  Tensor *createdDest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
   *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
   PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
   *dest = *createdDest;
 
   if (indices != NULL) {
-    Tensor *createdIndices = allocate(ctx->memory, sizeof(Tensor));
+    Tensor *createdIndices = olib_Allocate(ctx->memory, sizeof(Tensor));
     PANIC_IF(createdIndices == NULL, ALLOCATION_FAILED);
     *createdIndices = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), U64);
     PANIC_IF(createdIndices == NULL, ERR_OUT_OF_MEMORY);
@@ -204,7 +204,7 @@ Result shapes_MaxPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut, Dim ke
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  Tensor *createdDX = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
@@ -308,7 +308,7 @@ Result shapes_MaxPool2dBackwardWithIndices(Context *ctx, Tensor *x, Tensor *grad
   Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
 
-  Tensor *createdDX = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
@@ -367,7 +367,7 @@ Result shapes_AdaptiveAvgPool2d(Context *ctx, Tensor *x, dim_t outH, dim_t outW,
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Result res = OK;
 
-  Tensor *createdDest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
   *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
   PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
@@ -461,7 +461,7 @@ Result shapes_AdaptiveAvgPool2dBackward(Context *ctx, Tensor *x, Tensor *gradOut
 
   Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  Tensor *createdDX = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);

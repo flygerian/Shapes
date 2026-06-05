@@ -33,7 +33,7 @@ BatchNormFowardResult shapes_BatchNormForwardTraining(Context *ctx, Tensor *x2d,
     f64 *meanAcrossBatch = mean.values;
     f64 *varianceAcrossBatch = variance.values;
 
-    f64 *invStd = allocate(ctx->memory, sizeof(f64) * numFeatures);
+    f64 *invStd = olib_Allocate(ctx->memory, sizeof(f64) * numFeatures);
     PANIC_IF(invStd == NULL, ALLOCATION_FAILED);
 
     memset(meanAcrossBatch, 0, sizeof(f64) * numFeatures);
@@ -77,7 +77,7 @@ BatchNormFowardResult shapes_BatchNormForwardTraining(Context *ctx, Tensor *x2d,
     f32 *outVals = out.values;
     f32 *meanAcrossBatch = mean.values;
     f32 *varianceAcrossBatch = variance.values;
-    f32 *invStd = allocate(ctx->memory, sizeof(f32) * numFeatures);
+    f32 *invStd = olib_Allocate(ctx->memory, sizeof(f32) * numFeatures);
     PANIC_IF(invStd == NULL, ERR_OUT_OF_MEMORY);
 
     memset(meanAcrossBatch, 0, sizeof(f32) * numFeatures);
@@ -147,11 +147,11 @@ BatchNormBackwardResult shapes_BatchNormBackward(Context *ctx, Tensor *x2d, Tens
     f64 *dGammaVals = dGamma.values;
     f64 *dBetaVals = dBeta.values;
 
-    f64 *mean = allocate(ctx->memory, sizeof(f64) * n);
-    f64 *var = allocate(ctx->memory, sizeof(f64) * n);
-    f64 *invStd = allocate(ctx->memory, sizeof(f64) * n);
-    f64 *sumDXHat = allocate(ctx->memory, sizeof(f64) * n);
-    f64 *sumDXHatXHat = allocate(ctx->memory, sizeof(f64) * n);
+    f64 *mean = olib_Allocate(ctx->memory, sizeof(f64) * n);
+    f64 *var = olib_Allocate(ctx->memory, sizeof(f64) * n);
+    f64 *invStd = olib_Allocate(ctx->memory, sizeof(f64) * n);
+    f64 *sumDXHat = olib_Allocate(ctx->memory, sizeof(f64) * n);
+    f64 *sumDXHatXHat = olib_Allocate(ctx->memory, sizeof(f64) * n);
     PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
 
     memset(mean, 0, sizeof(f64) * n);
@@ -220,11 +220,11 @@ BatchNormBackwardResult shapes_BatchNormBackward(Context *ctx, Tensor *x2d, Tens
     f32 *dGammaVals = dGamma.values;
     f32 *dBetaVals = dBeta.values;
 
-    f32 *mean = allocate(ctx->memory, sizeof(f32) * n);
-    f32 *var = allocate(ctx->memory, sizeof(f32) * n);
-    f32 *invStd = allocate(ctx->memory, sizeof(f32) * n);
-    f32 *sumDXHat = allocate(ctx->memory, sizeof(f32) * n);
-    f32 *sumDXHatXHat = allocate(ctx->memory, sizeof(f32) * n);
+    f32 *mean = olib_Allocate(ctx->memory, sizeof(f32) * n);
+    f32 *var = olib_Allocate(ctx->memory, sizeof(f32) * n);
+    f32 *invStd = olib_Allocate(ctx->memory, sizeof(f32) * n);
+    f32 *sumDXHat = olib_Allocate(ctx->memory, sizeof(f32) * n);
+    f32 *sumDXHatXHat = olib_Allocate(ctx->memory, sizeof(f32) * n);
     PANIC_IF(mean == NULL || var == NULL || invStd == NULL || sumDXHat == NULL || sumDXHatXHat == NULL, ERR_OUT_OF_MEMORY);
 
     memset(mean, 0, sizeof(f32) * n);

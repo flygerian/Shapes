@@ -6,11 +6,11 @@
 
 typedef struct {
   Tensor tensor;
-  Memory *mem;
+  olib_Memory *mem;
 } TestTensor;
 
 static TestTensor createZerosTensor(dim_t *dims, u8 numOfDims) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (Dim){.dims = dims, .numOfDims = numOfDims});
   return (TestTensor){.tensor = *t, .mem = mem};
@@ -19,7 +19,7 @@ static TestTensor createZerosTensor(dim_t *dims, u8 numOfDims) {
 static Tensor createScalarTensor(Context *ctx, shapes_Dtype dtype) {
   Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
-              .values = allocate(ctx->memory, getBytesForDtype(dtype)),
+              .values = olib_Allocate(ctx->memory, getBytesForDtype(dtype)),
               .boundary = NULL,
               .size = 1,
               .shape = (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL},
@@ -54,7 +54,7 @@ static void test_zeros_values_are_zero(void) {
 }
 
 static void test_int_creates_tensor_with_value(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -75,7 +75,7 @@ static void test_int_creates_tensor_with_value(void) {
 }
 
 static void test_make_random_tensor_respects_float_range_and_dtype(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE2D(3, 4), -2.5f, 4.0f, F32);
@@ -96,7 +96,7 @@ static void test_make_random_tensor_respects_float_range_and_dtype(void) {
 }
 
 static void test_make_random_tensor_uses_constant_range_value(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE1D(8), 7.0f, 7.0f, I16);
@@ -117,7 +117,7 @@ static void test_make_random_tensor_uses_constant_range_value(void) {
 }
 
 static void test_make_random_tensor_generates_varied_int_values(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE1D(128), 10.0f, 12.0f, U8);
@@ -143,7 +143,7 @@ static void test_make_random_tensor_generates_varied_int_values(void) {
 }
 
 static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   f32 values[] = {1.5f, -2.0f, 3.25f, 4.0f};
@@ -235,7 +235,7 @@ static void test_multipliers_support_large_strides(void) {
 static void test_assign_value_success(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {1, 2};
@@ -252,7 +252,7 @@ static void test_assign_value_success(void) {
 static void test_assign_value_dtype_mismatch(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {0, 0};
@@ -266,7 +266,7 @@ static void test_assign_value_dtype_mismatch(void) {
 static void test_assign_value_dim_mismatch(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {0, 0, 0};
@@ -280,7 +280,7 @@ static void test_assign_value_dim_mismatch(void) {
 static void test_assign_value_out_of_bounds(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
@@ -292,7 +292,7 @@ static void test_assign_value_out_of_bounds(void) {
 }
 
 static void test_assign_value_null_tensor(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {0, 0};
@@ -306,7 +306,7 @@ static void test_assign_value_null_tensor(void) {
 static void test_assign_value_only_modifies_target_index(void) {
   dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {1, 2};
@@ -337,7 +337,7 @@ static void test_assign_value_only_modifies_target_index(void) {
 static void test_assign_value_multiple_indices(void) {
   dim_t dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx0[] = {0, 0};
@@ -361,7 +361,7 @@ static void test_assign_value_multiple_indices(void) {
 static void test_get_at_success(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t idx_dims[] = {1, 2};
@@ -424,7 +424,7 @@ static void test_get_at_null_result(void) {
 static void test_slice_basic_2d(void) {
   dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate tensor with values for testing
@@ -447,7 +447,7 @@ static void test_slice_basic_2d(void) {
 static void test_slice_shares_data_with_source(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Set a value in source
@@ -463,7 +463,7 @@ static void test_slice_shares_data_with_source(void) {
 static void test_slice_get_at_correct_values(void) {
   dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate: value at [i,j] = i*5 + j
@@ -494,7 +494,7 @@ static void test_slice_get_at_correct_values(void) {
 static void test_slice_single_element_range(void) {
   dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Set value at [2,3]
@@ -516,7 +516,7 @@ static void test_slice_single_element_range(void) {
 static void test_slice_full_range(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
@@ -528,7 +528,7 @@ static void test_slice_full_range(void) {
 static void test_slice_1d_tensor(void) {
   dim_t dims[] = {10};
   TestTensor tt = createZerosTensor(dims, 1);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate with values 0-9
@@ -557,7 +557,7 @@ static void test_slice_1d_tensor(void) {
 static void test_slice_modify_reflects_in_source(void) {
   dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
@@ -577,7 +577,7 @@ static void test_slice_modify_reflects_in_source(void) {
 static void test_slice_of_slice(void) {
   dim_t dims[] = {6, 6};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate: value at [i,j] = i*6 + j
@@ -609,7 +609,7 @@ static void test_slice_of_slice(void) {
 static void test_slice_large_4d_tensor(void) {
   dim_t dims[] = {8, 10, 12, 6}; // 8x10x12x6 = 5760 elements
   TestTensor tt = createZerosTensor(dims, 4);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate: value at [i,j,k,l] = (i*10*12*6 + j*12*6 + k*6 + l) % 256
@@ -678,7 +678,7 @@ static void test_slice_large_4d_tensor(void) {
 static void test_reshape_basic_2d_to_1d(void) {
   dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t new_dims[] = {12};
@@ -693,7 +693,7 @@ static void test_reshape_basic_2d_to_1d(void) {
 static void test_reshape_1d_to_2d(void) {
   dim_t dims[] = {24};
   TestTensor tt = createZerosTensor(dims, 1);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t new_dims[] = {4, 6};
@@ -709,7 +709,7 @@ static void test_reshape_1d_to_2d(void) {
 static void test_reshape_preserves_data(void) {
   dim_t dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate with sequential values
@@ -738,7 +738,7 @@ static void test_reshape_preserves_data(void) {
 static void test_reshape_shares_data_with_source(void) {
   dim_t dims[] = {4, 3};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   dim_t new_dims[] = {2, 6};
@@ -762,7 +762,7 @@ static void test_reshape_shares_data_with_source(void) {
 static void test_reshape_3d_to_2d(void) {
   dim_t dims[] = {2, 3, 4}; // 24 elements
   TestTensor tt = createZerosTensor(dims, 3);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate
@@ -798,7 +798,7 @@ static void test_reshape_3d_to_2d(void) {
 static void test_reshape_view(void) {
   dim_t dims[] = {6, 6}; // 36 elements
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate
@@ -827,7 +827,7 @@ static void test_reshape_view(void) {
 static void test_reshape_3d_view(void) {
   dim_t dims[] = {4, 5, 6}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 3);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate
@@ -868,7 +868,7 @@ static void test_reshape_3d_view(void) {
 static void test_reshape_4d_view(void) {
   dim_t dims[] = {3, 4, 5, 6}; // 360 elements
   TestTensor tt = createZerosTensor(dims, 4);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate with pattern
@@ -909,7 +909,7 @@ static void test_reshape_4d_view(void) {
 static void test_reshape_4d_view_to_1d(void) {
   dim_t dims[] = {2, 3, 4, 5}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 4);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate sequentially
@@ -948,7 +948,7 @@ static void test_reshape_4d_view_to_1d(void) {
 static void test_reshape_then_access_elements(void) {
   dim_t dims[] = {2, 2, 3}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 3);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate with values 0-11
@@ -992,7 +992,7 @@ static void test_reshape_then_access_elements(void) {
 static void test_transpose_basic_2d(void) {
   dim_t dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
@@ -1006,7 +1006,7 @@ static void test_transpose_basic_2d(void) {
 static void test_transpose_swaps_dims_and_multipliers(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   multiplier_t orig_mult_0 = tt.tensor.shape.multipliers[0];
@@ -1021,7 +1021,7 @@ static void test_transpose_swaps_dims_and_multipliers(void) {
 static void test_transpose_shares_data(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
@@ -1032,7 +1032,7 @@ static void test_transpose_shares_data(void) {
 static void test_transpose_access_elements(void) {
   dim_t dims[] = {2, 3};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate: source[i,j] = i*3 + j
@@ -1075,7 +1075,7 @@ static void test_transpose_access_elements(void) {
 static void test_transpose_3d(void) {
   dim_t dims[] = {2, 3, 4}; // 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate: source[i,j,k] = i*12 + j*4 + k
@@ -1113,7 +1113,7 @@ static void test_transpose_3d(void) {
 static void test_reshape_after_transpose_copies(void) {
   dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate
@@ -1160,7 +1160,7 @@ static void test_reshape_after_transpose_copies(void) {
 
 // shapes_Add tests
 static void test_add_basic_same_shape(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -1190,7 +1190,7 @@ static void test_add_basic_same_shape(void) {
 }
 
 static void test_add_broadcast_row_vector(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [1, 3] -> broadcast b across rows
@@ -1229,7 +1229,7 @@ static void test_add_broadcast_row_vector(void) {
 }
 
 static void test_add_broadcast_col_vector(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [2, 1] -> broadcast b across cols
@@ -1268,7 +1268,7 @@ static void test_add_broadcast_col_vector(void) {
 }
 
 static void test_add_broadcast_scalar(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [1, 1] -> broadcast scalar b to all elements
@@ -1301,7 +1301,7 @@ static void test_add_broadcast_scalar(void) {
 }
 
 static void test_add_1d_tensors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {4};
@@ -1329,7 +1329,7 @@ static void test_add_1d_tensors(void) {
 
 // shapes_Subtract tests
 static void test_subtract_basic_same_shape(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -1359,7 +1359,7 @@ static void test_subtract_basic_same_shape(void) {
 }
 
 static void test_subtract_broadcast(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims_a[] = {2, 3};
@@ -1394,7 +1394,7 @@ static void test_subtract_broadcast(void) {
 
 // shapes_Multiply tests
 static void test_multiply_basic_same_shape(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -1425,7 +1425,7 @@ static void test_multiply_basic_same_shape(void) {
 }
 
 static void test_multiply_broadcast_scalar(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims_a[] = {2, 3};
@@ -1459,7 +1459,7 @@ static void test_multiply_broadcast_scalar(void) {
 
 // Divide tests
 static void test_divide_basic_same_shape(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -1488,7 +1488,7 @@ static void test_divide_basic_same_shape(void) {
 }
 
 static void test_divide_broadcast(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims_a[] = {2, 3};
@@ -1527,7 +1527,7 @@ static void test_divide_broadcast(void) {
 }
 
 static void test_add_non_contiguous_transposed(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [3, 2] transposed to [2, 3]
@@ -1574,7 +1574,7 @@ static void test_add_non_contiguous_transposed(void) {
 }
 
 static void test_add_2d_plus_1d_broadcast(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [3] -> broadcast 1D across rows
@@ -1614,7 +1614,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
 
 // Comparison binary op tests
 static void test_greater_than_basic_same_shape(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -1640,7 +1640,7 @@ static void test_greater_than_basic_same_shape(void) {
 }
 
 static void test_greater_or_equal_and_less_or_equal(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -1672,7 +1672,7 @@ static void test_greater_or_equal_and_less_or_equal(void) {
 }
 
 static void test_less_than_broadcast_row_vector(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {2, 3};
@@ -1705,7 +1705,7 @@ static void test_less_than_broadcast_row_vector(void) {
 
 // shapes_Sum tests
 static void test_sum_dim0_2d(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
@@ -1735,7 +1735,7 @@ static void test_sum_dim0_2d(void) {
 }
 
 static void test_sum_dim1_2d(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
@@ -1764,7 +1764,7 @@ static void test_sum_dim1_2d(void) {
 }
 
 static void test_sum_3d_middle_dim(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x3x2 tensor
@@ -1801,7 +1801,7 @@ static void test_sum_3d_middle_dim(void) {
 }
 
 static void test_sum_non_contiguous(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Create 3x2, transpose to 2x3, then sum
@@ -1831,7 +1831,7 @@ static void test_sum_non_contiguous(void) {
 }
 
 static void test_sum_1d_tensor(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {5};
@@ -1856,7 +1856,7 @@ static void test_sum_1d_tensor(void) {
 }
 
 static void test_sum_4d_dim0(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x2x2x3 tensor
@@ -1897,7 +1897,7 @@ static void test_sum_4d_dim0(void) {
 }
 
 static void test_sum_4d_dim1(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x3x2x2 tensor
@@ -1938,7 +1938,7 @@ static void test_sum_4d_dim1(void) {
 }
 
 static void test_sum_4d_dim3(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x2x2x4 tensor
@@ -1979,7 +1979,7 @@ static void test_sum_4d_dim3(void) {
 }
 
 static void test_sum_multiple_reduces_3d(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x3x4 tensor
@@ -2025,7 +2025,7 @@ static void test_sum_multiple_reduces_3d(void) {
 }
 
 static void test_sum_multiple_reduces_4d(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x2x3x2 tensor (24 elements)
@@ -2064,7 +2064,7 @@ static void test_sum_multiple_reduces_4d(void) {
 }
 
 static void test_sum_reduce_to_scalar_2d(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 3x4 tensor
@@ -2095,7 +2095,7 @@ static void test_sum_reduce_to_scalar_2d(void) {
 }
 
 static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE1D(3), 0.0f);
@@ -2116,7 +2116,7 @@ static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
 }
 
 static void test_reduce_broadcast_sums_singleton_input_dims(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 1, 2), 0.0f);
@@ -2142,7 +2142,7 @@ static void test_reduce_broadcast_sums_singleton_input_dims(void) {
 }
 
 static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE2D(1, 3), 0.0f);
@@ -2167,7 +2167,7 @@ static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void
 
 // Squeeze tests
 static void test_squeeze_removes_single_dims(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [1, 3, 1, 4] -> [3, 4]
@@ -2184,7 +2184,7 @@ static void test_squeeze_removes_single_dims(void) {
 }
 
 static void test_squeeze_middle_dim(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [2, 1, 3] -> [2, 3]
@@ -2200,7 +2200,7 @@ static void test_squeeze_middle_dim(void) {
 }
 
 static void test_squeeze_no_single_dims(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [2, 3, 4] -> [2, 3, 4] (unchanged)
@@ -2217,7 +2217,7 @@ static void test_squeeze_no_single_dims(void) {
 }
 
 static void test_squeeze_all_ones(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [1, 1, 1] -> [1]
@@ -2233,7 +2233,7 @@ static void test_squeeze_all_ones(void) {
 }
 
 static void test_squeeze_scalar_preserves_zero_dims(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor scalar = createScalarTensor(&ctx, F32);
@@ -2249,7 +2249,7 @@ static void test_squeeze_scalar_preserves_zero_dims(void) {
 }
 
 static void test_squeeze_shares_data(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {1, 3};
@@ -2275,15 +2275,15 @@ static void squeezeTestBackward(Context *ctx, Tensor *tensor) {
 }
 
 static void test_squeeze_preserves_grad_and_graph_metadata(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {1, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (Dim){.dims = dims, .numOfDims = 2});
   Tensor *input = shapes_Make_ZerosTensor(&ctx, SHAPE1D(3));
 
-  t->inputs = MakeArray(ctx.memory, sizeof(Tensor *), 1);
-  Array_Append(t->inputs, &input);
+  t->inputs = olib_MakeArray(ctx.memory, sizeof(Tensor *), 1);
+  olib_ArrayAppend(t->inputs, &input);
   t->opType = OP_DENSE;
 
   Tensor *squeezed = Squeeze(&ctx, t);
@@ -2295,7 +2295,7 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
 }
 
 static void test_squeeze_dim_specific(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [1, 3, 1, 4] squeeze dim 0 -> [3, 1, 4]
@@ -2319,7 +2319,7 @@ static void test_squeeze_dim_specific(void) {
 }
 
 static void test_squeeze_after_sum(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 2x3 tensor
@@ -2350,7 +2350,7 @@ static void test_squeeze_after_sum(void) {
 
 // UnSqueeze tests
 static void test_unsqueeze_dim0(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [3, 4] -> [1, 3, 4]
@@ -2368,7 +2368,7 @@ static void test_unsqueeze_dim0(void) {
 }
 
 static void test_unsqueeze_middle(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [3, 4] -> [3, 1, 4]
@@ -2385,7 +2385,7 @@ static void test_unsqueeze_middle(void) {
 }
 
 static void test_unsqueeze_end(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [3, 4] -> [3, 4, 1]
@@ -2402,7 +2402,7 @@ static void test_unsqueeze_end(void) {
 }
 
 static void test_unsqueeze_1d(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [5] -> [1, 5]
@@ -2418,7 +2418,7 @@ static void test_unsqueeze_1d(void) {
 }
 
 static void test_unsqueeze_shares_data(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -2438,7 +2438,7 @@ static void test_unsqueeze_shares_data(void) {
 }
 
 static void test_unsqueeze_non_contiguous(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Create 2x3, transpose to 3x2, then unsqueeze
@@ -2487,7 +2487,7 @@ static void test_unsqueeze_non_contiguous(void) {
 }
 
 static void test_squeeze_unsqueeze_roundtrip(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // [2, 3] -> squeeze (no change) -> unsqueeze dim 1 -> [2, 1, 3] -> squeeze -> [2, 3]
@@ -2520,7 +2520,7 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
 
 // shapes_Clone tests
 static void test_clone_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -2549,7 +2549,7 @@ static void test_clone_basic(void) {
 }
 
 static void test_clone_independent_data(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -2572,7 +2572,7 @@ static void test_clone_independent_data(void) {
 }
 
 static void test_clone_slice(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {4, 4};
@@ -2610,7 +2610,7 @@ static void test_clone_slice(void) {
 }
 
 static void test_clone_transposed(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -2646,7 +2646,7 @@ static void test_clone_transposed(void) {
 
 // Test 1: shapes_Slice boundary propagation – shapes_GetAt on a 2D slice with non-zero starts
 static void test_view_slice_boundary_propagation(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 4x5 tensor, values[i][j] = i*5 + j
@@ -2688,7 +2688,7 @@ static void test_view_slice_boundary_propagation(void) {
 
 // Test 2: Nested slice correctness
 static void test_view_nested_slice_correctness(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 6x6 tensor, values[i][j] = i*6 + j
@@ -2733,7 +2733,7 @@ static void test_view_nested_slice_correctness(void) {
 
 // Test 3: GetTensorAt on a sliced tensor
 static void test_view_get_tensor_at_on_slice(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 5x4 tensor, values[i][j] = i*4 + j
@@ -2766,7 +2766,7 @@ static void test_view_get_tensor_at_on_slice(void) {
 
 // Test 4: Advanced indexing on view input (read correctness)
 static void test_view_advanced_indexing_on_slice(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 6x4 tensor, values[i][j] = i*4 + j
@@ -2808,7 +2808,7 @@ static void test_view_advanced_indexing_on_slice(void) {
 
 // Test: shapes_AddInPlace on a slice view mutates the correct region of the base tensor
 static void test_add_in_place_on_slice_view(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 4x4 base tensor with values [0..15]
@@ -2841,7 +2841,7 @@ static void test_add_in_place_on_slice_view(void) {
 // Test: Boundary deep-copy safety - each view gets its own boundary array
 // so modifying or zeroing one boundary does not corrupt another.
 static void test_view_boundary_deep_copy_transpose(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // 3x4 base tensor, values[i][j] = i*4 + j (0..11)
@@ -2889,7 +2889,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
 static void test_slice_boundary_access(void) {
   dim_t dims[] = {5, 5};
   TestTensor tt = createZerosTensor(dims, 2);
-  Memory *mem = tt.mem;
+  olib_Memory *mem = tt.mem;
   Context ctx = {.memory = mem};
 
   // Populate
@@ -2928,14 +2928,14 @@ static void test_slice_boundary_access(void) {
 }
 
 static Tensor createF32Tensor(Context *ctx, dim_t *dims, u8 numOfDims, float *values, tensor_size_t size) {
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
+  multiplier_t *multipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
   tensor_size_t mult = 1;
   for (int i = numOfDims - 1; i >= 0; i--) {
     multipliers[i] = mult;
     mult *= dims[i];
   }
 
-  float *vals = allocate(ctx->memory, sizeof(float) * size);
+  float *vals = olib_Allocate(ctx->memory, sizeof(float) * size);
   memcpy(vals, values, sizeof(float) * size);
 
   return (Tensor){.dtype = F32,
@@ -3054,7 +3054,7 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
@@ -3083,7 +3083,7 @@ static void test_subtract_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
@@ -3111,7 +3111,7 @@ static void test_multiply_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
@@ -3139,7 +3139,7 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
   Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
   Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
@@ -3163,7 +3163,7 @@ static void test_sum_gpu_dispatch_basic(void) {
   float expected[] = {5, 7, 9};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
@@ -3189,7 +3189,7 @@ static void test_mean_gpu_dispatch_basic(void) {
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
 
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
@@ -3214,7 +3214,7 @@ static void test_argmax_gpu_dispatch_basic(void) {
   i64 expected[] = {1, 0, 1};
 
   Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
-  Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
@@ -3227,7 +3227,7 @@ static void test_argmax_gpu_dispatch_basic(void) {
 }
 
 static void test_index_accumulate_1d_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t destDims[] = {3, 2};
@@ -3268,7 +3268,7 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 2);
   Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, indices);
   Array_AppendTensor(toMove, srcGrad);
   MoveToCuda(&ctx, toMove);
@@ -3295,7 +3295,7 @@ static void test_index_with_tensor_gpu_dispatch_basic(void) {
   Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 2, sourceValues, 6);
   Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, source);
   Array_AppendTensor(toMove, indices);
   MoveToCuda(&ctx, toMove);
@@ -3326,7 +3326,7 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   Tensor *rowIndices = createHostI32Tensor(&hostCtx, indexDims, 1, rowValues, 2);
   Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, rowIndices);
   Array_AppendTensor(toMove, colIndices);
   Array_AppendTensor(toMove, source);
@@ -3357,7 +3357,7 @@ static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
   Tensor *toAdd = createHostF32Tensor(&hostCtx, addDims, 2, addValues, 2);
   Tensor *tensors[] = {toAdd};
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, target);
   Array_AppendTensor(toMove, toAdd);
   MoveToCuda(&ctx, toMove);
@@ -3429,10 +3429,10 @@ static void test_cuda_allocator_reuses_freed_blocks(void) {
 
   Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
-  void *first = allocate(ctx.memory, 1024);
+  void *first = olib_Allocate(ctx.memory, 1024);
   ASSERT_NOT_NULL(first, "CUDA allocator should allocate device memory");
 
-  void *second = allocate(ctx.memory, 1024);
+  void *second = olib_Allocate(ctx.memory, 1024);
   ASSERT_NOT_NULL(second, "CUDA allocator should reuse cached device memory");
   ASSERT_EQ(first, second, "CUDA allocator should reuse a matching freed block");
 
@@ -3440,7 +3440,7 @@ static void test_cuda_allocator_reuses_freed_blocks(void) {
 }
 
 static void test_matmul_2d_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {2, 3};
@@ -3466,7 +3466,7 @@ static void test_matmul_2d_basic(void) {
 }
 
 static void test_matmul_2d_non_square(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {2, 4};
@@ -3490,7 +3490,7 @@ static void test_matmul_2d_non_square(void) {
 }
 
 static void test_matmul_3d_batch(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {2, 2, 3};
@@ -3515,7 +3515,7 @@ static void test_matmul_3d_batch(void) {
 }
 
 static void test_matmul_broadcast_batch(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {2, 2, 3};
@@ -3539,7 +3539,7 @@ static void test_matmul_broadcast_batch(void) {
 }
 
 static void test_dot_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {3};
@@ -3561,7 +3561,7 @@ static void test_dot_basic(void) {
 }
 
 static void test_dot_larger_vectors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dimsA[] = {5};
@@ -3580,7 +3580,7 @@ static void test_dot_larger_vectors(void) {
 }
 
 static void test_negate_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   dim_t dims[] = {3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (Dim){.dims = dims, .numOfDims = 1}, 5.0);
@@ -3593,7 +3593,7 @@ static void test_negate_f32(void) {
 }
 
 static void test_negate_already_negative(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   dim_t dims[] = {2};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (Dim){.dims = dims, .numOfDims = 1}, -3.0);
@@ -3607,7 +3607,7 @@ static void test_negate_already_negative(void) {
 
 // Arange tests
 static void test_arange_basic_positive_step(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *t = T_Arange(&ctx, 0.0f, 5.0f, 1.0f);
@@ -3625,7 +3625,7 @@ static void test_arange_basic_positive_step(void) {
 }
 
 static void test_arange_negative_step(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *t = T_Arange(&ctx, 10.0f, 0.0f, -2.0f);
@@ -3641,7 +3641,7 @@ static void test_arange_negative_step(void) {
 }
 
 static void test_arange_non_integer_step(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *t = T_Arange(&ctx, 1.0f, 5.0f, 0.5f);
@@ -3656,7 +3656,7 @@ static void test_arange_non_integer_step(void) {
 }
 
 static void test_arange_default_step(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Step of 0 should default to 1
@@ -3671,7 +3671,7 @@ static void test_arange_default_step(void) {
 }
 
 static void test_arange_empty_range_positive_step(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // start >= end with positive step should return NULL
@@ -3683,7 +3683,7 @@ static void test_arange_empty_range_positive_step(void) {
 }
 
 static void test_arange_empty_range_negative_step(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // start <= end with negative step should return NULL
@@ -3695,7 +3695,7 @@ static void test_arange_empty_range_negative_step(void) {
 }
 
 static void test_index_with_tensor_2d_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Create 3x4 source tensor: [[0,1,2,3], [4,5,6,7], [8,9,10,11]]
@@ -3729,7 +3729,7 @@ static void test_index_with_tensor_2d_basic(void) {
 }
 
 static void test_index_with_tensor_2d_3d_source(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Create 2x3x4 source tensor
@@ -3770,7 +3770,7 @@ static void test_index_with_tensor_2d_3d_source(void) {
 
 // Mean tests
 static void test_mean_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -3795,7 +3795,7 @@ static void test_mean_basic(void) {
 
 // shapes_Std tests
 static void test_std_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {4};
@@ -3817,7 +3817,7 @@ static void test_std_basic(void) {
 
 // Log tests
 static void test_log_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 2};
@@ -3846,7 +3846,7 @@ static void test_log_basic(void) {
 
 // Abs tests
 static void test_abs_signed_int(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {4};
@@ -3871,7 +3871,7 @@ static void test_abs_signed_int(void) {
 }
 
 static void test_abs_float(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 2};
@@ -3898,7 +3898,7 @@ static void test_abs_float(void) {
 
 // shapes_Max tests
 static void test_max_dim0(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -3925,7 +3925,7 @@ static void test_max_dim0(void) {
 }
 
 static void test_max_dim1(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -3951,7 +3951,7 @@ static void test_max_dim1(void) {
 }
 
 static void test_max_int_type(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 2};
@@ -3972,7 +3972,7 @@ static void test_max_int_type(void) {
 }
 
 static void test_max_non_contiguous(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -3994,7 +3994,7 @@ static void test_max_non_contiguous(void) {
 
 // shapes_ArgMax tests
 static void test_argmax_dim0(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -4022,7 +4022,7 @@ static void test_argmax_dim0(void) {
 }
 
 static void test_argmax_dim1_with_ties(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 4};
@@ -4050,7 +4050,7 @@ static void test_argmax_dim1_with_ties(void) {
 }
 
 static void test_argmax_non_contiguous(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -4073,7 +4073,7 @@ static void test_argmax_non_contiguous(void) {
 
 // MeanDim tests
 static void test_meandim_dim0(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -4100,7 +4100,7 @@ static void test_meandim_dim0(void) {
 }
 
 static void test_meandim_dim1(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -4130,7 +4130,7 @@ static void test_meandim_dim1(void) {
 // ============================================================================
 
 static void test_concat_2d_dim0_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 2x3 tensor with values 1.0
@@ -4154,7 +4154,7 @@ static void test_concat_2d_dim0_basic(void) {
 }
 
 static void test_concat_2d_dim1_basic(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 2x2 tensor with values 1.0
@@ -4174,7 +4174,7 @@ static void test_concat_2d_dim1_basic(void) {
 }
 
 static void test_concat_multiple_tensors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 1x2 tensor
@@ -4197,7 +4197,7 @@ static void test_concat_multiple_tensors(void) {
 }
 
 static void test_concat_1d_tensors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 3-element vector
@@ -4217,7 +4217,7 @@ static void test_concat_1d_tensors(void) {
 }
 
 static void test_concat_3d_tensors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 2x3x4 tensor
@@ -4239,7 +4239,7 @@ static void test_concat_3d_tensors(void) {
 }
 
 static void test_concat_data_correctness(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 2x2 tensor with sequential values 0, 1, 2, 3
@@ -4283,7 +4283,7 @@ static void test_concat_data_correctness(void) {
 }
 
 static void test_concat_with_non_contiguous_target(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Create a transposed tensor (non-contiguous) as target
@@ -4314,7 +4314,7 @@ static void test_concat_with_non_contiguous_target(void) {
 }
 
 static void test_concat_single_element_tensors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   // Target: 1x1 tensor
@@ -4341,7 +4341,7 @@ static void test_concat_single_element_tensors(void) {
 }
 
 static void test_concat_no_additional_tensors(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t targetDims[] = {2, 3};

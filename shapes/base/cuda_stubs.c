@@ -5,8 +5,8 @@
 
 // ---- shapescuda_Memory functions ----
 
-shapescuda_Memory Make_CudaMemory(Memory *restrict hostMemory) {
-  return (shapescuda_Memory){.blocks = MakeDynamicArray(hostMemory, sizeof(CudaBlock *)),
+shapescuda_Memory Make_CudaMemory(olib_Memory *restrict hostMemory) {
+  return (shapescuda_Memory){.blocks = olib_MakeDynamicArray(hostMemory, sizeof(shapescuda_Block *)),
                       .allocationPointer = 0,
                       .allocationCheckpoint = -1};
 }
@@ -22,7 +22,7 @@ void Rewind(shapescuda_Memory *restrict cudaMemory) {
   cudaMemory->allocationPointer = cudaMemory->allocationCheckpoint;
 }
 
-void ReleaseCudaBlocks(shapescuda_Memory *restrict cudaMemory) {
+void Releaseshapescuda_Blocks(shapescuda_Memory *restrict cudaMemory) {
   (void)cudaMemory;
 }
 
@@ -30,13 +30,13 @@ void FreeCudaScratchMemory(shapescuda_Memory *restrict cudaMemory) {
   (void)cudaMemory;
 }
 
-CudaBlock AllocateOnCuda(shapescuda_Memory *restrict cudaMemory, Memory *restrict hostMemory,
+shapescuda_Block AllocateOnCuda(shapescuda_Memory *restrict cudaMemory, olib_Memory *restrict hostMemory,
                          size_t size) {
   (void)cudaMemory;
   (void)hostMemory;
   (void)size;
   PANIC_WITH_MSG_IF(1, "CUDA support is not compiled in");
-  return (CudaBlock){0};
+  return (shapescuda_Block){0};
 }
 
 // ---- Tensor ops ----
@@ -63,19 +63,20 @@ void shapescuda_Gemm(cublasHandle_t handle, shapes_Dtype dtype, cublasOperation_
 }
 #endif
 
-Result shapescuda_BinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, const void *a, const void *b,
-                       void *dest, tensor_size_t n) {
-  
-  (void)dtype;
-  (void)opType;
-  (void)a;
-  (void)b;
-  (void)dest;
-  (void)n;
+
+Result shapescuda_BinaryOp(shapes_Dtype dtype, shapes_OpType opType, const void *a, const void *b, void *dest, size_t n) {
+  (void) dtype;
+  (void) opType;
+  (void) a;
+  (void) b;
+  (void) dest;
+  (void) n;
+
   return ERR_NO_OP;
 }
 
-Result shapescuda_BroadcastBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opType, void *larger,
+
+Result shapescuda_BroadcastBinaryOp(shapes_Dtype dtype, shapes_OpType opType, void *larger,
                                 void *smaller, void *dest, size_t outerDimSize,
                                 size_t broadcastDimSize, size_t innerDimSize) {
   
@@ -90,7 +91,7 @@ Result shapescuda_BroadcastBinaryOp(shapes_Dtype shapes_OpType shapes_OpType opT
   return ERR_NO_OP;
 }
 
-Result shapescuda_UnaryOp(shapes_Dtype shapes_UnaryOpTypeyOpType opType, const void *src, void *dest,
+Result shapescuda_UnaryOp(shapes_Dtype dtype, shapes_UnaryOpType opType, const void *src, void *dest,
                       tensor_size_t n, f32 param) {
   
   (void)dtype;
@@ -124,9 +125,8 @@ Result shapescuda_ReluBackwardAccumulate(shapes_Dtype dtype, const void *output,
   return ERR_NO_OP;
 }
 
-Result shapescuda_ReduceDim(shapes_Dtype inputDtype, shapes_Dtypeshapes_ReductionOpTypeeductionOpType opType,
-                        const void *src, void *dest, tensor_size_t numBeforeDim,
-                        tensor_size_t numAfterDim, dim_t reduce) {
+Result shapescuda_ReduceDim(shapes_Dtype inputDtype, shapes_Dtype outputDtype, shapes_ReductionOpType opType, const void *src, void *dest,
+                        size_t numBeforeDim, size_t numAfterDim, size_t reduce) {
   
   (void)inputDtype;
   (void)outputDtype;
@@ -139,8 +139,7 @@ Result shapescuda_ReduceDim(shapes_Dtype inputDtype, shapes_Dtypeshapes_Reductio
   return ERR_NO_OP;
 }
 
-Result shapescuda_ReduceAll(shapes_Dtype shapes_ReductionOpTypenOpType opType, const void *src,
-                        void *dest, tensor_size_t n) {
+Result shapescuda_ReduceAll(shapes_Dtype dtype, shapes_ReductionOpType opType, const void *src, void *dest, size_t n) {
   
   (void)dtype;
   (void)opType;
@@ -192,10 +191,8 @@ Result shapescuda_IndexAccumulate2d(shapes_Dtype dtype, void *dest, dim_t destDi
   return ERR_NO_OP;
 }
 
-Result shapescuda_SliceAccumulate(shapes_Dtype dtype, void *dest,
-                               tensor_size_t destNumDims, const multiplier_t *destMultipliers,
-                               const Range *ranges, const void *srcGrad, const dim_t *srcDims,
-                               tensor_size_t srcNumDims, tensor_size_t srcSize) {
+Result shapescuda_SliceAccumulate(shapes_Dtype dtype, void *dest, size_t destNumDims, const size_t *destMultipliers,
+                              const shapes_Range *ranges, const void *srcGrad, const size_t *srcDims, size_t srcNumDims, size_t srcSize) {
   
   (void)dtype;
   (void)dest;
@@ -220,7 +217,7 @@ Result shapescuda_Cast(shapes_Dtype sourceDtype, const void *src, shapes_Dtype t
   return ERR_NO_OP;
 }
 
-Result shapescuda_FillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, Value value) {
+Result shapescuda_FillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, shapes_Value value) {
   
   (void)dtype;
   (void)dest;

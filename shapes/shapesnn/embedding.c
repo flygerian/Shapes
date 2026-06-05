@@ -26,38 +26,38 @@ Tensor embeddingForward(Context *ctx, Layer *layer, Tensor *indices) {
   PANIC_IF(layer->weights.shape.numOfDims != 2, ERR_DIM_MISMATCH);
 
   Tensor out = shapes_IndexWithTensor(ctx, &layer->weights, indices);
-  out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
   shapes_Array_AppendTensor(out.inputs, &layer->weights);
 
-  out.opMetadata = allocate(ctx->memory, sizeof(Tensor));
+  out.opMetadata = olib_Allocate(ctx->memory, sizeof(Tensor));
   *((Tensor*) out.opMetadata ) = *indices;
   out.opType = OP_EMBEDDING;
-  Tensor *gradPtr = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
   *gradPtr = shapes_Make_ZerosTensor(ctx, out.shape);
   out.grad = gradPtr;
   return out;
 }
 
-Array *embeddingParameters(Context *ctx, Layer *layer) {
-  Array *params = MakeArray(ctx->memory, sizeof(Tensor), 1);
+olib_Array *embeddingParameters(Context *ctx, Layer *layer) {
+  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 1);
   shapes_Array_AppendTensor(params, &layer->weights);
 
   return params;
 }
 
-Array *embeddingLayerTensors(Context *ctx, Layer *layer) {
+olib_Array *embeddingLayerTensors(Context *ctx, Layer *layer) {
   return embeddingParameters(ctx, layer);
 }
 
-void embeddingLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
+void embeddingLayerLoad(Context *ctx, Layer *layer, olib_Array *tensors) {
   PANIC_IF(tensors->size != 1, ERR_DIM_MISMATCH);
   Tensor temp = shapes_Array_TensorIdx(tensors, 0);
   loadIntoTensor(ctx, &layer->weights, &temp);
 }
 
 FowardPassOp shapesnn_Embedding(Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
-  Layer *layer = allocate(ctx->memory, sizeof(Layer));
+  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
   layer->weights = shapes_Make_RandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);
   layer->weights.label = "weights";

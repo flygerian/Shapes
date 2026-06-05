@@ -27,12 +27,12 @@ Tensor shapesnn_CrossEnthropy(Context *ctx, Tensor *yGround, Tensor *logits) {
   Tensor loss = crossEnthropyResult.a;
   Tensor probs = crossEnthropyResult.b;
 
-  loss.inputs = MakeArray(ctx->memory, sizeof(Tensor), 2);
+  loss.inputs = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
   shapes_Array_AppendTensor(loss.inputs, yGround);
   shapes_Array_AppendTensor(loss.inputs, logits);
 
   loss.opType = OP_CROSS_ENTHROPY;
-  Tensor *opMetadata = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *opMetadata = olib_Allocate(ctx->memory, sizeof(Tensor));
   *opMetadata = probs;
   loss.opMetadata = opMetadata;
 

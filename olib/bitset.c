@@ -1,8 +1,8 @@
 #include "bitset.h"
 #include <stdint.h>
 
-Bitset *Make_Bitset(Memory *memory) {
-  Bitset *bs = allocate(memory, sizeof(Bitset));
+Bitset *Make_Bitset(olib_Memory *memory) {
+  Bitset *bs = olib_Allocate(memory, sizeof(Bitset));
   bs->memory = memory;
   for (int i = 0; i < 8; i++) {
     bs->bits[i] = 0;

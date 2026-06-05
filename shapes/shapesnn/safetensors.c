@@ -32,13 +32,13 @@ static const char *dtypeName(shapes_Dtype d) {
   PANIC_WITH_CODE(ERR_NO_OP);
 }
 
-static String buildHeader(Memory *memory, Array *named, size_t *outDataBytes) {
-  String json = MakeString(memory, "{\"__metadata__\":{\"format\":\"shapes-v1\"}");
+static olib_String buildHeader(olib_Memory *memory, olib_Array *named, size_t *outDataBytes) {
+  olib_String json = olib_MakeString(memory, "{\"__metadata__\":{\"format\":\"shapes-v1\"}");
 
   size_t cursor = 0;
 
   for (RANGE(i, named->size)) {
-    NamedTensor *nt = (NamedTensor *)Array_Idx(named, i);
+    NamedTensor *nt = (NamedTensor *)olib_ArrayIdx(named, i);
     PANIC_IF(nt->name == NULL, ERR_NULL_PTR);
 
     Tensor t = nt->tensor;
@@ -47,40 +47,40 @@ static String buildHeader(Memory *memory, Array *named, size_t *outDataBytes) {
     size_t end = cursor + bytes;
     cursor = end;
 
-    String_AppendCString(json, ",\"");
-    String_AppendCString(json, STR(nt->name));
-    String_AppendFormat(json, "\":{\"dtype\":\"%s\",\"shape\":[", dtypeName(t.dtype));
+    olib_StringAppendCString(json, ",\"");
+    olib_StringAppendCString(json, STR(nt->name));
+    olib_StringAppendFormat(json, "\":{\"dtype\":\"%s\",\"shape\":[", dtypeName(t.dtype));
 
     for (u8 d = 0; d < t.shape.numOfDims; d++) {
       if (d > 0) {
-        String_AppendCString(json, ",");
+        olib_StringAppendCString(json, ",");
       }
-      String_AppendFormat(json, "%zu", t.shape.dims[d]);
+      olib_StringAppendFormat(json, "%zu", t.shape.dims[d]);
     }
 
-    String_AppendFormat(json, "],\"data_offsets\":[%zu,%zu]}", start, end);
+    olib_StringAppendFormat(json, "],\"data_offsets\":[%zu,%zu]}", start, end);
   }
 
-  String_AppendCString(json, "}");
+  olib_StringAppendCString(json, "}");
 
   // Pad header so tensor data region starts on an 8-byte boundary.
   // The 8-byte length prefix already satisfies alignment; we only need the
   // JSON itself to be a multiple of 8.
   while (json->size % 8 != 0) {
-    String_AppendCString(json, " ");
+    olib_StringAppendCString(json, " ");
   }
 
   *outDataBytes = cursor;
   return json;
 }
 
-void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path) {
+void shapesnn_SafeTensors_Save(Context *ctx, olib_Array *named, string path) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(named == NULL, ERR_NULL_PTR);
   PANIC_IF(path == NULL, ERR_NULL_PTR);
 
   size_t dataBytes = 0;
-  String header = buildHeader(ctx->memory, named, &dataBytes);
+  olib_String header = buildHeader(ctx->memory, named, &dataBytes);
 
   File file = File_OpenPathInWriteMode(path);
 
@@ -92,7 +92,7 @@ void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path) {
   PANIC_ON_ERROR(e);
 
   for (RANGE(i, named->size)) {
-    NamedTensor *nt = (NamedTensor *)Array_Idx(named, i);
+    NamedTensor *nt = (NamedTensor *)olib_ArrayIdx(named, i);
     Tensor t = nt->tensor;
     Tensor *toWrite = t.isContigous ? &t : copyToContiguous(ctx, &t);
     size_t bytes = toWrite->size * getBytesForDtype(toWrite->dtype);
@@ -163,28 +163,28 @@ static int skipSubtree(jsmntok_t *tokens, int idx) {
 }
 
 typedef struct ParsedTensorMeta {
-  String name;
+  olib_String name;
   shapes_Dtype dtype;
   Dim shape;
   size_t startOffset;
   size_t endOffset;
 } ParsedTensorMeta;
 
-static Array *parseHeader(Memory *memory, const char *json, size_t jsonLen, size_t dataBytesAvail) {
+static olib_Array *parseHeader(olib_Memory *memory, const char *json, size_t jsonLen, size_t dataBytesAvail) {
   jsmn_parser parser;
   jsmn_init(&parser);
 
   int needed = jsmn_parse(&parser, json, jsonLen, NULL, 0);
   PANIC_IF(needed <= 0, ERR_NO_OP);
 
-  jsmntok_t *tokens = allocate(memory, sizeof(jsmntok_t) * (size_t)needed);
+  jsmntok_t *tokens = olib_Allocate(memory, sizeof(jsmntok_t) * (size_t)needed);
   jsmn_init(&parser);
   int parsed = jsmn_parse(&parser, json, jsonLen, tokens, (unsigned int)needed);
   PANIC_IF(parsed != needed, ERR_NO_OP);
   PANIC_IF(tokens[0].type != JSMN_OBJECT, ERR_NO_OP);
 
   int topPairs = tokens[0].size;
-  Array *out = MakeArray(memory, sizeof(ParsedTensorMeta), (size_t)topPairs);
+  olib_Array *out = olib_MakeArray(memory, sizeof(ParsedTensorMeta), (size_t)topPairs);
 
   int idx = 1;
   size_t expectedCursor = 0;
@@ -205,7 +205,7 @@ static Array *parseHeader(Memory *memory, const char *json, size_t jsonLen, size
     idx += 1;
 
     ParsedTensorMeta meta = {0};
-    meta.name = MakeStringN(memory, (char *)json + keyTok->start, (size_t)(keyTok->end - keyTok->start));
+    meta.name = olib_MakeStringN(memory, (char *)json + keyTok->start, (size_t)(keyTok->end - keyTok->start));
 
     bool gotDtype = false, gotShape = false, gotOffsets = false;
 
@@ -224,7 +224,7 @@ static Array *parseHeader(Memory *memory, const char *json, size_t jsonLen, size
         PANIC_IF(fieldVal->type != JSMN_ARRAY, ERR_NO_OP);
         int numDims = fieldVal->size;
         meta.shape.numOfDims = (u8)numDims;
-        meta.shape.dims = allocate(memory, sizeof(dim_t) * (size_t)numDims);
+        meta.shape.dims = olib_Allocate(memory, sizeof(dim_t) * (size_t)numDims);
         idx += 1;
         for (int d = 0; d < numDims; d++) {
           meta.shape.dims[d] = tokenToSize(json, &tokens[idx]);
@@ -260,14 +260,14 @@ static Array *parseHeader(Memory *memory, const char *json, size_t jsonLen, size
 
     expectedCursor = meta.endOffset;
 
-    Array_Append(out, &meta);
+    olib_ArrayAppend(out, &meta);
   }
 
   PANIC_IF(expectedCursor != dataBytesAvail, ERR_NO_OP);
   return out;
 }
 
-Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
+olib_Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(path == NULL, ERR_NULL_PTR);
 
@@ -279,17 +279,17 @@ Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
   PANIC_ON_ERROR(File_ReadBytesToBuffer(file, (byte *)&headerLen, sizeof(u64)));
   PANIC_IF(headerLen > fileSize - sizeof(u64), ERR_NO_OP);
 
-  char *headerBuf = allocate(ctx->memory, headerLen + 1);
+  char *headerBuf = olib_Allocate(ctx->memory, headerLen + 1);
   PANIC_ON_ERROR(File_ReadBytesToBuffer(file, (byte *)headerBuf, headerLen));
   headerBuf[headerLen] = '\0';
 
   size_t dataBytesAvail = fileSize - sizeof(u64) - headerLen;
-  Array *metas = parseHeader(ctx->memory, headerBuf, headerLen, dataBytesAvail);
+  olib_Array *metas = parseHeader(ctx->memory, headerBuf, headerLen, dataBytesAvail);
 
-  Array *named = MakeArray(ctx->memory, sizeof(NamedTensor), metas->size);
+  olib_Array *named = olib_MakeArray(ctx->memory, sizeof(NamedTensor), metas->size);
 
   for (RANGE(i, metas->size)) {
-    ParsedTensorMeta *meta = (ParsedTensorMeta *)Array_Idx(metas, i);
+    ParsedTensorMeta *meta = (ParsedTensorMeta *)olib_ArrayIdx(metas, i);
     Tensor t = shapes_Make_ZerosTensor(ctx, meta->shape);
     t.label = STR(meta->name);
 
@@ -297,7 +297,7 @@ Array *shapesnn_SafeTensors_Load(Context *ctx, string path) {
     PANIC_ON_ERROR(File_ReadBytesToBuffer(file, (byte *)t.values, bytes));
 
     NamedTensor nt = {.name = meta->name, .tensor = t};
-    Array_Append(named, &nt);
+    olib_ArrayAppend(named, &nt);
   }
 
   CloseFile(&file);

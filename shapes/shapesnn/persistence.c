@@ -8,13 +8,13 @@
 #include "olib.h"
 #include <string.h>
 
-static Array_NamedTensor wrapNamed(Context *ctx, Array *tensors) {
-  Array_NamedTensor named = MakeArray(ctx->memory, sizeof(NamedTensor), tensors->size);
+static Array_NamedTensor wrapNamed(Context *ctx, olib_Array *tensors) {
+  Array_NamedTensor named = olib_MakeArray(ctx->memory, sizeof(NamedTensor), tensors->size);
   for (RANGE(i,tensors->size)) {
     Tensor t = shapes_Array_TensorIdx(tensors, i);
     PANIC_IF(t.label == NULL, ERR_NULL_PTR);
-    NamedTensor nt = {.name = MakeString(ctx->memory, t.label), .tensor = t};
-    Array_Append(named, &nt);
+    NamedTensor nt = {.name = olib_MakeString(ctx->memory, t.label), .tensor = t};
+    olib_ArrayAppend(named, &nt);
   }
   return named;
 }
@@ -46,7 +46,7 @@ void shapesnn_SaveAsSafeTensors(Context *ctx, FowardPassOp *model, string path) 
   shapesnn_SafeTensors_Save(ctx, named, path);
 }
 
-void shapesnn_Load(Context *ctx, FowardPassOp *op, Array *tensors) {
+void shapesnn_Load(Context *ctx, FowardPassOp *op, olib_Array *tensors) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(op == NULL, ERR_NULL_PTR);
   PANIC_IF(tensors == NULL, ERR_NULL_PTR);
@@ -73,12 +73,12 @@ void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path
   Array_NamedTensor loaded = shapesnn_SafeTensors_Load(ctx, path);
   Array_NamedTensor expected = shapesnn_Tensors(ctx, model);
 
-  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor), expected->size);
+  olib_Array *tensors = olib_MakeArray(ctx->memory, sizeof(Tensor), expected->size);
   for (RANGE(i, expected->size)) {
-    NamedTensor *expectedNt = (NamedTensor *)Array_Idx(expected, i);
+    NamedTensor *expectedNt = (NamedTensor *)olib_ArrayIdx(expected, i);
     Tensor match = {};
     for (RANGE(j, loaded->size)) {
-      NamedTensor *loadedNt = (NamedTensor *)Array_Idx(loaded, j);
+      NamedTensor *loadedNt = (NamedTensor *)olib_ArrayIdx(loaded, j);
       if (strcmp(STR(loadedNt->name), STR(expectedNt->name)) == 0) {
         match = loadedNt->tensor;
         break;

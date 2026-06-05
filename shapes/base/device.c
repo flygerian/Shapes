@@ -23,7 +23,7 @@ void attachCudaDevice(Context *ctx) {
     }
 
     if (handleResult == CUBLAS_STATUS_SUCCESS) {
-      Device *device = allocate(ctx->memory, sizeof(Device));
+      Device *device = olib_Allocate(ctx->memory, sizeof(Device));
       *device = (Device){.id = "cuda:0", .type = CUDA};
       ctx->handle = handle;
       ctx->device = device;
@@ -34,7 +34,7 @@ void attachCudaDevice(Context *ctx) {
 }
 
 void attachHostDevice(Context *ctx) {
-  Device *device = allocate(ctx->memory, sizeof(Device));
+  Device *device = olib_Allocate(ctx->memory, sizeof(Device));
   *device = (Device){.id = "host", .type = CPU};
   ctx->device = device;
 }

@@ -717,10 +717,10 @@ Tensor shapes_Sqrt(Context *ctx, Tensor *t) {
     default: out = sqrtCpu(ctx, t); break;
   }
 
-  out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
   shapes_Array_AppendTensor(out.inputs, t);
   out.opType = OP_SQRT;
-  Tensor *gradPtr = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
   *gradPtr = shapes_Make_ZerosTensor(ctx, out.shape);
   out.grad = gradPtr;

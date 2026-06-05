@@ -13,7 +13,7 @@ static bool hasCudaDevice(void) {
 // --- Valid cast tests ---
 
 static void test_cast_i8_to_i16(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -34,7 +34,7 @@ static void test_cast_i8_to_i16(void) {
 }
 
 static void test_cast_i8_to_i32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -52,7 +52,7 @@ static void test_cast_i8_to_i32(void) {
 }
 
 static void test_cast_i8_to_i64(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -70,7 +70,7 @@ static void test_cast_i8_to_i64(void) {
 }
 
 static void test_cast_i16_to_i32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -79,7 +79,7 @@ static void test_cast_i16_to_i32(void) {
   // Manually set I16 values
   src->dtype = I16;
   size_t bytes = getBytesForDtype(I16) * src->size;
-  src->values = allocate(mem, bytes);
+  src->values = olib_Allocate(mem, bytes);
   ((i16 *)src->values)[0] = 1000;
   ((i16 *)src->values)[1] = -500;
 
@@ -90,7 +90,7 @@ static void test_cast_i16_to_i32(void) {
 }
 
 static void test_cast_f32_to_f64(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 2};
@@ -112,7 +112,7 @@ static void test_cast_f32_to_f64(void) {
 }
 
 static void test_cast_u8_to_u16(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -121,7 +121,7 @@ static void test_cast_u8_to_u16(void) {
   // Manually set U8 values
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
-  src->values = allocate(mem, bytes);
+  src->values = olib_Allocate(mem, bytes);
   ((u8 *)src->values)[0] = 0;
   ((u8 *)src->values)[1] = 128;
   ((u8 *)src->values)[2] = 255;
@@ -135,7 +135,7 @@ static void test_cast_u8_to_u16(void) {
 }
 
 static void test_cast_u8_to_u32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -143,7 +143,7 @@ static void test_cast_u8_to_u32(void) {
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
-  src->values = allocate(mem, bytes);
+  src->values = olib_Allocate(mem, bytes);
   ((u8 *)src->values)[0] = 42;
   ((u8 *)src->values)[1] = 200;
 
@@ -154,7 +154,7 @@ static void test_cast_u8_to_u32(void) {
 }
 
 static void test_cast_i8_to_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -172,7 +172,7 @@ static void test_cast_i8_to_f32(void) {
 }
 
 static void test_cast_i32_to_f64(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -180,7 +180,7 @@ static void test_cast_i32_to_f64(void) {
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = I32;
   size_t bytes = getBytesForDtype(I32) * src->size;
-  src->values = allocate(mem, bytes);
+  src->values = olib_Allocate(mem, bytes);
   ((i32 *)src->values)[0] = 100000;
   ((i32 *)src->values)[1] = -99999;
 
@@ -191,7 +191,7 @@ static void test_cast_i32_to_f64(void) {
 }
 
 static void test_cast_i8_to_bool(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -210,7 +210,7 @@ static void test_cast_i8_to_bool(void) {
 }
 
 static void test_cast_u8_to_bool(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -218,7 +218,7 @@ static void test_cast_u8_to_bool(void) {
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
-  src->values = allocate(mem, bytes);
+  src->values = olib_Allocate(mem, bytes);
   ((u8 *)src->values)[0] = 0;
   ((u8 *)src->values)[1] = 1;
 
@@ -230,7 +230,7 @@ static void test_cast_u8_to_bool(void) {
 }
 
 static void test_cast_f32_to_bool(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -249,14 +249,14 @@ static void test_cast_f32_to_bool(void) {
 }
 
 static void test_cast_bool_to_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
   Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = BOOL;
-  src->values = allocate(mem, getBytesForDtype(BOOL) * src->size);
+  src->values = olib_Allocate(mem, getBytesForDtype(BOOL) * src->size);
   ((bool *)src->values)[0] = false;
   ((bool *)src->values)[1] = true;
   ((bool *)src->values)[2] = true;
@@ -270,7 +270,7 @@ static void test_cast_bool_to_f32(void) {
 }
 
 static void test_cast_same_dtype_clones(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -289,7 +289,7 @@ static void test_cast_same_dtype_clones(void) {
 }
 
 static void test_cast_f32_to_i32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -308,7 +308,7 @@ static void test_cast_f32_to_i32(void) {
 }
 
 static void test_cast_f64_to_i64(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -316,7 +316,7 @@ static void test_cast_f64_to_i64(void) {
   Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   src->dtype = F64;
   size_t bytes = getBytesForDtype(F64) * src->size;
-  src->values = allocate(mem, bytes);
+  src->values = olib_Allocate(mem, bytes);
   ((f64 *)src->values)[0] = 99.9;
   ((f64 *)src->values)[1] = -50.1;
 
@@ -327,7 +327,7 @@ static void test_cast_f64_to_i64(void) {
 }
 
 static void test_cast_preserves_2d_shape(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3, 4};
@@ -379,7 +379,7 @@ static void test_cast_cuda_dtype_change(void) {
   dim_t dims[] = {2};
   Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
   shapes_MoveToCuda(&ctx, toMove);
 
@@ -417,7 +417,7 @@ static void test_cast_cuda_f32_to_i64(void) {
     ASSERT_EQ(assignResult, OK, "AssignValueAt should populate the source tensor");
   }
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
   shapes_MoveToCuda(&ctx, toMove);
   Tensor *dest = Cast(&ctx, src, I64);
@@ -447,11 +447,11 @@ static void test_cast_cuda_bool_to_f32(void) {
   dim_t dims[] = {2};
   Tensor *src = T_Int(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0);
   src->dtype = BOOL;
-  src->values = allocate(hostCtx.memory, getBytesForDtype(BOOL) * src->size);
+  src->values = olib_Allocate(hostCtx.memory, getBytesForDtype(BOOL) * src->size);
   ((bool *)src->values)[0] = false;
   ((bool *)src->values)[1] = true;
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
   shapes_MoveToCuda(&ctx, toMove);
   Tensor *dest = Cast(&ctx, src, F32);

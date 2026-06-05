@@ -25,11 +25,6 @@
 #define HEADER_AT(memory, offset)     ((blockheader *)(ARENA(memory) + (offset)))
 #define HEADER_OFFSET(memory, header) BLOCK_HEADER_OFFSET(ARENA(memory), (header))
 
-#define GROW_CAPACITY(capacity) (capacity) < 8 ? 8 : (capacity) * 2
-
-#define GROW_ARRAY(memory, type, pointer, newcount)                                                \
-  (type *)reallocate(memory, pointer, sizeof(type) * (newcount))
-
 typedef struct {
   uint8_t blockID;
   bool free;
@@ -53,23 +48,16 @@ typedef struct {
   size_t numFreeBlocks;
   size_t minBlockSize;
   size_t freeHeadOffset;
-} Memory;
+} olib_Memory;
 
-typedef struct {
-  void *ptr;
-  size_t size;
-} CudaBlock;
-
-Memory *initializeMemory();
-Memory *initializeArena(size_t arenaSize, size_t minBlockSize);
-Memory *initializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize);
-Memory* GetScratchArena(Memory *memory, size_t scratchBufferSize);
-void resetArena(Memory *memory);
-void *allocate(Memory *memory, size_t size);
-void *reallocate(Memory *memory, void *ptr, size_t size);
-void freeAlloc(Memory *memory, void *ptr);
-void freeMemory(Memory *memory);
-void popScratch(void *ptr);
-void printMemoryFragmentationChart(Memory *memory);
+olib_Memory* olib_InitializeMemory();
+olib_Memory* olib_InitializeArena(size_t arenaSize, size_t minBlockSize);
+olib_Memory* olib_InitializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize);
+olib_Memory* olib_GetScratchArena(olib_Memory *memory, size_t scratchBufferSize);
+void  olib_ResetArena(olib_Memory *memory);
+void* olib_Allocate(olib_Memory *memory, size_t size);
+void* olib_Reallocate(olib_Memory *memory, void *ptr, size_t size);
+void  olib_FreeMemory(olib_Memory *memory);
+void  olib_PopScratch(void *ptr);
 
 #endif

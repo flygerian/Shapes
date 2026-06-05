@@ -14,12 +14,12 @@
 #define PTR_SET_MAX_LOAD_NUMERATOR   3
 #define PTR_SET_MAX_LOAD_DENOMINATOR 4
 
-void Array_SetPtrMapEntryAt(Array *array, size_t idx, PtrMapEntry *entry) {
-  Array_SetAt(array, idx, (void *)&entry);
+void Array_SetPtrMapEntryAt(olib_Array *array, size_t idx, PtrMapEntry *entry) {
+  olib_ArraySetAt(array, idx, (void *)&entry);
 }
 
-PtrMapEntry *Array_PtrMapEntryIdx(Array *array, size_t idx) {
-  PtrMapEntry **item = (PtrMapEntry **)Array_Idx(array, idx);
+PtrMapEntry *Array_PtrMapEntryIdx(olib_Array *array, size_t idx) {
+  PtrMapEntry **item = (PtrMapEntry **)olib_ArrayIdx(array, idx);
   if (item == NULL) {
     return NULL;
   }
@@ -36,7 +36,7 @@ static inline bool shouldGrow(PtrSet *pt) {
   return (pt->count + 1) * PTR_SET_MAX_LOAD_DENOMINATOR > pt->capacity * PTR_SET_MAX_LOAD_NUMERATOR;
 }
 
-static inline size_t findSlot(Array *entries, size_t capacity, void *key) {
+static inline size_t findSlot(olib_Array *entries, size_t capacity, void *key) {
   size_t idx = bucketIndex(key, capacity);
 
   while (Array_PtrMapEntryIdx(entries, idx) != NULL &&
@@ -49,9 +49,9 @@ static inline size_t findSlot(Array *entries, size_t capacity, void *key) {
 
 static void growPtrMap(PtrMap *pt) {
   size_t oldCapacity = pt->capacity;
-  Array *oldEntries = pt->entries;
+  olib_Array *oldEntries = pt->entries;
   size_t newCapacity = oldCapacity * 2;
-  Array *newEntries = MakeArray(pt->memory, sizeof(PtrMapEntry *), newCapacity);
+  olib_Array *newEntries = olib_MakeArray(pt->memory, sizeof(PtrMapEntry *), newCapacity);
 
   for (size_t i = 0; i < oldCapacity; i++) {
     PtrMapEntry *entry = Array_PtrMapEntryIdx(oldEntries, i);
@@ -67,22 +67,22 @@ static void growPtrMap(PtrMap *pt) {
   pt->capacity = newCapacity;
 }
 
-PtrMap *Make_PtrMap(Memory *memory, size_t initialCapacity) {
-  PtrMap *ptrSetAlloc = allocate(memory, sizeof(PtrMap));
+PtrMap *Make_PtrMap(olib_Memory *memory, size_t initialCapacity) {
+  PtrMap *ptrSetAlloc = olib_Allocate(memory, sizeof(PtrMap));
   ptrSetAlloc->capacity = initialCapacity;
   ptrSetAlloc->count = 0;
   ptrSetAlloc->memory = memory;
-  ptrSetAlloc->entries = MakeArray(memory, sizeof(PtrMapEntry *), initialCapacity);
+  ptrSetAlloc->entries = olib_MakeArray(memory, sizeof(PtrMapEntry *), initialCapacity);
 
   return ptrSetAlloc;
 }
 
-PtrSet *Make_PtrSet(Memory *memory) {
+PtrSet *Make_PtrSet(olib_Memory *memory) {
   return Make_PtrMap(memory, INITIAL_PTR_SET_CAPACITY);
 }
 
-PtrMapEntry *Make_PtrMapEntry(Memory *memory, uintptr_t key, void *value) {
-  PtrMapEntry *entry = allocate(memory, sizeof(PtrMapEntry));
+PtrMapEntry *Make_PtrMapEntry(olib_Memory *memory, uintptr_t key, void *value) {
+  PtrMapEntry *entry = olib_Allocate(memory, sizeof(PtrMapEntry));
   *entry = (PtrMapEntry){.key = key, .value = value};
   return entry;
 }

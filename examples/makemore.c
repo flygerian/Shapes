@@ -18,30 +18,30 @@
 #define BATCH_SIZE 128
 #define NUM_EPOCHS 10
 
-Array *getNames(Context *ctx) {
+olib_Array *getNames(Context *ctx) {
   FILE *f = fopen("names.txt", "r");
   PANIC_IF(!f, FILE_OPEN_FAILED);
 
-  Array *words = MakeArray(ctx->memory, sizeof(String), 33000);
+  olib_Array *words = olib_MakeArray(ctx->memory, sizeof(olib_String), 33000);
 
   char *line = NULL;
   size_t cap = 0;
   size_t len;
   while ((len = getline(&line, &cap, f)) != -1) {
     line[strcspn(line, "\n")] = '\0';
-    String l = MakeString(ctx->memory, line);
-    Array_AppendString(words, l);
+    olib_String l = olib_MakeString(ctx->memory, line);
+    olib_ArrayAppendString(words, l);
   }
 
   fclose(f);
   return words;
 }
 
-Bitset *MakeCharSet(Context *ctx, Array *words) {
+Bitset *MakeCharSet(Context *ctx, olib_Array *words) {
   Bitset *charset = Make_Bitset(ctx->memory);
 
   for (size_t i = 0; i < words->size; i++) {
-    String word = Array_StringIdx(words, i);
+    olib_String word = olib_ArrayStringIdx(words, i);
     char *chars = (char *)word->items;
     for (size_t j = 0; j < word->size; j++) {
       Bitset_Put(charset, (unsigned char)chars[j]);
@@ -51,21 +51,21 @@ Bitset *MakeCharSet(Context *ctx, Array *words) {
   return charset;
 }
 
-Array *MakeStoi(Context *ctx, Bitset *charset) {
-  Array *stoi = MakeArray(ctx->memory, sizeof(int), 256);
+olib_Array *MakeStoi(Context *ctx, Bitset *charset) {
+  olib_Array *stoi = olib_MakeArray(ctx->memory, sizeof(int), 256);
 
   for (size_t i = 0; i < 256; i++) {
     int val = -1;
-    Array_SetAt(stoi, i, &val);
+    olib_ArraySetAt(stoi, i, &val);
   }
 
   int dotVal = 0;
-  Array_SetAt(stoi, '.', &dotVal);
+  olib_ArraySetAt(stoi, '.', &dotVal);
 
   int idx = 1;
   for (char c = 'a'; c <= 'z'; c++) {
     if (Bitset_Contains(charset, (unsigned char)c)) {
-      Array_SetAt(stoi, (size_t)c, &idx);
+      olib_ArraySetAt(stoi, (size_t)c, &idx);
       idx++;
     }
   }
@@ -74,7 +74,7 @@ Array *MakeStoi(Context *ctx, Bitset *charset) {
   return stoi;
 }
 
-Array *MakeItos(Context *ctx, Bitset *charset) {
+olib_Array *MakeItos(Context *ctx, Bitset *charset) {
   size_t vocabSize = 1;
   for (char c = 'a'; c <= 'z'; c++) {
     if (Bitset_Contains(charset, (unsigned char)c)) {
@@ -82,15 +82,15 @@ Array *MakeItos(Context *ctx, Bitset *charset) {
     }
   }
 
-  Array *itos = MakeArray(ctx->memory, sizeof(char), vocabSize);
+  olib_Array *itos = olib_MakeArray(ctx->memory, sizeof(char), vocabSize);
 
   char dot = '.';
-  Array_SetAt(itos, 0, &dot);
+  olib_ArraySetAt(itos, 0, &dot);
 
   size_t idx = 1;
   for (char c = 'a'; c <= 'z'; c++) {
     if (Bitset_Contains(charset, (unsigned char)c)) {
-      Array_SetAt(itos, idx, &c);
+      olib_ArraySetAt(itos, idx, &c);
       idx++;
     }
   }
@@ -99,12 +99,12 @@ Array *MakeItos(Context *ctx, Bitset *charset) {
   return itos;
 }
 
-int Array_StoiGet(Array *stoi, char c) {
+int Array_StoiGet(olib_Array *stoi, char c) {
   int *items = (int *)stoi->items;
   return items[(unsigned char)c];
 }
 
-char Array_ItosGet(Array *itos, int idx) {
+char Array_ItosGet(olib_Array *itos, int idx) {
   char *items = (char *)itos->items;
   return items[idx];
 }
@@ -115,22 +115,22 @@ typedef struct {
 } DatasetPair;
 
 typedef struct {
-  Array *inputs;
-  Array *targets;
+  olib_Array *inputs;
+  olib_Array *targets;
   size_t numBatches;
 } BatchedDataset;
 
-Array *BuildDataset(Context *ctx, Array *words, Array *stoi) {
+olib_Array *BuildDataset(Context *ctx, olib_Array *words, olib_Array *stoi) {
   size_t totalPairs = 0;
   for (size_t w = 0; w < words->size; w++) {
-    String word = Array_StringIdx(words, w);
+    olib_String word = olib_ArrayStringIdx(words, w);
     totalPairs += word->size + 1;
   }
 
-  Array *dataset = MakeArray(ctx->memory, sizeof(DatasetPair), totalPairs);
+  olib_Array *dataset = olib_MakeArray(ctx->memory, sizeof(DatasetPair), totalPairs);
 
   for (size_t w = 0; w < words->size; w++) {
-    String word = Array_StringIdx(words, w);
+    olib_String word = olib_ArrayStringIdx(words, w);
     char *chars = (char *)word->items;
     size_t wordLen = word->size;
 
@@ -151,18 +151,18 @@ Array *BuildDataset(Context *ctx, Array *words, Array *stoi) {
       pair.context[1] = Array_StoiGet(stoi, padded[i + 1]);
       pair.context[2] = Array_StoiGet(stoi, padded[i + 2]);
       pair.target = Array_StoiGet(stoi, padded[i + 3]);
-      Array_Append(dataset, &pair);
+      olib_ArrayAppend(dataset, &pair);
     }
   }
 
   return dataset;
 }
 
-Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
-  Array *tensorPairs = MakeArray(ctx->memory, sizeof(TensorPair), datasetPairs->size);
+olib_Array *BuildTensorDataset(Context *ctx, olib_Array *datasetPairs) {
+  olib_Array *tensorPairs = olib_MakeArray(ctx->memory, sizeof(TensorPair), datasetPairs->size);
 
   for (size_t i = 0; i < datasetPairs->size; i++) {
-    DatasetPair *dp = (DatasetPair *)Array_Idx(datasetPairs, i);
+    DatasetPair *dp = (DatasetPair *)olib_ArrayIdx(datasetPairs, i);
 
     Tensor context = shapes_Make_FromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
     Tensor target = shapes_Make_FromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
@@ -170,17 +170,17 @@ Array *BuildTensorDataset(Context *ctx, Array *datasetPairs) {
     Tensor castedCtx = Cast(ctx, &context, F32);
     Tensor castedTgt = Cast(ctx, &target, F32);
     TensorPair tp = {.a = castedCtx, .b = castedTgt};
-    Array_Append(tensorPairs, &tp);
+    olib_ArrayAppend(tensorPairs, &tp);
   }
 
   return tensorPairs;
 }
 
-BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t batchSize) {
+BatchedDataset BuildBatchedDataset(Context *ctx, olib_Array *datasetPairs, size_t batchSize) {
   size_t numBatches = (datasetPairs->size + batchSize - 1) / batchSize;
 
-  Array *batchInputs = MakeArray(ctx->memory, sizeof(Tensor), numBatches);
-  Array *batchTargets = MakeArray(ctx->memory, sizeof(Tensor), numBatches);
+  olib_Array *batchInputs = olib_MakeArray(ctx->memory, sizeof(Tensor), numBatches);
+  olib_Array *batchTargets = olib_MakeArray(ctx->memory, sizeof(Tensor), numBatches);
 
   DatasetPair *pairs = (DatasetPair *)datasetPairs->items;
 
@@ -192,8 +192,8 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
     }
     size_t currentBatchSize = end - start;
 
-    i32 *inputData = allocate(ctx->memory, sizeof(i32) * currentBatchSize * 3);
-    i32 *targetData = allocate(ctx->memory, sizeof(i32) * currentBatchSize);
+    i32 *inputData = olib_Allocate(ctx->memory, sizeof(i32) * currentBatchSize * 3);
+    i32 *targetData = olib_Allocate(ctx->memory, sizeof(i32) * currentBatchSize);
 
     for (size_t i = 0; i < currentBatchSize; i++) {
       inputData[i * 3 + 0] = pairs[start + i].context[0];
@@ -202,10 +202,10 @@ BatchedDataset BuildBatchedDataset(Context *ctx, Array *datasetPairs, size_t bat
       targetData[i] = pairs[start + i].target;
     }
 
-    Tensor *inputTensor = allocate(ctx->memory, sizeof(Tensor));
+    Tensor *inputTensor = olib_Allocate(ctx->memory, sizeof(Tensor));
     PANIC_IF(inputTensor == NULL, ALLOCATION_FAILED);
     *inputTensor = shapes_Make_FromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
-    Tensor *targetTensor = allocate(ctx->memory, sizeof(Tensor));
+    Tensor *targetTensor = olib_Allocate(ctx->memory, sizeof(Tensor));
     PANIC_IF(targetTensor == NULL, ALLOCATION_FAILED);
     *targetTensor = shapes_Make_FromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
 
@@ -244,13 +244,13 @@ Tensor Model_Forward(Context *ctx, Model *model, Tensor *input) {
   return sequentialModelForward(ctx, &model->layers, input);
 }
 
-Array *Model_Parameters(Context *ctx, Model *model) {
+olib_Array *Model_Parameters(Context *ctx, Model *model) {
   return sequentialModelParameters(ctx, &model->layers);
 }
 
-Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
-  Array *params = Model_Parameters(ctx, model);
-  Array *gradNorms = MakeArray(ctx->memory, sizeof(shapes_Value), params->size);
+olib_Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
+  olib_Array *params = Model_Parameters(ctx, model);
+  olib_Array *gradNorms = olib_MakeArray(ctx->memory, sizeof(shapes_Value), params->size);
 
   for (size_t i = 0; i < params->size; i++) {
     Tensor p = shapes_Array_TensorIdx(params, i);
@@ -261,7 +261,7 @@ Array *Model_ParameterGradNorms(Context *ctx, Model *model) {
 
     shapes_Value normValue;
     VALUE_GET_FROM_ARR(norm.values, 0, &normValue, norm.dtype);
-    Array_Append(gradNorms, &normValue);
+    olib_ArrayAppend(gradNorms, &normValue);
   }
 
   return gradNorms;
@@ -272,7 +272,7 @@ static Tensor *softmax(Context *ctx, Tensor *logits, dim_t dim) {
   Tensor shifted = shapes_Subtract(ctx, logits, &maxVal);
   Tensor expVals = shapes_Exp(ctx, &shifted);
   Tensor sumExp = shapes_Sum(ctx, &expVals, dim);
-  Tensor *probs = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *probs = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(probs == NULL, ALLOCATION_FAILED);
   *probs = shapes_Divide(ctx, &expVals, &sumExp);
   return probs;
@@ -294,7 +294,7 @@ static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
   return 0;
 }
 
-void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int maxNameLen, dim_t vocabSize) {
+void Model_Generate(Context *ctx, Model *model, olib_Array *itos, int numSamples, int maxNameLen, dim_t vocabSize) {
   printf("\nGenerated names:\n");
 
   for (int sample = 0; sample < numSamples; sample++) {
@@ -304,7 +304,7 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
 
     for (int step = 0; step < maxNameLen; step++) {
       i32 inputData[3] = {context[0], context[1], context[2]};
-      Tensor *input = allocate(ctx->memory, sizeof(Tensor));
+      Tensor *input = olib_Allocate(ctx->memory, sizeof(Tensor));
       PANIC_IF(input == NULL, ALLOCATION_FAILED);
       *input = shapes_Make_FromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
@@ -329,13 +329,13 @@ void Model_Generate(Context *ctx, Model *model, Array *itos, int numSamples, int
   }
 }
 
-static Array *loadItosFromFile(Context *ctx, string path) {
-  Array *all = shapesnn_SafeTensors_Load(ctx, path);
+static olib_Array *loadItosFromFile(Context *ctx, string path) {
+  olib_Array *all = shapesnn_SafeTensors_Load(ctx, path);
   for (RANGE(i, all->size)) {
-    NamedTensor *nt = (NamedTensor *)Array_Idx(all, i);
+    NamedTensor *nt = (NamedTensor *)olib_ArrayIdx(all, i);
     if (strcmp(STR(nt->name), "tokenizer.itos") == 0) {
       Tensor t = nt->tensor;
-      Array *itos = MakeArray(ctx->memory, sizeof(char), t.size);
+      olib_Array *itos = olib_MakeArray(ctx->memory, sizeof(char), t.size);
       memcpy(itos->items, t.values, t.size);
       itos->size = t.size;
       return itos;
@@ -349,7 +349,7 @@ void runInference(string path) {
   Model model = Make_Model(&ctx);
   shapesnn_LoadFromSafeTensors(&ctx, &model.layers, path);
 
-  Array *itos = loadItosFromFile(&ctx, path);
+  olib_Array *itos = loadItosFromFile(&ctx, path);
   Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
 }
 
@@ -358,23 +358,23 @@ void makemore() {
 
   printf("Arena capacity: %zu MB\n", ctx.memory->capacity / MB);
 
-  Array *words = getNames(&ctx);
+  olib_Array *words = getNames(&ctx);
   printf("Got %zu words\n", words->size);
 
   Bitset *charset = MakeCharSet(&ctx, words);
-  Array *stoi = MakeStoi(&ctx, charset);
-  Array *itos = MakeItos(&ctx, charset);
+  olib_Array *stoi = MakeStoi(&ctx, charset);
+  olib_Array *itos = MakeItos(&ctx, charset);
 
   printf("Vocab size: %zu\n", itos->size);
 
-  Array *dataset = BuildDataset(&ctx, words, stoi);
+  olib_Array *dataset = BuildDataset(&ctx, words, stoi);
   printf("Total dataset pairs: %zu\n", dataset->size);
 
   BatchedDataset batchedData = BuildBatchedDataset(&ctx, dataset, BATCH_SIZE);
   printf("Total batches: %zu (batch_size=%d)\n", batchedData.numBatches, BATCH_SIZE);
 
   Model model = Make_Model(&ctx);
-  Array *params = Model_Parameters(&ctx, &model);
+  olib_Array *params = Model_Parameters(&ctx, &model);
   printf("Total parameters: %zu\n\n", params->size);
 
   size_t scratchBufferSize = (size_t)1024 * 1024 * 10;
@@ -413,9 +413,9 @@ void makemore() {
 
       if (epoch == 0 && b == 0) {
         printf("\nGradient norms after first batch:\n");
-        Array *gradNorms = Model_ParameterGradNorms(&ctx, &model);
+        olib_Array *gradNorms = Model_ParameterGradNorms(&ctx, &model);
         for (size_t i = 0; i < gradNorms->size; i++) {
-          shapes_Value *norm = Array_Idx(gradNorms, i);
+          shapes_Value *norm = olib_ArrayIdx(gradNorms, i);
           printf("  Param %zu grad norm: ", i);
           PRINT_VALUE(*norm);
           printf("\n");
@@ -433,7 +433,7 @@ void makemore() {
         printf("Scratch used per batch: %zu KB\n", scratchCtx.memory->allocated / 1024);
       }
 
-      resetArena(scratchCtx.memory);
+      olib_ResetArena(scratchCtx.memory);
     }
 
     double epochTime = (double)(clock() - epochStart) / CLOCKS_PER_SEC;
@@ -447,13 +447,13 @@ void makemore() {
 
   string modelFilePath = "model.safetensors";
 
-  Array *named = shapesnn_Tensors(&ctx, &model.layers);
+  olib_Array *named = shapesnn_Tensors(&ctx, &model.layers);
   Tensor itosT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(itos->size), itos->items, U8);
   Tensor stoiT = shapes_Make_FromContigousArray(&ctx, SHAPE1D(stoi->size), stoi->items, I32);
-  NamedTensor itosNt = {.name = MakeString(ctx.memory, "tokenizer.itos"), .tensor = itosT};
-  NamedTensor stoiNt = {.name = MakeString(ctx.memory, "tokenizer.stoi"), .tensor = stoiT};
-  Array_Append(named, &itosNt);
-  Array_Append(named, &stoiNt);
+  NamedTensor itosNt = {.name = olib_MakeString(ctx.memory, "tokenizer.itos"), .tensor = itosT};
+  NamedTensor stoiNt = {.name = olib_MakeString(ctx.memory, "tokenizer.stoi"), .tensor = stoiT};
+  olib_ArrayAppend(named, &itosNt);
+  olib_ArrayAppend(named, &stoiNt);
   shapesnn_SafeTensors_Save(&ctx, named, modelFilePath);
 
   Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);

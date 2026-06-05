@@ -23,7 +23,7 @@ static void test_sgd_updates_f32_parameters(void) {
 
   p->grad = g;
 
-  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
   Array_Append(params, &p);
   Result r = Sgd(&ctx, params, 0.5f);
 
@@ -49,7 +49,7 @@ static void test_sgd_updates_f64_parameters(void) {
 
   p->grad = g;
 
-  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
   Array_Append(params, &p);
   f32 learningRate = 0.1f;
   Result r = Sgd(&ctx, params, learningRate);
@@ -76,7 +76,7 @@ static void test_sgd_invalid_learning_rate(void) {
   Tensor *g = t_Zeros(&ctx, SHAPE1D(1), F32);
   p->grad = g;
 
-  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
   Array_Append(params, &p);
 
   Result r = Sgd(&ctx, params, 0.0f);
@@ -91,7 +91,7 @@ static void test_sgd_dtype_mismatch(void) {
   Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F64);
   p->grad = g;
 
-  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
   Array_Append(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
@@ -106,7 +106,7 @@ static void test_sgd_size_mismatch(void) {
   Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F32);
   p->grad = g;
 
-  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
   Array_Append(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
@@ -121,7 +121,7 @@ static void test_sgd_requires_float_tensors(void) {
   Tensor *g = t_Zeros(&ctx, SHAPE1D(2), I32);
   p->grad = g;
 
-  Array *params = MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = MakeArray(mem, sizeof(Tensor *), 1);
   Array_Append(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);

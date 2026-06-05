@@ -18,17 +18,17 @@
 #define SHAPE4D(dim0Size, dim1Size, dim2Size, dim3Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size, dim3Size}, .numOfDims = 4})
 
 // Arrays
-typedef Array *Array_Tensor;
-Array_Tensor shapes_Make_DynamicTensorArray(Memory *memory);
-Array *shapes_Make_TensorArray(Memory *memory, size_t capacity);
-void shapes_Array_AppendTensor(Array *array, Tensor *tensor);
-void shapes_Array_AppendTensorArray(Array *array, Array *tensorArray);
-static inline Tensor shapes_Array_TensorIdx(Array *array, size_t idx) {
-  return *((Tensor *)Array_Idx(array, idx));
+typedef olib_Array *shapes_ArrayTensor;
+shapes_ArrayTensor shapes_Make_DynamicTensorArray(olib_Memory *memory);
+olib_Array *shapes_Make_TensorArray(olib_Memory *memory, size_t capacity);
+void shapes_Array_AppendTensor(olib_Array *array, Tensor *tensor);
+void shapes_Array_AppendTensorArray(olib_Array *array, olib_Array *tensorArray);
+static inline Tensor shapes_Array_TensorIdx(olib_Array *array, size_t idx) {
+  return *((Tensor *)olib_ArrayIdx(array, idx));
 }
 
-static inline Tensor* shapes_Array_TensorPtrIdx(Array *array, size_t idx) {
-  return (Tensor *)Array_Idx(array, idx);
+static inline Tensor* shapes_Array_TensorPtrIdx(olib_Array *array, size_t idx) {
+  return (Tensor *)olib_ArrayIdx(array, idx);
 }
 
 // Context
@@ -41,8 +41,8 @@ Result shapes_Flush(Context *ctx);
 
 Result shapes_CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *restrict srcPtr, void *restrict destPtr, size_t size);
 
-void shapes_MoveToCuda(Context *destCtx, Array_Tensor tensors);
-void shapes_MoveToHost(Context *destCtx, Array_Tensor tensors);
+void shapes_MoveToCuda(Context *destCtx, shapes_ArrayTensor tensors);
+void shapes_MoveToHost(Context *destCtx, shapes_ArrayTensor tensors);
 void shapes_MoveTensorToHost(Context *destCtx, Tensor *t);
 
 // Binary Ops
@@ -76,8 +76,8 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim);
 Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim);
 Tensor shapes_Clone(Context *ctx, Tensor *t);
 void shapes_Copy(Context *ctx, Tensor *src, Tensor *dest);
-Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, Array_Tensor tensors);
-Tensor shapes_Stack(Context *ctx, Array_Tensor tensors);
+Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_ArrayTensor tensors);
+Tensor shapes_Stack(Context *ctx, shapes_ArrayTensor tensors);
 
 // Cast
 Tensor Cast(Context *ctx, Tensor *source, shapes_Dtype targetDtype);
@@ -136,7 +136,7 @@ TensorPair shapes_loss_CrossEntropyForward(Context *ctx, Tensor *yGround, Tensor
 Tensor shapes_loss_CrossEntropyBackward(Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut);
 
 // Optimizer ops
-Result shapes_optimizer_Sgd(Context *ctx, Array *parameters, f32 learningRate);
+Result shapes_optimizer_Sgd(Context *ctx, olib_Array *parameters, f32 learningRate);
 
 Result shapes_optimizer_Adam(Context *ctx, AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon);
 

@@ -20,17 +20,17 @@ static size_t roundCudaAllocationSize(size_t size) {
   return size + (alignment - remainder);
 }
 
-static inline void Array_AppendCudaBlock(Array *array, shapescuda_Block *block) {
+static inline void Array_AppendCudaBlock(olib_Array *array, shapescuda_Block *block) {
   PANIC_IF(array->elemSize != sizeof(shapescuda_Block*), ARRAY_ELEM_SIZE_MISMATCH);
-  Array_Append(array, (void *)&block);
+  olib_ArrayAppend(array, (void *)&block);
 }
 
-static inline shapescuda_Block* Array_CudaBlockIdx(Array *array, size_t idx) {
-  return *(shapescuda_Block **) Array_Idx(array, idx);
+static inline shapescuda_Block* Array_CudaBlockIdx(olib_Array *array, size_t idx) {
+  return *(shapescuda_Block **) olib_ArrayIdx(array, idx);
 }
 
-shapescuda_Memory shapescuda_Make_Memory(Memory *restrict hostMemory) {
-  return (shapescuda_Memory){.blocks = MakeDynamicArray(hostMemory, sizeof(shapescuda_Block*)), .allocationPointer = 0, .allocationCheckpoint = -1}; 
+shapescuda_Memory shapescuda_Make_Memory(olib_Memory *restrict hostMemory) {
+  return (shapescuda_Memory){.blocks = olib_MakeDynamicArray(hostMemory, sizeof(shapescuda_Block*)), .allocationPointer = 0, .allocationCheckpoint = -1}; 
 }
 
 void  shapescuda_ReleaseBlocks(shapescuda_Memory *restrict cudaMemory) {
@@ -57,7 +57,7 @@ void shapescuda_FreeScratchMemory(shapescuda_Memory *restrict cudaMemory) {
   }
 }
 
-shapescuda_Block shapescuda_Allocate(shapescuda_Memory *restrict cudaMemory, Memory *restrict hostMemory, size_t size) {
+shapescuda_Block shapescuda_Allocate(shapescuda_Memory *restrict cudaMemory, olib_Memory *restrict hostMemory, size_t size) {
   PANIC_IF(cudaMemory->blocks == NULL, ERR_NULL_PTR);
   void *locationOnDestCtx = NULL;
   size_t roundedSize = roundCudaAllocationSize(size);
@@ -77,10 +77,10 @@ shapescuda_Block shapescuda_Allocate(shapescuda_Memory *restrict cudaMemory, Mem
   cudaError_t cudaResult = cudaMalloc(&locationOnDestCtx, roundedSize);
   PANIC_IF(cudaResult != cudaSuccess, cudaGetErrorString(cudaResult)); 
 
-  shapescuda_Block *newBlock = allocate(hostMemory, sizeof(shapescuda_Block)); 
+  shapescuda_Block *newBlock = olib_Allocate(hostMemory, sizeof(shapescuda_Block)); 
   *newBlock = (shapescuda_Block){.ptr = locationOnDestCtx, .size = roundedSize};
 
-  Array_AppendCudaBlock((Array*) cudaMemory->blocks, newBlock);
+  Array_AppendCudaBlock((olib_Array*) cudaMemory->blocks, newBlock);
   cudaMemory->allocationPointer += 1;
 
   return *newBlock;

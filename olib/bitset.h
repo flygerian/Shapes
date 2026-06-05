@@ -7,10 +7,10 @@
 
 typedef struct {
   uint32_t bits[8];
-  Memory *memory;
+  olib_Memory *memory;
 } Bitset;
 
-Bitset *Make_Bitset(Memory *memory);
+Bitset *Make_Bitset(olib_Memory *memory);
 void Bitset_Put(Bitset *bs, unsigned char c);
 bool Bitset_Contains(Bitset *bs, unsigned char c);
 bool Bitset_DoesNotContain(Bitset *bs, unsigned char c);

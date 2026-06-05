@@ -22,13 +22,13 @@ shapes_Value *shapes_GetAt(Tensor *t, Dim dim) {
 
   u64 idx = getContigousIdxFromCoord(t, dim.dims);
 
-  shapes_Value *result = allocate(t->context->memory, sizeof(shapes_Value));
+  shapes_Value *result = olib_Allocate(t->context->memory, sizeof(shapes_Value));
   size_t valueBytes = getBytesForDtype(t->dtype);
 
   byte *values;
   if (t->context->device != NULL && t->context->device->type != CPU) {
     size_t size = t->size * valueBytes;
-    values = allocate(t->context->memory, size);
+    values = olib_Allocate(t->context->memory, size);
     shapes_CopyBetweenDevices(t->context->device->type, CPU, t->values, values, size);
   } else {
     values = t->values;
@@ -53,7 +53,7 @@ Tensor shapes_IndexWithTensor(Context *ctx, Tensor *source, Tensor *indices) {
   u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndices->shape.numOfDims;
   dim_t *newDims = NULL;
   if (newNumDims > 0) {
-    newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+    newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   }
 
   for (RANGE(i, workingIndices->shape.numOfDims)) {
@@ -119,7 +119,7 @@ Tensor shapes_IndexWithTensor2d(Context *ctx, Tensor *source, Tensor *rowIndices
   u8 newNumDims = workingRows->shape.numOfDims + workingSource->shape.numOfDims - 2;
   dim_t *newDims = NULL;
   if (newNumDims > 0) {
-    newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+    newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   }
 
   for (RANGE(i, workingRows->shape.numOfDims)) {

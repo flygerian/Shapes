@@ -15,7 +15,7 @@ typedef struct adamState {
   f32 episolon;
 } adamState;
 
-void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
+void adamStep(Context *ctx, Optimizer *opts, olib_Array *parameters) {
   adamState *state = opts->state;
   PtrMap *m = state->m;
   PtrMap *v = state->v;
@@ -25,14 +25,14 @@ void adamStep(Context *ctx, Optimizer *opts, Array *parameters) {
   for (size_t i = 0; i < parameters->size; i++) {
     Tensor *p = shapes_Array_TensorPtrIdx(parameters, i);
     if (!PtrMap_Contains(m, &p)) {
-      Tensor *mEntry = allocate(ctx->memory, sizeof(Tensor));
+      Tensor *mEntry = olib_Allocate(ctx->memory, sizeof(Tensor));
       PANIC_IF(mEntry == NULL, ALLOCATION_FAILED);
       *mEntry = shapes_Make_ZerosTensor(ctx, p->shape);
       PtrMap_Put(m, (void*) p, mEntry);
     }
 
     if (!PtrMap_Contains(v, p)) {
-      Tensor *vEntry = allocate(ctx->memory, sizeof(Tensor));
+      Tensor *vEntry = olib_Allocate(ctx->memory, sizeof(Tensor));
       PANIC_IF(vEntry == NULL, ALLOCATION_FAILED);
       *vEntry = shapes_Make_ZerosTensor(ctx, p->shape);
       PtrMap_Put(v, p, vEntry);
@@ -69,7 +69,7 @@ Optimizer shapesnn_Adam(Context *ctx, f32 learningRate) {
       .step = 0,
   };
 
-  adamState *aState = allocate(ctx->memory, sizeof(adamState));
+  adamState *aState = olib_Allocate(ctx->memory, sizeof(adamState));
   *aState = state;
 
   return (Optimizer){.learningRate = learningRate, .state = aState, .opType = OP_ADAM};

@@ -35,7 +35,7 @@ static void assertMovedI32Values(Context *srcCtx, Tensor *tensor, const i32 *exp
 // ===== Pow Tests =====
 
 static void test_pow_scalar_power_of_2(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {1};
@@ -50,7 +50,7 @@ static void test_pow_scalar_power_of_2(void) {
 }
 
 static void test_pow_scalar_power_of_3(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {1};
@@ -65,7 +65,7 @@ static void test_pow_scalar_power_of_3(void) {
 }
 
 static void test_pow_power_of_0(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -86,7 +86,7 @@ static void test_pow_power_of_0(void) {
 }
 
 static void test_pow_power_of_1(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -107,7 +107,7 @@ static void test_pow_power_of_1(void) {
 }
 
 static void test_pow_negative_power(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -126,7 +126,7 @@ static void test_pow_negative_power(void) {
 }
 
 static void test_pow_fractional_power(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -147,7 +147,7 @@ static void test_pow_fractional_power(void) {
 }
 
 static void test_pow_2d_tensor(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
@@ -174,7 +174,7 @@ static void test_pow_2d_tensor(void) {
 }
 
 static void test_pow_f64_dtype(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
@@ -191,7 +191,7 @@ static void test_pow_f64_dtype(void) {
 }
 
 static void test_relu_forward(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
@@ -225,7 +225,7 @@ static void test_negate_cuda_dispatch_i32(void) {
   values[2] = 0;
   values[3] = 7;
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&ctx, toMove);
 

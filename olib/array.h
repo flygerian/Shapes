@@ -7,33 +7,32 @@
 
 #define ARRAY_PTR_AT_IDX(slice, idx) ((byte *)(slice)->items + ((idx) * (slice)->elemSize))
 
-typedef struct Array {
+typedef struct olib_Array {
   void *items;
   size_t capacity;
   size_t size;
   size_t elemSize;
   bool isCapacityFixed;
-  Memory *memory;
-} Array;
+  olib_Memory *memory;
+} olib_Array;
 
-typedef struct ArrayPair {
-  Array *a;
-  Array *b;
-} ArrayPair;
+typedef struct olib_ArrayPair {
+  olib_Array *a;
+  olib_Array *b;
+} olib_ArrayPair;
 
-#define ARRAY_PAIR(aArr, bArr)  (ArrayPair) {.a = ( aArr ), .b = ( bArr )}
+#define ARRAY_PAIR(aArr, bArr)  (olib_ArrayPair) {.a = ( aArr ), .b = ( bArr )}
 
-typedef Array *String;
-typedef Array *Array_F32;
-
+typedef olib_Array *olib_String;
+typedef olib_Array *olib_ArrayF32;
 
 #define STR(stringStruct) ((char*)( stringStruct )->items)
 
-Array *MakeDynamicArray(Memory *memory, const size_t elemSize);
-Array *MakeArray(Memory *memory, const size_t elemSize, size_t capacity);
+olib_Array *olib_MakeDynamicArray(olib_Memory *memory, const size_t elemSize);
+olib_Array *olib_MakeArray(olib_Memory *memory, const size_t elemSize, size_t capacity);
 
 // declared in the header file so it can be inlined at the call site
-static inline void *Array_Idx(Array *slice, size_t idx) {
+static inline void *olib_ArrayIdx(olib_Array *slice, size_t idx) {
   PANIC_IF(slice == NULL, ERR_NULL_PTR);
   PANIC_IF(idx > slice->capacity - 1, ERR_OUT_OF_BOUNDS);
 
@@ -44,25 +43,25 @@ static inline void *Array_Idx(Array *slice, size_t idx) {
   return ARRAY_PTR_AT_IDX(slice, idx);
 }
 
-void Array_SetAt(Array *array, size_t idx, void *ptr);
-void Array_Append(Array *array, void *ptr);
-void Array_Reset(Array *array);
-void Array_AppendStructPtr(Array *array, void *ptr);
-void *Array_StructPtrIdx(Array *array, size_t idx);
-Array *Array_Slice(Array *src, size_t start, size_t count);
+void olib_ArraySetAt(olib_Array *array, size_t idx, void *ptr);
+void olib_ArrayAppend(olib_Array *array, void *ptr);
+void olib_ArrayReset(olib_Array *array);
+void olib_ArrayAppendStructPtr(olib_Array *array, void *ptr);
+void *olib_ArrayStructPtrIdx(olib_Array *array, size_t idx);
+olib_Array *olib_ArraySlice(olib_Array *src, size_t start, size_t count);
 
-String MakeString(Memory *memory, char *stringData);
-String MakeStringN(Memory *memory, char *stringData, size_t len);
-void Array_AppendString(Array *array, String str);
-String Array_StringIdx(Array *array, size_t idx);
+olib_String olib_MakeString(olib_Memory *memory, char *stringData);
+olib_String olib_MakeStringN(olib_Memory *memory, char *stringData, size_t len);
+void olib_ArrayAppendString(olib_Array *array, olib_String str);
+olib_String olib_ArrayStringIdx(olib_Array *array, size_t idx);
 
-void String_AppendCString(String str, const char *cstr);
-void String_AppendFormat(String str, const char *fmt, ...);
+void olib_StringAppendCString(olib_String str, const char *cstr);
+void olib_StringAppendFormat(olib_String str, const char *fmt, ...);
 
-Array_F32 Make_DynamicF32Array(Memory *memory);
-Array_F32 Make_F32Array(Memory *memory, size_t capacity);
-void Array_AppendF32(Array *array, f32 num);
-void Array_AppendF32Buffer(Array *array, f32 *num, size_t numItems);
-f32 Array_F32Idx(Array *array, size_t idx);
+olib_ArrayF32 olib_MakeDynamicF32Array(olib_Memory *memory);
+olib_ArrayF32 olib_MakeF32Array(olib_Memory *memory, size_t capacity);
+void olib_ArrayAppendF32(olib_Array *array, f32 num);
+void olib_ArrayAppendF32Buffer(olib_Array *array, f32 *num, size_t numItems);
+f32 olib_ArrayF32Idx(olib_Array *array, size_t idx);
 
 #endif

@@ -5,7 +5,7 @@
 #include "shapes_internal.h"
 #include "value.h"
 
-static shapes_Value *contigousSum(Memory *m, void *position, tensor_size_t limit, shapes_Dtype dtype) {
+static shapes_Value *contigousSum(olib_Memory *m, void *position, tensor_size_t limit, shapes_Dtype dtype) {
   tensor_size_t x = 0;
   shapes_Value sums[MAX_PARALLEL_SUMS] = {};
 
@@ -28,7 +28,7 @@ static shapes_Value *contigousSum(Memory *m, void *position, tensor_size_t limit
     x += numComputations;
   }
 
-  shapes_Value *sum = allocate(m, sizeof(shapes_Value));
+  shapes_Value *sum = olib_Allocate(m, sizeof(shapes_Value));
   PANIC_IF(sum == NULL, ALLOCATION_FAILED);
 
   *sum = VALUE(dtype, 0);
@@ -387,10 +387,10 @@ Tensor shapes_ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
   }
 
   for (i32 i = 0; i < dimDiff; i++) {
-    Tensor *summed = allocate(ctx->memory, sizeof(Tensor));
+    Tensor *summed = olib_Allocate(ctx->memory, sizeof(Tensor));
     PANIC_IF(summed == NULL, ALLOCATION_FAILED);
     *summed = shapes_Sum(ctx, current, 0);
-    Tensor *squeezed = allocate(ctx->memory, sizeof(Tensor));
+    Tensor *squeezed = olib_Allocate(ctx->memory, sizeof(Tensor));
     PANIC_IF(squeezed == NULL, ALLOCATION_FAILED);
     *squeezed = shapes_SqueezeDim(ctx, summed, 0);
     current = squeezed;
@@ -398,7 +398,7 @@ Tensor shapes_ReduceBroadcast(Context *ctx, Tensor *input, Tensor *grad) {
 
   for (u8 d = 0; d < input->shape.numOfDims; d++) {
     if (input->shape.dims[d] == 1 && current->shape.dims[d] > 1) {
-      Tensor *summed = allocate(ctx->memory, sizeof(Tensor));
+      Tensor *summed = olib_Allocate(ctx->memory, sizeof(Tensor));
       PANIC_IF(summed == NULL, ALLOCATION_FAILED);
       *summed = shapes_Sum(ctx, current, d);
       current = summed;

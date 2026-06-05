@@ -114,24 +114,24 @@ void batchnormBackward(Context *ctx, Tensor *output) {
   shapes_AddInPlace(ctx, x.grad, &gradX);
 }
 
-Array *batchNormLayerParameters(Context *ctx, Layer *layer) {
+olib_Array *batchNormLayerParameters(Context *ctx, Layer *layer) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(layer == NULL, ERR_NULL_PTR);
 
   batchNormLayerData *layerData = layer->layerData;
-  Array *params = MakeArray(ctx->memory, sizeof(Tensor), 2);
+  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
   shapes_Array_AppendTensor(params, &layerData->gamma);
   shapes_Array_AppendTensor(params, &layerData->beta);
 
   return params;
 }
 
-Array *batchNormLayerTensors(Context *ctx, Layer *layer) {
+olib_Array *batchNormLayerTensors(Context *ctx, Layer *layer) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(layer == NULL, ERR_NULL_PTR);
 
   batchNormLayerData *layerData = layer->layerData;
-  Array *tensors = MakeArray(ctx->memory, sizeof(Tensor), 4);
+  olib_Array *tensors = olib_MakeArray(ctx->memory, sizeof(Tensor), 4);
   shapes_Array_AppendTensor(tensors, &layerData->gamma);
   shapes_Array_AppendTensor(tensors, &layerData->beta);
   shapes_Array_AppendTensor(tensors, &layerData->runningMean);
@@ -140,7 +140,7 @@ Array *batchNormLayerTensors(Context *ctx, Layer *layer) {
   return tensors;
 }
 
-void batchNormLayerLoad(Context *ctx, Layer *layer, Array *tensors) {
+void batchNormLayerLoad(Context *ctx, Layer *layer, olib_Array *tensors) {
   PANIC_IF(tensors->size != 4, ERR_DIM_MISMATCH);
   batchNormLayerData *layerData = layer->layerData;
 
@@ -163,10 +163,10 @@ void updateRunningStats(Context *ctx, batchNormLayerData *layerData, Tensor *mea
   PANIC_IF(mean->size != layerData->runningMean.size, ERR_DIM_MISMATCH);
   PANIC_IF(variance->size != layerData->runningVar.size, ERR_DIM_MISMATCH);
 
-  Tensor *keep = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *keep = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(keep == NULL, ALLOCATION_FAILED);
   *keep = shapes_Make_FloatTensor(ctx, SHAPE1D(1), 1.0 - layerData->momentum);
-  Tensor *tMomentum = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *tMomentum = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(tMomentum == NULL, ALLOCATION_FAILED);
   *tMomentum = shapes_Make_FloatTensor(ctx, SHAPE1D(1), layerData->momentum);
 
@@ -233,7 +233,7 @@ Tensor batchNormForward(Context *ctx, Layer *layer, Tensor *input) {
     out = shapes_Reshape(ctx, &bnOut2d, originalShape);
   }
 
-  out.inputs = MakeArray(ctx->memory, sizeof(Tensor), 1);
+  out.inputs = olib_MakeArray(ctx->memory, sizeof(Tensor), 1);
   shapes_Array_AppendTensor(out.inputs, input);
   out.opType = OP_BATCH_NORM;
   out.opMetadata = layerData;
@@ -247,7 +247,7 @@ FowardPassOp shapesnn_BatchNorm(Context *ctx, shapes_Dtype dtype, size_t numFeat
   Tensor beta = shapes_Make_FloatTensor(ctx, SHAPE1D(numFeatures), dtype);
   beta.label = "beta";
 
-  batchNormLayerData *data = allocate(ctx->memory, sizeof(batchNormLayerData));
+  batchNormLayerData *data = olib_Allocate(ctx->memory, sizeof(batchNormLayerData));
   data->beta = beta;
   data->gamma = gamma;
   data->numFeatures = numFeatures;
@@ -261,7 +261,7 @@ FowardPassOp shapesnn_BatchNorm(Context *ctx, shapes_Dtype dtype, size_t numFeat
   data->runningStatsInitialised = true;
   data->dims = 1;
 
-  Layer *layer = allocate(ctx->memory, sizeof(Layer));
+  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
   *layer = (Layer){0};
   layer->layerData = data;
 
@@ -274,7 +274,7 @@ FowardPassOp shapesnn_BatchNorm2d(Context *ctx, shapes_Dtype dtype, size_t numFe
   Tensor beta = shapes_Make_FloatTensor(ctx, SHAPE1D(numFeatures), dtype);
   beta.label = "beta";
 
-  batchNormLayerData *data = allocate(ctx->memory, sizeof(batchNormLayerData));
+  batchNormLayerData *data = olib_Allocate(ctx->memory, sizeof(batchNormLayerData));
   data->beta = beta;
   data->gamma = gamma;
   data->numFeatures = numFeatures;
@@ -287,7 +287,7 @@ FowardPassOp shapesnn_BatchNorm2d(Context *ctx, shapes_Dtype dtype, size_t numFe
   data->runningStatsInitialised = true;
   data->dims = 2;
 
-  Layer *layer = allocate(ctx->memory, sizeof(Layer));
+  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
   *layer = (Layer){0};
   layer->layerData = data;
 

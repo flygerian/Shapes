@@ -40,7 +40,7 @@ Tensor adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Result result = shapes_AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, &dest);
   PANIC_IF(result != OK, result);
 
-  dest.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
   Tensor *inputRef = tensor;
   shapes_Array_AppendTensor(dest.inputs, inputRef);
@@ -50,27 +50,27 @@ Tensor adaptiveAvgPool2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   return dest;
 }
 
-Array *adaptiveAvgPool2dLayerParameters(Context *ctx, Layer *state) {
+olib_Array *adaptiveAvgPool2dLayerParameters(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-Array *adaptiveAvgPool2dLayerTensors(Context *ctx, Layer *state) {
+olib_Array *adaptiveAvgPool2dLayerTensors(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-void adaptiveAvgPool2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+void adaptiveAvgPool2dLayerLoad(Context *ctx, Layer *state, olib_Array *tensors) {
   (void)ctx;
   (void)state;
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
 FowardPassOp shapesnn_AdaptiveAvgPool2d(Context *ctx, shapes_Dtype dtype, dim_t outH, dim_t outW) {
-  adaptiveAvgPool2dLayerData *layerData = allocate(ctx->memory, sizeof(adaptiveAvgPool2dLayerData));
+  adaptiveAvgPool2dLayerData *layerData = olib_Allocate(ctx->memory, sizeof(adaptiveAvgPool2dLayerData));
   *layerData = (adaptiveAvgPool2dLayerData){.outH = outH, .outW = outW};
 
-  Layer *layer = allocate(ctx->memory, sizeof(Layer));
+  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
   layer->weights = (Tensor){0};
   layer->bias = (Tensor){0};
   layer->layerData = layerData;

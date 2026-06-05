@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-Result shapes_optimizer_Sgd(Context *ctx, Array *parameters, f32 learningRate) {
+Result shapes_optimizer_Sgd(Context *ctx, olib_Array *parameters, f32 learningRate) {
   PANIC_IF(ctx == NULL || parameters == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE);
 

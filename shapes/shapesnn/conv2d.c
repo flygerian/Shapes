@@ -82,11 +82,11 @@ Tensor conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   Result result = shapes_Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, &dest, &colBuffer);
   PANIC_IF(result != OK, result);
 
-  Tensor *colBufferPtr = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *colBufferPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   *colBufferPtr = colBuffer;
   layerData->colBuffer = colBufferPtr;
 
-  dest.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
   PANIC_IF(dest.inputs == NULL, ALLOCATION_FAILED);
 
   shapes_Array_AppendTensor(dest.inputs, tensor);
@@ -101,9 +101,9 @@ Tensor conv2dForward(Context *ctx, Layer *layer, Tensor *tensor) {
   return dest;
 }
 
-Array *conv2dLayerParameters(Context *ctx, Layer *state) {
+olib_Array *conv2dLayerParameters(Context *ctx, Layer *state) {
   conv2dLayerData *layerData = state->layerData;
-  Array *params = MakeArray(ctx->memory, sizeof(Tensor), 2);
+  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
   shapes_Array_AppendTensor(params, &state->weights);
 
   if (layerData->withBias) {
@@ -113,11 +113,11 @@ Array *conv2dLayerParameters(Context *ctx, Layer *state) {
   return params;
 }
 
-Array *conv2dLayerTensors(Context *ctx, Layer *state) {
+olib_Array *conv2dLayerTensors(Context *ctx, Layer *state) {
   return conv2dLayerParameters(ctx, state);
 }
 
-void conv2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+void conv2dLayerLoad(Context *ctx, Layer *state, olib_Array *tensors) {
   conv2dLayerData *layerData = state->layerData;
   size_t expected = layerData->withBias ? 2 : 1;
   PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
@@ -133,10 +133,10 @@ void conv2dLayerLoad(Context *ctx, Layer *state, Array *tensors) {
 FowardPassOp shapesnn_Conv2d(Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
 
-  conv2dLayerData *layerData = allocate(ctx->memory, sizeof(conv2dLayerData));
+  conv2dLayerData *layerData = olib_Allocate(ctx->memory, sizeof(conv2dLayerData));
   *layerData = (conv2dLayerData){.inChannels = inChannels, .outChannels = outChannels, .stride = stride, .withBias = withBias, .colBuffer = NULL};
 
-  Layer *layer = allocate(ctx->memory, sizeof(Layer));
+  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
   layer->weights = shapes_Make_RandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
   layer->weights.label = "weights";
@@ -149,6 +149,6 @@ FowardPassOp shapesnn_Conv2d(Context *ctx, shapes_Dtype dtype, size_t inChannels
     layer->bias = (Tensor){0};
   }
 
-  FowardPassOp *op = allocate(ctx->memory, sizeof(FowardPassOp));
+  FowardPassOp *op = olib_Allocate(ctx->memory, sizeof(FowardPassOp));
   return (FowardPassOp){.ctx = ctx, .type = OP_CONV2D, .dtype = dtype, .op = layer};
 }

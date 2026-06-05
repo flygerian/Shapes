@@ -1,3 +1,4 @@
+#include "memory.h"
 #include "result.h"
 #include "shapes.h"
 #include <stddef.h>
@@ -28,21 +29,21 @@ void mseBackward(Context *ctx, Tensor *tensor) {
 Tensor shapesnn_Mse(Context *ctx, Tensor *yGround, Tensor *yPred) {
   Tensor diffVal = shapes_Subtract(ctx, yPred, yGround);
 
-  Tensor *loss = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *loss = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(loss == NULL, ALLOCATION_FAILED);
   *loss = shapes_Pow(ctx, &diffVal, 2);
 
   for (dim_t i = 0; i < loss->shape.numOfDims; i++) {
     dim_t dim = loss->shape.dims[i];
     if (dim > 1) {
-      Tensor *newLoss = allocate(ctx->memory, sizeof(Tensor));
+      Tensor *newLoss = olib_Allocate(ctx->memory, sizeof(Tensor));
       PANIC_IF(newLoss == NULL, ALLOCATION_FAILED);
       *newLoss = shapes_Sum(ctx, loss, i);
       loss = newLoss;
     }
   }
 
-  loss->inputs = MakeArray(ctx->memory, sizeof(Tensor), 2);
+  loss->inputs = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
   shapes_Array_AppendTensor(loss->inputs, yGround);
   shapes_Array_AppendTensor(loss->inputs, yPred);
 

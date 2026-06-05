@@ -14,7 +14,7 @@
 Tensor shapes_Slice(Context *ctx, Tensor *source, ...) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
 
-  shapes_Range *ranges = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
+  shapes_Range *ranges = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
   PANIC_IF(ranges == NULL, ERR_OUT_OF_MEMORY);
 
   va_list args;
@@ -36,11 +36,11 @@ Tensor shapes_Slice(Context *ctx, Tensor *source, ...) {
   }
   va_end(args);
 
-  Dim newShape = {.dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
+  Dim newShape = {.dims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
                   .numOfDims = source->shape.numOfDims,
                   .multipliers =
-                      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
-  shapes_Range *boundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
+                      olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
+  shapes_Range *boundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
   PANIC_IF(newShape.dims == NULL || newShape.multipliers == NULL || boundary == NULL,
            ALLOCATION_FAILED);
 
@@ -87,7 +87,7 @@ Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
   } else {
     values = source->values;
     if (source->boundary != NULL) {
-      boundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
+      boundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
       PANIC_IF(boundary == NULL, ALLOCATION_FAILED);
       memcpy(boundary, source->boundary, sizeof(shapes_Range) * source->shape.numOfDims);
     }
@@ -103,7 +103,7 @@ Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
                             .boundary = boundary,
                             .size = source->size,
                             .isContigous = true};
-  dim_t *copiedDims = allocate(ctx->memory, sizeof(dim_t) * newShape.numOfDims);
+  dim_t *copiedDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newShape.numOfDims);
   PANIC_IF(copiedDims == NULL, ALLOCATION_FAILED);
   memcpy(copiedDims, newShape.dims, sizeof(dim_t) * newShape.numOfDims);
 
@@ -111,10 +111,10 @@ Tensor shapes_Reshape(Context *ctx, Tensor *source, Dim newShape) {
       (Dim){.dims = copiedDims, .numOfDims = newShape.numOfDims, .multipliers = snm.multipliers};
 
   dest.opType = OP_RESHAPE;
-  dest.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
   shapes_Array_AppendTensor(dest.inputs, source);
 
-  Tensor *gradPtr = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
   *gradPtr = shapes_Make_ZerosTensor(ctx, dest.shape);
   dest.grad = gradPtr;
@@ -151,7 +151,7 @@ Tensor shapes_Transpose(Context *ctx, Tensor *source, ...) {
                transposeDims[1] >= source->shape.numOfDims,
            ERR_DIM_MISMATCH);
 
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
 
@@ -160,7 +160,7 @@ Tensor shapes_Transpose(Context *ctx, Tensor *source, ...) {
   newDims[transposeDims[1]] = temp;
 
   multiplier_t *newMultipliers =
-      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+      olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
@@ -171,7 +171,7 @@ Tensor shapes_Transpose(Context *ctx, Tensor *source, ...) {
   // Deep-copy and permute boundary to avoid shared-pointer double-free.
   shapes_Range *newBoundary = NULL;
   if (source->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
+    newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     memcpy(newBoundary, source->boundary, sizeof(shapes_Range) * source->shape.numOfDims);
     shapes_Range tmp = newBoundary[transposeDims[0]];
@@ -191,7 +191,7 @@ Tensor shapes_Permute(Context *ctx, Tensor *source, Dim order) {
   PANIC_IF(order.dims == NULL, ERR_NULL_SHAPE_PROVIDED);
   PANIC_IF(order.numOfDims != source->shape.numOfDims, ERR_DIM_MISMATCH);
 
-  bool *seen = allocate(ctx->memory, sizeof(bool) * source->shape.numOfDims);
+  bool *seen = olib_Allocate(ctx->memory, sizeof(bool) * source->shape.numOfDims);
   PANIC_IF(seen == NULL, ALLOCATION_FAILED);
   memset(seen, 0, sizeof(bool) * source->shape.numOfDims);
 
@@ -203,9 +203,9 @@ Tensor shapes_Permute(Context *ctx, Tensor *source, Dim order) {
     seen[sourceDim] = true;
   }
 
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   multiplier_t *newMultipliers =
-      allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+      olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL || newMultipliers == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < order.numOfDims; i++) {
@@ -216,7 +216,7 @@ Tensor shapes_Permute(Context *ctx, Tensor *source, Dim order) {
 
   shapes_Range *newBoundary = NULL;
   if (source->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
+    newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < order.numOfDims; i++) {
       dim_t sourceDim = order.dims[i];
@@ -258,7 +258,7 @@ Tensor shapes_Squeeze(Context *ctx, Tensor *t) {
     newNumDims = 1;
   }
 
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   u8 destIdx = 0;
 
@@ -289,7 +289,7 @@ Tensor shapes_Squeeze(Context *ctx, Tensor *t) {
   // Deep-copy boundary for surviving dims only to avoid shared-pointer double-free.
   shapes_Range *newBoundary = NULL;
   if (t->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
+    newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     u8 bIdx = 0;
     if (newNumDims == 1 && t->shape.dims[0] == 1) {
@@ -321,16 +321,16 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(t->shape.dims[dim] != 1, ERR_DIM_MISMATCH);
 
   if (t->shape.numOfDims == 1) {
-    dim_t *newDims = allocate(ctx->memory, sizeof(dim_t));
+    dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t));
     PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
     newDims[0] = 1;
-    multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t));
+    multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t));
     PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
     newMultipliers[0] = 1;
 
     shapes_Range *newBoundary = NULL;
     if (t->boundary != NULL) {
-      newBoundary = allocate(ctx->memory, sizeof(shapes_Range));
+      newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range));
       PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
       newBoundary[0] = t->boundary[0];
     }
@@ -342,7 +342,7 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
   }
 
   u8 newNumDims = t->shape.numOfDims - 1;
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
 
   u8 destIdx = 0;
@@ -358,7 +358,7 @@ Tensor shapes_SqueezeDim(Context *ctx, Tensor *t, dim_t dim) {
   // Deep-copy boundary excluding the squeezed dim to avoid shared-pointer double-free.
   shapes_Range *newBoundary = NULL;
   if (t->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
+    newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     u8 bIdx = 0;
     for (u8 i = 0; i < t->shape.numOfDims; i++) {
@@ -381,8 +381,8 @@ Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
   PANIC_IF(dim > t->shape.numOfDims, ERR_DIM_MISMATCH);
 
   u8 newNumDims = t->shape.numOfDims + 1;
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
   PANIC_IF(newDims == NULL || newMultipliers == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < newNumDims; i++) {
@@ -409,7 +409,7 @@ Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
   // Deep-copy boundary with the new dimension inserted to avoid shared-pointer double-free.
   shapes_Range *newBoundary = NULL;
   if (t->boundary != NULL) {
-    newBoundary = allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
+    newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * newNumDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < newNumDims; i++) {
       if (i < dim) {
@@ -428,8 +428,8 @@ Tensor shapes_UnSqueeze(Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, Array_Tensor tensors) {
-  Array_Tensor tensorsContig = NULL;
+Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, shapes_ArrayTensor tensors) {
+  shapes_ArrayTensor tensorsContig = NULL;
 
   PANIC_IF(tensors->size <= 0, ERR_NO_OP);
   PANIC_IF(isInvalidTensor(target), ERR_NULL_TENSOR_PROVIDED);
@@ -447,7 +447,7 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, Array_Tensor
   result = calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
   PANIC_IF(result != OK, result);
 
-  tensorsContig = shapes_Make_TensorArray(ctx->memory, tensors->size);  //(Tensor **)allocate(ctx->memory, sizeof(Tensor *) * numTensorsToAdd);
+  tensorsContig = shapes_Make_TensorArray(ctx->memory, tensors->size); 
   PANIC_IF(tensorsContig == NULL, ALLOCATION_FAILED);
 
   for (RANGE(it, tensors->size)) {
@@ -466,7 +466,7 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, Array_Tensor
     shapes_Array_AppendTensor(tensorsContig, currentTensorContig);
   }
 
-  dim_t *outputDims = allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
+  dim_t *outputDims = olib_Allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
   PANIC_IF(result != OK, result);
   dim_t dimsToAdd = 0;
 
@@ -519,13 +519,13 @@ Tensor shapes_Concat(Context *ctx, Tensor *target, dim_t targetDim, Array_Tensor
   return dest;
 }
 
-Tensor shapes_Stack(Context *ctx, Array_Tensor tensors) {
+Tensor shapes_Stack(Context *ctx, shapes_ArrayTensor tensors) {
   PANIC_IF_NULL(ctx);
   PANIC_IF_NULL(tensors);
   PANIC_IF(tensors->size < 2, ERR_STACKING_LESS_THAN_TWO_TENSORS);
 
   Tensor firstTensor = shapes_Array_TensorIdx(tensors, 0);
-  Array *unsqueezed = shapes_Make_DynamicTensorArray(ctx->memory); //allocate(ctx->memory, sizeof(Tensor) * numToAdd);
+  olib_Array *unsqueezed = shapes_Make_DynamicTensorArray(ctx->memory);
 
   for (RANGE_FROM(1, tensors->size, i)) {
     Tensor currentTensor = shapes_Array_TensorIdx(tensors, i);

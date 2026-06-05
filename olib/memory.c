@@ -26,11 +26,11 @@
   #define HUGE_PAGE_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB)
 #endif
 
-Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
-  size_t totalSize = sizeof(Memory) + arenaSize;
+olib_Memory *olib_InitializeArena(size_t arenaSize, size_t minBlockSize) {
+  size_t totalSize = sizeof(olib_Memory) + arenaSize;
   size_t alignedSize = ALIGN_TO_HUGE(totalSize);  // round up to 2MB boundary
 
-  Memory *head = mmap(NULL, alignedSize, PROT_READ | PROT_WRITE,
+  olib_Memory *head = mmap(NULL, alignedSize, PROT_READ | PROT_WRITE,
                  HUGE_PAGE_FLAGS, HUGE_PAGE_FD, 0);
 
   if (head == MAP_FAILED) {
@@ -54,12 +54,12 @@ Memory *initializeArena(size_t arenaSize, size_t minBlockSize) {
   return head;
 }
 
-Memory *initializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize) {
+olib_Memory *olib_InitializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlockSize) {
   assert(buffer != NULL);
-  assert(bufferSize > sizeof(Memory));
+  assert(bufferSize > sizeof(olib_Memory));
 
-  Memory *head = (Memory *)buffer;
-  head->capacity = bufferSize - sizeof(Memory);
+  olib_Memory *head = (olib_Memory *)buffer;
+  head->capacity = bufferSize - sizeof(olib_Memory);
   head->allocated = 0;
   head->numBlocks = 0;
   head->numFreeBlocks = 0;
@@ -69,7 +69,7 @@ Memory *initializeArenaWithBuffer(void *buffer, size_t bufferSize, size_t minBlo
   return head;
 }
 
-void resetArena(Memory *memory) {
+void olib_ResetArena(olib_Memory *memory) {
   assert(memory != NULL);
 
   memory->allocated = 0;
@@ -78,24 +78,23 @@ void resetArena(Memory *memory) {
   memory->freeHeadOffset = INVALID_OFFSET;
 }
 
-void popScratch(void *ptr) {
+void olib_PopScratch(void *ptr) {
   blockheader *header = BLOCK_HEADER(ptr);
-  Memory *memory = ((void*)header->arena) - sizeof(Memory);
+  olib_Memory *memory = ((void*)header->arena) - sizeof(olib_Memory);
   memory->allocated -= header->blockSize;
 }
 
-Memory *initializeMemory() {
-  return initializeArena((size_t)DEFAULT_ALLOCATION, 1);
+olib_Memory *olib_InitializeMemory() {
+  return olib_InitializeArena((size_t)DEFAULT_ALLOCATION, 1);
 }
 
-Memory* GetScratchArena(Memory *memory, size_t scratchBufferSize) {
-  void *scratchBuffer = allocate(memory, scratchBufferSize);
-  return initializeArenaWithBuffer(scratchBuffer, scratchBufferSize, 1);
+olib_Memory* olib_GetScratchArena(olib_Memory *memory, size_t scratchBufferSize) {
+  void *scratchBuffer = olib_Allocate(memory, scratchBufferSize);
+  return olib_InitializeArenaWithBuffer(scratchBuffer, scratchBufferSize, 1);
 }
-
 // Writes a block header and footer for a payload of `size` bytes at `header`.
 // Returns header on success, NULL if the block would exceed arena capacity.
-static inline void *adjustBlock(Memory *memory, blockheader *header, size_t size) {
+static inline void *adjustBlock(olib_Memory *memory, blockheader *header, size_t size) {
   uint8_t *arena = ARENA(memory);
   size_t headerOffset = BLOCK_HEADER_OFFSET(arena, header);
 
@@ -115,7 +114,7 @@ static inline void *adjustBlock(Memory *memory, blockheader *header, size_t size
   return header;
 }
 
-void *allocate(Memory *memory, size_t size) {
+void *olib_Allocate(olib_Memory *memory, size_t size) {
   // Round the payload up so every block keeps the arena cursor aligned. Without this,
   // odd-byte allocations (e.g. strings, bitsets) leave subsequent float blocks unaligned,
   // which breaks Accelerate SIMD routines like vvtanhf even though scalar loops tolerate it.
@@ -136,7 +135,23 @@ void *allocate(Memory *memory, size_t size) {
   PANIC_IF(true, ALLOCATION_FAILED);
 }
 
-void *reallocate(Memory *memory, void *ptr, size_t size) {
+void freeAlloc(olib_Memory *memory, void *ptr) {
+  if (ptr == NULL) {
+    return; 
+  }
+
+  blockheader *memBlockHeader = BLOCK_HEADER(ptr);
+  if (memBlockHeader->free) {
+    return;
+  }
+
+  memBlockHeader->free = true;
+  memBlockHeader->nextFreeOffset = INVALID_OFFSET;
+  memBlockHeader->prevFreeOffset = INVALID_OFFSET;
+  memory->numFreeBlocks += 1;
+}
+
+void *olib_Reallocate(olib_Memory *memory, void *ptr, size_t size) {
   if (ptr != NULL) {
     blockheader *memBlockHeader = BLOCK_HEADER(ptr);
 
@@ -153,7 +168,7 @@ void *reallocate(Memory *memory, void *ptr, size_t size) {
       return ptr;
     }
 
-    void *newSpace = allocate(memory, size);
+    void *newSpace = olib_Allocate(memory, size);
     if (newSpace == NULL) {
       return NULL;
     }
@@ -161,59 +176,11 @@ void *reallocate(Memory *memory, void *ptr, size_t size) {
     freeAlloc(memory, ptr);
     return newSpace;
   } else {
-    return allocate(memory, size);
+    return olib_Allocate(memory, size);
   }
 }
 
-void freeAlloc(Memory *memory, void *ptr) {
-  if (ptr == NULL) {
-    return; 
-  }
-
-  blockheader *memBlockHeader = BLOCK_HEADER(ptr);
-  if (memBlockHeader->free) {
-    return;
-  }
-
-  memBlockHeader->free = true;
-  memBlockHeader->nextFreeOffset = INVALID_OFFSET;
-  memBlockHeader->prevFreeOffset = INVALID_OFFSET;
-  memory->numFreeBlocks += 1;
-}
-
-void freeMemory(Memory *memory) {
+void olib_FreeMemory(olib_Memory *memory) {
   free(memory);
 }
 
-void printMemoryFragmentationChart(Memory *memory) {
-  printf("== Memory Fragmentation Chart ==\n");
-  printf("Allocated: %zu / %zu bytes\n", memory->allocated, memory->capacity);
-  printf("Blocks: %zu total, %zu free\n\n", memory->numBlocks, memory->numFreeBlocks);
-
-  uint8_t *arena = ARENA(memory);
-  size_t byteIdx = 0;
-  int col = 0;
-
-  while (byteIdx < memory->allocated) {
-    blockheader *header = (blockheader *)(arena + byteIdx);
-    size_t blockSize = sizeof(blockheader) + header->blockSize + sizeof(blockfooter);
-
-    if (header->free) {
-      fprintf(stdout, "(%zu) ", header->blockSize);
-    } else {
-      fprintf(stdout, "%zu ", header->blockSize);
-    }
-
-    col++;
-    if (col == 16) {
-      fprintf(stdout, "\n");
-      col = 0;
-    }
-
-    byteIdx += blockSize;
-  }
-
-  if (col != 0) {
-    fprintf(stdout, "\n");
-  }
-}

@@ -53,16 +53,16 @@ size_t File_Size(File file) {
   return (size_t)size;
 }
 
-Array* File_ReadLines(Memory *memory, File file) { 
+olib_Array* File_ReadLines(olib_Memory *memory, File file) { 
   PANIC_IF_NULL(file.fd);
 
   char line[1024];
-  Array *lines = MakeDynamicArray(memory, sizeof(line));
+  olib_Array *lines = olib_MakeDynamicArray(memory, sizeof(line));
 
   size_t totalLines = 0;
   while (fgets(line, sizeof(line), file.fd)) {
      line[strcspn(line, "\n")] = '\0'; 
-     Array_Append(lines, line);
+     olib_ArrayAppend(lines, line);
      totalLines += 1;
   }
 

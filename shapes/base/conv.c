@@ -51,7 +51,7 @@ static void accumulateConvBiasGradCuda(Context *ctx, Tensor *outputGrad, Tensor 
   tensor_size_t rows = outputGrad->size / channels;
   size_t oneBytes = rows * getBytesForDtype(outputGrad->dtype);
   double phaseStartMs = 0.0;
-  void *ones = allocate(ctx->memory, oneBytes);
+  void *ones = olib_Allocate(ctx->memory, oneBytes);
 
   PANIC_IF(ones == NULL, ERR_OUT_OF_MEMORY);
 
@@ -151,7 +151,7 @@ Result shapes_Conv2d(Context *ctx, size_t inChannels, size_t outChannels, u8 str
   dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
-  Tensor *createdGemmOutput = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdGemmOutput = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdGemmOutput == NULL, ALLOCATION_FAILED);
   *createdGemmOutput = t_Zeros(ctx, SHAPE4D(batch, outputChannelHeight, outputChannelWidth, outChannels), t->dtype);
   PANIC_IF(createdGemmOutput == NULL, ERR_OUT_OF_MEMORY);
@@ -406,7 +406,7 @@ Result shapes_ConvTranspose2d(Context *ctx, size_t inChannels, size_t outChannel
   dim_t outH = (h - 1) * stride + kH;
   dim_t outW = (w - 1) * stride + kW;
 
-  Tensor *createdDest = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
   *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, outChannels), t->dtype);
   if (createdDest == NULL) {
@@ -516,7 +516,7 @@ Result shapes_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, 
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor *createdDX = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   if (createdDX == NULL) {
@@ -524,7 +524,7 @@ Result shapes_ConvTranspose2dBackward(Context *ctx, Tensor *x, Tensor *kernels, 
   }
   *dX = *createdDX;
 
-  Tensor *createdDKernels = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *createdDKernels = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDKernels == NULL, ALLOCATION_FAILED);
   *createdDKernels = t_Zeros(ctx, kernels->shape, kernels->dtype);
   if (createdDKernels == NULL) {

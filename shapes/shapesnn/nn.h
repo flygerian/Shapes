@@ -21,7 +21,7 @@ typedef struct FowardPassOp {
 } FowardPassOp;
 
 typedef struct NamedTensor {
-  String name;
+  olib_String name;
   Tensor tensor;
 } NamedTensor;
 
@@ -32,26 +32,26 @@ typedef struct Optimzer {
 } Optimizer;
 
 typedef PtrMap TensorPtrMap;
-typedef Array* Array_NamedTensor;
-static inline NamedTensor shapes_Array_NamedTensorIdx(Array *array, size_t idx) {
-  return *((NamedTensor *)Array_Idx(array, idx));
+typedef olib_Array* Array_NamedTensor;
+static inline NamedTensor shapes_Array_NamedTensorIdx(olib_Array *array, size_t idx) {
+  return *((NamedTensor *)olib_ArrayIdx(array, idx));
 }
 
-void shapesnn_Array_AppendLayer(Array *array, Layer *layer);
-Layer *shapesnn_Array_LayerIdx(Array *array, size_t idx);
+void shapesnn_Array_AppendLayer(olib_Array *array, Layer *layer);
+Layer *shapesnn_Array_LayerIdx(olib_Array *array, size_t idx);
 
-TensorPtrMap *Make_TensorPtrMap(Memory *memory);
+TensorPtrMap *Make_TensorPtrMap(olib_Memory *memory);
 void TensorPtrMap_Put(TensorPtrMap *map, void *key, Tensor *t);
 Tensor *TensorPtrMap_Get(TensorPtrMap *map, void *key);
 
 Tensor shapesnn_Forward(Context *ctx, FowardPassOp *op, Tensor *input);
-Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op);
+olib_Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op);
 Array_NamedTensor shapesnn_Tensors(Context *ctx, FowardPassOp *op);
 void shapesnn_SaveAsSafeTensors(Context *ctx, FowardPassOp *model, string path);
 void shapesnn_LoadFromSafeTensors(Context *ctx, FowardPassOp *model, string path);
 
-void shapesnn_SafeTensors_Save(Context *ctx, Array *named, string path);
-Array *shapesnn_SafeTensors_Load(Context *ctx, string path);
+void shapesnn_SafeTensors_Save(Context *ctx, olib_Array *named, string path);
+olib_Array *shapesnn_SafeTensors_Load(Context *ctx, string path);
 
 FowardPassOp shapesnn_Dense(Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
 FowardPassOp shapesnn_Embedding(Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim);
@@ -70,13 +70,13 @@ FowardPassOp shapesnn_Flatten(Context *ctx, shapes_Dtype type);
 
 FowardPassOp shapesnn_Sequential(Context *ctx, FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype);
 
-Array *shapesnn_Backward(Context *ctx, Tensor *tensor);
-void shapesnn_ZeroGrad(Context *ctx, Array *graph);
+olib_Array *shapesnn_Backward(Context *ctx, Tensor *tensor);
+void shapesnn_ZeroGrad(Context *ctx, olib_Array *graph);
 
-void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters);
+void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, olib_Array *parameters);
 
-void shapesnn_Array_AppendLayer(Array *array, Layer *layer);
-Layer *shapesnn_Array_LayerIdx(Array *array, size_t idx);
+void shapesnn_Array_AppendLayer(olib_Array *array, Layer *layer);
+Layer *shapesnn_Array_LayerIdx(olib_Array *array, size_t idx);
 
 Tensor shapesnn_Softmax(Context *ctx, Tensor *logits);
 #endif

@@ -22,7 +22,7 @@ typedef struct {
 
 u64 nextNodeId(void);
 
-static inline Tensor tensorView(Context *ctx, Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, Dim shape, shapes_Range *boundary,
+static inline Tensor tensorView(Context *ctx, olib_Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, Dim shape, shapes_Range *boundary,
                                 bool isContigous) {
   return (Tensor){.context = ctx,
                   .metadataMemory = metadataMemory,

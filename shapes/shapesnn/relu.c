@@ -22,7 +22,7 @@ Tensor reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   Tensor out = shapes_Relu(ctx, tensor);
-  out.inputs = MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
 
   Tensor *inputRef = tensor;
   shapes_Array_AppendTensor(out.inputs, inputRef);
@@ -31,24 +31,24 @@ Tensor reluForward(Context *ctx, Layer *layer, Tensor *tensor) {
   return out;
 }
 
-Array *reluLayerParameters(Context *ctx, Layer *state) {
+olib_Array *reluLayerParameters(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-Array *reluLayerTensors(Context *ctx, Layer *state) {
+olib_Array *reluLayerTensors(Context *ctx, Layer *state) {
   (void)state;
-  return MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-void reluLayerLoad(Context *ctx, Layer *state, Array *tensors) {
+void reluLayerLoad(Context *ctx, Layer *state, olib_Array *tensors) {
   (void)ctx;
   (void)state;
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
 FowardPassOp shapesnn_Relu(Context *ctx, shapes_Dtype dtype) {
-  Layer *layer = allocate(ctx->memory, sizeof(Layer));
+  Layer *layer = olib_Allocate(ctx->memory, sizeof(Layer));
   *layer = (Layer) {.weights = {}, .bias = {}, .layerData = NULL};
 
   FowardPassOp op = (FowardPassOp){.ctx = ctx, .type = OP_RELU, .dtype = dtype, .op = layer};

@@ -26,11 +26,11 @@
 #define LEARNING_RATE    0.001
 
 typedef struct dataset {
-  Array_Tensor Xtrain;
-  Array_Tensor Ytrain;
-  Array_Tensor Xtest;
-  Array_Tensor Ytest;
-  Array_Tensor labels;
+  shapes_ArrayTensor Xtrain;
+  shapes_ArrayTensor Ytrain;
+  shapes_ArrayTensor Xtest;
+  shapes_ArrayTensor Ytest;
+  shapes_ArrayTensor labels;
 } dataset;
 
 typedef struct {
@@ -61,10 +61,10 @@ static inline Error readNextImageChannelsAndLabel(File imageFile, byte *out_labe
   return OK;
 }
 
-static inline void readAsNCHWIntoArray(Array *image, byte *restrict r, byte *restrict g, byte *restrict b) {
+static inline void readAsNCHWIntoArray(olib_Array *image, byte *restrict r, byte *restrict g, byte *restrict b) {
   for (RANGE(pixelIdx, CHANNEL_PLANE)) {
     f32 pixel[3] = {F32_(r[pixelIdx]) / 255, F32_(g[pixelIdx]) / 255, F32_(b[pixelIdx]) / 255};
-    Array_AppendF32Buffer(image, pixel, 3);
+    olib_ArrayAppendF32Buffer(image, pixel, 3);
   }
 }
 
@@ -75,25 +75,25 @@ dataset getDataset(Context *ctx) {
   PANIC_WITH_MSG_IF(err != 0, "could error while globbing dataset path");
 
   File labelsDataFile = File_OpenPathInReadMode(LABELS_FILE_PATH);
-  Array *labels = File_ReadLines(ctx->memory, labelsDataFile);
+  olib_Array *labels = File_ReadLines(ctx->memory, labelsDataFile);
   File testBatchFile = File_OpenPathInReadMode(TEST_BATCH_FILE);
 
   for (RANGE(i, labels->size)) {
-    string label = Array_Idx(labels, i);
+    string label = olib_ArrayIdx(labels, i);
     printf("\n%s\n", label);
   }
 
-  Array_Tensor Xtrain = shapes_Make_TensorArray(ctx->memory, 50000);
-  Array_Tensor Ytrain = shapes_Make_TensorArray(ctx->memory, 50000);
-  Array_Tensor Xtest = shapes_Make_TensorArray(ctx->memory, 10000);
-  Array_Tensor Ytest = shapes_Make_TensorArray(ctx->memory, 10000);
+  shapes_ArrayTensor Xtrain = shapes_Make_TensorArray(ctx->memory, 50000);
+  shapes_ArrayTensor Ytrain = shapes_Make_TensorArray(ctx->memory, 50000);
+  shapes_ArrayTensor Xtest = shapes_Make_TensorArray(ctx->memory, 10000);
+  shapes_ArrayTensor Ytest = shapes_Make_TensorArray(ctx->memory, 10000);
 
   byte label[1] = {0};
   byte r[CHANNEL_PLANE] = {0};
   byte g[CHANNEL_PLANE] = {0};
   byte b[CHANNEL_PLANE] = {0};
 
-  Array_F32 image = Make_F32Array(ctx->memory, (size_t)CHANNEL_PLANE * NUM_CHANNELS);
+  olib_ArrayF32 image = olib_MakeF32Array(ctx->memory, (size_t)CHANNEL_PLANE * NUM_CHANNELS);
 
   size_t numImagesProcessed = 0;
   for (RANGE(i, batchFiles.gl_pathc)) {
@@ -119,7 +119,7 @@ dataset getDataset(Context *ctx) {
       Tensor labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
       shapes_Array_AppendTensor(Ytrain, &labelTensor);
 
-      Array_Reset(image);
+      olib_ArrayReset(image);
       numImagesProcessed += 1;
     }
 
@@ -139,7 +139,7 @@ dataset getDataset(Context *ctx) {
     f32 lbl[1] = {F32_(label[0])};
     Tensor labelTensor = shapes_Make_FromContigousArray(ctx, SCALAR, lbl, F32);
     shapes_Array_AppendTensor(Ytest, &labelTensor);
-    Array_Reset(image);
+    olib_ArrayReset(image);
   }
 
   CloseFile(&labelsDataFile);
@@ -147,13 +147,13 @@ dataset getDataset(Context *ctx) {
   return (dataset){.Xtrain = Xtrain, .Ytrain = Ytrain, .Xtest = Xtest, .Ytest = Ytest, .labels = labels};
 }
 
-static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
+static inline olib_ArrayPair toBatches(Context *ctx, olib_Array *X, olib_Array *Y) {
   size_t amountProcessed = 0;
-  Array_Tensor currentXBatch = shapes_Make_TensorArray(ctx->memory, BATCH_SIZE);
-  Array_Tensor currentYBatch = shapes_Make_TensorArray(ctx->memory, BATCH_SIZE);
+  shapes_ArrayTensor currentXBatch = shapes_Make_TensorArray(ctx->memory, BATCH_SIZE);
+  shapes_ArrayTensor currentYBatch = shapes_Make_TensorArray(ctx->memory, BATCH_SIZE);
 
-  Array *Xbatched = shapes_Make_TensorArray(ctx->memory, 4000);
-  Array *Ybatched = shapes_Make_TensorArray(ctx->memory, 4000);
+  olib_Array *Xbatched = shapes_Make_TensorArray(ctx->memory, 4000);
+  olib_Array *Ybatched = shapes_Make_TensorArray(ctx->memory, 4000);
 
   u8 counter = 0;
   while (true) {
@@ -166,8 +166,8 @@ static inline ArrayPair toBatches(Context *ctx, Array *X, Array *Y) {
       shapes_Array_AppendTensor(Ybatched, &batchedYTensor);
 
       counter = 0;
-      Array_Reset(currentXBatch);
-      Array_Reset(currentYBatch);
+      olib_ArrayReset(currentXBatch);
+      olib_ArrayReset(currentYBatch);
 
       amountProcessed = Xbatched->size * BATCH_SIZE;
 
@@ -248,9 +248,9 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
   FowardPassOp model = Make_Model(cudaCtx, numLabels);
   Optimizer optimzer = shapesnn_SGD(cudaCtx, LEARNING_RATE);
 
-  ArrayPair trainDs = toBatches(hostCtx, ds.Xtrain, ds.Ytrain);
-  Array *Xtrain = trainDs.a;
-  Array *Ytrain = trainDs.b;
+  olib_ArrayPair trainDs = toBatches(hostCtx, ds.Xtrain, ds.Ytrain);
+  olib_Array *Xtrain = trainDs.a;
+  olib_Array *Ytrain = trainDs.b;
 
   Context dsCudaCtx = shapes_GetScratchContext(cudaCtx, 1 * GB);
 
@@ -292,11 +292,11 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
       totalSamples += 1;
 
       shapesnn_Backward(&scratch, &loss);
-      Array *parameters = shapesnn_Parameters(&scratch, &model);
+      olib_Array *parameters = shapesnn_Parameters(&scratch, &model);
       shapesnn_OptimizerStep(&scratch, &optimzer, parameters);
       shapesnn_ZeroGrad(&scratch, parameters);
 
-      resetArena(scratch.memory);
+      olib_ResetArena(scratch.memory);
       shapescuda_RewindMemory(&scratch.cudaMemory);
     }
 
@@ -311,7 +311,7 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
   for(RANGE(i, modelTensors->size)) {
     NamedTensor t = shapes_Array_NamedTensorIdx(modelTensors, i);
     shapes_MoveTensorToHost(hostCtx, &t.tensor);
-    Array_SetAt(modelTensors, i, &t);
+    olib_ArraySetAt(modelTensors, i, &t);
   }
 
   shapesnn_SafeTensors_Save(&scratch, modelTensors, "vgg10.safetensors");
@@ -322,9 +322,9 @@ FowardPassOp runTraining(Context *hostCtx, Context *cudaCtx, dataset ds) {
 }
 
 void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
-  ArrayPair testDs = toBatches(hostCtx, ds.Xtest, ds.Ytest);
-  Array *Xtest = testDs.a;
-  Array *Ytest = testDs.b;
+  olib_ArrayPair testDs = toBatches(hostCtx, ds.Xtest, ds.Ytest);
+  olib_Array *Xtest = testDs.a;
+  olib_Array *Ytest = testDs.b;
 
   Context cudaCtx = shapes_InitializeCudaContext(6 * GB);
   shapes_MoveToCuda(&cudaCtx, Xtest);
@@ -360,7 +360,7 @@ void runInference(Context *hostCtx, FowardPassOp *model, dataset ds) {
 
     printf("\n Batch Result %zu of %zu\n", ones, compMask->size);
     printf("===============================================================================");
-    resetArena(scratch.memory);
+    olib_ResetArena(scratch.memory);
     shapescuda_RewindMemory(&scratch.cudaMemory);
   }
 }

@@ -12,28 +12,28 @@ typedef struct {
 } PtrMapEntry;
 
 typedef struct {
-  Array *entries;
+  olib_Array *entries;
   size_t capacity;
   size_t count;
   size_t valueElemsize;
-  Memory *memory;
+  olib_Memory *memory;
 } Map;
 
 typedef Map PtrSet;
 typedef Map PtrMap;
 
-PtrSet *Make_PtrSet(Memory *memory);
+PtrSet *Make_PtrSet(olib_Memory *memory);
 void PtrSet_Put(PtrSet *pt, void *key);
 bool PtrSet_Contains(PtrSet *pt, void *key);
 bool PtrSet_DoesNotContain(PtrSet *pt, void *key);
 
-PtrMap *Make_PtrMap(Memory *memory, size_t initialCapacity);
-PtrMapEntry *Make_PtrMapEntry(Memory *memory, uintptr_t key, void *value);
+PtrMap *Make_PtrMap(olib_Memory *memory, size_t initialCapacity);
+PtrMapEntry *Make_PtrMapEntry(olib_Memory *memory, uintptr_t key, void *value);
 void PtrMap_Put(PtrMap *pm, void *key, void *value);
 void *PtrMap_Get(PtrMap *pt, void *key);
 bool PtrMap_Contains(PtrMap *pt, void *key);
 
-void Array_SetPtrMapEntryAt(Array *array, size_t idx, PtrMapEntry *entry);
-PtrMapEntry *Array_PtrMapEntryIdx(Array *array, size_t idx);
+void Array_SetPtrMapEntryAt(olib_Array *array, size_t idx, PtrMapEntry *entry);
+PtrMapEntry *Array_PtrMapEntryIdx(olib_Array *array, size_t idx);
 
 #endif

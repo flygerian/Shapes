@@ -18,7 +18,7 @@ static bool hasCudaDevice(void) {
 static Tensor createScalarTensor(Context *ctx, shapes_Dtype dtype) {
   Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
-              .values = allocate(ctx->memory, getBytesForDtype(dtype)),
+              .values = olib_Allocate(ctx->memory, getBytesForDtype(dtype)),
               .boundary = NULL,
               .size = 1,
               .shape = (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL},
@@ -47,7 +47,7 @@ static void assertScalarF32Close(Tensor *tensor, f32 expected, f32 tolerance, co
 }
 
 static void test_dense_linear_forward_with_bias_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
@@ -88,7 +88,7 @@ static void test_dense_linear_forward_with_bias_f32(void) {
 }
 
 static void test_dense_backward_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
@@ -147,7 +147,7 @@ static void test_dense_backward_f32(void) {
 }
 
 static void test_backward_graph_preserves_tensor_pointers(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *yGround = t_Zeros(&ctx, SHAPE1D(2), F32);
@@ -161,13 +161,13 @@ static void test_backward_graph_preserves_tensor_pointers(void) {
   yPredVals[1] = -0.75f;
 
   Tensor loss = loss_Mse(&ctx, yGround, yPred);
-  Array *graph = Backward(&ctx, &loss);
+  olib_Array *graph = Backward(&ctx, &loss);
 
   ASSERT_EQ(graph->size, 3, "Backward graph should contain leaves and loss");
 
-  Tensor *first = *(Tensor **)Array_Idx(graph, 0);
-  Tensor *second = *(Tensor **)Array_Idx(graph, 1);
-  Tensor *third = *(Tensor **)Array_Idx(graph, 2);
+  Tensor *first = *(Tensor **)olib_ArrayIdx(graph, 0);
+  Tensor *second = *(Tensor **)olib_ArrayIdx(graph, 1);
+  Tensor *third = *(Tensor **)olib_ArrayIdx(graph, 2);
 
   ASSERT_EQ(first, yGround, "Backward graph should preserve first input pointer");
   ASSERT_EQ(second, yPred, "Backward graph should preserve second input pointer");
@@ -175,7 +175,7 @@ static void test_backward_graph_preserves_tensor_pointers(void) {
 }
 
 static void test_batch_norm_forward_training_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
@@ -215,7 +215,7 @@ static void test_batch_norm_forward_training_f32(void) {
 }
 
 static void test_batch_norm_backward_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
 
   Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
@@ -258,7 +258,7 @@ static void test_batch_norm_backward_f32(void) {
 }
 
 static void test_conv2d_forward_f32_single_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -294,7 +294,7 @@ static void test_conv2d_forward_f32_single_channel(void) {
 }
 
 static void test_conv2d_forward_f32_single_channel_with_bias(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -326,7 +326,7 @@ static void test_conv2d_forward_f32_single_channel_with_bias(void) {
 }
 
 static void test_conv2d_returns_col_buffer_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -366,7 +366,7 @@ static void test_conv2d_returns_col_buffer_f32(void) {
 }
 
 static void test_conv2d_forward_f32_multi_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 2), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 2), F32);
@@ -402,7 +402,7 @@ static void test_conv2d_forward_f32_multi_channel(void) {
 }
 
 static void test_conv2d_forward_f32_with_batch_dimension(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -440,7 +440,7 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
 }
 
 static void test_conv2d_restores_openblas_threads_after_local_override(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -473,7 +473,7 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
 }
 
 static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
@@ -510,7 +510,7 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
 }
 
 static void test_conv2d_forward_f64_single_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F64);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F64);
@@ -540,7 +540,7 @@ static void test_conv2d_forward_f64_single_channel(void) {
 }
 
 static void test_conv2d_backward_f32_single_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -588,7 +588,7 @@ static void test_conv2d_backward_f32_single_channel(void) {
 }
 
 static void test_conv2d_backward_f32_bias_grad(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -626,7 +626,7 @@ static void test_conv2d_backward_f32_bias_grad(void) {
 }
 
 static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -673,7 +673,7 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
 }
 
 static void test_conv2d_backward_f32_stride_two_single_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -719,7 +719,7 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
 }
 
 static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
@@ -769,7 +769,7 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
 }
 
 static void test_conv_transpose2d_forward_f32_single_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -804,7 +804,7 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
 }
 
 static void test_conv_transpose2d_backward_f32_single_channel(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
   Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
@@ -846,7 +846,7 @@ static void test_conv_transpose2d_backward_f32_single_channel(void) {
 }
 
 static void test_max_pool2d_forward_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
   Tensor out;
@@ -870,7 +870,7 @@ static void test_max_pool2d_forward_f32(void) {
 }
 
 static void test_max_pool2d_backward_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
   Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
@@ -901,7 +901,7 @@ static void test_max_pool2d_backward_f32(void) {
 }
 
 static void test_adaptive_avg_pool2d_forward_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
   Tensor out;
@@ -922,7 +922,7 @@ static void test_adaptive_avg_pool2d_forward_f32(void) {
 }
 
 static void test_adaptive_avg_pool2d_backward_f32(void) {
-  Memory *mem = initializeMemory();
+  olib_Memory *mem = olib_InitializeMemory();
   Context ctx = {.memory = mem};
   Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
   Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
@@ -967,7 +967,7 @@ static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
   memcpy(yGround->values, yValues, sizeof(yValues));
   memcpy(logits->values, logitValues, sizeof(logitValues));
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, yGround);
   Array_AppendTensor(toMove, logits);
   shapes_MoveToCuda(&ctx, toMove);
@@ -1005,7 +1005,7 @@ static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) 
   memcpy(probs->values, probValues, sizeof(probValues));
   ((f32 *)gradOut->values)[0] = 1.0f;
 
-  Array *toMove = Make_DynamicTensorArray(ctx.memory);
+  olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, yGround);
   Array_AppendTensor(toMove, probs);
   Array_AppendTensor(toMove, gradOut);

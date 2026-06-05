@@ -40,8 +40,8 @@ typedef struct {
 } Device;
 
 typedef struct Context {
-  Memory *memory;
-  Memory *cudaMetadataMemory;
+  olib_Memory *memory;
+  olib_Memory *cudaMetadataMemory;
   shapescuda_Memory cudaMemory;
   Device *device;
   bool isTraining;
@@ -55,7 +55,7 @@ typedef struct Context {
 typedef struct Tensor {
   Context *context;
   string label;
-  Memory *metadataMemory;
+  olib_Memory *metadataMemory;
   void *values;
   shapes_Range *boundary;
   size_t size;
@@ -65,7 +65,7 @@ typedef struct Tensor {
   bool isContigous;
   bool isContigousCopy;
   struct Tensor *grad;
-  Array *inputs;
+  olib_Array *inputs;
   shapes_OpType opType;
   void *opMetadata;
   u64 nodeId;

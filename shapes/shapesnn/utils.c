@@ -4,14 +4,14 @@
 #include "array.h"
 #include <stddef.h>
 
-FowardPassOp array_FowardPassOpIdx(Array *array, size_t idx) {
+FowardPassOp array_FowardPassOpIdx(olib_Array *array, size_t idx) {
   PANIC_IF(array->elemSize != sizeof(FowardPassOp), ARRAY_ELEM_SIZE_MISMATCH);
-  return *((FowardPassOp *)Array_Idx(array, idx));
+  return *((FowardPassOp *)olib_ArrayIdx(array, idx));
 }
 
-void array_AppendFowardPassOp(Array *array, FowardPassOp *op) {
+void array_AppendFowardPassOp(olib_Array *array, FowardPassOp *op) {
   PANIC_IF(array->elemSize != sizeof(FowardPassOp), ARRAY_ELEM_SIZE_MISMATCH);
-  Array_Append(array, op);
+  olib_ArrayAppend(array, op);
 }
 
 void loadIntoTensor(Context *ctx, Tensor *dst, Tensor *src) {
@@ -24,10 +24,10 @@ void loadIntoTensor(Context *ctx, Tensor *dst, Tensor *src) {
   shapes_Copy(ctx, src, dst);
 }
 
-void shapes_Array_AppendLayer(Array *array, Layer *layer) {
-  Array_Append(array, (void *)&layer);
+void shapes_Array_AppendLayer(olib_Array *array, Layer *layer) {
+  olib_ArrayAppend(array, (void *)&layer);
 }
 
-Layer *shapes_Array_LayerIdx(Array *array, size_t idx) {
-  return *(Layer **)Array_Idx(array, idx);
+Layer *shapes_Array_LayerIdx(olib_Array *array, size_t idx) {
+  return *(Layer **)olib_ArrayIdx(array, idx);
 }

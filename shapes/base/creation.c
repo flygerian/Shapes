@@ -131,7 +131,7 @@ static inline void *allocateTensorValues(Context *ctx, size_t size) {
     return block.ptr;
   }
   #endif
-  return allocate(ctx->memory, size);
+  return olib_Allocate(ctx->memory, size);
 }
 
 static Result initTensor(Context *ctx, Tensor *dest, Dim shape, shapes_Dtype dtype) {
@@ -171,7 +171,7 @@ Tensor t_Empty(Context *ctx, Dim shape, shapes_Dtype type) {
 static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, shapes_Dtype type, bool withGrad) {
   Dim tShape = {.numOfDims = shape.numOfDims};
   if (shape.numOfDims > 0) {
-    tShape.dims = allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
+    tShape.dims = olib_Allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
     PANIC_IF(tShape.dims == NULL, ALLOCATION_FAILED);
     memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
   } else {
@@ -181,7 +181,7 @@ static Tensor zeroTensorWithGrad(Context *ctx, Dim shape, shapes_Dtype type, boo
   Tensor t = t_Empty(ctx, tShape, type);
   PANIC_IF(clearTensorValues(&t) != OK, ALLOCATION_FAILED);
   if (withGrad) {
-    Tensor *gradPtr = allocate(ctx->memory, sizeof(Tensor));
+    Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
     PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
     *gradPtr = zeroTensorWithGrad(ctx, tShape, F32, false);
     t.grad = gradPtr;
@@ -200,14 +200,14 @@ Tensor t_Reduced(Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type) {
   dim_t *dims = NULL;
   if (source->shape.numOfDims > 0) {
 
-    dims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+    dims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
     PANIC_IF(dims == NULL, ALLOCATION_FAILED);
     memcpy(dims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
     dims[dim] = 1;
   }
 
   Tensor t = t_Empty(ctx, SHAPE(dims, source->shape.numOfDims), type);
-  Tensor *gradPtr = allocate(ctx->memory, sizeof(Tensor));
+  Tensor *gradPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(gradPtr == NULL, ALLOCATION_FAILED);
   *gradPtr = zeroTensorWithGrad(ctx, t.shape, F32, false);
   t.grad = gradPtr;
@@ -234,11 +234,11 @@ Tensor shapes_Clone(Context *ctx, Tensor *t) {
   Result valueCopyRes = shapes_CopyBetweenDevices(source->context->device->type, ctx->device->type, source->values, newValues, valueBytes);
   PANIC_IF(valueCopyRes != OK, valueCopyRes);
 
-  dim_t *newDims = allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
 
-  multiplier_t *newMultipliers = allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
   memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
 
@@ -341,7 +341,7 @@ Tensor shapes_Make_RandomTensor(Context *ctx, Dim shape, f32 minValue, f32 maxVa
 
   size_t valueBytes = tensor.size * getBytesForDtype(dtype);
   if (ctx->device != NULL && ctx->device->type == CUDA) {
-    void *tempValues = allocate(ctx->memory, valueBytes);
+    void *tempValues = olib_Allocate(ctx->memory, valueBytes);
     PANIC_IF(tempValues == NULL, ALLOCATION_FAILED);
     for (tensor_size_t i = 0; i < tensor.size; i++) {
       VALUE_SET(tempValues, i, randomValueForRange(minValue, maxValue, dtype));
@@ -406,7 +406,7 @@ Tensor shapes_Make_OneHotTensor(Context *ctx, Tensor *indices, dim_t numClasses)
 
   // Build output shape: input shape + [numClasses]
   u8 outNumDims = source->shape.numOfDims + 1;
-  dim_t *outDims = allocate(ctx->memory, sizeof(dim_t) * outNumDims);
+  dim_t *outDims = olib_Allocate(ctx->memory, sizeof(dim_t) * outNumDims);
   PANIC_IF(outDims == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < source->shape.numOfDims; i++) {

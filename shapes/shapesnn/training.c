@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include "nn_internal.h"
 
-void shapesnn_ZeroGrad(Context *ctx, Array *graph) {
+void shapesnn_ZeroGrad(Context *ctx, olib_Array *graph) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(graph == NULL, ERR_NULL_PTR);
 
@@ -41,7 +41,7 @@ Tensor shapesnn_Forward(Context *ctx, FowardPassOp *fwdOp, Tensor *input) {
   }
 }
 
-Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op) {
+olib_Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op) {
   PANIC_IF(ctx == NULL, ERR_NULL_PTR);
   PANIC_IF(op == NULL, ERR_NULL_PTR);
 
@@ -60,7 +60,7 @@ Array *shapesnn_Parameters(Context *ctx, FowardPassOp *op) {
   }
 }
 
-void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, Array *parameters) {
+void shapesnn_OptimizerStep(Context *ctx, Optimizer *optimizer, olib_Array *parameters) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(optimizer == NULL, ERR_NULL_PTR);
 

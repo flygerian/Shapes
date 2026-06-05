@@ -24,15 +24,15 @@ Tensor flattenFoward(Context *ctx, Layer *layer, Tensor *tensor) {
   return shapes_Reshape(ctx, tensor, SHAPE2D(shape.dims[0], flattenedSize));
 }
 
-Array *flattenParameters(Context *ctx) {
-  return MakeArray(ctx->memory, sizeof(Tensor), 0);
+olib_Array *flattenParameters(Context *ctx) {
+  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-Array *flattenLayerTensors(Context *ctx) {
-  return MakeArray(ctx->memory, sizeof(Tensor), 0);
+olib_Array *flattenLayerTensors(Context *ctx) {
+  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
 }
 
-void flattenLayerLoad(Context *ctx, Array *tensors) {
+void flattenLayerLoad(Context *ctx, olib_Array *tensors) {
   (void)ctx;
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
@@ -40,6 +40,6 @@ void flattenLayerLoad(Context *ctx, Array *tensors) {
 FowardPassOp shapesnn_Flatten(Context *ctx, shapes_Dtype dtype) {
   PANIC_IF_NULL(ctx);
 
-  FowardPassOp *flattenLayer = allocate(ctx->memory, sizeof(FowardPassOp));
+  FowardPassOp *flattenLayer = olib_Allocate(ctx->memory, sizeof(FowardPassOp));
   return (FowardPassOp){.ctx = ctx, .type = OP_FLATTEN, .dtype = dtype};
 }

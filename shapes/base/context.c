@@ -14,8 +14,8 @@
 #include "shapes_internal.h"
 
 Context shapes_InitializeHostContext(size_t arenaSize, size_t minBlockSize) {
-  Memory *memory = initializeArena(arenaSize, minBlockSize);
-  Context ctx = {.memory = memory};
+  olib_Memory *mem = olib_InitializeArena(arenaSize, minBlockSize);
+  Context ctx = {.memory = mem};
   attachHostDevice(&ctx);
 
   return ctx;
@@ -25,11 +25,11 @@ Context shapes_InitializeCudaContext(size_t hostArenaSize) {
 #ifndef SHAPES_HAS_CUDA
   PANIC_WITH_MSG_IF(1, "CUDA support is not compiled in");
 #endif
-  Memory *memory = initializeArena(hostArenaSize, 1);
-  Context ctx = {.memory = memory};
+  olib_Memory *mem = olib_InitializeArena(hostArenaSize, 1);
+  Context ctx = {.memory = mem};
   attachCudaDevice(&ctx);
   PANIC_WITH_MSG_IF(ctx.device == NULL, "No CUDA device available");
-  ctx.cudaMetadataMemory = initializeArena(hostArenaSize, 1);
+  ctx.cudaMetadataMemory = olib_InitializeArena(hostArenaSize, 1);
 
   return ctx;
 }
@@ -48,7 +48,7 @@ Context shapes_GetScratchContext(Context *ctx, size_t bufferSize) {
       .parent = ctx,
   };
 
-  scratch.memory = GetScratchArena(ctx->memory, bufferSize);
+  scratch.memory = olib_GetScratchArena(ctx->memory, bufferSize);
   
   #ifdef SHAPES_HAS_CUDA 
   if(ctx->device->type == CUDA) {
@@ -68,7 +68,7 @@ void shapes_DestroyContext(Context *ctx) {
   }
   #endif
 
-  freeMemory(ctx->memory);
+  olib_FreeMemory(ctx->memory);
 }
 
 void shapes_FreeContext(Context *ctx) {

@@ -7,7 +7,7 @@
 // the last dim (feature width). Dense uses this to preserve any batch axes.
 static Dim swapLastDim(Context *ctx, Dim dim, dim_t lastDim) {
   u8 numDims = dim.numOfDims;
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t) * numDims);
+  dim_t *dims = olib_Allocate(ctx->memory, sizeof(dim_t) * numDims);
   PANIC_IF(dims == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < numDims; i++) {
