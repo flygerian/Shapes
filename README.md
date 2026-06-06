@@ -35,6 +35,6 @@ The build binary should be in the build folder you specify (build-cuda in this c
 
 Right now this project depends on 
 
-OpenBlas,Raylib and Clay (I plan to deprecate this) via git submodules so you might need to pull in those submodles as well
+OpenBlas
 
 
