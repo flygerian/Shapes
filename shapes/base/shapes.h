@@ -21,14 +21,14 @@
 typedef olib_Array *shapes_ArrayTensor;
 shapes_ArrayTensor shapes_Make_DynamicTensorArray(olib_Memory *memory);
 olib_Array *shapes_MakeTensorArray(olib_Memory *memory, size_t capacity);
-void shapes_ArrayAppendTensor(olib_Array *array, Tensor *tensor);
+void shapes_ArrayAppendTensor(olib_Array *array, shapes_Tensor *tensor);
 void shapes_ArrayAppendTensorArray(olib_Array *array, olib_Array *tensorArray);
-static inline Tensor shapes_ArrayTensorIdx(olib_Array *array, size_t idx) {
-  return *((Tensor *)olib_ArrayIdx(array, idx));
+static inline shapes_Tensor shapes_ArrayTensorIdx(olib_Array *array, size_t idx) {
+  return *((shapes_Tensor *)olib_ArrayIdx(array, idx));
 }
 
-static inline Tensor* shapes_ArrayTensorPtrIdx(olib_Array *array, size_t idx) {
-  return (Tensor *)olib_ArrayIdx(array, idx);
+static inline shapes_Tensor* shapes_ArrayTensorPtrIdx(olib_Array *array, size_t idx) {
+  return (shapes_Tensor *)olib_ArrayIdx(array, idx);
 }
 
 // shapes_Context
@@ -43,97 +43,97 @@ Result shapes_CopyBetweenDevices(DeviceType srcType, DeviceType destType, void *
 
 void shapes_MoveToCuda(shapes_Context *destCtx, shapes_ArrayTensor tensors);
 void shapes_MoveToHost(shapes_Context *destCtx, shapes_ArrayTensor tensors);
-void shapes_MoveTensorToHost(shapes_Context *destCtx, Tensor *t);
+void shapes_MoveTensorToHost(shapes_Context *destCtx, shapes_Tensor *t);
 
 // Binary Ops
-Tensor shapes_Add(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_Subtract(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_Divide(shapes_Context *ctx, Tensor *numerator, Tensor *denominator);
-Tensor shapes_Multiply(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_GreaterThan(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_GreaterThanOrEqual(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_Equal(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_LessThan(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_LessThanOrEqual(shapes_Context *ctx, Tensor *a, Tensor *b);
+shapes_Tensor shapes_Add(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_Subtract(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_Divide(shapes_Context *ctx, shapes_Tensor *numerator, shapes_Tensor *denominator);
+shapes_Tensor shapes_Multiply(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_GreaterThan(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_GreaterThanOrEqual(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_Equal(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_LessThan(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_LessThanOrEqual(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
 
-void shapes_AddInPlace(shapes_Context *ctx, Tensor *a, Tensor *b);
-void shapes_SubtractInPlace(shapes_Context *ctx, Tensor *a, Tensor *b);
-void shapes_MultiplyInPlace(shapes_Context *ctx, Tensor *a, Tensor *b);
+void shapes_AddInPlace(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+void shapes_SubtractInPlace(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+void shapes_MultiplyInPlace(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
 
 // Access and shapes
-shapes_Value *shapes_GetAt(Tensor *t, shapes_Dim dim);
-Result shapes_CopyShape(Tensor *t, shapes_dim_t *destDims, u8 *numDims);
-Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, shapes_Dim dim, shapes_Value value);
-Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indices);
-Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices);
-Tensor shapes_Slice(shapes_Context *ctx, Tensor *source, ...);
-Tensor shapes_Reshape(shapes_Context *ctx, Tensor *source, shapes_Dim newShape);
-void   shapes_ReshapeBackward(shapes_Context *ctx, Tensor *node);
-Tensor shapes_Transpose(shapes_Context *ctx, Tensor *source, ...);
-Tensor shapes_Permute(shapes_Context *ctx, Tensor *source, shapes_Dim order);
-Tensor shapes_Squeeze(shapes_Context *ctx, Tensor *t);
-Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, shapes_dim_t dim);
-Tensor shapes_UnSqueeze(shapes_Context *ctx, Tensor *t, shapes_dim_t dim);
-Tensor shapes_Clone(shapes_Context *ctx, Tensor *t);
-void   shapes_Copy(shapes_Context *ctx, Tensor *src, Tensor *dest);
-Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, shapes_dim_t targetDim, shapes_ArrayTensor tensors);
-Tensor shapes_Stack(shapes_Context *ctx, shapes_ArrayTensor tensors);
+shapes_Value *shapes_GetAt(shapes_Tensor *t, shapes_Dim dim);
+Result shapes_CopyShape(shapes_Tensor *t, shapes_dim_t *destDims, u8 *numDims);
+Result shapes_AssignValueAt(shapes_Context *ctx, shapes_Tensor *t, shapes_Dim dim, shapes_Value value);
+shapes_Tensor shapes_IndexWithTensor(shapes_Context *ctx, shapes_Tensor *source, shapes_Tensor *indices);
+shapes_Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, shapes_Tensor *source, shapes_Tensor *rowIndices, shapes_Tensor *colIndices);
+shapes_Tensor shapes_Slice(shapes_Context *ctx, shapes_Tensor *source, ...);
+shapes_Tensor shapes_Reshape(shapes_Context *ctx, shapes_Tensor *source, shapes_Dim newShape);
+void   shapes_ReshapeBackward(shapes_Context *ctx, shapes_Tensor *node);
+shapes_Tensor shapes_Transpose(shapes_Context *ctx, shapes_Tensor *source, ...);
+shapes_Tensor shapes_Permute(shapes_Context *ctx, shapes_Tensor *source, shapes_Dim order);
+shapes_Tensor shapes_Squeeze(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_SqueezeDim(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
+shapes_Tensor shapes_UnSqueeze(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
+shapes_Tensor shapes_Clone(shapes_Context *ctx, shapes_Tensor *t);
+void   shapes_Copy(shapes_Context *ctx, shapes_Tensor *src, shapes_Tensor *dest);
+shapes_Tensor shapes_Concat(shapes_Context *ctx, shapes_Tensor *target, shapes_dim_t targetDim, shapes_ArrayTensor tensors);
+shapes_Tensor shapes_Stack(shapes_Context *ctx, shapes_ArrayTensor tensors);
 
 // Cast
-Tensor Cast(shapes_Context *ctx, Tensor *source, shapes_Dtype targetDtype);
+shapes_Tensor Cast(shapes_Context *ctx, shapes_Tensor *source, shapes_Dtype targetDtype);
 
 // Unary
-Tensor shapes_Pow(shapes_Context *ctx, Tensor *t, f32 power);
-Tensor shapes_Exp(shapes_Context *ctx, Tensor *t);
-Tensor shapes_Tanh(shapes_Context *ctx, Tensor *t);
-Tensor shapes_Relu(shapes_Context *ctx, Tensor *t);
-Tensor shapes_ReluBackward(shapes_Context *ctx, Tensor *output, Tensor *gradOut);
-void   shapes_ReluBackwardAccumulate(shapes_Context *ctx, Tensor *output, Tensor *gradOut, Tensor *dest);
-Tensor shapes_Negate(shapes_Context *ctx, Tensor *t);
-Tensor shapes_Log(shapes_Context *ctx, Tensor *t);
-Tensor shapes_Abs(shapes_Context *ctx, Tensor *t);
-Tensor shapes_Sqrt(shapes_Context *ctx, Tensor *t);
-void   shapes_SqrtBackward(shapes_Context *ctx, Tensor *tensor);
+shapes_Tensor shapes_Pow(shapes_Context *ctx, shapes_Tensor *t, f32 power);
+shapes_Tensor shapes_Exp(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_Tanh(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_Relu(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_ReluBackward(shapes_Context *ctx, shapes_Tensor *output, shapes_Tensor *gradOut);
+void   shapes_ReluBackwardAccumulate(shapes_Context *ctx, shapes_Tensor *output, shapes_Tensor *gradOut, shapes_Tensor *dest);
+shapes_Tensor shapes_Negate(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_Log(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_Abs(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_Sqrt(shapes_Context *ctx, shapes_Tensor *t);
+void   shapes_SqrtBackward(shapes_Context *ctx, shapes_Tensor *tensor);
 
 // Reduction
-Tensor shapes_Sum(shapes_Context *ctx, Tensor *t, shapes_dim_t dim);
-Tensor shapes_ReduceBroadcast(shapes_Context *ctx, Tensor *input, Tensor *grad);
-Tensor shapes_Mean(shapes_Context *ctx, Tensor *t);
-Tensor shapes_MeanDim(shapes_Context *ctx, Tensor *t, shapes_dim_t dim);
-Tensor shapes_Std(shapes_Context *ctx, Tensor *t);
-Tensor shapes_Max(shapes_Context *ctx, Tensor *t, shapes_dim_t dim);
-Tensor shapes_ArgMax(shapes_Context *ctx, Tensor *t, shapes_dim_t dim);
+shapes_Tensor shapes_Sum(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
+shapes_Tensor shapes_ReduceBroadcast(shapes_Context *ctx, shapes_Tensor *input, shapes_Tensor *grad);
+shapes_Tensor shapes_Mean(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_MeanDim(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
+shapes_Tensor shapes_Std(shapes_Context *ctx, shapes_Tensor *t);
+shapes_Tensor shapes_Max(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
+shapes_Tensor shapes_ArgMax(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
 
 // Accumulate
-void shapes_IndexAccumulate1d(shapes_Context *ctx, Tensor *dest, Tensor *indices, Tensor *srcGrad);
-void shapes_IndexAccumulate2d(shapes_Context *ctx, Tensor *dest, Tensor *rowIndices, Tensor *colIndices, Tensor *srcGrad);
-void shapes_SliceAccumulate(shapes_Context *ctx, Tensor *dest, shapes_Range *ranges, Tensor *srcGrad);
+void shapes_IndexAccumulate1d(shapes_Context *ctx, shapes_Tensor *dest, shapes_Tensor *indices, shapes_Tensor *srcGrad);
+void shapes_IndexAccumulate2d(shapes_Context *ctx, shapes_Tensor *dest, shapes_Tensor *rowIndices, shapes_Tensor *colIndices, shapes_Tensor *srcGrad);
+void shapes_SliceAccumulate(shapes_Context *ctx, shapes_Tensor *dest, shapes_Range *ranges, shapes_Tensor *srcGrad);
 
 // Matrix ops
-Tensor shapes_MatMul(shapes_Context *ctx, Tensor *a, Tensor *b);
-Tensor shapes_Dot(shapes_Context *ctx, Tensor *a, Tensor *b);
+shapes_Tensor shapes_MatMul(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
+shapes_Tensor shapes_Dot(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
 
 // shapesnn_layer ops
-Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias);
-Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB);
-shapes_BatchNormFowardResult shapes_BatchNormForwardTraining(shapes_Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon);
-shapes_BatchNormBackwardResult shapes_BatchNormBackward(shapes_Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon);
-Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest,
-              Tensor *colBuffer);
-Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer,
-                      Tensor *dBias, bool withBias, u8 stride);
-Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, shapes_Dim kernel, Tensor *t, Tensor *dest);
-Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels);
-Result shapes_MaxPool2d(shapes_Context *ctx, Tensor *x, shapes_Dim kernel, u8 stride, Tensor *dest);
-Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, Tensor *x, shapes_Dim kernel, u8 stride, Tensor *dest, Tensor *indices);
-Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_Dim kernel, u8 stride, Tensor *dX);
-Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX);
-Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, shapes_dim_t outH, shapes_dim_t outW, Tensor *dest);
-Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_dim_t outH, shapes_dim_t outW, Tensor *dX);
+shapes_Tensor shapes_DenseLinear(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *w, shapes_Tensor *b, bool withBias);
+Result shapes_DenseBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *w, shapes_Tensor *gradOut, shapes_Tensor *dX, shapes_Tensor *dW, shapes_Tensor *dB);
+shapes_BatchNormFowardResult shapes_BatchNormForwardTraining(shapes_Context *ctx, shapes_Tensor *x2d, shapes_Tensor *gamma, shapes_Tensor *beta, f32 epsilon);
+shapes_BatchNormBackwardResult shapes_BatchNormBackward(shapes_Context *ctx, shapes_Tensor *x2d, shapes_Tensor *grad2d, shapes_Tensor *gamma, f32 epsilon);
+Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, shapes_Tensor *kernels, shapes_Tensor *bias, bool withBias, shapes_Tensor *t, shapes_Tensor *dest,
+              shapes_Tensor *colBuffer);
+Result shapes_Conv2dBackward(shapes_Context *ctx, shapes_Tensor *input, shapes_Tensor *dInput, shapes_Tensor *kernels, shapes_Tensor *dKernels, shapes_Tensor *outputGrad, shapes_Tensor *colBuffer,
+                      shapes_Tensor *dBias, bool withBias, u8 stride);
+Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, shapes_Tensor *kernels, shapes_Dim kernel, shapes_Tensor *t, shapes_Tensor *dest);
+Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *kernels, shapes_Tensor *gradOut, u8 stride, shapes_Tensor *dX, shapes_Tensor *dKernels);
+Result shapes_MaxPool2d(shapes_Context *ctx, shapes_Tensor *x, shapes_Dim kernel, u8 stride, shapes_Tensor *dest);
+Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, shapes_Tensor *x, shapes_Dim kernel, u8 stride, shapes_Tensor *dest, shapes_Tensor *indices);
+Result shapes_MaxPool2dBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *gradOut, shapes_Dim kernel, u8 stride, shapes_Tensor *dX);
+Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *gradOut, shapes_Tensor *indices, shapes_Tensor *dX);
+Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Tensor *x, shapes_dim_t outH, shapes_dim_t outW, shapes_Tensor *dest);
+Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *gradOut, shapes_dim_t outH, shapes_dim_t outW, shapes_Tensor *dX);
 
 // Loss ops
-shapes_TensorPair shapes_loss_CrossEntropyForward(shapes_Context *ctx, Tensor *yGround, Tensor *logits);
-Tensor shapes_loss_CrossEntropyBackward(shapes_Context *ctx, Tensor *yGround, Tensor *probs, Tensor *gradOut);
+shapes_TensorPair shapes_loss_CrossEntropyForward(shapes_Context *ctx, shapes_Tensor *yGround, shapes_Tensor *logits);
+shapes_Tensor shapes_loss_CrossEntropyBackward(shapes_Context *ctx, shapes_Tensor *yGround, shapes_Tensor *probs, shapes_Tensor *gradOut);
 
 // Optimizer ops
 Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 learningRate);
@@ -141,20 +141,20 @@ Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 lea
 Result shapes_optimizer_Adam(shapes_Context *ctx, shapes_AdamData *triplets, size_t numTriplets, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon);
 
 // Debug
-void shapes_PrintItem(Tensor *t);
-char *shapes_GetItem(shapes_Context *ctx, Tensor *t);
-void shapes_PrintTensor(Tensor *tensor);
+void shapes_PrintItem(shapes_Tensor *t);
+char *shapes_GetItem(shapes_Context *ctx, shapes_Tensor *t);
+void shapes_PrintTensor(shapes_Tensor *tensor);
 
-// Tensor creation
-Tensor shapes_MakeZerosTensor(shapes_Context *ctx, shapes_Dim shape);
-Tensor shapes_MakeIntTensor(shapes_Context *ctx, shapes_Dim shape, i8 initialValues);
-Tensor shapes_MakeUIntTensor(shapes_Context *ctx, shapes_Dim shape, u8 initialValue);
-Tensor shapes_MakeFloatTensor(shapes_Context *ctx, shapes_Dim shape, f32 initialValues);
-Tensor shapes_MakeFloat64Tensor(shapes_Context *ctx, shapes_Dim shape, f64 initialValue);
-Tensor shapes_MakeFromContigousArray(shapes_Context *ctx, shapes_Dim shape, void *values, shapes_Dtype dtype);
-Tensor shapes_MakeRandomTensor(shapes_Context *ctx, shapes_Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype);
-Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, shapes_dim_t numClasses);
-Tensor shapes_MakeArangeTensor(shapes_Context *ctx, f32 start, f32 end, f32 step);
-void   shapes_SetValues(Tensor *t, shapes_Value value);
+// shapes_Tensor creation
+shapes_Tensor shapes_MakeZerosTensor(shapes_Context *ctx, shapes_Dim shape);
+shapes_Tensor shapes_MakeIntTensor(shapes_Context *ctx, shapes_Dim shape, i8 initialValues);
+shapes_Tensor shapes_MakeUIntTensor(shapes_Context *ctx, shapes_Dim shape, u8 initialValue);
+shapes_Tensor shapes_MakeFloatTensor(shapes_Context *ctx, shapes_Dim shape, f32 initialValues);
+shapes_Tensor shapes_MakeFloat64Tensor(shapes_Context *ctx, shapes_Dim shape, f64 initialValue);
+shapes_Tensor shapes_MakeFromContigousArray(shapes_Context *ctx, shapes_Dim shape, void *values, shapes_Dtype dtype);
+shapes_Tensor shapes_MakeRandomTensor(shapes_Context *ctx, shapes_Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype);
+shapes_Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, shapes_Tensor *indices, shapes_dim_t numClasses);
+shapes_Tensor shapes_MakeArangeTensor(shapes_Context *ctx, f32 start, f32 end, f32 step);
+void   shapes_SetValues(shapes_Tensor *t, shapes_Value value);
 
 #endif

@@ -14,7 +14,7 @@ void array_AppendFowardPassOp(olib_Array *array, shapesnn_FowardPassOp *op) {
   olib_ArrayAppend(array, op);
 }
 
-void loadIntoTensor(shapes_Context *ctx, Tensor *dst, Tensor *src) {
+void loadIntoTensor(shapes_Context *ctx, shapes_Tensor *dst, shapes_Tensor *src) {
   PANIC_IF(dst == NULL || src == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dst->dtype != src->dtype, ERR_DTYPE_MISMATCH);
   PANIC_IF(dst->shape.numOfDims != src->shape.numOfDims, ERR_DIM_MISMATCH);

@@ -10,7 +10,7 @@
 static shapes_ArrayNamedTensor wrapNamed(shapes_Context *ctx, olib_Array *tensors) {
   shapes_ArrayNamedTensor named = olib_MakeArray(ctx->memory, sizeof(shapesnn_NamedTensor), tensors->size);
   for (RANGE(i,tensors->size)) {
-    Tensor t = shapes_ArrayTensorIdx(tensors, i);
+    shapes_Tensor t = shapes_ArrayTensorIdx(tensors, i);
     PANIC_IF(t.label == NULL, ERR_NULL_PTR);
     shapesnn_NamedTensor nt = {.name = olib_MakeString(ctx->memory, t.label), .tensor = t};
     olib_ArrayAppend(named, &nt);
@@ -72,10 +72,10 @@ void shapesnn_LoadFromSafeTensors(shapes_Context *ctx, shapesnn_FowardPassOp *mo
   shapes_ArrayNamedTensor loaded = shapesnn_SafeTensors_Load(ctx, path);
   shapes_ArrayNamedTensor expected = shapesnn_Tensors(ctx, model);
 
-  olib_Array *tensors = olib_MakeArray(ctx->memory, sizeof(Tensor), expected->size);
+  olib_Array *tensors = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), expected->size);
   for (RANGE(i, expected->size)) {
     shapesnn_NamedTensor *expectedNt = (shapesnn_NamedTensor *)olib_ArrayIdx(expected, i);
-    Tensor match = {};
+    shapes_Tensor match = {};
     for (RANGE(j, loaded->size)) {
       shapesnn_NamedTensor *loadedNt = (shapesnn_NamedTensor *)olib_ArrayIdx(loaded, j);
       if (strcmp(STR(loadedNt->name), STR(expectedNt->name)) == 0) {

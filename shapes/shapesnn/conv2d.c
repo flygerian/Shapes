@@ -13,19 +13,19 @@ typedef struct conv2dLayerData {
   size_t outChannels;
   u8 stride;
   bool withBias;
-  Tensor *colBuffer;
+  shapes_Tensor *colBuffer;
 } conv2dLayerData;
 
-void conv2dBackward(shapes_Context *ctx, Tensor *tensor) {
+void conv2dBackward(shapes_Context *ctx, shapes_Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
 
   conv2dLayerData *layerData = tensor->opMetadata;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
-  Tensor kernels = shapes_ArrayTensorIdx(tensor->inputs, 1);
-  Tensor bias = {};
+  shapes_Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
+  shapes_Tensor kernels = shapes_ArrayTensorIdx(tensor->inputs, 1);
+  shapes_Tensor bias = {};
 
   if (layerData->withBias) {
     bias = shapes_ArrayTensorIdx(tensor->inputs, 2);
@@ -35,10 +35,10 @@ void conv2dBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(input.grad == NULL || kernels.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(layerData->colBuffer == NULL, ERR_NULL_PTR);
 
-  Tensor dInput = shapes_MakeFloatTensor(ctx, input.shape, input.dtype);
-  Tensor dKernels = shapes_MakeFloatTensor(ctx, kernels.shape, kernels.dtype);
+  shapes_Tensor dInput = shapes_MakeFloatTensor(ctx, input.shape, input.dtype);
+  shapes_Tensor dKernels = shapes_MakeFloatTensor(ctx, kernels.shape, kernels.dtype);
 
-  Tensor dBias = {};
+  shapes_Tensor dBias = {};
   if (layerData->withBias) {
     dBias = shapes_MakeFloatTensor(ctx, bias.shape, bias.dtype);
   }
@@ -46,26 +46,26 @@ void conv2dBackward(shapes_Context *ctx, Tensor *tensor) {
   Result result = shapes_Conv2dBackward(ctx, &input, &dInput, &kernels, &dKernels, tensor->grad, layerData->colBuffer, &dBias, layerData->withBias, layerData->stride);
   PANIC_IF(result != OK, result);
 
-  Tensor reducedInputGrad = shapes_ReduceBroadcast(ctx, &input, &dInput);
+  shapes_Tensor reducedInputGrad = shapes_ReduceBroadcast(ctx, &input, &dInput);
   shapes_AddInPlace(ctx, input.grad, &reducedInputGrad);
 
-  Tensor reducedKernelGrad = shapes_ReduceBroadcast(ctx, &kernels, &dKernels);
+  shapes_Tensor reducedKernelGrad = shapes_ReduceBroadcast(ctx, &kernels, &dKernels);
   shapes_AddInPlace(ctx, kernels.grad, &reducedKernelGrad);
 
   if (layerData->withBias) {
-    Tensor reducedBiasGrad = shapes_ReduceBroadcast(ctx, &bias, &dBias);
+    shapes_Tensor reducedBiasGrad = shapes_ReduceBroadcast(ctx, &bias, &dBias);
     shapes_AddInPlace(ctx, bias.grad, &reducedBiasGrad);
   }
 }
 
-Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
+shapes_Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor) {
   PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights.values == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   conv2dLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  Tensor *kernels = &layer->weights;
-  Tensor *bias = layerData->withBias ? &layer->bias : NULL;
+  shapes_Tensor *kernels = &layer->weights;
+  shapes_Tensor *bias = layerData->withBias ? &layer->bias : NULL;
 
   shapes_dim_t kH = kernels->shape.dims[2];
   shapes_dim_t kW = kernels->shape.dims[3];
@@ -75,17 +75,17 @@ Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor)
   shapes_dim_t outH = (h - kH) / layerData->stride + 1;
   shapes_dim_t outW = (w - kW) / layerData->stride + 1;
 
-  Tensor dest = shapes_MakeFloatTensor(ctx, SHAPE4D(batch, outH, outW, layerData->outChannels), tensor->dtype);
+  shapes_Tensor dest = shapes_MakeFloatTensor(ctx, SHAPE4D(batch, outH, outW, layerData->outChannels), tensor->dtype);
 
-  Tensor colBuffer;
+  shapes_Tensor colBuffer;
   Result result = shapes_Conv2d(ctx, layerData->inChannels, layerData->outChannels, layerData->stride, kernels, bias, layerData->withBias, tensor, &dest, &colBuffer);
   PANIC_IF(result != OK, result);
 
-  Tensor *colBufferPtr = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *colBufferPtr = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   *colBufferPtr = colBuffer;
   layerData->colBuffer = colBufferPtr;
 
-  dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  dest.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(dest.inputs == NULL, ALLOCATION_FAILED);
 
   shapes_ArrayAppendTensor(dest.inputs, tensor);
@@ -102,7 +102,7 @@ Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor)
 
 olib_Array *conv2dLayerParameters(shapes_Context *ctx, shapesnn_layer *state) {
   conv2dLayerData *layerData = state->layerData;
-  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
+  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 2);
   shapes_ArrayAppendTensor(params, &state->weights);
 
   if (layerData->withBias) {
@@ -121,7 +121,7 @@ void conv2dLayerLoad(shapes_Context *ctx, shapesnn_layer *state, olib_Array *ten
   size_t expected = layerData->withBias ? 2 : 1;
   PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
 
-  Tensor temp = shapes_ArrayTensorIdx(tensors, 0);
+  shapes_Tensor temp = shapes_ArrayTensorIdx(tensors, 0);
   loadIntoTensor(ctx, &state->weights, &temp);
   if (layerData->withBias) {
     temp = shapes_ArrayTensorIdx(tensors, 1);
@@ -145,7 +145,7 @@ shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, s
     layer->bias = shapes_MakeFloatTensor(ctx, SHAPE4D(1, 1, 1, outChannels), dtype);
     layer->bias.label = "bias";
   } else {
-    layer->bias = (Tensor){0};
+    layer->bias = (shapes_Tensor){0};
   }
 
   shapesnn_FowardPassOp *op = olib_Allocate(ctx->memory, sizeof(shapesnn_FowardPassOp));

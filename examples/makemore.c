@@ -164,11 +164,11 @@ olib_Array *BuildTensorDataset(shapes_Context *ctx, olib_Array *datasetPairs) {
   for (size_t i = 0; i < datasetPairs->size; i++) {
     DatasetPair *dp = (DatasetPair *)olib_ArrayIdx(datasetPairs, i);
 
-    Tensor context = shapes_MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
-    Tensor target = shapes_MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
+    shapes_Tensor context = shapes_MakeFromContigousArray(ctx, SHAPE1D(3), dp->context, I32);
+    shapes_Tensor target = shapes_MakeFromContigousArray(ctx, SHAPE1D(1), &dp->target, I32);
 
-    Tensor castedCtx = Cast(ctx, &context, F32);
-    Tensor castedTgt = Cast(ctx, &target, F32);
+    shapes_Tensor castedCtx = Cast(ctx, &context, F32);
+    shapes_Tensor castedTgt = Cast(ctx, &target, F32);
     shapes_TensorPair tp = {.a = castedCtx, .b = castedTgt};
     olib_ArrayAppend(tensorPairs, &tp);
   }
@@ -179,8 +179,8 @@ olib_Array *BuildTensorDataset(shapes_Context *ctx, olib_Array *datasetPairs) {
 BatchedDataset BuildBatchedDataset(shapes_Context *ctx, olib_Array *datasetPairs, size_t batchSize) {
   size_t numBatches = (datasetPairs->size + batchSize - 1) / batchSize;
 
-  olib_Array *batchInputs = olib_MakeArray(ctx->memory, sizeof(Tensor), numBatches);
-  olib_Array *batchTargets = olib_MakeArray(ctx->memory, sizeof(Tensor), numBatches);
+  olib_Array *batchInputs = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), numBatches);
+  olib_Array *batchTargets = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), numBatches);
 
   DatasetPair *pairs = (DatasetPair *)datasetPairs->items;
 
@@ -202,10 +202,10 @@ BatchedDataset BuildBatchedDataset(shapes_Context *ctx, olib_Array *datasetPairs
       targetData[i] = pairs[start + i].target;
     }
 
-    Tensor *inputTensor = olib_Allocate(ctx->memory, sizeof(Tensor));
+    shapes_Tensor *inputTensor = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
     PANIC_IF(inputTensor == NULL, ALLOCATION_FAILED);
     *inputTensor = shapes_MakeFromContigousArray(ctx, SHAPE2D(currentBatchSize, 3), inputData, I32);
-    Tensor *targetTensor = olib_Allocate(ctx->memory, sizeof(Tensor));
+    shapes_Tensor *targetTensor = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
     PANIC_IF(targetTensor == NULL, ALLOCATION_FAILED);
     *targetTensor = shapes_MakeFromContigousArray(ctx, SHAPE1D(currentBatchSize), targetData, I32);
 
@@ -240,7 +240,7 @@ Model Make_Model(shapes_Context *ctx) {
   return model;
 }
 
-Tensor Model_Forward(shapes_Context *ctx, Model *model, Tensor *input) {
+shapes_Tensor Model_Forward(shapes_Context *ctx, Model *model, shapes_Tensor *input) {
   return sequentialModelForward(ctx, &model->layers, input);
 }
 
@@ -253,11 +253,11 @@ olib_Array *Model_ParameterGradNorms(shapes_Context *ctx, Model *model) {
   olib_Array *gradNorms = olib_MakeArray(ctx->memory, sizeof(shapes_Value), params->size);
 
   for (size_t i = 0; i < params->size; i++) {
-    Tensor p = shapes_ArrayTensorIdx(params, i);
-    Tensor squared = shapes_Pow(ctx, p.grad, 2);
-    Tensor flat = shapes_Reshape(ctx, &squared, SHAPE1D(p.grad->size));
-    Tensor totalSum = shapes_Sum(ctx, &flat, 0);
-    Tensor norm = shapes_Sqrt(ctx, &totalSum);
+    shapes_Tensor p = shapes_ArrayTensorIdx(params, i);
+    shapes_Tensor squared = shapes_Pow(ctx, p.grad, 2);
+    shapes_Tensor flat = shapes_Reshape(ctx, &squared, SHAPE1D(p.grad->size));
+    shapes_Tensor totalSum = shapes_Sum(ctx, &flat, 0);
+    shapes_Tensor norm = shapes_Sqrt(ctx, &totalSum);
 
     shapes_Value normValue;
     VALUE_GET_FROM_ARR(norm.values, 0, &normValue, norm.dtype);
@@ -267,18 +267,18 @@ olib_Array *Model_ParameterGradNorms(shapes_Context *ctx, Model *model) {
   return gradNorms;
 }
 
-static Tensor *softmax(shapes_Context *ctx, Tensor *logits, shapes_dim_t dim) {
-  Tensor maxVal = shapes_Max(ctx, logits, dim);
-  Tensor shifted = shapes_Subtract(ctx, logits, &maxVal);
-  Tensor expVals = shapes_Exp(ctx, &shifted);
-  Tensor sumExp = shapes_Sum(ctx, &expVals, dim);
-  Tensor *probs = olib_Allocate(ctx->memory, sizeof(Tensor));
+static shapes_Tensor *softmax(shapes_Context *ctx, shapes_Tensor *logits, shapes_dim_t dim) {
+  shapes_Tensor maxVal = shapes_Max(ctx, logits, dim);
+  shapes_Tensor shifted = shapes_Subtract(ctx, logits, &maxVal);
+  shapes_Tensor expVals = shapes_Exp(ctx, &shifted);
+  shapes_Tensor sumExp = shapes_Sum(ctx, &expVals, dim);
+  shapes_Tensor *probs = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(probs == NULL, ALLOCATION_FAILED);
   *probs = shapes_Divide(ctx, &expVals, &sumExp);
   return probs;
 }
 
-static int sampleFromProbs(Tensor *probs, shapes_dim_t numClasses) {
+static int sampleFromProbs(shapes_Tensor *probs, shapes_dim_t numClasses) {
   f32 r = (f32)rand() / (f32)RAND_MAX;
   f32 cumulative = 0.0f;
 
@@ -304,12 +304,12 @@ void Model_Generate(shapes_Context *ctx, Model *model, olib_Array *itos, int num
 
     for (int step = 0; step < maxNameLen; step++) {
       i32 inputData[3] = {context[0], context[1], context[2]};
-      Tensor *input = olib_Allocate(ctx->memory, sizeof(Tensor));
+      shapes_Tensor *input = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
       PANIC_IF(input == NULL, ALLOCATION_FAILED);
       *input = shapes_MakeFromContigousArray(ctx, SHAPE2D(1, 3), inputData, I32);
 
-      Tensor logits = Model_Forward(ctx, model, input);
-      Tensor *probs = softmax(ctx, &logits, 1);
+      shapes_Tensor logits = Model_Forward(ctx, model, input);
+      shapes_Tensor *probs = softmax(ctx, &logits, 1);
 
       int nextIdx = sampleFromProbs(probs, vocabSize);
 
@@ -334,7 +334,7 @@ static olib_Array *loadItosFromFile(shapes_Context *ctx, string path) {
   for (RANGE(i, all->size)) {
     shapesnn_NamedTensor *nt = (shapesnn_NamedTensor *)olib_ArrayIdx(all, i);
     if (strcmp(STR(nt->name), "tokenizer.itos") == 0) {
-      Tensor t = nt->tensor;
+      shapes_Tensor t = nt->tensor;
       olib_Array *itos = olib_MakeArray(ctx->memory, sizeof(char), t.size);
       memcpy(itos->items, t.values, t.size);
       itos->size = t.size;
@@ -394,16 +394,16 @@ void makemore() {
     clock_t epochStart = clock();
 
     for (size_t b = 0; b < batchedData.numBatches; b++) {
-      Tensor input = shapes_ArrayTensorIdx(batchedData.inputs, b);
-      Tensor target = shapes_ArrayTensorIdx(batchedData.targets, b);
+      shapes_Tensor input = shapes_ArrayTensorIdx(batchedData.inputs, b);
+      shapes_Tensor target = shapes_ArrayTensorIdx(batchedData.targets, b);
 
       shapes_dim_t batchSize = input.shape.dims[0];
       totalSamples += batchSize;
 
-      Tensor logits = Model_Forward(&scratchCtx, &model, &input);
-      Tensor targetOneHot = shapes_MakeOneHotTensor(&scratchCtx, &target, 27);
+      shapes_Tensor logits = Model_Forward(&scratchCtx, &model, &input);
+      shapes_Tensor targetOneHot = shapes_MakeOneHotTensor(&scratchCtx, &target, 27);
 
-      Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, &targetOneHot, &logits);
+      shapes_Tensor loss = shapesnn_CrossEnthropy(&scratchCtx, &targetOneHot, &logits);
 
       shapes_Value lossValue;
       VALUE_GET_FROM_ARR(loss.values, 0, &lossValue, loss.dtype);
@@ -448,8 +448,8 @@ void makemore() {
   string modelFilePath = "model.safetensors";
 
   olib_Array *named = shapesnn_Tensors(&ctx, &model.layers);
-  Tensor itosT = shapes_MakeFromContigousArray(&ctx, SHAPE1D(itos->size), itos->items, U8);
-  Tensor stoiT = shapes_MakeFromContigousArray(&ctx, SHAPE1D(stoi->size), stoi->items, I32);
+  shapes_Tensor itosT = shapes_MakeFromContigousArray(&ctx, SHAPE1D(itos->size), itos->items, U8);
+  shapes_Tensor stoiT = shapes_MakeFromContigousArray(&ctx, SHAPE1D(stoi->size), stoi->items, I32);
   shapesnn_NamedTensor itosNt = {.name = olib_MakeString(ctx.memory, "tokenizer.itos"), .tensor = itosT};
   shapesnn_NamedTensor stoiNt = {.name = olib_MakeString(ctx.memory, "tokenizer.stoi"), .tensor = stoiT};
   olib_ArrayAppend(named, &itosNt);

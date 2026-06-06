@@ -37,7 +37,7 @@ shapescuda_Block AllocateOnCuda(shapescuda_Memory *restrict cudaMemory, olib_Mem
   return (shapescuda_Block){0};
 }
 
-// ---- Tensor ops ----
+// ---- shapes_Tensor ops ----
 
 #ifdef SHAPES_HAS_CUDA 
 void shapescuda_Gemm(cublasHandle_t handle, shapes_Dtype dtype, cublasOperation_t transA, cublasOperation_t transB,

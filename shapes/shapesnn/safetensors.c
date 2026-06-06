@@ -41,7 +41,7 @@ static olib_String buildHeader(olib_Memory *memory, olib_Array *named, size_t *o
     shapesnn_NamedTensor *nt = (shapesnn_NamedTensor *)olib_ArrayIdx(named, i);
     PANIC_IF(nt->name == NULL, ERR_NULL_PTR);
 
-    Tensor t = nt->tensor;
+    shapes_Tensor t = nt->tensor;
     size_t bytes = t.size * getBytesForDtype(t.dtype);
     size_t start = cursor;
     size_t end = cursor + bytes;
@@ -93,8 +93,8 @@ void shapesnn_SafeTensors_Save(shapes_Context *ctx, olib_Array *named, string pa
 
   for (RANGE(i, named->size)) {
     shapesnn_NamedTensor *nt = (shapesnn_NamedTensor *)olib_ArrayIdx(named, i);
-    Tensor t = nt->tensor;
-    Tensor *toWrite = t.isContigous ? &t : copyToContiguous(ctx, &t);
+    shapes_Tensor t = nt->tensor;
+    shapes_Tensor *toWrite = t.isContigous ? &t : copyToContiguous(ctx, &t);
     size_t bytes = toWrite->size * getBytesForDtype(toWrite->dtype);
 
     e = File_WriteBytes(file, (const byte *)toWrite->values, bytes);
@@ -290,7 +290,7 @@ olib_Array *shapesnn_SafeTensors_Load(shapes_Context *ctx, string path) {
 
   for (RANGE(i, metas->size)) {
     ParsedTensorMeta *meta = (ParsedTensorMeta *)olib_ArrayIdx(metas, i);
-    Tensor t = shapes_MakeZerosTensor(ctx, meta->shape);
+    shapes_Tensor t = shapes_MakeZerosTensor(ctx, meta->shape);
     t.label = STR(meta->name);
 
     size_t bytes = meta->endOffset - meta->startOffset;

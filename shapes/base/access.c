@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static bool isOutOfBounds(Tensor *t, shapes_Dim dim) {
+static bool isOutOfBounds(shapes_Tensor *t, shapes_Dim dim) {
   for (u8 i = 0; i < dim.numOfDims; i++) {
     if (dim.dims[i] >= t->shape.dims[i]) {
       return true;
@@ -16,7 +16,7 @@ static bool isOutOfBounds(Tensor *t, shapes_Dim dim) {
   return false;
 }
 
-shapes_Value *shapes_GetAt(Tensor *t, shapes_Dim dim) {
+shapes_Value *shapes_GetAt(shapes_Tensor *t, shapes_Dim dim) {
   PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS);
 
@@ -39,14 +39,14 @@ shapes_Value *shapes_GetAt(Tensor *t, shapes_Dim dim) {
   return result;
 }
 
-Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indices) {
+shapes_Tensor shapes_IndexWithTensor(shapes_Context *ctx, shapes_Tensor *source, shapes_Tensor *indices) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(indices), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(source->shape.numOfDims == 0, ERR_ZERO_DIM_TENSOR_ADVANCED_INDEXING);
   PANIC_IF(isIntType(indices), ERR_ONLY_INT_TYPE_ALLOWED);
 
-  Tensor *workingSource = materializeTensorOnContext(ctx, source);
-  Tensor *workingIndices = materializeTensorOnContext(ctx, indices);
+  shapes_Tensor *workingSource = materializeTensorOnContext(ctx, source);
+  shapes_Tensor *workingIndices = materializeTensorOnContext(ctx, indices);
 
   bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
@@ -72,7 +72,7 @@ Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indic
   }
 
   shapes_Dim destShape = {.dims = newDims, .numOfDims = newNumDims};
-  Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
+  shapes_Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
   if (isCudaCtx) {
     Result result = shapescuda_IndexSelect1d(workingSource->dtype, workingSource->values, workingIndices->values, workingIndices->dtype, dest.values, workingIndices->size, sliceSize);
     PANIC_IF(result != OK, result);
@@ -102,7 +102,7 @@ Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indic
   return dest;
 }
 
-Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices) {
+shapes_Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, shapes_Tensor *source, shapes_Tensor *rowIndices, shapes_Tensor *colIndices) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(rowIndices), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(isInvalidTensor(colIndices), ERR_NULL_TENSOR_PROVIDED);
@@ -110,9 +110,9 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
   PANIC_IF(isIntType(rowIndices) || isIntType(colIndices), ERR_ONLY_INT_TYPE_ALLOWED);
   PANIC_IF(rowIndices->size != colIndices->size, ERR_DIM_MISMATCH);
 
-  Tensor *workingSource = materializeTensorOnContext(ctx, source);
-  Tensor *workingRows = materializeTensorOnContext(ctx, rowIndices);
-  Tensor *workingCols = materializeTensorOnContext(ctx, colIndices);
+  shapes_Tensor *workingSource = materializeTensorOnContext(ctx, source);
+  shapes_Tensor *workingRows = materializeTensorOnContext(ctx, rowIndices);
+  shapes_Tensor *workingCols = materializeTensorOnContext(ctx, colIndices);
 
   bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
@@ -138,7 +138,7 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
   }
 
   shapes_Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers};
-  Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
+  shapes_Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
   if (isCudaCtx) {
     Result result = shapescuda_IndexSelect2d(workingSource->dtype, workingSource->values, workingSource->shape.dims[1], workingRows->values, workingRows->dtype, workingCols->values,
                                          workingCols->dtype, dest.values, workingRows->size, sliceSize);
@@ -174,7 +174,7 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
   return dest;
 }
 
-Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, shapes_Dim dim, shapes_Value value) {
+Result shapes_AssignValueAt(shapes_Context *ctx, shapes_Tensor *t, shapes_Dim dim, shapes_Value value) {
   (void)ctx;
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;

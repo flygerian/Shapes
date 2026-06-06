@@ -5,7 +5,7 @@
 #include "types.h"
 #include <string.h>
 
-shapes_BatchNormFowardResult shapes_BatchNormForwardTraining(shapes_Context *ctx, Tensor *x2d, Tensor *gamma, Tensor *beta, f32 epsilon) {
+shapes_BatchNormFowardResult shapes_BatchNormForwardTraining(shapes_Context *ctx, shapes_Tensor *x2d, shapes_Tensor *gamma, shapes_Tensor *beta, f32 epsilon) {
   PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(gamma) || isInvalidTensor(beta), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(x2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1 || beta->shape.numOfDims != 1, ERR_DIM_MISMATCH);
 
@@ -16,13 +16,13 @@ shapes_BatchNormFowardResult shapes_BatchNormForwardTraining(shapes_Context *ctx
   shapes_dim_t numFeatures = x2d->shape.dims[1];
   PANIC_IF(gamma->shape.dims[0] != numFeatures || beta->shape.dims[0] != numFeatures, ERR_DIM_MISMATCH);
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x2d);
-  Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
-  Tensor *betaContig = materializeTensorOnContext(ctx, beta);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, x2d);
+  shapes_Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
+  shapes_Tensor *betaContig = materializeTensorOnContext(ctx, beta);
 
-  Tensor out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
-  Tensor mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
-  Tensor variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  shapes_Tensor out = t_Zeros(ctx, SHAPE2D(batchSize, numFeatures), x2d->dtype);
+  shapes_Tensor mean = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
+  shapes_Tensor variance = t_Zeros(ctx, SHAPE1D(numFeatures), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;
@@ -119,7 +119,7 @@ shapes_BatchNormFowardResult shapes_BatchNormForwardTraining(shapes_Context *ctx
   return (shapes_BatchNormFowardResult){.out = out, .mean = mean, .variance = variance};
 }
 
-shapes_BatchNormBackwardResult shapes_BatchNormBackward(shapes_Context *ctx, Tensor *x2d, Tensor *grad2d, Tensor *gamma, f32 epsilon) {
+shapes_BatchNormBackwardResult shapes_BatchNormBackward(shapes_Context *ctx, shapes_Tensor *x2d, shapes_Tensor *grad2d, shapes_Tensor *gamma, f32 epsilon) {
   PANIC_IF(isInvalidTensor(x2d) || isInvalidTensor(grad2d) || isInvalidTensor(gamma), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(x2d->shape.numOfDims != 2 || grad2d->shape.numOfDims != 2 || gamma->shape.numOfDims != 1, ERR_DIM_MISMATCH);
   PANIC_IF(x2d->dtype != grad2d->dtype || x2d->dtype != gamma->dtype, ERR_DTYPE_MISMATCH);
@@ -130,13 +130,13 @@ shapes_BatchNormBackwardResult shapes_BatchNormBackward(shapes_Context *ctx, Ten
 
   PANIC_IF(grad2d->shape.dims[0] != m || grad2d->shape.dims[1] != n || gamma->shape.dims[0] != n, ERR_DIM_MISMATCH);
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x2d);
-  Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
-  Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, x2d);
+  shapes_Tensor *gradContig = materializeTensorOnContext(ctx, grad2d);
+  shapes_Tensor *gammaContig = materializeTensorOnContext(ctx, gamma);
 
-  Tensor dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
-  Tensor dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
-  Tensor dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  shapes_Tensor dX = t_Zeros(ctx, SHAPE2D(m, n), x2d->dtype);
+  shapes_Tensor dGamma = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
+  shapes_Tensor dBeta = t_Zeros(ctx, SHAPE1D(n), x2d->dtype);
 
   if (x2d->dtype == F64) {
     f64 *xVals = xContig->values;

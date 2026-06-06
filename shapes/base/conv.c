@@ -11,7 +11,7 @@
 #include <string.h>
 #include <time.h>
 
-static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
+static Result addConvBiasCpu(shapes_Tensor *output, shapes_Tensor *bias) {
   if (output == NULL || bias == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -36,7 +36,7 @@ static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
   return OK;
 }
 
-static Result addConvBias(shapes_Context *ctx, Tensor *output, Tensor *bias) {
+static Result addConvBias(shapes_Context *ctx, shapes_Tensor *output, shapes_Tensor *bias) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     return shapescuda_ConvBiasAdd(output->dtype, output->values, bias->values, output->size, output->shape.dims[3]);
   }
@@ -44,7 +44,7 @@ static Result addConvBias(shapes_Context *ctx, Tensor *output, Tensor *bias) {
   return addConvBiasCpu(output, bias);
 }
 
-static void accumulateConvBiasGradCuda(shapes_Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+static void accumulateConvBiasGradCuda(shapes_Context *ctx, shapes_Tensor *outputGrad, shapes_Tensor *dBias) {
   PANIC_IF(ctx == NULL || outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   shapes_dim_t channels = outputGrad->shape.dims[3];
@@ -68,7 +68,7 @@ static void accumulateConvBiasGradCuda(shapes_Context *ctx, Tensor *outputGrad, 
   runGemm(ctx, outputGrad->dtype, CblasNoTrans, CblasNoTrans, 1, (int)channels, (int)rows, ones, (int)rows, outputGrad->values, (int)channels, false, dBias->values, (int)channels);
 }
 
-static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
+static void accumulateConvBiasGradCpu(shapes_Tensor *outputGrad, shapes_Tensor *dBias) {
   PANIC_IF(outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   shapes_dim_t channels = outputGrad->shape.dims[3];
@@ -98,7 +98,7 @@ static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
   }
 }
 
-static void accumulateConvBiasGrad(shapes_Context *ctx, Tensor *outputGrad, Tensor *dBias) {
+static void accumulateConvBiasGrad(shapes_Context *ctx, shapes_Tensor *outputGrad, shapes_Tensor *dBias) {
   if (ctx != NULL && ctx->device != NULL && ctx->device->type == CUDA) {
     return accumulateConvBiasGradCuda(ctx, outputGrad, dBias);
   }
@@ -106,11 +106,11 @@ static void accumulateConvBiasGrad(shapes_Context *ctx, Tensor *outputGrad, Tens
   return accumulateConvBiasGradCpu(outputGrad, dBias);
 }
 
-Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Tensor *bias, bool withBias, Tensor *t, Tensor *dest, Tensor *colBufferDest) {
-  Tensor *inputContig = t;
-  Tensor *kernelContig = kernels;
-  Tensor *biasContig = bias;
-  Tensor gemmOutput;
+Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, shapes_Tensor *kernels, shapes_Tensor *bias, bool withBias, shapes_Tensor *t, shapes_Tensor *dest, shapes_Tensor *colBufferDest) {
+  shapes_Tensor *inputContig = t;
+  shapes_Tensor *kernelContig = kernels;
+  shapes_Tensor *biasContig = bias;
+  shapes_Tensor gemmOutput;
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
 
@@ -151,7 +151,7 @@ Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels,
   shapes_dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
   shapes_dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
-  Tensor *createdGemmOutput = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdGemmOutput = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdGemmOutput == NULL, ALLOCATION_FAILED);
   *createdGemmOutput = t_Zeros(ctx, SHAPE4D(batch, outputChannelHeight, outputChannelWidth, outChannels), t->dtype);
   PANIC_IF(createdGemmOutput == NULL, ERR_OUT_OF_MEMORY);
@@ -166,7 +166,7 @@ Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels,
   shapes_tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
   shapes_tensor_size_t positions = outputChannelHeight * outputChannelWidth;
 
-  Tensor *colBuffer;
+  shapes_Tensor *colBuffer;
   shapes_tensor_size_t colBufferSize;
 
   if (t->dtype == F64) {
@@ -203,11 +203,11 @@ Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels,
   return result;
 }
 
-Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer, Tensor *dBias, bool withBias, u8 stride) {
-  Tensor *inputContig = input;
-  Tensor *kernelContig = kernels;
-  Tensor *outputGradContig = outputGrad;
-  Tensor *colBufferContig = colBuffer;
+Result shapes_Conv2dBackward(shapes_Context *ctx, shapes_Tensor *input, shapes_Tensor *dInput, shapes_Tensor *kernels, shapes_Tensor *dKernels, shapes_Tensor *outputGrad, shapes_Tensor *colBuffer, shapes_Tensor *dBias, bool withBias, u8 stride) {
+  shapes_Tensor *inputContig = input;
+  shapes_Tensor *kernelContig = kernels;
+  shapes_Tensor *outputGradContig = outputGrad;
+  shapes_Tensor *colBufferContig = colBuffer;
   void *dColBuffer = NULL;
   double totalStartMs = 0.0;
   double phaseStartMs = 0.0;
@@ -310,7 +310,7 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
 
     shapes_dim_t outputPositions = batch * outH * outW;
 
-    Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F64);
+    shapes_Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F64);
     dColBuffer = dColBufferTensor.values;
 
     runGemm(ctx, F64, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBufferContig->values, kS, false, dWValues, kS);
@@ -330,7 +330,7 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
 
     shapes_dim_t outputPositions = batch * outH * outW;
 
-    Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F32);
+    shapes_Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F32);
     dColBuffer = dColBufferTensor.values;
 
     runGemm(ctx, F32, CblasTrans, CblasNoTrans, C_out, kS, outputPositions, dOutput, C_out, colBufferContig->values, kS, false, dWValues, kS);
@@ -349,7 +349,7 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
   return res;
 }
 
-Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, shapes_Dim kernelShape, Tensor *t, Tensor *dest) {
+Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, shapes_Tensor *kernels, shapes_Dim kernelShape, shapes_Tensor *t, shapes_Tensor *dest) {
   if (t == NULL || dest == NULL || ctx == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -406,7 +406,7 @@ Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t out
   shapes_dim_t outH = (h - 1) * stride + kH;
   shapes_dim_t outW = (w - 1) * stride + kW;
 
-  Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
   *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, outChannels), t->dtype);
   if (createdDest == NULL) {
@@ -475,7 +475,7 @@ Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t out
   return OK;
 }
 
-Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels) {
+Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *kernels, shapes_Tensor *gradOut, u8 stride, shapes_Tensor *dX, shapes_Tensor *dKernels) {
   if (isInvalidTensor(x) || isInvalidTensor(kernels) || isInvalidTensor(gradOut) || dX == NULL || dKernels == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -516,7 +516,7 @@ Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *ke
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   if (createdDX == NULL) {
@@ -524,7 +524,7 @@ Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *ke
   }
   *dX = *createdDX;
 
-  Tensor *createdDKernels = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDKernels = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDKernels == NULL, ALLOCATION_FAILED);
   *createdDKernels = t_Zeros(ctx, kernels->shape, kernels->dtype);
   if (createdDKernels == NULL) {

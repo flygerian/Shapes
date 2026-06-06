@@ -6,7 +6,7 @@
 #include "shapes_internal.h"
 #include "shapes_common_types.h"
 
-Tensor *im2colF32(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
+shapes_Tensor *im2colF32(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
   shapes_dim_t batch = t->shape.dims[0];
   shapes_dim_t height = t->shape.dims[1];
   shapes_dim_t width = t->shape.dims[2];
@@ -19,7 +19,7 @@ Tensor *im2colF32(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, sha
 
   shapes_dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
   shapes_Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
-  Tensor *colBuffer = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *colBuffer = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(colBuffer == NULL, ALLOCATION_FAILED);
   *colBuffer = t_Zeros(ctx, colBufferShape, F32);
   PANIC_IF((colBuffer == NULL || colBuffer->values == NULL), ALLOCATION_FAILED);
@@ -59,7 +59,7 @@ Tensor *im2colF32(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, sha
   return colBuffer;
 }
 
-Tensor *im2colF64(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
+shapes_Tensor *im2colF64(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
   shapes_dim_t batch = t->shape.dims[0];
   shapes_dim_t height = t->shape.dims[1];
   shapes_dim_t width = t->shape.dims[2];
@@ -73,7 +73,7 @@ Tensor *im2colF64(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, sha
 
   shapes_dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
   shapes_Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
-  Tensor *colBuffer = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *colBuffer = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(colBuffer == NULL, ALLOCATION_FAILED);
   *colBuffer = t_Zeros(ctx, colBufferShape, F64);
   PANIC_IF((colBuffer == NULL || colBuffer->values == NULL), ALLOCATION_FAILED);
@@ -112,7 +112,7 @@ Tensor *im2colF64(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, sha
   return colBuffer;
 }
 
-void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
+void col2imAccumulateF32(shapes_Tensor *dInput, f32 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
   shapes_dim_t batch = dInput->shape.dims[0];
   shapes_dim_t height = dInput->shape.dims[1];
   shapes_dim_t width = dInput->shape.dims[2];
@@ -152,7 +152,7 @@ void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, shapes_dim_t kernelHei
   }
 }
 
-void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
+void col2imAccumulateF64(shapes_Tensor *dInput, f64 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride) {
   shapes_dim_t batch = dInput->shape.dims[0];
   shapes_dim_t height = dInput->shape.dims[1];
   shapes_dim_t width = dInput->shape.dims[2];

@@ -52,7 +52,7 @@ typedef struct shapes_Context {
   struct shapes_Context *parent;
 } shapes_Context;
 
-typedef struct Tensor {
+typedef struct shapes_Tensor {
   shapes_Context *context;
   string label;
   olib_Memory *metadataMemory;
@@ -64,12 +64,12 @@ typedef struct Tensor {
   bool isView;
   bool isContigous;
   bool isContigousCopy;
-  struct Tensor *grad;
+  struct shapes_Tensor *grad;
   olib_Array *inputs;
   shapes_OpType opType;
   void *opMetadata;
   u64 nodeId;
-} Tensor;
+} shapes_Tensor;
 
 typedef struct {
   void *param;
@@ -81,20 +81,20 @@ typedef struct {
 } shapes_AdamData;
 
 typedef struct shapes_BatchNormFowardResult {
-  Tensor out;
-  Tensor mean;
-  Tensor variance;
+  shapes_Tensor out;
+  shapes_Tensor mean;
+  shapes_Tensor variance;
 } shapes_BatchNormFowardResult;
 
 typedef struct shapes_BatchNormBackwardResult {
-  Tensor dx2d;
-  Tensor dGamma;
-  Tensor dBeta;
+  shapes_Tensor dx2d;
+  shapes_Tensor dGamma;
+  shapes_Tensor dBeta;
 } shapes_BatchNormBackwardResult;
 
 typedef struct {
-  Tensor a;
-  Tensor b;
+  shapes_Tensor a;
+  shapes_Tensor b;
 } shapes_TensorPair;
 
 size_t getBytesForDtype(shapes_Dtype type);

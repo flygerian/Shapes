@@ -23,16 +23,16 @@ void adamStep(shapes_Context *ctx, shapesnn_Optimizer *opts, olib_Array *paramet
   PANIC_IF(parameters->size == 0, ERR_DIM_MISMATCH);
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = shapes_ArrayTensorPtrIdx(parameters, i);
+    shapes_Tensor *p = shapes_ArrayTensorPtrIdx(parameters, i);
     if (!PtrMap_Contains(m, &p)) {
-      Tensor *mEntry = olib_Allocate(ctx->memory, sizeof(Tensor));
+      shapes_Tensor *mEntry = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
       PANIC_IF(mEntry == NULL, ALLOCATION_FAILED);
       *mEntry = shapes_MakeZerosTensor(ctx, p->shape);
       PtrMap_Put(m, (void*) p, mEntry);
     }
 
     if (!PtrMap_Contains(v, p)) {
-      Tensor *vEntry = olib_Allocate(ctx->memory, sizeof(Tensor));
+      shapes_Tensor *vEntry = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
       PANIC_IF(vEntry == NULL, ALLOCATION_FAILED);
       *vEntry = shapes_MakeZerosTensor(ctx, p->shape);
       PtrMap_Put(v, p, vEntry);
@@ -42,10 +42,10 @@ void adamStep(shapes_Context *ctx, shapesnn_Optimizer *opts, olib_Array *paramet
   shapes_AdamData triplets[parameters->size];
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor *p = shapes_ArrayTensorPtrIdx(parameters, i);
+    shapes_Tensor *p = shapes_ArrayTensorPtrIdx(parameters, i);
     triplets[i] = (shapes_AdamData){
-        .m = ((Tensor *)PtrMap_Get(m, p))->values,
-        .v = ((Tensor *)PtrMap_Get(v, p))->values,
+        .m = ((shapes_Tensor *)PtrMap_Get(m, p))->values,
+        .v = ((shapes_Tensor *)PtrMap_Get(v, p))->values,
         .param = p->values,
         .grad = p->grad->values,
         .size = p->size,

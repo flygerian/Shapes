@@ -29,40 +29,40 @@ olib_Array *conv2dLayerTensors(shapes_Context *ctx, shapesnn_layer *state);
 olib_Array *flattenLayerTensors(shapes_Context *ctx);
 olib_Array *sequentialModelTensors(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp);
 
-Tensor denseForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
-Tensor embeddingForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *indices);
-Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inputs);
-Tensor tanhForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
-Tensor sequentialModelForward(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, Tensor *input);
+shapes_Tensor denseForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
+shapes_Tensor embeddingForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *indices);
+shapes_Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *inputs);
+shapes_Tensor tanhForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
+shapes_Tensor sequentialModelForward(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, shapes_Tensor *input);
 olib_Array *sequentialModelParameters(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp);
 
 Result sgdStep(shapes_Context *ctx, shapesnn_Optimizer *opts, olib_Array *parameters);
 void adamStep(shapes_Context *ctx, shapesnn_Optimizer *opts, olib_Array *parameters);
 
-void denseBackward(shapes_Context *ctx, Tensor *tensor);
-void embeddingBackward(shapes_Context *ctx, Tensor *out);
-void mseBackward(shapes_Context *ctx, Tensor *tensor);
-void batchnormBackward(shapes_Context *ctx, Tensor *output);
-void crossEnthropyBackward(shapes_Context *ctx, Tensor *tensor);
-void tanhBackward(shapes_Context *ctx, Tensor *tensor);
-void reluBackward(shapes_Context *ctx, Tensor *tensor);
-void maxPool2dBackward(shapes_Context *ctx, Tensor *tensor);
-void adaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *tensor);
-void conv2dBackward(shapes_Context *ctx, Tensor *tensor);
+void denseBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void embeddingBackward(shapes_Context *ctx, shapes_Tensor *out);
+void mseBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void batchnormBackward(shapes_Context *ctx, shapes_Tensor *output);
+void crossEnthropyBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void tanhBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void reluBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void maxPool2dBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void adaptiveAvgPool2dBackward(shapes_Context *ctx, shapes_Tensor *tensor);
+void conv2dBackward(shapes_Context *ctx, shapes_Tensor *tensor);
 
-Tensor reluForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
-Tensor maxPool2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
-Tensor adaptiveAvgPool2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
-Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
+shapes_Tensor reluForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
+shapes_Tensor maxPool2dForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
+shapes_Tensor adaptiveAvgPool2dForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
+shapes_Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
 olib_Array *reluLayerParameters(shapes_Context *ctx, shapesnn_layer *state);
 olib_Array *maxPool2dLayerParameters(shapes_Context *ctx, shapesnn_layer *state);
 olib_Array *adaptiveAvgPool2dLayerParameters(shapes_Context *ctx, shapesnn_layer *state);
 olib_Array *conv2dLayerParameters(shapes_Context *ctx, shapesnn_layer *state);
 
-Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor);
+shapes_Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor);
 olib_Array *flattenParameters(shapes_Context *ctx);
 
-void loadIntoTensor(shapes_Context *ctx, Tensor *dst, Tensor *src);
+void loadIntoTensor(shapes_Context *ctx, shapes_Tensor *dst, shapes_Tensor *src);
 
 void denseLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *tensors);
 void embeddingLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *tensors);

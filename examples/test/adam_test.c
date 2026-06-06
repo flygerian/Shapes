@@ -3,13 +3,13 @@
 #include "common.h"
 #include <math.h>
 
-static Tensor create1DTensor(shapes_Context *ctx, shapes_dim_t size, shapes_Dtype dtype) {
+static shapes_Tensor create1DTensor(shapes_Context *ctx, shapes_dim_t size, shapes_Dtype dtype) {
   shapes_dim_t *dims = allocate(ctx->memory, sizeof(shapes_dim_t));
   shapes_multiplier_t *multipliers = allocate(ctx->memory, sizeof(shapes_multiplier_t));
   dims[0] = size;
   multipliers[0] = 1;
 
-  Tensor t = {.dtype = dtype,
+  shapes_Tensor t = {.dtype = dtype,
               .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
               .size = size,
               .shape = (shapes_Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
@@ -25,10 +25,10 @@ static void test_adam_single_step(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Create tensors: param, paramGrad, m, v
-  Tensor param = create1DTensor(&ctx, 3, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 3, F32);
-  Tensor m = create1DTensor(&ctx, 3, F32);
-  Tensor v = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 3, F32);
 
   // Initialize: param = [1.0, 2.0, 3.0], grad = [0.1, 0.2, 0.3]
   f32 *pVals = param.values;
@@ -91,10 +91,10 @@ static void test_adam_two_steps_accumulation(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 1, F32);
-  Tensor m = create1DTensor(&ctx, 1, F32);
-  Tensor v = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 1, F32);
 
   f32 *pVals = param.values;
   f32 *gVals = paramGrad.values;
@@ -135,10 +135,10 @@ static void test_adam_pytorch_reference(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 2, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 2, F32);
-  Tensor m = create1DTensor(&ctx, 2, F32);
-  Tensor v = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 2, F32);
 
   f32 *pVals = param.values;
   f32 *gVals = paramGrad.values;
@@ -182,10 +182,10 @@ static void test_adam_null_tensors(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 1, F32);
-  Tensor m = create1DTensor(&ctx, 1, F32);
-  Tensor v = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 1, F32);
 
   // Test NULL m
   shapes_AdamData triplet1 = {.param = &param, .paramGrad = &paramGrad, .m = NULL, .v = &v};
@@ -213,10 +213,10 @@ static void test_adam_non_float_type(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, I32);
-  Tensor paramGrad = create1DTensor(&ctx, 1, I32);
-  Tensor m = create1DTensor(&ctx, 1, I32);
-  Tensor v = create1DTensor(&ctx, 1, I32);
+  shapes_Tensor param = create1DTensor(&ctx, 1, I32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, I32);
+  shapes_Tensor m = create1DTensor(&ctx, 1, I32);
+  shapes_Tensor v = create1DTensor(&ctx, 1, I32);
 
   shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
@@ -228,10 +228,10 @@ static void test_adam_size_mismatch(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 3, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 3, F32);
-  Tensor m = create1DTensor(&ctx, 2, F32); // Wrong size
-  Tensor v = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 3, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 2, F32); // Wrong size
+  shapes_Tensor v = create1DTensor(&ctx, 3, F32);
 
   shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
@@ -244,16 +244,16 @@ static void test_adam_multiple_triplets(void) {
   shapes_Context ctx = {.memory = mem};
 
   // First parameter group
-  Tensor param1 = create1DTensor(&ctx, 2, F32);
-  Tensor grad1 = create1DTensor(&ctx, 2, F32);
-  Tensor m1 = create1DTensor(&ctx, 2, F32);
-  Tensor v1 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor param1 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor grad1 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor m1 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor v1 = create1DTensor(&ctx, 2, F32);
 
   // Second parameter group
-  Tensor param2 = create1DTensor(&ctx, 2, F32);
-  Tensor grad2 = create1DTensor(&ctx, 2, F32);
-  Tensor m2 = create1DTensor(&ctx, 2, F32);
-  Tensor v2 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor param2 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor grad2 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor m2 = create1DTensor(&ctx, 2, F32);
+  shapes_Tensor v2 = create1DTensor(&ctx, 2, F32);
 
   f32 *p1 = param1.values, *g1 = grad1.values, *m1v = m1.values, *v1v = v1.values;
   f32 *p2 = param2.values, *g2 = grad2.values, *m2v = m2.values, *v2v = v2.values;
@@ -291,10 +291,10 @@ static void test_adam_bias_correction(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 1, F32);
-  Tensor m = create1DTensor(&ctx, 1, F32);
-  Tensor v = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 1, F32);
 
   f32 *pVals = param.values;
   f32 *gVals = paramGrad.values;
@@ -334,10 +334,10 @@ static void test_adam_small_gradients(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 1, F32);
-  Tensor m = create1DTensor(&ctx, 1, F32);
-  Tensor v = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 1, F32);
 
   f32 *pVals = param.values;
   f32 *gVals = paramGrad.values;
@@ -362,10 +362,10 @@ static void test_adam_f64_precision(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, F64);
-  Tensor paramGrad = create1DTensor(&ctx, 1, F64);
-  Tensor m = create1DTensor(&ctx, 1, F64);
-  Tensor v = create1DTensor(&ctx, 1, F64);
+  shapes_Tensor param = create1DTensor(&ctx, 1, F64);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, F64);
+  shapes_Tensor m = create1DTensor(&ctx, 1, F64);
+  shapes_Tensor v = create1DTensor(&ctx, 1, F64);
 
   f64 *pVals = param.values;
   f64 *gVals = paramGrad.values;
@@ -391,10 +391,10 @@ static void test_adam_zero_learning_rate(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor param = create1DTensor(&ctx, 1, F32);
-  Tensor paramGrad = create1DTensor(&ctx, 1, F32);
-  Tensor m = create1DTensor(&ctx, 1, F32);
-  Tensor v = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor param = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor paramGrad = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor m = create1DTensor(&ctx, 1, F32);
+  shapes_Tensor v = create1DTensor(&ctx, 1, F32);
 
   f32 *pVals = param.values;
   f32 *gVals = paramGrad.values;

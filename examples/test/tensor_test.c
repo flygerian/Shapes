@@ -5,19 +5,19 @@
 #include <string.h>
 
 typedef struct {
-  Tensor tensor;
+  shapes_Tensor tensor;
   olib_Memory *mem;
 } TestTensor;
 
 static TestTensor createZerosTensor(shapes_dim_t *dims, u8 numOfDims) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims});
   return (TestTensor){.tensor = *t, .mem = mem};
 }
 
-static Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
-  Tensor t = {.context = ctx,
+static shapes_Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
+  shapes_Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
               .values = olib_Allocate(ctx->memory, getBytesForDtype(dtype)),
               .boundary = NULL,
@@ -58,7 +58,7 @@ static void test_int_creates_tensor_with_value(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 5);
+  shapes_Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 5);
 
   ASSERT_EQ(t->shape.numOfDims, 2, "tensor should have 2 dimensions");
   ASSERT_EQ(t->dtype, I8, "shapes_Make_IntTensor should create I8 tensor");
@@ -78,7 +78,7 @@ static void test_make_random_tensor_respects_float_range_and_dtype(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE2D(3, 4), -2.5f, 4.0f, F32);
+  shapes_Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE2D(3, 4), -2.5f, 4.0f, F32);
 
   ASSERT_NOT_NULL(t, "shapes_Make_RandomTensor should allocate a tensor");
   ASSERT_EQ(t->dtype, F32, "shapes_Make_RandomTensor should preserve the requested dtype");
@@ -99,7 +99,7 @@ static void test_make_random_tensor_uses_constant_range_value(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE1D(8), 7.0f, 7.0f, I16);
+  shapes_Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE1D(8), 7.0f, 7.0f, I16);
 
   ASSERT_NOT_NULL(t, "shapes_Make_RandomTensor should allocate a tensor for constant ranges");
   ASSERT_EQ(t->dtype, I16, "shapes_Make_RandomTensor should support non-default dtypes");
@@ -120,7 +120,7 @@ static void test_make_random_tensor_generates_varied_int_values(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE1D(128), 10.0f, 12.0f, U8);
+  shapes_Tensor *t = shapes_Make_RandomTensor(&ctx, SHAPE1D(128), 10.0f, 12.0f, U8);
 
   ASSERT_NOT_NULL(t, "shapes_Make_RandomTensor should allocate an integer tensor");
   ASSERT_EQ(t->dtype, U8, "shapes_Make_RandomTensor should preserve unsigned integer dtypes");
@@ -148,7 +148,7 @@ static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
 
   f32 values[] = {1.5f, -2.0f, 3.25f, 4.0f};
 
-  Tensor *tensor = shapes_Make_FromContigousArray(&ctx, SHAPE1D(4), values, 4, F32);
+  shapes_Tensor *tensor = shapes_Make_FromContigousArray(&ctx, SHAPE1D(4), values, 4, F32);
   ASSERT_NOT_NULL(tensor, "shapes_Make_FromContigousArray should allocate a tensor");
   ASSERT_EQ(tensor->dtype, F32, "shapes_Make_FromContigousArray should preserve dtype");
   ASSERT_EQ(tensor->shape.numOfDims, 1, "shapes_Make_FromContigousArray should create a 1D tensor");
@@ -436,7 +436,7 @@ static void test_slice_basic_2d(void) {
     }
   }
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
   ASSERT_NOT_NULL(slice, "shapes_Slice should return a tensor");
   ASSERT(slice->isView, "slice should be a view");
   ASSERT_EQ(slice->shape.numOfDims, 2, "slice should have 2 dimensions");
@@ -455,7 +455,7 @@ static void test_slice_shares_data_with_source(void) {
   Value val = {.dtype = F32, .as.f32 = 42.0f};
   shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "shapes_Slice should return a tensor");
   ASSERT_EQ(slice->values, tt.tensor.values, "slice should share values pointer with source");
 }
@@ -475,7 +475,7 @@ static void test_slice_get_at_correct_values(void) {
     }
   }
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
   shapes_dim_t slice_idx[] = {0, 0};
@@ -502,7 +502,7 @@ static void test_slice_single_element_range(void) {
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 3}, (Range){.start = 3, .end = 4});
   ASSERT_NOT_NULL(slice, "single element slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 1, "slice dim[0] should be 1");
   ASSERT_EQ(slice->shape.dims[1], 1, "slice dim[1] should be 1");
@@ -519,7 +519,7 @@ static void test_slice_full_range(void) {
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4});
   ASSERT_NOT_NULL(slice, "full range slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 3, "slice dim[0] should match source");
   ASSERT_EQ(slice->shape.dims[1], 4, "slice dim[1] should match source");
@@ -538,7 +538,7 @@ static void test_slice_1d_tensor(void) {
     shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 1}, val);
   }
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 3, .end = 8});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 3, .end = 8});
   ASSERT_NOT_NULL(slice, "1D slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 5, "1D slice should have 5 elements");
 
@@ -560,7 +560,7 @@ static void test_slice_modify_reflects_in_source(void) {
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
 
   // Modify slice[0,1] which maps to source[1,2]
   shapes_dim_t slice_idx[] = {0, 1};
@@ -590,11 +590,11 @@ static void test_slice_of_slice(void) {
   }
 
   // First slice: rows 1-5 (exclusive), cols 1-5 (exclusive) -> 4x4 region
-  Tensor *slice1 = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+  shapes_Tensor *slice1 = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
 
   // Second slice of first slice: rows 1-3 (exclusive), cols 1-3 (exclusive) -> 2x2 region
   // This maps to source rows 2-3, cols 2-3
-  Tensor *slice2 = shapes_Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  shapes_Tensor *slice2 = shapes_Slice(&ctx, slice1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
   ASSERT_NOT_NULL(slice2, "slice of slice should return a tensor");
   ASSERT_EQ(slice2->shape.dims[0], 2, "nested slice dim[0] should be 2");
   ASSERT_EQ(slice2->shape.dims[1], 2, "nested slice dim[1] should be 2");
@@ -626,7 +626,7 @@ static void test_slice_large_4d_tensor(void) {
     }
   }
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8}, (Range){.start = 4, .end = 10}, (Range){.start = 1, .end = 5});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 6}, (Range){.start = 3, .end = 8}, (Range){.start = 4, .end = 10}, (Range){.start = 1, .end = 5});
 
   ASSERT_NOT_NULL(slice, "4D slice should return a tensor");
   ASSERT_EQ(slice->shape.dims[0], 4, "4D slice dim[0] should be 4");
@@ -684,7 +684,7 @@ static void test_reshape_basic_2d_to_1d(void) {
   shapes_dim_t new_dims[] = {12};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape 2D to 1D should return a tensor");
   ASSERT_EQ(reshaped->shape.numOfDims, 1, "reshaped should have 1 dimension");
   ASSERT_EQ(reshaped->shape.dims[0], 12, "reshaped dim[0] should be 12");
@@ -699,7 +699,7 @@ static void test_reshape_1d_to_2d(void) {
   shapes_dim_t new_dims[] = {4, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape 1D to 2D should return a tensor");
   ASSERT_EQ(reshaped->shape.numOfDims, 2, "reshaped should have 2 dimensions");
   ASSERT_EQ(reshaped->shape.dims[0], 4, "reshaped dim[0] should be 4");
@@ -724,7 +724,7 @@ static void test_reshape_preserves_data(void) {
   shapes_dim_t new_dims[] = {6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
 
   // Verify all values preserved in row-major order
   for (u32 i = 0; i < 6; i++) {
@@ -744,7 +744,7 @@ static void test_reshape_shares_data_with_source(void) {
   shapes_dim_t new_dims[] = {2, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
 
   ASSERT_EQ(reshaped->values, tt.tensor.values, "reshaped should share values pointer");
 
@@ -779,7 +779,7 @@ static void test_reshape_3d_to_2d(void) {
   shapes_dim_t new_dims[] = {6, 4};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape 3D to 2D should return a tensor");
   ASSERT_EQ(reshaped->shape.dims[0], 6, "reshaped dim[0] should be 6");
   ASSERT_EQ(reshaped->shape.dims[1], 4, "reshaped dim[1] should be 4");
@@ -812,13 +812,13 @@ static void test_reshape_view(void) {
 
   // Create a slice: rows 1-4 (exclusive), cols 0-6 (exclusive) -> 3x6 = 18 elements
   // Note: This slice is contiguous in memory
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
 
   // shapes_Reshape the slice to 1D (18 elements)
   shapes_dim_t new_dims[] = {18};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape of view should return a tensor");
   ASSERT(!reshaped->isView, "reshaped view should be copied to contiguous array");
   ASSERT_EQ(reshaped->shape.dims[0], 18, "reshaped should have 18 elements");
@@ -842,7 +842,7 @@ static void test_reshape_3d_view(void) {
   }
 
   // shapes_Slice: [1:3, 0:5, 0:6] (exclusive) -> 2x5x6 = 60 elements
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice->shape.dims[0], 2, "3D slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 5, "3D slice dim[1] should be 5");
@@ -852,7 +852,7 @@ static void test_reshape_3d_view(void) {
   shapes_dim_t new_dims[] = {10, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape 3D view to 2D should return a tensor");
   ASSERT(!reshaped->isView, "reshaped 3D view should be copied to contiguous array");
   ASSERT_EQ(reshaped->shape.dims[0], 10, "reshaped dim[0] should be 10");
@@ -886,7 +886,7 @@ static void test_reshape_4d_view(void) {
   }
 
   // shapes_Slice: [0:2, 1:4, 0:5, 0:6] (exclusive) -> 2x3x5x6 = 180 elements
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 2}, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 5}, (Range){.start = 0, .end = 6});
 
   ASSERT_EQ(slice->shape.dims[0], 2, "4D slice dim[0] should be 2");
   ASSERT_EQ(slice->shape.dims[1], 3, "4D slice dim[1] should be 3");
@@ -897,7 +897,7 @@ static void test_reshape_4d_view(void) {
   shapes_dim_t new_dims[] = {6, 5, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 3};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape 4D view to 3D should return a tensor");
   ASSERT(!reshaped->isView, "reshaped 4D view should be copied to contiguous array");
   ASSERT_EQ(reshaped->shape.numOfDims, 3, "reshaped should have 3 dimensions");
@@ -927,13 +927,13 @@ static void test_reshape_4d_view_to_1d(void) {
   }
 
   // shapes_Slice: [0:1, 0:3, 0:4, 0:5] (exclusive) -> 1x3x4x5 = 60 elements
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
 
   // shapes_Reshape to 1D: 60 elements
   shapes_dim_t new_dims[] = {60};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape 4D view to 1D should return a tensor");
   ASSERT_EQ(reshaped->shape.numOfDims, 1, "reshaped should have 1 dimension");
   ASSERT_EQ(reshaped->shape.dims[0], 60, "reshaped should have 60 elements");
@@ -967,7 +967,7 @@ static void test_reshape_then_access_elements(void) {
   shapes_dim_t new_dims[] = {4, 3};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
 
   // Verify all elements accessible with new indexing
   // reshaped[0,0] = 0, reshaped[0,1] = 1, reshaped[0,2] = 2
@@ -995,7 +995,7 @@ static void test_transpose_basic_2d(void) {
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT_NOT_NULL(transposed, "shapes_Transpose should return a tensor");
   ASSERT(transposed->isView, "transposed should be a view");
   ASSERT(!transposed->isContigous, "transposed should not be contiguous");
@@ -1012,7 +1012,7 @@ static void test_transpose_swaps_dims_and_multipliers(void) {
   shapes_multiplier_t orig_mult_0 = tt.tensor.shape.multipliers[0];
   shapes_multiplier_t orig_mult_1 = tt.tensor.shape.multipliers[1];
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   ASSERT_EQ(transposed->shape.multipliers[0], orig_mult_1, "multiplier[0] should be swapped");
   ASSERT_EQ(transposed->shape.multipliers[1], orig_mult_0, "multiplier[1] should be swapped");
@@ -1024,7 +1024,7 @@ static void test_transpose_shares_data(void) {
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   ASSERT_EQ(transposed->values, tt.tensor.values, "transposed should share values pointer");
 }
@@ -1046,7 +1046,7 @@ static void test_transpose_access_elements(void) {
     }
   }
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   // transposed[j,i] should equal source[i,j]
   // transposed[0,0] = source[0,0] = 0
@@ -1090,7 +1090,7 @@ static void test_transpose_3d(void) {
   }
 
   // shapes_Transpose dims 0 and 2: shape becomes 4x3x2
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)2);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)2);
   ASSERT_NOT_NULL(transposed, "shapes_Transpose 3D should return a tensor");
   ASSERT_EQ(transposed->shape.dims[0], 4, "transposed dim[0] should be 4");
   ASSERT_EQ(transposed->shape.dims[1], 3, "transposed dim[1] should be 3");
@@ -1126,13 +1126,13 @@ static void test_reshape_after_transpose_copies(void) {
   }
 
   // shapes_Transpose: 3x4 -> 4x3
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   // shapes_Reshape transposed to 1D: 12 elements
   shapes_dim_t new_dims[] = {12};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
-  Tensor *reshaped = shapes_Reshape(&ctx, transposed, newShape);
+  shapes_Tensor *reshaped = shapes_Reshape(&ctx, transposed, newShape);
   ASSERT_NOT_NULL(reshaped, "shapes_Reshape after transpose should return a tensor");
   ASSERT(!reshaped->isContigous || reshaped->values != transposed->values, "reshape should copy non-contiguous data");
 
@@ -1164,8 +1164,8 @@ static void test_add_basic_same_shape(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   // b = [[10,20,30], [40,50,60]]
@@ -1179,7 +1179,7 @@ static void test_add_basic_same_shape(void) {
     }
   }
 
-  Tensor *dest = shapes_Add(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Add should return a tensor");
 
   // Verify: result = [[11,22,33], [44,55,66]]
@@ -1196,8 +1196,8 @@ static void test_add_broadcast_row_vector(void) {
   // a: [2, 3], b: [1, 3] -> broadcast b across rows
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {1, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1215,7 +1215,7 @@ static void test_add_broadcast_row_vector(void) {
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Tensor *dest = shapes_Add(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Add with broadcast should return a tensor");
 
   // result = [[11,22,33], [14,25,36]]
@@ -1235,8 +1235,8 @@ static void test_add_broadcast_col_vector(void) {
   // a: [2, 3], b: [2, 1] -> broadcast b across cols
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {2, 1};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1254,7 +1254,7 @@ static void test_add_broadcast_col_vector(void) {
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Tensor *dest = shapes_Add(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Add with col broadcast should return a tensor");
 
   // result = [[11,12,13], [24,25,26]]
@@ -1274,8 +1274,8 @@ static void test_add_broadcast_scalar(void) {
   // a: [2, 3], b: [1, 1] -> broadcast scalar b to all elements
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {1, 1};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1291,7 +1291,7 @@ static void test_add_broadcast_scalar(void) {
   Value vb = {.dtype = F32, .as.f32 = 100.0f};
   shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
-  Tensor *dest = shapes_Add(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Add with scalar broadcast should return a tensor");
 
   // result = [[101,102,103], [104,105,106]]
@@ -1305,8 +1305,8 @@ static void test_add_1d_tensors(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {4};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   // a = [1, 2, 3, 4], b = [10, 20, 30, 40]
   for (u32 i = 0; i < 4; i++) {
@@ -1317,7 +1317,7 @@ static void test_add_1d_tensors(void) {
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 1}, vb);
   }
 
-  Tensor *dest = shapes_Add(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Add 1D should return a tensor");
 
   f32 *values = (f32 *)dest->values;
@@ -1333,8 +1333,8 @@ static void test_subtract_basic_same_shape(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // a = [[10,20,30], [40,50,60]]
   // b = [[1,2,3], [4,5,6]]
@@ -1348,7 +1348,7 @@ static void test_subtract_basic_same_shape(void) {
     }
   }
 
-  Tensor *dest = shapes_Subtract(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Subtract(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Subtract should return a tensor");
 
   // result = [[9,18,27], [36,45,54]]
@@ -1364,8 +1364,8 @@ static void test_subtract_broadcast(void) {
 
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {1, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
@@ -1383,7 +1383,7 @@ static void test_subtract_broadcast(void) {
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Tensor *dest = shapes_Subtract(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Subtract(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Subtract with broadcast should return a tensor");
 
   // result = [[9,18,27], [39,48,57]]
@@ -1398,8 +1398,8 @@ static void test_multiply_basic_same_shape(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   // b = [[2,2,2], [3,3,3]]
@@ -1413,7 +1413,7 @@ static void test_multiply_basic_same_shape(void) {
     }
   }
 
-  Tensor *dest = shapes_Multiply(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Multiply(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Multiply should return a tensor");
 
   // result = [[2,4,6], [12,15,18]]
@@ -1430,8 +1430,8 @@ static void test_multiply_broadcast_scalar(void) {
 
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {1, 1};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1447,7 +1447,7 @@ static void test_multiply_broadcast_scalar(void) {
   Value vb = {.dtype = F32, .as.f32 = 5.0f};
   shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
-  Tensor *dest = shapes_Multiply(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Multiply(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Multiply with scalar should return a tensor");
 
   // result = [[5,10,15], [20,25,30]]
@@ -1463,8 +1463,8 @@ static void test_divide_basic_same_shape(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // a = [[10,20,30], [40,50,60]]
   // b = [[2,4,5], [8,10,12]]
@@ -1478,7 +1478,7 @@ static void test_divide_basic_same_shape(void) {
     }
   }
 
-  Tensor *dest = Divide(&ctx, a, b);
+  shapes_Tensor *dest = Divide(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "Divide should return a tensor");
 
   // result = [[5,5,5], [5,5,5]] (integer division)
@@ -1493,8 +1493,8 @@ static void test_divide_broadcast(void) {
 
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {1, 3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
@@ -1513,7 +1513,7 @@ static void test_divide_broadcast(void) {
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
 
-  Tensor *dest = Divide(&ctx, a, b);
+  shapes_Tensor *dest = Divide(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "Divide with broadcast should return a tensor");
 
   // result = [[5,4,3], [20,10,6]]
@@ -1533,8 +1533,8 @@ static void test_add_non_contiguous_transposed(void) {
   // a: [2, 3], b: [3, 2] transposed to [2, 3]
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {3, 2};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1556,10 +1556,10 @@ static void test_add_non_contiguous_transposed(void) {
 
   // shapes_Transpose b: [3, 2] -> [2, 3]
   // transposed b = [[10,30,50], [20,40,60]]
-  Tensor *bTransposed = shapes_Transpose(&ctx, b, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *bTransposed = shapes_Transpose(&ctx, b, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!bTransposed->isContigous, "transposed tensor should be non-contiguous");
 
-  Tensor *dest = shapes_Add(&ctx, a, bTransposed);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, bTransposed);
   ASSERT_NOT_NULL(dest, "shapes_Add with transposed tensor should return a tensor");
 
   // result = [[1+10, 2+30, 3+50], [4+20, 5+40, 6+60]]
@@ -1580,8 +1580,8 @@ static void test_add_2d_plus_1d_broadcast(void) {
   // a: [2, 3], b: [3] -> broadcast 1D across rows
   shapes_dim_t dims_a[] = {2, 3};
   shapes_dim_t dims_b[] = {3};
-  Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
-  Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 1});
+  shapes_Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
+  shapes_Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 1});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -1599,7 +1599,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
-  Tensor *dest = shapes_Add(&ctx, a, b);
+  shapes_Tensor *dest = shapes_Add(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_Add 2D + 1D broadcast should return a tensor");
 
   // result = [[11,22,33], [14,25,36]]
@@ -1618,15 +1618,15 @@ static void test_greater_than_basic_same_shape(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
-  Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
+  shapes_Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
+  shapes_Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
 
   i8 aVals[] = {1, 4, 3, 2, 8, 0};
   i8 bVals[] = {2, 4, 1, 3, 7, 0};
   memcpy(a->values, aVals, sizeof(aVals));
   memcpy(b->values, bVals, sizeof(bVals));
 
-  Tensor *dest = shapes_GreaterThan(&ctx, a, b);
+  shapes_Tensor *dest = shapes_GreaterThan(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_GreaterThan should return a tensor");
   ASSERT_EQ(dest->dtype, BOOL, "shapes_GreaterThan should return BOOL dtype");
 
@@ -1644,17 +1644,17 @@ static void test_greater_or_equal_and_less_or_equal(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {3};
-  Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
-  Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
+  shapes_Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
+  shapes_Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
 
   i8 aVals[] = {1, 4, 5};
   i8 bVals[] = {2, 4, 3};
   memcpy(a->values, aVals, sizeof(aVals));
   memcpy(b->values, bVals, sizeof(bVals));
 
-  Tensor *ge = shapes_GreaterThanOrEqual(&ctx, a, b);
+  shapes_Tensor *ge = shapes_GreaterThanOrEqual(&ctx, a, b);
   ASSERT_NOT_NULL(ge, "shapes_GreaterThanOrEqual should return a tensor");
-  Tensor *le = shapes_LessThanOrEqual(&ctx, a, b);
+  shapes_Tensor *le = shapes_LessThanOrEqual(&ctx, a, b);
   ASSERT_NOT_NULL(le, "shapes_LessThanOrEqual should return a tensor");
 
   ASSERT_EQ(ge->dtype, BOOL, "shapes_GreaterThanOrEqual should return BOOL dtype");
@@ -1677,8 +1677,8 @@ static void test_less_than_broadcast_row_vector(void) {
 
   shapes_dim_t dimsA[] = {2, 3};
   shapes_dim_t dimsB[] = {1, 3};
-  Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dimsA, .numOfDims = 2}, 0);
-  Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dimsB, .numOfDims = 2}, 0);
+  shapes_Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dimsA, .numOfDims = 2}, 0);
+  shapes_Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dimsB, .numOfDims = 2}, 0);
 
   // a = [[1,4,3], [5,2,7]], b = [[2,2,7]]
   i8 aVals[] = {1, 4, 3, 5, 2, 7};
@@ -1686,7 +1686,7 @@ static void test_less_than_broadcast_row_vector(void) {
   memcpy(a->values, aVals, sizeof(aVals));
   memcpy(b->values, bVals, sizeof(bVals));
 
-  Tensor *dest = shapes_LessThan(&ctx, a, b);
+  shapes_Tensor *dest = shapes_LessThan(&ctx, a, b);
   ASSERT_NOT_NULL(dest, "shapes_LessThan with broadcast should return a tensor");
   ASSERT_EQ(dest->dtype, BOOL, "shapes_LessThan should return BOOL dtype");
   ASSERT_EQ(dest->shape.numOfDims, 2, "shapes_LessThan result should keep rank");
@@ -1710,7 +1710,7 @@ static void test_sum_dim0_2d(void) {
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -1720,7 +1720,7 @@ static void test_sum_dim0_2d(void) {
     }
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 0);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "shapes_Sum dim 0 should return a tensor");
 
   // shapes_Sum along dim 0: [1+4, 2+5, 3+6] = [5, 7, 9], shape [1, 3]
@@ -1740,7 +1740,7 @@ static void test_sum_dim1_2d(void) {
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -1750,7 +1750,7 @@ static void test_sum_dim1_2d(void) {
     }
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 1);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 1);
   ASSERT_NOT_NULL(dest, "shapes_Sum dim 1 should return a tensor");
 
   // shapes_Sum along dim 1: [1+2+3, 4+5+6] = [6, 15], shape [2, 1]
@@ -1769,7 +1769,7 @@ static void test_sum_3d_middle_dim(void) {
 
   // 2x3x2 tensor
   shapes_dim_t dims[] = {2, 3, 2};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   // Fill with sequential values 1-12
   for (u32 i = 0; i < 2; i++) {
@@ -1782,7 +1782,7 @@ static void test_sum_3d_middle_dim(void) {
     }
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 1);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 1);
   ASSERT_NOT_NULL(dest, "shapes_Sum 3D middle dim should return a tensor");
 
   // Shape should be [2, 1, 2]
@@ -1806,7 +1806,7 @@ static void test_sum_non_contiguous(void) {
 
   // Create 3x2, transpose to 2x3, then sum
   shapes_dim_t dims[] = {3, 2};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // t = [[1,2], [3,4], [5,6]]
   for (u32 i = 0; i < 3; i++) {
@@ -1818,10 +1818,10 @@ static void test_sum_non_contiguous(void) {
   }
 
   // shapes_Transpose to 2x3: [[1,3,5], [2,4,6]]
-  Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!transposed->isContigous, "transposed should be non-contiguous");
 
-  Tensor *dest = shapes_Sum(&ctx, transposed, 1);
+  shapes_Tensor *dest = shapes_Sum(&ctx, transposed, 1);
   ASSERT_NOT_NULL(dest, "shapes_Sum on transposed tensor should return a tensor");
 
   // shapes_Sum along dim 1: [1+3+5, 2+4+6] = [9, 12], shape [2, 1]
@@ -1835,7 +1835,7 @@ static void test_sum_1d_tensor(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {5};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   // t = [1, 2, 3, 4, 5]
   for (u32 i = 0; i < 5; i++) {
@@ -1844,7 +1844,7 @@ static void test_sum_1d_tensor(void) {
     shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 0);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "shapes_Sum 1D should return a tensor");
 
   // shapes_Sum = 15, shape [1]
@@ -1861,7 +1861,7 @@ static void test_sum_4d_dim0(void) {
 
   // 2x2x2x3 tensor
   shapes_dim_t dims[] = {2, 2, 2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-24
   u8 val = 1;
@@ -1877,7 +1877,7 @@ static void test_sum_4d_dim0(void) {
     }
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 0);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "shapes_Sum 4D dim 0 should return a tensor");
 
   // Shape should be [1, 2, 2, 3]
@@ -1902,7 +1902,7 @@ static void test_sum_4d_dim1(void) {
 
   // 2x3x2x2 tensor
   shapes_dim_t dims[] = {2, 3, 2, 2};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-24
   u8 val = 1;
@@ -1918,7 +1918,7 @@ static void test_sum_4d_dim1(void) {
     }
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 1);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 1);
   ASSERT_NOT_NULL(dest, "shapes_Sum 4D dim 1 should return a tensor");
 
   // Shape should be [2, 1, 2, 2]
@@ -1943,7 +1943,7 @@ static void test_sum_4d_dim3(void) {
 
   // 2x2x2x4 tensor
   shapes_dim_t dims[] = {2, 2, 2, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-32
   u8 val = 1;
@@ -1959,7 +1959,7 @@ static void test_sum_4d_dim3(void) {
     }
   }
 
-  Tensor *dest = shapes_Sum(&ctx, t, 3);
+  shapes_Tensor *dest = shapes_Sum(&ctx, t, 3);
   ASSERT_NOT_NULL(dest, "shapes_Sum 4D dim 3 should return a tensor");
 
   // Shape should be [2, 2, 2, 1]
@@ -1984,7 +1984,7 @@ static void test_sum_multiple_reduces_3d(void) {
 
   // 2x3x4 tensor
   shapes_dim_t dims[] = {2, 3, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   // Fill with sequential values 1-24
   u8 val = 1;
@@ -1999,21 +1999,21 @@ static void test_sum_multiple_reduces_3d(void) {
   }
 
   // First reduce dim 2: [2,3,4] -> [2,3,1]
-  Tensor *after_dim2 = shapes_Sum(&ctx, t, 2);
+  shapes_Tensor *after_dim2 = shapes_Sum(&ctx, t, 2);
   ASSERT_NOT_NULL(after_dim2, "First reduce should return a tensor");
   ASSERT_EQ(after_dim2->shape.dims[0], 2, "after dim2: dim 0 should be 2");
   ASSERT_EQ(after_dim2->shape.dims[1], 3, "after dim2: dim 1 should be 3");
   ASSERT_EQ(after_dim2->shape.dims[2], 1, "after dim2: dim 2 should be 1");
 
   // Then reduce dim 1: [2,3,1] -> [2,1,1]
-  Tensor *after_dim1 = shapes_Sum(&ctx, after_dim2, 1);
+  shapes_Tensor *after_dim1 = shapes_Sum(&ctx, after_dim2, 1);
   ASSERT_NOT_NULL(after_dim1, "Second reduce should return a tensor");
   ASSERT_EQ(after_dim1->shape.dims[0], 2, "after dim1: dim 0 should be 2");
   ASSERT_EQ(after_dim1->shape.dims[1], 1, "after dim1: dim 1 should be 1");
   ASSERT_EQ(after_dim1->shape.dims[2], 1, "after dim1: dim 2 should be 1");
 
   // Finally reduce dim 0: [2,1,1] -> [1,1,1]
-  Tensor *after_dim0 = shapes_Sum(&ctx, after_dim1, 0);
+  shapes_Tensor *after_dim0 = shapes_Sum(&ctx, after_dim1, 0);
   ASSERT_NOT_NULL(after_dim0, "Third reduce should return a tensor");
   ASSERT_EQ(after_dim0->shape.dims[0], 1, "after dim0: dim 0 should be 1");
   ASSERT_EQ(after_dim0->shape.dims[1], 1, "after dim0: dim 1 should be 1");
@@ -2030,7 +2030,7 @@ static void test_sum_multiple_reduces_4d(void) {
 
   // 2x2x3x2 tensor (24 elements)
   shapes_dim_t dims[] = {2, 2, 3, 2};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with values 1-24
   u8 val = 1;
@@ -2047,11 +2047,11 @@ static void test_sum_multiple_reduces_4d(void) {
   }
 
   // Reduce dim 3: [2,2,3,2] -> [2,2,3,1]
-  Tensor *r1 = shapes_Sum(&ctx, t, 3);
+  shapes_Tensor *r1 = shapes_Sum(&ctx, t, 3);
   ASSERT_NOT_NULL(r1, "Reduce dim 3 should return a tensor");
 
   // Reduce dim 0: [2,2,3,1] -> [1,2,3,1]
-  Tensor *r2 = shapes_Sum(&ctx, r1, 0);
+  shapes_Tensor *r2 = shapes_Sum(&ctx, r1, 0);
   ASSERT_NOT_NULL(r2, "Reduce dim 0 should return a tensor");
 
   ASSERT_EQ(r2->shape.dims[0], 1, "r2: dim 0 should be 1");
@@ -2069,7 +2069,7 @@ static void test_sum_reduce_to_scalar_2d(void) {
 
   // 3x4 tensor
   shapes_dim_t dims[] = {3, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // Fill with 1-12
   for (u32 i = 0; i < 3; i++) {
@@ -2081,10 +2081,10 @@ static void test_sum_reduce_to_scalar_2d(void) {
   }
 
   // Reduce dim 1: [3,4] -> [3,1]
-  Tensor *r1 = shapes_Sum(&ctx, t, 1);
+  shapes_Tensor *r1 = shapes_Sum(&ctx, t, 1);
 
   // Reduce dim 0: [3,1] -> [1,1]
-  Tensor *r2 = shapes_Sum(&ctx, r1, 0);
+  shapes_Tensor *r2 = shapes_Sum(&ctx, r1, 0);
 
   ASSERT_EQ(r2->shape.dims[0], 1, "final dim 0 should be 1");
   ASSERT_EQ(r2->shape.dims[1], 1, "final dim 1 should be 1");
@@ -2098,13 +2098,13 @@ static void test_reduce_broadcast_sums_leading_broadcast_dims(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE1D(3), 0.0f);
-  Tensor *grad = shapes_Make_FloatTensor(&ctx, SHAPE2D(2, 3), 0.0f);
+  shapes_Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE1D(3), 0.0f);
+  shapes_Tensor *grad = shapes_Make_FloatTensor(&ctx, SHAPE2D(2, 3), 0.0f);
 
   f32 gradValues[] = {1, 2, 3, 4, 5, 6};
   memcpy(grad->values, gradValues, sizeof(gradValues));
 
-  Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
+  shapes_Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
   ASSERT_NOT_NULL(reduced, "ReduceBroadcast should reduce extra leading dimensions");
   ASSERT_EQ(reduced->shape.numOfDims, 1, "reduced gradient should match input rank");
   ASSERT_EQ(reduced->shape.dims[0], 3, "reduced gradient should match input shape");
@@ -2119,15 +2119,15 @@ static void test_reduce_broadcast_sums_singleton_input_dims(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 1, 2), 0.0f);
-  Tensor *grad = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 3, 2), 0.0f);
+  shapes_Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 1, 2), 0.0f);
+  shapes_Tensor *grad = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 3, 2), 0.0f);
 
   f32 gradValues[] = {
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
   };
   memcpy(grad->values, gradValues, sizeof(gradValues));
 
-  Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
+  shapes_Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
   ASSERT_NOT_NULL(reduced, "ReduceBroadcast should sum expanded singleton dimensions");
   ASSERT_EQ(reduced->shape.numOfDims, 3, "reduced gradient should preserve input rank");
   ASSERT_EQ(reduced->shape.dims[0], 2, "dim 0 should match input");
@@ -2145,15 +2145,15 @@ static void test_reduce_broadcast_combines_leading_and_singleton_reductions(void
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE2D(1, 3), 0.0f);
-  Tensor *grad = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 4, 3), 0.0f);
+  shapes_Tensor *input = shapes_Make_FloatTensor(&ctx, SHAPE2D(1, 3), 0.0f);
+  shapes_Tensor *grad = shapes_Make_FloatTensor(&ctx, SHAPE3D(2, 4, 3), 0.0f);
 
   f32 *gradValues = (f32 *)grad->values;
   for (u32 i = 0; i < grad->size; i++) {
     gradValues[i] = (f32)(i + 1);
   }
 
-  Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
+  shapes_Tensor *reduced = ReduceBroadcast(&ctx, input, grad);
   ASSERT_NOT_NULL(reduced, "ReduceBroadcast should handle combined broadcast reductions");
   ASSERT_EQ(reduced->shape.numOfDims, 2, "reduced gradient should match input rank");
   ASSERT_EQ(reduced->shape.dims[0], 1, "leading singleton dim should be restored");
@@ -2172,9 +2172,9 @@ static void test_squeeze_removes_single_dims(void) {
 
   // [1, 3, 1, 4] -> [3, 4]
   shapes_dim_t dims[] = {1, 3, 1, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
   ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
@@ -2189,9 +2189,9 @@ static void test_squeeze_middle_dim(void) {
 
   // [2, 1, 3] -> [2, 3]
   shapes_dim_t dims[] = {2, 1, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
   ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
@@ -2205,9 +2205,9 @@ static void test_squeeze_no_single_dims(void) {
 
   // [2, 3, 4] -> [2, 3, 4] (unchanged)
   shapes_dim_t dims[] = {2, 3, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
   ASSERT_EQ(squeezed->shape.numOfDims, 3, "squeezed should have 3 dims");
@@ -2222,9 +2222,9 @@ static void test_squeeze_all_ones(void) {
 
   // [1, 1, 1] -> [1]
   shapes_dim_t dims[] = {1, 1, 1};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
   ASSERT_EQ(squeezed->shape.numOfDims, 1, "squeezed should have 1 dim");
@@ -2236,9 +2236,9 @@ static void test_squeeze_scalar_preserves_zero_dims(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor scalar = createScalarTensor(&ctx, F32);
+  shapes_Tensor scalar = createScalarTensor(&ctx, F32);
 
-  Tensor *squeezed = Squeeze(&ctx, &scalar);
+  shapes_Tensor *squeezed = Squeeze(&ctx, &scalar);
   ASSERT_NOT_NULL(squeezed, "Squeeze scalar should return a tensor");
 
   ASSERT_EQ(squeezed->shape.numOfDims, 0, "scalar squeeze should remain 0-D");
@@ -2253,14 +2253,14 @@ static void test_squeeze_shares_data(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {1, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // Set a value
   shapes_dim_t idx[] = {0, 1};
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
 
   // Check value is accessible in squeezed tensor
   shapes_dim_t sq_idx[] = {1};
@@ -2269,7 +2269,7 @@ static void test_squeeze_shares_data(void) {
   ASSERT_EQ(result.as.f32, 42.0f, "squeezed should share data with source");
 }
 
-static void squeezeTestBackward(shapes_Context *ctx, Tensor *tensor) {
+static void squeezeTestBackward(shapes_Context *ctx, shapes_Tensor *tensor) {
   (void)ctx;
   (void)tensor;
 }
@@ -2279,14 +2279,14 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {1, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
-  Tensor *input = shapes_Make_ZerosTensor(&ctx, SHAPE1D(3));
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *input = shapes_Make_ZerosTensor(&ctx, SHAPE1D(3));
 
-  t->inputs = olib_MakeArray(ctx.memory, sizeof(Tensor *), 1);
+  t->inputs = olib_MakeArray(ctx.memory, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(t->inputs, &input);
   t->opType = OP_DENSE;
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_NOT_NULL(squeezed, "Squeeze should return a tensor");
 
   ASSERT_EQ(squeezed->grad, t->grad, "Squeeze should preserve grad pointer");
@@ -2300,9 +2300,9 @@ static void test_squeeze_dim_specific(void) {
 
   // [1, 3, 1, 4] squeeze dim 0 -> [3, 1, 4]
   shapes_dim_t dims[] = {1, 3, 1, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
-  Tensor *squeezed = SqueezeDim(&ctx, t, 0);
+  shapes_Tensor *squeezed = SqueezeDim(&ctx, t, 0);
   ASSERT_NOT_NULL(squeezed, "SqueezeDim should return a tensor");
   ASSERT_EQ(squeezed->shape.numOfDims, 3, "should have 3 dims");
   ASSERT_EQ(squeezed->shape.dims[0], 3, "dim 0 should be 3");
@@ -2310,7 +2310,7 @@ static void test_squeeze_dim_specific(void) {
   ASSERT_EQ(squeezed->shape.dims[2], 4, "dim 2 should be 4");
 
   // [1, 3, 1, 4] squeeze dim 2 -> [1, 3, 4]
-  Tensor *squeezed2 = SqueezeDim(&ctx, t, 2);
+  shapes_Tensor *squeezed2 = SqueezeDim(&ctx, t, 2);
   ASSERT_NOT_NULL(squeezed2, "SqueezeDim dim 2 should return a tensor");
   ASSERT_EQ(squeezed2->shape.numOfDims, 3, "should have 3 dims");
   ASSERT_EQ(squeezed2->shape.dims[0], 1, "dim 0 should be 1");
@@ -2324,7 +2324,7 @@ static void test_squeeze_after_sum(void) {
 
   // 2x3 tensor
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -2335,10 +2335,10 @@ static void test_squeeze_after_sum(void) {
   }
 
   // shapes_Sum dim 1: [2, 3] -> [2, 1]
-  Tensor *summed = shapes_Sum(&ctx, t, 1);
+  shapes_Tensor *summed = shapes_Sum(&ctx, t, 1);
 
   // Squeeze: [2, 1] -> [2]
-  Tensor *squeezed = Squeeze(&ctx, summed);
+  shapes_Tensor *squeezed = Squeeze(&ctx, summed);
 
   ASSERT_EQ(squeezed->shape.numOfDims, 1, "squeezed should have 1 dim");
   ASSERT_EQ(squeezed->shape.dims[0], 2, "dim 0 should be 2");
@@ -2355,9 +2355,9 @@ static void test_unsqueeze_dim0(void) {
 
   // [3, 4] -> [1, 3, 4]
   shapes_dim_t dims[] = {3, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
-  Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
   ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
   ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
@@ -2373,9 +2373,9 @@ static void test_unsqueeze_middle(void) {
 
   // [3, 4] -> [3, 1, 4]
   shapes_dim_t dims[] = {3, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
-  Tensor *unsqueezed = UnSqueeze(&ctx, t, 1);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, t, 1);
   ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
   ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
@@ -2390,9 +2390,9 @@ static void test_unsqueeze_end(void) {
 
   // [3, 4] -> [3, 4, 1]
   shapes_dim_t dims[] = {3, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
-  Tensor *unsqueezed = UnSqueeze(&ctx, t, 2);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, t, 2);
   ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
   ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
@@ -2407,9 +2407,9 @@ static void test_unsqueeze_1d(void) {
 
   // [5] -> [1, 5]
   shapes_dim_t dims[] = {5};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
-  Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
   ASSERT_NOT_NULL(unsqueezed, "UnSqueeze should return a tensor");
 
   ASSERT_EQ(unsqueezed->shape.numOfDims, 2, "should have 2 dims");
@@ -2422,13 +2422,13 @@ static void test_unsqueeze_shares_data(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   shapes_dim_t idx[] = {1};
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
 
-  Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
 
   // Access via [0, 1]
   shapes_dim_t new_idx[] = {0, 1};
@@ -2443,7 +2443,7 @@ static void test_unsqueeze_non_contiguous(void) {
 
   // Create 2x3, transpose to 3x2, then unsqueeze
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -2455,11 +2455,11 @@ static void test_unsqueeze_non_contiguous(void) {
   }
 
   // shapes_Transpose to 3x2: [[1,4], [2,5], [3,6]]
-  Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!transposed->isContigous, "transposed should be non-contiguous");
 
   // Unsqueeze to [1, 3, 2]
-  Tensor *unsqueezed = UnSqueeze(&ctx, transposed, 0);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, transposed, 0);
   ASSERT_NOT_NULL(unsqueezed, "UnSqueeze non-contiguous should return a tensor");
 
   ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "should have 3 dims");
@@ -2492,7 +2492,7 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
 
   // [2, 3] -> squeeze (no change) -> unsqueeze dim 1 -> [2, 1, 3] -> squeeze -> [2, 3]
   shapes_dim_t dims[] = {2, 1, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 k = 0; k < 3; k++) {
@@ -2502,10 +2502,10 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
     }
   }
 
-  Tensor *squeezed = Squeeze(&ctx, t);
+  shapes_Tensor *squeezed = Squeeze(&ctx, t);
   ASSERT_EQ(squeezed->shape.numOfDims, 2, "squeezed should have 2 dims");
 
-  Tensor *unsqueezed = UnSqueeze(&ctx, squeezed, 1);
+  shapes_Tensor *unsqueezed = UnSqueeze(&ctx, squeezed, 1);
   ASSERT_EQ(unsqueezed->shape.numOfDims, 3, "unsqueezed should have 3 dims");
   ASSERT_EQ(unsqueezed->shape.dims[0], 2, "dim 0 should be 2");
   ASSERT_EQ(unsqueezed->shape.dims[1], 1, "dim 1 should be 1");
@@ -2524,7 +2524,7 @@ static void test_clone_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
@@ -2534,7 +2534,7 @@ static void test_clone_basic(void) {
     }
   }
 
-  Tensor *cloned = shapes_Clone(&ctx, t);
+  shapes_Tensor *cloned = shapes_Clone(&ctx, t);
   ASSERT_NOT_NULL(cloned, "shapes_Clone should return a tensor");
 
   ASSERT_EQ(cloned->shape.numOfDims, 2, "cloned should have 2 dims");
@@ -2553,13 +2553,13 @@ static void test_clone_independent_data(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   shapes_dim_t idx[] = {1};
   Value v = {.dtype = F32, .as.f32 = 10.0f};
   shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
 
-  Tensor *cloned = shapes_Clone(&ctx, t);
+  shapes_Tensor *cloned = shapes_Clone(&ctx, t);
 
   // Modify original
   v.as.u8 = 99;
@@ -2576,7 +2576,7 @@ static void test_clone_slice(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {4, 4};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 4; j++) {
@@ -2587,9 +2587,9 @@ static void test_clone_slice(void) {
   }
 
   // shapes_Slice [1:3, 1:3] -> 2x2 region
-  Tensor *slice = shapes_Slice(&ctx, t, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  shapes_Tensor *slice = shapes_Slice(&ctx, t, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
 
-  Tensor *cloned = shapes_Clone(&ctx, slice);
+  shapes_Tensor *cloned = shapes_Clone(&ctx, slice);
   ASSERT_NOT_NULL(cloned, "shapes_Clone slice should return a tensor");
 
   ASSERT_EQ(cloned->shape.numOfDims, 2, "cloned should have 2 dims");
@@ -2614,7 +2614,7 @@ static void test_clone_transposed(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
+  shapes_Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
@@ -2625,9 +2625,9 @@ static void test_clone_transposed(void) {
     }
   }
 
-  Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
 
-  Tensor *cloned = shapes_Clone(&ctx, transposed);
+  shapes_Tensor *cloned = shapes_Clone(&ctx, transposed);
   ASSERT_NOT_NULL(cloned, "shapes_Clone transposed should return a tensor");
 
   ASSERT_EQ(cloned->shape.dims[0], 3, "dim 0 should be 3");
@@ -2651,7 +2651,7 @@ static void test_view_slice_boundary_propagation(void) {
 
   // 4x5 tensor, values[i][j] = i*5 + j
   shapes_dim_t dims[] = {4, 5};
-  Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
       ((f32 *)x->values)[i * 5 + j] = (f32)(i * 5 + j);
@@ -2659,7 +2659,7 @@ static void test_view_slice_boundary_propagation(void) {
   }
 
   // shapes_Slice rows 1-3 (exclusive), cols 2-5 (exclusive) -> 2x3 view
-  Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
+  shapes_Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
   ASSERT_NOT_NULL(s, "slice should succeed");
   ASSERT_EQ(s->shape.dims[0], 2, "slice dim[0] should be 2");
   ASSERT_EQ(s->shape.dims[1], 3, "slice dim[1] should be 3");
@@ -2693,7 +2693,7 @@ static void test_view_nested_slice_correctness(void) {
 
   // 6x6 tensor, values[i][j] = i*6 + j
   shapes_dim_t dims[] = {6, 6};
-  Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
       ((f32 *)x->values)[i * 6 + j] = (f32)(i * 6 + j);
@@ -2701,10 +2701,10 @@ static void test_view_nested_slice_correctness(void) {
   }
 
   // s1 = x[1:5, 1:5] -> 4x4
-  Tensor *s1 = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
+  shapes_Tensor *s1 = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 5}, (Range){.start = 1, .end = 5});
 
   // s2 = s1[1:3, 1:3] -> 2x2, which maps to x[2:4, 2:4]
-  Tensor *s2 = shapes_Slice(&ctx, s1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  shapes_Tensor *s2 = shapes_Slice(&ctx, s1, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
   ASSERT_NOT_NULL(s2, "nested slice should succeed");
   ASSERT_EQ(s2->shape.dims[0], 2, "nested slice dim[0] should be 2");
   ASSERT_EQ(s2->shape.dims[1], 2, "nested slice dim[1] should be 2");
@@ -2738,7 +2738,7 @@ static void test_view_get_tensor_at_on_slice(void) {
 
   // 5x4 tensor, values[i][j] = i*4 + j
   shapes_dim_t dims[] = {5, 4};
-  Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 5; i++) {
     for (u32 j = 0; j < 4; j++) {
       ((f32 *)x->values)[i * 4 + j] = (f32)(i * 4 + j);
@@ -2746,10 +2746,10 @@ static void test_view_get_tensor_at_on_slice(void) {
   }
 
   // s = x[2:5, 0:4] -> 3x4 view (row offset = 2)
-  Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 2, .end = 5}, (Range){.start = 0, .end = 4});
+  shapes_Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 2, .end = 5}, (Range){.start = 0, .end = 4});
 
   // row = GetTensorAt(s, 1) -> should be x[3, :] = [12, 13, 14, 15]
-  Tensor *row = GetTensorAt(&ctx, s, 1);
+  shapes_Tensor *row = GetTensorAt(&ctx, s, 1);
   ASSERT_NOT_NULL(row, "GetTensorAt on slice should succeed");
   ASSERT_EQ(row->shape.numOfDims, 1, "row should be 1D");
   ASSERT_EQ(row->shape.dims[0], 4, "row should have 4 elements");
@@ -2771,7 +2771,7 @@ static void test_view_advanced_indexing_on_slice(void) {
 
   // 6x4 tensor, values[i][j] = i*4 + j
   shapes_dim_t dims[] = {6, 4};
-  Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 4; j++) {
       ((f32 *)x->values)[i * 4 + j] = (f32)(i * 4 + j);
@@ -2779,15 +2779,15 @@ static void test_view_advanced_indexing_on_slice(void) {
   }
 
   // s = x[2:6, 0:4] -> 4x4 (row offset = 2; rows 2,3,4,5 of x)
-  Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
+  shapes_Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
 
   // IndexWithTensor(s, [0, 2]) should gather s[0,:] and s[2,:] = x[2,:] and x[4,:]
   shapes_dim_t idxDims[] = {2};
-  Tensor *indices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  shapes_Tensor *indices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)indices->values)[0] = 0;
   ((i8 *)indices->values)[1] = 2;
 
-  Tensor *result = IndexWithTensor(&ctx, s, indices);
+  shapes_Tensor *result = IndexWithTensor(&ctx, s, indices);
   ASSERT_NOT_NULL(result, "IndexWithTensor on slice should succeed");
   ASSERT_EQ(result->shape.numOfDims, 2, "result should be 2D");
   ASSERT_EQ(result->shape.dims[0], 2, "result dim[0] should be 2");
@@ -2813,16 +2813,16 @@ static void test_add_in_place_on_slice_view(void) {
 
   // 4x4 base tensor with values [0..15]
   shapes_dim_t dims[] = {4, 4};
-  Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 16; i++) {
     ((f32 *)x->values)[i] = (f32)i;
   }
 
   // s = x[1:3, 1:3] -> 2x2 view covering x[1,1], x[1,2], x[2,1], x[2,2] = 5,6,9,10
-  Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
+  shapes_Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
 
   // ones = 2x2 tensor of all 1.0
-  Tensor *ones = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = (shapes_dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *ones = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = (shapes_dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
 
   shapes_AddInPlace(&ctx, s, ones);
 
@@ -2846,16 +2846,16 @@ static void test_view_boundary_deep_copy_transpose(void) {
 
   // 3x4 base tensor, values[i][j] = i*4 + j (0..11)
   shapes_dim_t dims[] = {3, 4};
-  Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 12; i++) {
     ((f32 *)x->values)[i] = (f32)i;
   }
 
   // s = x[1:3, 0:4] -> 2x4 view (rows 1 and 2 of x)
-  Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 4});
+  shapes_Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 4});
 
   // t = shapes_Transpose(s, 0, 1) -> 4x2 view
-  Tensor *t = shapes_Transpose(&ctx, s, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *t = shapes_Transpose(&ctx, s, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT_NOT_NULL(t, "shapes_Transpose of slice should succeed");
 
   // Verify s and t have DIFFERENT boundary pointers (deep-copy)
@@ -2901,7 +2901,7 @@ static void test_slice_boundary_access(void) {
     }
   }
 
-  Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
+  shapes_Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 2, .end = 5}, (Range){.start = 1, .end = 4});
 
   // Test all 4 corners of the slice
   Value result;
@@ -2927,7 +2927,7 @@ static void test_slice_boundary_access(void) {
   ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
 }
 
-static Tensor createF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, float *values, shapes_tensor_size_t size) {
+static shapes_Tensor createF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, float *values, shapes_tensor_size_t size) {
   shapes_multiplier_t *multipliers = olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * numOfDims);
   shapes_tensor_size_t mult = 1;
   for (int i = numOfDims - 1; i >= 0; i--) {
@@ -2938,7 +2938,7 @@ static Tensor createF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfD
   float *vals = olib_Allocate(ctx->memory, sizeof(float) * size);
   memcpy(vals, values, sizeof(float) * size);
 
-  return (Tensor){.dtype = F32,
+  return (shapes_Tensor){.dtype = F32,
                   .context = ctx,
                   .size = size,
                   .isContigous = true,
@@ -2953,19 +2953,19 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static Tensor *createHostF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, const float *values, shapes_tensor_size_t size) {
-  Tensor *tensor = shapes_Make_ZerosTensor(ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims});
+static shapes_Tensor *createHostF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, const float *values, shapes_tensor_size_t size) {
+  shapes_Tensor *tensor = shapes_Make_ZerosTensor(ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims});
   memcpy(tensor->values, values, sizeof(float) * size);
   return tensor;
 }
 
-static Tensor *createHostI32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, const i32 *values, shapes_tensor_size_t size) {
-  Tensor *tensor = t_Zeros(ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims}, I32);
+static shapes_Tensor *createHostI32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, const i32 *values, shapes_tensor_size_t size) {
+  shapes_Tensor *tensor = t_Zeros(ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims}, I32);
   memcpy(tensor->values, values, sizeof(i32) * size);
   return tensor;
 }
 
-static void assertF32TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, const float *expected, shapes_tensor_size_t size, const char *label) {
+static void assertF32TensorMatchesOnCpu(shapes_Context *srcCtx, shapes_Tensor *tensor, const float *expected, shapes_tensor_size_t size, const char *label) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
@@ -2976,7 +2976,7 @@ static void assertF32TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, 
   }
 }
 
-static void assertI64TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, const i64 *expected, shapes_tensor_size_t size, const char *label) {
+static void assertI64TensorMatchesOnCpu(shapes_Context *srcCtx, shapes_Tensor *tensor, const i64 *expected, shapes_tensor_size_t size, const char *label) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
@@ -2995,7 +2995,7 @@ static void test_assign_value_gpu_dispatch_basic(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
   shapes_dim_t dims[] = {2, 2};
-  Tensor *tensor = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *tensor = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   shapes_dim_t idx[] = {1, 0};
   Value value = {.dtype = F32, .as.f32 = 77.0f};
   Value result;
@@ -3018,14 +3018,14 @@ static void test_get_tensor_at_gpu_scalar_result_lives_on_ctx(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
   shapes_dim_t dims[] = {3};
-  Tensor *tensor = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  shapes_Tensor *tensor = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   for (shapes_dim_t i = 0; i < 3; i++) {
     shapes_dim_t idx[] = {i};
     Result assignResult = shapes_AssignValueAt(&ctx, tensor, (shapes_Dim){.dims = idx, .numOfDims = 1}, (Value){.dtype = F32, .as.f32 = (float)(i + 1)});
     ASSERT_EQ(assignResult, OK, "shapes_AssignValueAt should populate CUDA tensor");
   }
 
-  Tensor *scalar = GetTensorAt(&ctx, tensor, 1);
+  shapes_Tensor *scalar = GetTensorAt(&ctx, tensor, 1);
   ASSERT_NOT_NULL(scalar, "GetTensorAt should succeed on CUDA tensors");
   ASSERT(scalar->context == &ctx, "Scalar result should stay on the requested CUDA context");
   ASSERT_EQ(scalar->shape.numOfDims, 0, "Selecting from a 1D tensor should produce a scalar");
@@ -3051,15 +3051,15 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
   float bValues[] = {10, 20, 30, 40, 50, 60};
   float expected[] = {11, 22, 33, 44, 55, 66};
 
-  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
-  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  shapes_Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  shapes_Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
-  Tensor *dest = shapes_Add(&cudaCtx, a, b);
+  shapes_Tensor *dest = shapes_Add(&cudaCtx, a, b);
   ASSERT_NOT_NULL(dest, "CUDA shapes_Add should succeed with CPU inputs");
   ASSERT(dest->context == &cudaCtx, "CUDA shapes_Add result should live on the CUDA context");
   assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 6, "CUDA shapes_Add result should match");
@@ -3080,15 +3080,15 @@ static void test_subtract_gpu_dispatch_basic(void) {
   float bValues[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {9, 18, 27, 36, 45, 54};
 
-  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
-  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  shapes_Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  shapes_Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
-  Tensor *dest = shapes_Subtract(&cudaCtx, a, b);
+  shapes_Tensor *dest = shapes_Subtract(&cudaCtx, a, b);
   ASSERT_NOT_NULL(dest, "CUDA shapes_Subtract should succeed");
   assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 6, "CUDA shapes_Subtract result should match");
 
@@ -3108,15 +3108,15 @@ static void test_multiply_gpu_dispatch_basic(void) {
   float bValues[] = {2, 2, 2, 3, 3, 3};
   float expected[] = {2, 4, 6, 12, 15, 18};
 
-  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
-  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  shapes_Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  shapes_Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
   Array_AppendTensor(toMove, b);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
-  Tensor *dest = shapes_Multiply(&cudaCtx, a, b);
+  shapes_Tensor *dest = shapes_Multiply(&cudaCtx, a, b);
   ASSERT_NOT_NULL(dest, "CUDA shapes_Multiply should succeed");
   assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 6, "CUDA shapes_Multiply result should match");
 
@@ -3136,8 +3136,8 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
   float bValues[] = {10, 20, 30, 40, 50, 60};
   float expected[] = {11, 22, 33, 44, 55, 66};
 
-  Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
-  Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
+  shapes_Tensor *a = createHostF32Tensor(&hostCtx, dims, 2, aValues, 6);
+  shapes_Tensor *b = createHostF32Tensor(&hostCtx, dims, 2, bValues, 6);
 
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, a);
@@ -3162,12 +3162,12 @@ static void test_sum_gpu_dispatch_basic(void) {
   float values[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {5, 7, 9};
 
-  Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  shapes_Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
-  Tensor *dest = shapes_Sum(&cudaCtx, t, 0);
+  shapes_Tensor *dest = shapes_Sum(&cudaCtx, t, 0);
   ASSERT_NOT_NULL(dest, "CUDA shapes_Sum should succeed");
   ASSERT(dest->context == &cudaCtx, "CUDA shapes_Sum result should live on the CUDA context");
   assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 3, "CUDA shapes_Sum result should match");
@@ -3187,13 +3187,13 @@ static void test_mean_gpu_dispatch_basic(void) {
   float values[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {3.5f};
 
-  Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  shapes_Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
 
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
-  Tensor *dest = Mean(&cudaCtx, t);
+  shapes_Tensor *dest = Mean(&cudaCtx, t);
   ASSERT_NOT_NULL(dest, "CUDA Mean should succeed");
   ASSERT(dest->context == &cudaCtx, "CUDA Mean result should live on the CUDA context");
   assertF32TensorMatchesOnCpu(&cudaCtx, dest, expected, 1, "CUDA Mean result should match");
@@ -3213,12 +3213,12 @@ static void test_argmax_gpu_dispatch_basic(void) {
   float values[] = {1, 5, 3, 4, 2, 6};
   i64 expected[] = {1, 0, 1};
 
-  Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
+  shapes_Tensor *t = createHostF32Tensor(&hostCtx, dims, 2, values, 6);
   olib_Array *toMove = Make_DynamicTensorArray(cudaCtx.memory);
   Array_AppendTensor(toMove, t);
   shapes_MoveToCuda(&cudaCtx, toMove);
 
-  Tensor *dest = shapes_ArgMax(&cudaCtx, t, 0);
+  shapes_Tensor *dest = shapes_ArgMax(&cudaCtx, t, 0);
   ASSERT_NOT_NULL(dest, "CUDA shapes_ArgMax should succeed");
   ASSERT(dest->context == &cudaCtx, "CUDA shapes_ArgMax result should live on the CUDA context");
   assertI64TensorMatchesOnCpu(&cudaCtx, dest, expected, 3, "CUDA shapes_ArgMax result should match");
@@ -3237,13 +3237,12 @@ static void test_index_accumulate_1d_basic(void) {
   float srcValues[] = {10, 20, 30, 40};
   float expected[] = {30, 40, 10, 20, 0, 0};
 
-  Tensor *dest = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
-  Tensor *indices = createHostI32Tensor(&ctx, indexDims, 1, indicesValues, 2);
-  Tensor *srcGrad = createHostF32Tensor(&ctx, srcDims, 2, srcValues, 4);
+  shapes_Tensor *dest = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *indices = createHostI32Tensor(&ctx, indexDims, 1, indicesValues, 2);
+  shapes_Tensor *srcGrad = createHostF32Tensor(&ctx, srcDims, 2, srcValues, 4);
 
   IndexAccumulate1d(&ctx, dest, indices, srcGrad);
-
-  float *values = dest->values;
+float *values = dest->values;
   for (shapes_tensor_size_t i = 0; i < 6; i++) {
     ASSERT_EQ(values[i], expected[i], "IndexAccumulate1d CPU result should match");
   }
@@ -3264,9 +3263,9 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   float srcValues[] = {10, 20, 30, 40};
   float expected[] = {30, 40, 10, 20, 0, 0};
 
-  Tensor *dest = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
-  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 2);
-  Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
+  shapes_Tensor *dest = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = destDims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indicesValues, 2);
+  shapes_Tensor *srcGrad = createHostF32Tensor(&hostCtx, srcDims, 2, srcValues, 4);
 
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, indices);
@@ -3292,14 +3291,14 @@ static void test_index_with_tensor_gpu_dispatch_basic(void) {
   i32 indexValues[] = {0, 2};
   float expected[] = {1, 2, 5, 6};
 
-  Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 2, sourceValues, 6);
-  Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
+  shapes_Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 2, sourceValues, 6);
+  shapes_Tensor *indices = createHostI32Tensor(&hostCtx, indexDims, 1, indexValues, 2);
 
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, source);
   Array_AppendTensor(toMove, indices);
   MoveToCuda(&ctx, toMove);
-  Tensor *dest = IndexWithTensor(&ctx, source, indices);
+  shapes_Tensor *dest = IndexWithTensor(&ctx, source, indices);
   ASSERT_NOT_NULL(dest, "CUDA IndexWithTensor should succeed with CPU inputs");
   ASSERT(dest->context == &ctx, "CUDA IndexWithTensor result should live on CUDA");
   assertF32TensorMatchesOnCpu(&ctx, dest, expected, 4, "CUDA IndexWithTensor result should match");
@@ -3322,16 +3321,16 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   i32 colValues[] = {2, 0};
   float expected[] = {5, 6, 7, 8};
 
-  Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 3, sourceValues, 12);
-  Tensor *rowIndices = createHostI32Tensor(&hostCtx, indexDims, 1, rowValues, 2);
-  Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
+  shapes_Tensor *source = createHostF32Tensor(&hostCtx, sourceDims, 3, sourceValues, 12);
+  shapes_Tensor *rowIndices = createHostI32Tensor(&hostCtx, indexDims, 1, rowValues, 2);
+  shapes_Tensor *colIndices = createHostI32Tensor(&hostCtx, indexDims, 1, colValues, 2);
 
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, rowIndices);
   Array_AppendTensor(toMove, colIndices);
   Array_AppendTensor(toMove, source);
   MoveToCuda(&ctx, toMove);
-  Tensor *dest = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
+  shapes_Tensor *dest = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
   ASSERT_NOT_NULL(dest, "CUDA IndexWithTensor2d should succeed with CPU inputs");
   ASSERT(dest->context == &ctx, "CUDA IndexWithTensor2d result should live on CUDA");
   assertF32TensorMatchesOnCpu(&ctx, dest, expected, 4, "CUDA IndexWithTensor2d result should match");
@@ -3353,16 +3352,16 @@ static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
   float addValues[] = {5, 6};
   float expected[] = {1, 2, 3, 4, 5, 6};
 
-  Tensor *target = createHostF32Tensor(&hostCtx, targetDims, 2, targetValues, 4);
-  Tensor *toAdd = createHostF32Tensor(&hostCtx, addDims, 2, addValues, 2);
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *target = createHostF32Tensor(&hostCtx, targetDims, 2, targetValues, 4);
+  shapes_Tensor *toAdd = createHostF32Tensor(&hostCtx, addDims, 2, addValues, 2);
+  shapes_Tensor *tensors[] = {toAdd};
 
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, target);
   Array_AppendTensor(toMove, toAdd);
   MoveToCuda(&ctx, toMove);
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "CUDA Concat should succeed with CPU inputs");
   ASSERT(dest->context == &ctx, "CUDA Concat result should live on CUDA");
   assertF32TensorMatchesOnCpu(&ctx, dest, expected, 6, "CUDA Concat result should match");
@@ -3445,13 +3444,13 @@ static void test_matmul_2d_basic(void) {
 
   shapes_dim_t dimsA[] = {2, 3};
   float valsA[] = {1, 2, 3, 4, 5, 6};
-  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
+  shapes_Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
 
   shapes_dim_t dimsB[] = {3, 2};
   float valsB[] = {1, 2, 3, 4, 5, 6};
-  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
+  shapes_Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
 
-  Tensor *result = shapes_MatMul(&ctx, &a, &b);
+  shapes_Tensor *result = shapes_MatMul(&ctx, &a, &b);
   ASSERT_NOT_NULL(result, "shapes_MatMul 2D basic should return a tensor");
 
   ASSERT_EQ(result->shape.numOfDims, 2, "result should be 2D");
@@ -3471,13 +3470,13 @@ static void test_matmul_2d_non_square(void) {
 
   shapes_dim_t dimsA[] = {2, 4};
   float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8};
-  Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 8);
+  shapes_Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 8);
 
   shapes_dim_t dimsB[] = {4, 3};
   float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-  Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 12);
+  shapes_Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 12);
 
-  Tensor *result = shapes_MatMul(&ctx, &a, &b);
+  shapes_Tensor *result = shapes_MatMul(&ctx, &a, &b);
   ASSERT_NOT_NULL(result, "shapes_MatMul 2D non-square should return a tensor");
 
   ASSERT_EQ(result->shape.dims[0], 2, "result rows should be 2");
@@ -3495,13 +3494,13 @@ static void test_matmul_3d_batch(void) {
 
   shapes_dim_t dimsA[] = {2, 2, 3};
   float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-  Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
+  shapes_Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
 
   shapes_dim_t dimsB[] = {2, 3, 2};
   float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-  Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 12);
+  shapes_Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 12);
 
-  Tensor *result = shapes_MatMul(&ctx, &a, &b);
+  shapes_Tensor *result = shapes_MatMul(&ctx, &a, &b);
   ASSERT_NOT_NULL(result, "shapes_MatMul 3D batch should return a tensor");
 
   ASSERT_EQ(result->shape.numOfDims, 3, "result should be 3D");
@@ -3520,13 +3519,13 @@ static void test_matmul_broadcast_batch(void) {
 
   shapes_dim_t dimsA[] = {2, 2, 3};
   float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-  Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
+  shapes_Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
 
   shapes_dim_t dimsB[] = {1, 3, 2};
   float valsB[] = {1, 2, 3, 4, 5, 6};
-  Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 6);
+  shapes_Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 6);
 
-  Tensor *result = shapes_MatMul(&ctx, &a, &b);
+  shapes_Tensor *result = shapes_MatMul(&ctx, &a, &b);
   ASSERT_NOT_NULL(result, "shapes_MatMul broadcast batch should return a tensor");
 
   ASSERT_EQ(result->shape.dims[0], 2, "output batch should be 2");
@@ -3544,13 +3543,13 @@ static void test_dot_basic(void) {
 
   shapes_dim_t dimsA[] = {3};
   float valsA[] = {1, 2, 3};
-  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
+  shapes_Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
 
   shapes_dim_t dimsB[] = {3};
   float valsB[] = {4, 5, 6};
-  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
+  shapes_Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
 
-  Tensor *result = shapes_Dot(&ctx, &a, &b);
+  shapes_Tensor *result = shapes_Dot(&ctx, &a, &b);
   ASSERT_NOT_NULL(result, "shapes_Dot basic should return a tensor");
 
   ASSERT_EQ(result->shape.numOfDims, 1, "result should be 1D");
@@ -3566,13 +3565,13 @@ static void test_dot_larger_vectors(void) {
 
   shapes_dim_t dimsA[] = {5};
   float valsA[] = {1, 2, 3, 4, 5};
-  Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 5);
+  shapes_Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 5);
 
   shapes_dim_t dimsB[] = {5};
   float valsB[] = {1, 1, 1, 1, 1};
-  Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 5);
+  shapes_Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 5);
 
-  Tensor *result = shapes_Dot(&ctx, &a, &b);
+  shapes_Tensor *result = shapes_Dot(&ctx, &a, &b);
   ASSERT_NOT_NULL(result, "shapes_Dot larger vectors should return a tensor");
 
   float *vals = (float *)result->values;
@@ -3583,8 +3582,8 @@ static void test_negate_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
   shapes_dim_t dims[] = {3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 5.0);
-  Tensor *dest = Negate(&ctx, t);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 5.0);
+  shapes_Tensor *dest = Negate(&ctx, t);
   ASSERT_NOT_NULL(dest, "Negate should return a tensor");
   f32 *vals = (f32 *)dest->values;
   for (int i = 0; i < 3; i++) {
@@ -3596,8 +3595,8 @@ static void test_negate_already_negative(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
   shapes_dim_t dims[] = {2};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, -3.0);
-  Tensor *dest = Negate(&ctx, t);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, -3.0);
+  shapes_Tensor *dest = Negate(&ctx, t);
   ASSERT_NOT_NULL(dest, "Negate should return a tensor for negative values");
   f32 *vals = (f32 *)dest->values;
   for (int i = 0; i < 2; i++) {
@@ -3610,7 +3609,7 @@ static void test_arange_basic_positive_step(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *t = T_Arange(&ctx, 0.0f, 5.0f, 1.0f);
+  shapes_Tensor *t = T_Arange(&ctx, 0.0f, 5.0f, 1.0f);
   ASSERT_NOT_NULL(t, "Arange should create tensor");
   ASSERT_EQ(t->shape.numOfDims, 1, "Arange should create 1D tensor");
   ASSERT_EQ(t->shape.dims[0], 5, "Arange should have 5 elements");
@@ -3628,7 +3627,7 @@ static void test_arange_negative_step(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *t = T_Arange(&ctx, 10.0f, 0.0f, -2.0f);
+  shapes_Tensor *t = T_Arange(&ctx, 10.0f, 0.0f, -2.0f);
   ASSERT_NOT_NULL(t, "Arange with negative step should create tensor");
   ASSERT_EQ(t->shape.dims[0], 5, "Arange should have 5 elements");
 
@@ -3644,7 +3643,7 @@ static void test_arange_non_integer_step(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *t = T_Arange(&ctx, 1.0f, 5.0f, 0.5f);
+  shapes_Tensor *t = T_Arange(&ctx, 1.0f, 5.0f, 0.5f);
   ASSERT_NOT_NULL(t, "Arange with non-integer step should create tensor");
   ASSERT_EQ(t->shape.dims[0], 8, "Arange should have 8 elements");
 
@@ -3660,7 +3659,7 @@ static void test_arange_default_step(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Step of 0 should default to 1
-  Tensor *t = T_Arange(&ctx, 0.0f, 3.0f, 0.0f);
+  shapes_Tensor *t = T_Arange(&ctx, 0.0f, 3.0f, 0.0f);
   ASSERT_NOT_NULL(t, "Arange with step=0 should default to 1");
   ASSERT_EQ(t->shape.dims[0], 3, "Arange should have 3 elements");
 
@@ -3675,7 +3674,7 @@ static void test_arange_empty_range_positive_step(void) {
   shapes_Context ctx = {.memory = mem};
 
   // start >= end with positive step should return NULL
-  Tensor *t = T_Arange(&ctx, 5.0f, 5.0f, 1.0f);
+  shapes_Tensor *t = T_Arange(&ctx, 5.0f, 5.0f, 1.0f);
   ASSERT_NULL(t, "Arange with start >= end and positive step should return NULL");
 
   t = T_Arange(&ctx, 10.0f, 5.0f, 1.0f);
@@ -3687,7 +3686,7 @@ static void test_arange_empty_range_negative_step(void) {
   shapes_Context ctx = {.memory = mem};
 
   // start <= end with negative step should return NULL
-  Tensor *t = T_Arange(&ctx, 5.0f, 5.0f, -1.0f);
+  shapes_Tensor *t = T_Arange(&ctx, 5.0f, 5.0f, -1.0f);
   ASSERT_NULL(t, "Arange with start <= end and negative step should return NULL");
 
   t = T_Arange(&ctx, 0.0f, 5.0f, -1.0f);
@@ -3700,24 +3699,24 @@ static void test_index_with_tensor_2d_basic(void) {
 
   // Create 3x4 source tensor: [[0,1,2,3], [4,5,6,7], [8,9,10,11]]
   shapes_dim_t dims[] = {3, 4};
-  Tensor *source = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *source = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u8 i = 0; i < 12; i++) {
     ((f32 *)source->values)[i] = (f32)i;
   }
 
   // Create row and column indices: extract [0,1], [1,2], [2,3] -> [1, 6, 11]
   shapes_dim_t idxDims[] = {3};
-  Tensor *rowIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  shapes_Tensor *rowIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 1;
   ((i8 *)rowIndices->values)[2] = 2;
 
-  Tensor *colIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  shapes_Tensor *colIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)colIndices->values)[0] = 1;
   ((i8 *)colIndices->values)[1] = 2;
   ((i8 *)colIndices->values)[2] = 3;
 
-  Tensor *result = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
+  shapes_Tensor *result = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
   ASSERT_NOT_NULL(result, "IndexWithTensor2d should succeed");
   ASSERT_EQ(result->shape.numOfDims, 1, "Result should be 1D");
   ASSERT_EQ(result->shape.dims[0], 3, "Result should have 3 elements");
@@ -3734,22 +3733,22 @@ static void test_index_with_tensor_2d_3d_source(void) {
 
   // Create 2x3x4 source tensor
   shapes_dim_t dims[] = {2, 3, 4};
-  Tensor *source = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3}, 0.0f);
+  shapes_Tensor *source = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3}, 0.0f);
   for (u8 i = 0; i < 24; i++) {
     ((f32 *)source->values)[i] = (f32)i;
   }
 
   // Extract [0,0,:], [1,2,:] -> first 4 elements and last 4 elements
   shapes_dim_t idxDims[] = {2};
-  Tensor *rowIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  shapes_Tensor *rowIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 1;
 
-  Tensor *colIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
+  shapes_Tensor *colIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)colIndices->values)[0] = 0;
   ((i8 *)colIndices->values)[1] = 2;
 
-  Tensor *result = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
+  shapes_Tensor *result = IndexWithTensor2d(&ctx, source, rowIndices, colIndices);
   ASSERT_NOT_NULL(result, "IndexWithTensor2d with 3D source should succeed");
   ASSERT_EQ(result->shape.numOfDims, 2, "Result should be 2D");
   ASSERT_EQ(result->shape.dims[0], 2, "Result dim 0 should be 2");
@@ -3774,7 +3773,7 @@ static void test_mean_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // Set values: [[1, 2, 3], [4, 5, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -3784,7 +3783,7 @@ static void test_mean_basic(void) {
   ((f32 *)t->values)[4] = 5.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *dest = Mean(&ctx, t);
+  shapes_Tensor *dest = Mean(&ctx, t);
   ASSERT_NOT_NULL(dest, "Mean should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 0, "Mean result should be scalar");
   ASSERT_EQ(dest->size, 1, "Mean scalar result should have size 1");
@@ -3799,13 +3798,13 @@ static void test_std_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {4};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   ((f32 *)t->values)[0] = 1.0f;
   ((f32 *)t->values)[1] = 2.0f;
   ((f32 *)t->values)[2] = 3.0f;
   ((f32 *)t->values)[3] = 4.0f;
 
-  Tensor *dest = shapes_Std(&ctx, t);
+  shapes_Tensor *dest = shapes_Std(&ctx, t);
   ASSERT_NOT_NULL(dest, "shapes_Std should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 0, "shapes_Std result should be scalar");
   ASSERT_EQ(dest->size, 1, "shapes_Std scalar result should have size 1");
@@ -3821,7 +3820,7 @@ static void test_log_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 2};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // Set values: [[1.0, 2.718], [10.0, 100.0]]
   // ln(1) = 0, ln(e) ≈ 1, ln(10) ≈ 2.302, ln(100) ≈ 4.605
@@ -3830,7 +3829,7 @@ static void test_log_basic(void) {
   ((f32 *)t->values)[2] = 10.0f;
   ((f32 *)t->values)[3] = 100.0f;
 
-  Tensor *dest = Log(&ctx, t);
+  shapes_Tensor *dest = Log(&ctx, t);
   ASSERT_NOT_NULL(dest, "Log should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "Log result should preserve shape");
   ASSERT_EQ(dest->shape.dims[0], 2, "Log result dim 0 should be 2");
@@ -3850,14 +3849,14 @@ static void test_abs_signed_int(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {4};
-  Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
+  shapes_Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
 
   ((i8 *)t->values)[0] = -1;
   ((i8 *)t->values)[1] = 2;
   ((i8 *)t->values)[2] = -3;
   ((i8 *)t->values)[3] = 0;
 
-  Tensor *dest = Abs(&ctx, t);
+  shapes_Tensor *dest = Abs(&ctx, t);
   ASSERT_NOT_NULL(dest, "Abs on signed int tensor should return a tensor");
   ASSERT_EQ(dest->dtype, I8, "Abs should preserve dtype");
   ASSERT_EQ(dest->shape.numOfDims, 1, "Abs should preserve rank");
@@ -3875,14 +3874,14 @@ static void test_abs_float(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 2};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   ((f32 *)t->values)[0] = -1.5f;
   ((f32 *)t->values)[1] = 2.25f;
   ((f32 *)t->values)[2] = -3.0f;
   ((f32 *)t->values)[3] = 0.0f;
 
-  Tensor *dest = Abs(&ctx, t);
+  shapes_Tensor *dest = Abs(&ctx, t);
   ASSERT_NOT_NULL(dest, "Abs on float tensor should return a tensor");
   ASSERT_EQ(dest->dtype, F32, "Abs should preserve float dtype");
   ASSERT_EQ(dest->shape.numOfDims, 2, "Abs should preserve rank");
@@ -3902,7 +3901,7 @@ static void test_max_dim0(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -3912,7 +3911,7 @@ static void test_max_dim0(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *dest = shapes_Max(&ctx, t, 0);
+  shapes_Tensor *dest = shapes_Max(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "shapes_Max dim0 should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "shapes_Max result should have 2 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 1, "shapes_Max result dim 0 should be 1");
@@ -3929,7 +3928,7 @@ static void test_max_dim1(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -3939,7 +3938,7 @@ static void test_max_dim1(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *dest = shapes_Max(&ctx, t, 1);
+  shapes_Tensor *dest = shapes_Max(&ctx, t, 1);
   ASSERT_NOT_NULL(dest, "shapes_Max dim1 should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "shapes_Max result should have 2 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 2, "shapes_Max result dim 0 should be 2");
@@ -3955,7 +3954,7 @@ static void test_max_int_type(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 2};
-  Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
+  shapes_Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
 
   // [[1, 5], [3, 2]]
   ((i8 *)t->values)[0] = 1;
@@ -3963,7 +3962,7 @@ static void test_max_int_type(void) {
   ((i8 *)t->values)[2] = 3;
   ((i8 *)t->values)[3] = 2;
 
-  Tensor *dest = shapes_Max(&ctx, t, 0);
+  shapes_Tensor *dest = shapes_Max(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "shapes_Max with int type should return a tensor");
 
   i8 *vals = (i8 *)dest->values;
@@ -3976,7 +3975,7 @@ static void test_max_non_contiguous(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -3986,9 +3985,9 @@ static void test_max_non_contiguous(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *transposed = shapes_Transpose(&ctx, t, 0, 1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, t, 0, 1);
 
-  Tensor *dest = shapes_Max(&ctx, transposed, 0);
+  shapes_Tensor *dest = shapes_Max(&ctx, transposed, 0);
   ASSERT_NOT_NULL(dest, "shapes_Max on non-contiguous tensor should return a tensor");
 }
 
@@ -3998,7 +3997,7 @@ static void test_argmax_dim0(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -4008,7 +4007,7 @@ static void test_argmax_dim0(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *dest = shapes_ArgMax(&ctx, t, 0);
+  shapes_Tensor *dest = shapes_ArgMax(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "shapes_ArgMax dim0 should return a tensor");
   ASSERT_EQ(dest->dtype, I64, "shapes_ArgMax output dtype should be I64");
   ASSERT_EQ(dest->shape.numOfDims, 2, "shapes_ArgMax result should have 2 dimensions");
@@ -4026,7 +4025,7 @@ static void test_argmax_dim1_with_ties(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 4};
-  Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
+  shapes_Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
 
   // [[1, 5, 5, 2], [3, 3, 1, 3]]
   ((i8 *)t->values)[0] = 1;
@@ -4038,7 +4037,7 @@ static void test_argmax_dim1_with_ties(void) {
   ((i8 *)t->values)[6] = 1;
   ((i8 *)t->values)[7] = 3;
 
-  Tensor *dest = shapes_ArgMax(&ctx, t, 1);
+  shapes_Tensor *dest = shapes_ArgMax(&ctx, t, 1);
   ASSERT_NOT_NULL(dest, "shapes_ArgMax dim1 should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "shapes_ArgMax result should have 2 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 2, "shapes_ArgMax result dim 0 should be 2");
@@ -4054,7 +4053,7 @@ static void test_argmax_non_contiguous(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -4064,9 +4063,9 @@ static void test_argmax_non_contiguous(void) {
   ((f32 *)t->values)[4] = 2.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *transposed = shapes_Transpose(&ctx, t, 0, 1);
+  shapes_Tensor *transposed = shapes_Transpose(&ctx, t, 0, 1);
 
-  Tensor *dest = shapes_ArgMax(&ctx, transposed, 0);
+  shapes_Tensor *dest = shapes_ArgMax(&ctx, transposed, 0);
   ASSERT_NOT_NULL(dest, "shapes_ArgMax on non-contiguous tensor should return a tensor");
   ASSERT_EQ(dest->dtype, I64, "shapes_ArgMax output dtype should be I64");
 }
@@ -4077,7 +4076,7 @@ static void test_meandim_dim0(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 2, 3], [4, 5, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -4087,7 +4086,7 @@ static void test_meandim_dim0(void) {
   ((f32 *)t->values)[4] = 5.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *dest = MeanDim(&ctx, t, 0);
+  shapes_Tensor *dest = MeanDim(&ctx, t, 0);
   ASSERT_NOT_NULL(dest, "MeanDim dim0 should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 1, "MeanDim result dim 0 should be 1");
@@ -4104,7 +4103,7 @@ static void test_meandim_dim1(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t dims[] = {2, 3};
-  Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 2, 3], [4, 5, 6]]
   ((f32 *)t->values)[0] = 1.0f;
@@ -4114,7 +4113,7 @@ static void test_meandim_dim1(void) {
   ((f32 *)t->values)[4] = 5.0f;
   ((f32 *)t->values)[5] = 6.0f;
 
-  Tensor *dest = MeanDim(&ctx, t, 1);
+  shapes_Tensor *dest = MeanDim(&ctx, t, 1);
   ASSERT_NOT_NULL(dest, "MeanDim dim1 should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "MeanDim result should have 2 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 2, "MeanDim result dim 0 should be 2");
@@ -4135,15 +4134,15 @@ static void test_concat_2d_dim0_basic(void) {
 
   // Target: 2x3 tensor with values 1.0
   shapes_dim_t targetDims[] = {2, 3};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
 
   // Additional tensor: 3x3 tensor with values 2.0
   shapes_dim_t addDims[] = {3, 3};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat 2D dim0 should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 2, "result should have 2 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 2+3=5");
@@ -4159,15 +4158,15 @@ static void test_concat_2d_dim1_basic(void) {
 
   // Target: 2x2 tensor with values 1.0
   shapes_dim_t targetDims[] = {2, 2};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
 
   // Additional tensor: 2x3 tensor with values 3.0
   shapes_dim_t addDims[] = {2, 3};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 3.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 3.0f);
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
-  Tensor *dest = Concat(&ctx, target, 1, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 1, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat 2D dim1 should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
   ASSERT_EQ(dest->shape.dims[1], 5, "dim[1] should be 2+3=5");
@@ -4179,18 +4178,18 @@ static void test_concat_multiple_tensors(void) {
 
   // Target: 1x2 tensor
   shapes_dim_t targetDims[] = {1, 2};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
 
   // Two additional tensors: 2x2 and 3x2
   shapes_dim_t add1Dims[] = {2, 2};
-  Tensor *toAdd1 = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = add1Dims, .numOfDims = 2}, 2.0f);
+  shapes_Tensor *toAdd1 = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = add1Dims, .numOfDims = 2}, 2.0f);
 
   shapes_dim_t add2Dims[] = {3, 2};
-  Tensor *toAdd2 = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = add2Dims, .numOfDims = 2}, 3.0f);
+  shapes_Tensor *toAdd2 = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = add2Dims, .numOfDims = 2}, 3.0f);
 
-  Tensor *tensors[] = {toAdd1, toAdd2};
+  shapes_Tensor *tensors[] = {toAdd1, toAdd2};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 2);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 2);
   ASSERT_NOT_NULL(dest, "Concat multiple tensors should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 6, "dim[0] should be 1+2+3=6");
   ASSERT_EQ(dest->shape.dims[1], 2, "dim[1] should be 2");
@@ -4202,15 +4201,15 @@ static void test_concat_1d_tensors(void) {
 
   // Target: 3-element vector
   shapes_dim_t targetDims[] = {3};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 1}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 1}, 1.0f);
 
   // Additional: 2-element vector
   shapes_dim_t addDims[] = {2};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat 1D should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 1, "result should be 1D");
   ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 3+2=5");
@@ -4222,15 +4221,15 @@ static void test_concat_3d_tensors(void) {
 
   // Target: 2x3x4 tensor
   shapes_dim_t targetDims[] = {2, 3, 4};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 3}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 3}, 1.0f);
 
   // Additional: 3x3x4 tensor (concat along dim 0)
   shapes_dim_t addDims[] = {3, 3, 4};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 3}, 2.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 3}, 2.0f);
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat 3D should return a tensor");
   ASSERT_EQ(dest->shape.numOfDims, 3, "result should have 3 dimensions");
   ASSERT_EQ(dest->shape.dims[0], 5, "dim[0] should be 2+3=5");
@@ -4244,7 +4243,7 @@ static void test_concat_data_correctness(void) {
 
   // Target: 2x2 tensor with sequential values 0, 1, 2, 3
   shapes_dim_t targetDims[] = {2, 2};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 0.0f);
   f32 *targetVals = (f32 *)target->values;
   targetVals[0] = 0.0f;
   targetVals[1] = 1.0f;
@@ -4253,17 +4252,17 @@ static void test_concat_data_correctness(void) {
 
   // Additional: 2x2 tensor with values 10, 11, 12, 13
   shapes_dim_t addDims[] = {2, 2};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 0.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 0.0f);
   f32 *addVals = (f32 *)toAdd->values;
   addVals[0] = 10.0f;
   addVals[1] = 11.0f;
   addVals[2] = 12.0f;
   addVals[3] = 13.0f;
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
   // Concat along dim 0: result should be 4x2
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 4, "dim[0] should be 4");
   ASSERT_EQ(dest->shape.dims[1], 2, "dim[1] should be 2");
@@ -4288,8 +4287,8 @@ static void test_concat_with_non_contiguous_target(void) {
 
   // Create a transposed tensor (non-contiguous) as target
   shapes_dim_t origDims[] = {3, 2};
-  Tensor *orig = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = origDims, .numOfDims = 2}, 1.0f);
-  Tensor *target = shapes_Transpose(&ctx, orig, (shapes_dim_t)0, (shapes_dim_t)1);
+  shapes_Tensor *orig = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = origDims, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *target = shapes_Transpose(&ctx, orig, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!target->isContigous, "target should not be contiguous");
 
   // Set specific values to verify copying works
@@ -4303,11 +4302,11 @@ static void test_concat_with_non_contiguous_target(void) {
 
   // Additional tensor
   shapes_dim_t addDims[] = {2, 3};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 10.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 10.0f);
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat with non-contiguous target should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 4, "dim[0] should be 2+2=4");
   ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
@@ -4319,17 +4318,17 @@ static void test_concat_single_element_tensors(void) {
 
   // Target: 1x1 tensor
   shapes_dim_t targetDims[] = {1, 1};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
   ((f32 *)target->values)[0] = 1.0f;
 
   // Additional: 1x1 tensor
   shapes_dim_t addDims[] = {1, 1};
-  Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
+  shapes_Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
   ((f32 *)toAdd->values)[0] = 2.0f;
 
-  Tensor *tensors[] = {toAdd};
+  shapes_Tensor *tensors[] = {toAdd};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 1);
   ASSERT_NOT_NULL(dest, "Concat single element tensors should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
   ASSERT_EQ(dest->shape.dims[1], 1, "dim[1] should be 1");
@@ -4345,14 +4344,14 @@ static void test_concat_no_additional_tensors(void) {
   shapes_Context ctx = {.memory = mem};
 
   shapes_dim_t targetDims[] = {2, 3};
-  Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
+  shapes_Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
   ((f32 *)target->values)[0] = 5.0f;
   ((f32 *)target->values)[1] = 6.0f;
 
   // Concat with 0 additional tensors
-  Tensor *tensors[] = {};
+  shapes_Tensor *tensors[] = {};
 
-  Tensor *dest = Concat(&ctx, target, 0, tensors, 0);
+  shapes_Tensor *dest = Concat(&ctx, target, 0, tensors, 0);
   ASSERT_NOT_NULL(dest, "Concat with 0 additional tensors should return a tensor");
   ASSERT_EQ(dest->shape.dims[0], 2, "dim[0] should be 2");
   ASSERT_EQ(dest->shape.dims[1], 3, "dim[1] should be 3");
@@ -4364,7 +4363,7 @@ static void test_concat_no_additional_tensors(void) {
 }
 
 void run_tensor_tests(void) {
-  printf("=== Tensor Tests ===\n");
+  printf("=== shapes_Tensor Tests ===\n");
   test_zeros_creates_tensor_with_correct_shape();
   test_zeros_values_are_zero();
   test_int_creates_tensor_with_value();

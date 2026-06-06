@@ -10,10 +10,10 @@
 #include <time.h>
 #include "nn_internal.h"
 
-olib_Array *buildGraph(shapes_Context *ctx, Tensor *tensor);
-void topoSort(olib_Array *graph, PtrSet *visited, Tensor *tensor);
+olib_Array *buildGraph(shapes_Context *ctx, shapes_Tensor *tensor);
+void topoSort(olib_Array *graph, PtrSet *visited, shapes_Tensor *tensor);
 
-void backward(shapes_Context *ctx, Tensor *node) {
+void backward(shapes_Context *ctx, shapes_Tensor *node) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(node == NULL, NULL_CONTEXT);
 
@@ -35,10 +35,10 @@ void backward(shapes_Context *ctx, Tensor *node) {
   }
 }
 
-olib_Array *shapesnn_Backward(shapes_Context *ctx, Tensor *tensor) {
+olib_Array *shapesnn_Backward(shapes_Context *ctx, shapes_Tensor *tensor) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
-  Tensor *ones = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *ones = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(ones == NULL, ALLOCATION_FAILED);
   *ones = shapes_MakeFloatTensor(ctx, SHAPE1D(1), 1);
   shapes_AddInPlace(ctx, tensor->grad, ones);
@@ -46,21 +46,21 @@ olib_Array *shapesnn_Backward(shapes_Context *ctx, Tensor *tensor) {
   olib_Array *graph = buildGraph(ctx, tensor);
 
   for (size_t i = graph->size; i-- > 0;) {
-    Tensor node = shapes_ArrayTensorIdx(graph, i);
+    shapes_Tensor node = shapes_ArrayTensorIdx(graph, i);
     backward(ctx, &node);
   }
 
   return graph;
 }
 
-olib_Array *buildGraph(shapes_Context *ctx, Tensor *tensor) {
+olib_Array *buildGraph(shapes_Context *ctx, shapes_Tensor *tensor) {
   olib_Array *graph = shapes_Make_DynamicTensorArray(ctx->memory);
   PtrSet *visited = Make_PtrSet(ctx->memory);
   topoSort(graph, visited, tensor);
   return graph;
 }
 
-void topoSort(olib_Array *graph, PtrSet *visited, Tensor *tensor) {
+void topoSort(olib_Array *graph, PtrSet *visited, shapes_Tensor *tensor) {
   PANIC_IF(graph == NULL, ERR_NULL_PTR);
   PANIC_IF(visited == NULL, ERR_NULL_PTR);
   PANIC_IF(tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
@@ -78,7 +78,7 @@ void topoSort(olib_Array *graph, PtrSet *visited, Tensor *tensor) {
   }
 
   for (size_t i = 0; i < tensor->inputs->size; i++) {
-    Tensor t = shapes_ArrayTensorIdx(tensor->inputs, i);
+    shapes_Tensor t = shapes_ArrayTensorIdx(tensor->inputs, i);
     topoSort(graph, visited, &t);
   }
 

@@ -19,7 +19,7 @@ static shapes_Dim swapLastDim(shapes_Context *ctx, shapes_Dim dim, shapes_dim_t 
   return shape;
 }
 
-static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, shapes_Dtype dtype) {
+static Result validateDenseGradBuffer(shapes_Tensor *grad, shapes_Tensor *reference, shapes_Dtype dtype) {
   if (isInvalidTensor(grad)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -41,7 +41,7 @@ static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, shapes_Dt
   return OK;
 }
 
-static Result validateDenseBiasGradBuffer(Tensor *grad, shapes_dim_t outputSize, shapes_Dtype dtype) {
+static Result validateDenseBiasGradBuffer(shapes_Tensor *grad, shapes_dim_t outputSize, shapes_Dtype dtype) {
   if (grad == NULL) {
     return OK;
   }
@@ -61,7 +61,7 @@ static Result validateDenseBiasGradBuffer(Tensor *grad, shapes_dim_t outputSize,
   return OK;
 }
 
-static void promoteDenseBackwardInput(shapes_Context *ctx, Tensor *src, Tensor *dest) {
+static void promoteDenseBackwardInput(shapes_Context *ctx, shapes_Tensor *src, shapes_Tensor *dest) {
   if (src->shape.numOfDims == 1) {
     *dest = shapes_UnSqueeze(ctx, src, 0);
     return;
@@ -70,7 +70,7 @@ static void promoteDenseBackwardInput(shapes_Context *ctx, Tensor *src, Tensor *
   *dest = *src;
 }
 
-Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
+shapes_Tensor shapes_DenseLinear(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *w, shapes_Tensor *b, bool withBias) {
   PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || (withBias && isInvalidTensor(b)), ERR_NULL_TENSOR_PROVIDED);
 
   PANIC_IF(x->shape.numOfDims < 2 || w->shape.numOfDims != 2, ERR_MATMUL_MIN_2D);
@@ -88,13 +88,13 @@ Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, 
   // BLAS expects dense row-major buffers. Views/slices from Go can be
   // non-contiguous, so we materialize contiguous copies when needed.
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x);
-  Tensor *wContig = materializeTensorOnContext(ctx, w);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, x);
+  shapes_Tensor *wContig = materializeTensorOnContext(ctx, w);
 
   shapes_tensor_size_t rows = x->size / inputSize;
 
   shapes_Dim newDims = swapLastDim(ctx, x->shape, outputSize);
-  Tensor out = shapes_MakeZerosTensor(ctx, newDims);
+  shapes_Tensor out = shapes_MakeZerosTensor(ctx, newDims);
 
   // Flatten all leading dims into a single "rows" dimension and run:
   // out(rows x outputSize) = x(rows x inputSize) * w^T(inputSize x outputSize)
@@ -107,7 +107,7 @@ Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, 
   return out;
 }
 
-Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *gradOut, Tensor *dX, Tensor *dW, Tensor *dB) {
+Result shapes_DenseBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *w, shapes_Tensor *gradOut, shapes_Tensor *dX, shapes_Tensor *dW, shapes_Tensor *dB) {
   // DenseBackward accumulates gradients into preallocated buffers:
   // x: [..., inputSize], w: [outputSize, inputSize], gradOut: [..., outputSize]
   // dX: [..., inputSize], dW: [outputSize, inputSize], dB: [outputSize] or NULL
@@ -115,10 +115,10 @@ Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *g
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  Tensor x2d = {0};
+  shapes_Tensor x2d = {0};
   promoteDenseBackwardInput(ctx, x, &x2d);
 
-  Tensor gradOut2d = {0};
+  shapes_Tensor gradOut2d = {0};
   promoteDenseBackwardInput(ctx, gradOut, &gradOut2d);
 
   if (x2d.shape.numOfDims < 2 || gradOut2d.shape.numOfDims < 2 || w->shape.numOfDims != 2) {
@@ -163,27 +163,27 @@ Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *g
 
   // Same contiguous requirement as forward: BLAS kernels consume packed rows.
 
-  Tensor *xContig = materializeTensorOnContext(ctx, &x2d);
-  Tensor *wContig = materializeTensorOnContext(ctx, w);
-  Tensor *gContig = materializeTensorOnContext(ctx, &gradOut2d);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, &x2d);
+  shapes_Tensor *wContig = materializeTensorOnContext(ctx, w);
+  shapes_Tensor *gContig = materializeTensorOnContext(ctx, &gradOut2d);
 
-  Tensor dX2d = t_Empty(ctx, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
-  Tensor dWRaw = t_Empty(ctx, swapLastDim(ctx, w->shape, inputSize), w->dtype);
+  shapes_Tensor dX2d = t_Empty(ctx, swapLastDim(ctx, x2d.shape, inputSize), x->dtype);
+  shapes_Tensor dWRaw = t_Empty(ctx, swapLastDim(ctx, w->shape, inputSize), w->dtype);
 
   runGemm(ctx, x->dtype, CblasNoTrans, CblasNoTrans, (int)rows, (int)inputSize, (int)outputSize, gContig->values, (int)outputSize, wContig->values, (int)inputSize, false, dX2d.values, (int)inputSize);
 
   // dW = gradOut^T * x
   runGemm(ctx, x->dtype, CblasTrans, CblasNoTrans, (int)outputSize, (int)inputSize, (int)rows, gContig->values, (int)outputSize, xContig->values, (int)inputSize, false, dWRaw.values, (int)inputSize);
 
-  Tensor dXReduced = shapes_ReduceBroadcast(ctx, x, &dX2d);
+  shapes_Tensor dXReduced = shapes_ReduceBroadcast(ctx, x, &dX2d);
   shapes_AddInPlace(ctx, dX, &dXReduced);
 
-  Tensor dWReduced = shapes_ReduceBroadcast(ctx, w, &dWRaw);
+  shapes_Tensor dWReduced = shapes_ReduceBroadcast(ctx, w, &dWRaw);
   shapes_AddInPlace(ctx, dW, &dWReduced);
 
   if (dB != NULL) {
-    Tensor dBRaw = shapes_Sum(ctx, gContig, 0);
-    Tensor dBReduced = shapes_ReduceBroadcast(ctx, dB, &dBRaw);
+    shapes_Tensor dBRaw = shapes_Sum(ctx, gContig, 0);
+    shapes_Tensor dBReduced = shapes_ReduceBroadcast(ctx, dB, &dBRaw);
     shapes_AddInPlace(ctx, dB, &dBReduced);
   }
 

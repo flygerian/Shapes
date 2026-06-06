@@ -14,7 +14,7 @@
 #include <stddef.h>
 
 typedef struct {
-  Tensor *tensor;
+  shapes_Tensor *tensor;
   bool ownsTensor;
 } TensorArg;
 
@@ -22,9 +22,9 @@ typedef struct {
 
 u64 nextNodeId(void);
 
-static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, shapes_tensor_size_t size, shapes_Dtype dtype, shapes_Dim shape, shapes_Range *boundary,
+static inline shapes_Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, shapes_tensor_size_t size, shapes_Dtype dtype, shapes_Dim shape, shapes_Range *boundary,
                                 bool isContigous) {
-  return (Tensor){.context = ctx,
+  return (shapes_Tensor){.context = ctx,
                   .metadataMemory = metadataMemory,
                   .dtype = dtype,
                   .values = values,
@@ -38,25 +38,25 @@ static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory
 
 void attachHostDevice(shapes_Context *ctx);
 void attachCudaDevice(shapes_Context *ctx);
-Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value *result);
-Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value value);
+Result readTensorValueAtFlatIndex(shapes_Tensor *t, u64 idx, shapes_Value *result);
+Result writeTensorValueAtFlatIndex(shapes_Tensor *t, u64 idx, shapes_Value value);
 
 shapes_dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype);
-u64 getContigousIdxFromCoord(Tensor *t, shapes_dim_t *idx);
-Tensor t_Zeros(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
-Tensor t_Empty(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
-Tensor t_Reduced(shapes_Context *ctx, Tensor *source, shapes_dim_t dim, shapes_Dtype type);
-Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source);
+u64 getContigousIdxFromCoord(shapes_Tensor *t, shapes_dim_t *idx);
+shapes_Tensor t_Zeros(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
+shapes_Tensor t_Empty(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
+shapes_Tensor t_Reduced(shapes_Context *ctx, shapes_Tensor *source, shapes_dim_t dim, shapes_Dtype type);
+shapes_Tensor *copyToContiguous(shapes_Context *ctx, shapes_Tensor *source);
 bool isSameContext(shapes_Context *a, shapes_Context *b);
-Tensor *materializeTensorOnContext(shapes_Context *ctx, Tensor *src);
-Result clearTensorValues(Tensor *t);
-bool areBroadcastable(Tensor *a, Tensor *b);
-shapes_TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b);
+shapes_Tensor *materializeTensorOnContext(shapes_Context *ctx, shapes_Tensor *src);
+Result clearTensorValues(shapes_Tensor *t);
+bool areBroadcastable(shapes_Tensor *a, shapes_Tensor *b);
+shapes_TensorPair padSmallerTensor(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);
 
 sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims);
-Result calculateNumElementsBeforeDim(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result);
-Result calculateNumElementsAfterDim(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result);
-Result getDimsBefore(shapes_Context *ctx, Tensor *t, shapes_dim_t dim, shapes_Dim *result);
+Result calculateNumElementsBeforeDim(shapes_Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result);
+Result calculateNumElementsAfterDim(shapes_Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result);
+Result getDimsBefore(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim, shapes_Dim *result);
 
 void accumulateStridedByDtype(shapes_Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
@@ -67,11 +67,11 @@ void runGemm(shapes_Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOS
 
 void im2colNchwF32(const f32 *input, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, shapes_dim_t outH, shapes_dim_t outW, f32 *colBuffer);
 
-Tensor *im2colF32(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
-Tensor *im2colF64(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
+shapes_Tensor *im2colF32(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
+shapes_Tensor *im2colF64(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
 
-void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
-void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
+void col2imAccumulateF32(shapes_Tensor *dInput, f32 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
+void col2imAccumulateF64(shapes_Tensor *dInput, f64 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
 
 void im2colNchwF64(const f64 *input, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, shapes_dim_t outH, shapes_dim_t outW, f64 *colBuffer);
 
@@ -82,7 +82,7 @@ void col2imNchwAddF64(const f64 *colBuffer, shapes_dim_t inChannels, shapes_dim_
 extern "C" {
 #endif
 
-static inline bool isInvalidTensor(Tensor *t) {
+static inline bool isInvalidTensor(shapes_Tensor *t) {
   if (t == NULL || t->values == NULL) {
     return true;
   }
@@ -93,16 +93,16 @@ static inline bool isInvalidTensor(Tensor *t) {
   return false;
 }
 
-static inline bool isIntType(Tensor *t) {
+static inline bool isIntType(shapes_Tensor *t) {
   return t->dtype != I8 && t->dtype != I16 && t->dtype != I32 && t->dtype != I64 && t->dtype != U8 && t->dtype != U16 && t->dtype != U32 &&
          t->dtype != U64;
 }
 
-static inline bool isNotFloatType(Tensor *t) {
+static inline bool isNotFloatType(shapes_Tensor *t) {
   return t->dtype != F16 && t->dtype != F32 && t->dtype != F64;
 }
 
-static inline bool isSameShape(Tensor *a, Tensor *b) {
+static inline bool isSameShape(shapes_Tensor *a, shapes_Tensor *b) {
   if (a->shape.numOfDims != b->shape.numOfDims) {
     return false;
   }

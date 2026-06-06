@@ -10,8 +10,8 @@ Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 lea
   PANIC_IF(learningRate <= 0, ERR_LEARNING_RATE_CANNOT_BE_ZERO_OR_NEGATIVE);
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor p = shapes_ArrayTensorIdx(parameters, i);
-    Tensor *g = p.grad;
+    shapes_Tensor p = shapes_ArrayTensorIdx(parameters, i);
+    shapes_Tensor *g = p.grad;
 
     if (p.dtype != g->dtype) {
       return ERR_SGD_PARAMS_GRAD_DTYPE_MISMATCH;
@@ -27,11 +27,11 @@ Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 lea
   }
 
   for (size_t i = 0; i < parameters->size; i++) {
-    Tensor p = shapes_ArrayTensorIdx(parameters, i);
-    Tensor *g = p.grad;
+    shapes_Tensor p = shapes_ArrayTensorIdx(parameters, i);
+    shapes_Tensor *g = p.grad;
 
-    Tensor *pWork = materializeTensorOnContext(ctx, &p);
-    Tensor *gWork = materializeTensorOnContext(ctx, g);
+    shapes_Tensor *pWork = materializeTensorOnContext(ctx, &p);
+    shapes_Tensor *gWork = materializeTensorOnContext(ctx, g);
 
     if (ctx->device != NULL && ctx->device->type == CUDA) {
       Result res = shapescuda_Sgd(pWork->dtype, pWork->values, gWork->values, pWork->size, learningRate);

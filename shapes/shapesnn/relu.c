@@ -5,26 +5,26 @@
 #include "array.h"
 #include <stdio.h>
 
-void reluBackward(shapes_Context *ctx, Tensor *tensor) {
+void reluBackward(shapes_Context *ctx, shapes_Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
+  shapes_Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
   PANIC_IF(input.grad == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
-  Tensor reducedGrad = shapes_ReduceBroadcast(ctx, &input, &dInput);
+  shapes_Tensor dInput = shapes_ReluBackward(ctx, tensor, tensor->grad);
+  shapes_Tensor reducedGrad = shapes_ReduceBroadcast(ctx, &input, &dInput);
   shapes_AddInPlace(ctx, input.grad, &reducedGrad);
 }
 
-Tensor reluForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
+shapes_Tensor reluForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor) {
   (void)layer;
 
   PANIC_IF(ctx == NULL || tensor == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  Tensor out = shapes_Relu(ctx, tensor);
-  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  shapes_Tensor out = shapes_Relu(ctx, tensor);
+  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(shapes_Tensor));
 
-  Tensor *inputRef = tensor;
+  shapes_Tensor *inputRef = tensor;
   shapes_ArrayAppendTensor(out.inputs, inputRef);
 
   out.opType = OP_RELU;
@@ -33,12 +33,12 @@ Tensor reluForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
 
 olib_Array *reluLayerParameters(shapes_Context *ctx, shapesnn_layer *state) {
   (void)state;
-  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 0);
 }
 
 olib_Array *reluLayerTensors(shapes_Context *ctx, shapesnn_layer *state) {
   (void)state;
-  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 0);
 }
 
 void reluLayerLoad(shapes_Context *ctx, shapesnn_layer *state, olib_Array *tensors) {

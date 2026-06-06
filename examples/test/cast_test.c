@@ -18,9 +18,9 @@ static void test_cast_i8_to_i16(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 5);
+  shapes_Tensor *src = T_Int(&ctx, shape, 5);
 
-  Tensor *dest = Cast(&ctx, src, I16);
+  shapes_Tensor *dest = Cast(&ctx, src, I16);
   ASSERT_NOT_NULL(dest, "Cast I8 -> I16 should succeed");
   ASSERT_EQ(dest->dtype, I16, "Cast I8 -> I16 dest dtype should be I16");
   ASSERT_EQ(dest->size, 3, "Cast I8 -> I16 should preserve size");
@@ -39,9 +39,9 @@ static void test_cast_i8_to_i32(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, -3);
+  shapes_Tensor *src = T_Int(&ctx, shape, -3);
 
-  Tensor *dest = Cast(&ctx, src, I32);
+  shapes_Tensor *dest = Cast(&ctx, src, I32);
   ASSERT_NOT_NULL(dest, "Cast I8 -> I32 should succeed");
   ASSERT_EQ(dest->dtype, I32, "Cast I8 -> I32 dest dtype should be I32");
 
@@ -57,9 +57,9 @@ static void test_cast_i8_to_i64(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 7);
+  shapes_Tensor *src = T_Int(&ctx, shape, 7);
 
-  Tensor *dest = Cast(&ctx, src, I64);
+  shapes_Tensor *dest = Cast(&ctx, src, I64);
   ASSERT_NOT_NULL(dest, "Cast I8 -> I64 should succeed");
   ASSERT_EQ(dest->dtype, I64, "Cast I8 -> I64 dest dtype should be I64");
 
@@ -75,7 +75,7 @@ static void test_cast_i16_to_i32(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   // Manually set I16 values
   src->dtype = I16;
   size_t bytes = getBytesForDtype(I16) * src->size;
@@ -83,7 +83,7 @@ static void test_cast_i16_to_i32(void) {
   ((i16 *)src->values)[0] = 1000;
   ((i16 *)src->values)[1] = -500;
 
-  Tensor *dest = Cast(&ctx, src, I32);
+  shapes_Tensor *dest = Cast(&ctx, src, I32);
   ASSERT_NOT_NULL(dest, "Cast I16 -> I32 should succeed");
   ASSERT_EQ(((i32 *)dest->values)[0], 1000, "Cast I16 -> I32 element 0 should be 1000");
   ASSERT_EQ(((i32 *)dest->values)[1], -500, "Cast I16 -> I32 element 1 should be -500");
@@ -95,9 +95,9 @@ static void test_cast_f32_to_f64(void) {
 
   shapes_dim_t dims[] = {2, 2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 2};
-  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 3.14f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 3.14f);
 
-  Tensor *dest = Cast(&ctx, src, F64);
+  shapes_Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "Cast F32 -> F64 should succeed");
   ASSERT_EQ(dest->dtype, F64, "Cast F32 -> F64 dest dtype should be F64");
   ASSERT_EQ(dest->size, 4, "Cast F32 -> F64 should preserve size");
@@ -117,7 +117,7 @@ static void test_cast_u8_to_u16(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   // Manually set U8 values
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
@@ -126,7 +126,7 @@ static void test_cast_u8_to_u16(void) {
   ((u8 *)src->values)[1] = 128;
   ((u8 *)src->values)[2] = 255;
 
-  Tensor *dest = Cast(&ctx, src, U16);
+  shapes_Tensor *dest = Cast(&ctx, src, U16);
   ASSERT_NOT_NULL(dest, "Cast U8 -> U16 should succeed");
   ASSERT_EQ(dest->dtype, U16, "Cast U8 -> U16 dest dtype should be U16");
   ASSERT_EQ(((u16 *)dest->values)[0], 0, "Cast U8 -> U16 element 0 should be 0");
@@ -140,14 +140,14 @@ static void test_cast_u8_to_u32(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
   src->values = olib_Allocate(mem, bytes);
   ((u8 *)src->values)[0] = 42;
   ((u8 *)src->values)[1] = 200;
 
-  Tensor *dest = Cast(&ctx, src, U32);
+  shapes_Tensor *dest = Cast(&ctx, src, U32);
   ASSERT_NOT_NULL(dest, "Cast U8 -> U32 should succeed");
   ASSERT_EQ(((u32 *)dest->values)[0], 42, "Cast U8 -> U32 element 0 should be 42");
   ASSERT_EQ(((u32 *)dest->values)[1], 200, "Cast U8 -> U32 element 1 should be 200");
@@ -159,9 +159,9 @@ static void test_cast_i8_to_f32(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, -2);
+  shapes_Tensor *src = T_Int(&ctx, shape, -2);
 
-  Tensor *dest = Cast(&ctx, src, F32);
+  shapes_Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Cast I8 -> F32 should succeed");
   ASSERT_EQ(dest->dtype, F32, "Cast I8 -> F32 dest dtype should be F32");
 
@@ -177,14 +177,14 @@ static void test_cast_i32_to_f64(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = I32;
   size_t bytes = getBytesForDtype(I32) * src->size;
   src->values = olib_Allocate(mem, bytes);
   ((i32 *)src->values)[0] = 100000;
   ((i32 *)src->values)[1] = -99999;
 
-  Tensor *dest = Cast(&ctx, src, F64);
+  shapes_Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "Cast I32 -> F64 should succeed");
   ASSERT(((f64 *)dest->values)[0] > 99999.0 && ((f64 *)dest->values)[0] < 100001.0, "Cast I32 -> F64 element 0 should be 100000.0");
   ASSERT(((f64 *)dest->values)[1] > -100000.0 && ((f64 *)dest->values)[1] < -99998.0, "Cast I32 -> F64 element 1 should be -99999.0");
@@ -196,12 +196,12 @@ static void test_cast_i8_to_bool(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   ((i8 *)src->values)[0] = 0;
   ((i8 *)src->values)[1] = -2;
   ((i8 *)src->values)[2] = 5;
 
-  Tensor *dest = Cast(&ctx, src, BOOL);
+  shapes_Tensor *dest = Cast(&ctx, src, BOOL);
   ASSERT_NOT_NULL(dest, "Cast I8 -> BOOL should succeed");
   ASSERT_EQ(dest->dtype, BOOL, "Cast I8 -> BOOL dest dtype should be BOOL");
   ASSERT_EQ(((bool *)dest->values)[0], false, "Cast I8 0 -> BOOL should be false");
@@ -215,14 +215,14 @@ static void test_cast_u8_to_bool(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
   src->values = olib_Allocate(mem, bytes);
   ((u8 *)src->values)[0] = 0;
   ((u8 *)src->values)[1] = 1;
 
-  Tensor *dest = Cast(&ctx, src, BOOL);
+  shapes_Tensor *dest = Cast(&ctx, src, BOOL);
   ASSERT_NOT_NULL(dest, "Cast U8 -> BOOL should succeed");
   ASSERT_EQ(dest->dtype, BOOL, "Cast U8 -> BOOL dest dtype should be BOOL");
   ASSERT_EQ(((bool *)dest->values)[0], false, "Cast U8 0 -> BOOL should be false");
@@ -235,12 +235,12 @@ static void test_cast_f32_to_bool(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   ((f32 *)src->values)[0] = 0.0f;
   ((f32 *)src->values)[1] = 0.1f;
   ((f32 *)src->values)[2] = -0.2f;
 
-  Tensor *dest = Cast(&ctx, src, BOOL);
+  shapes_Tensor *dest = Cast(&ctx, src, BOOL);
   ASSERT_NOT_NULL(dest, "Cast F32 -> BOOL should succeed");
   ASSERT_EQ(dest->dtype, BOOL, "Cast F32 -> BOOL dest dtype should be BOOL");
   ASSERT_EQ(((bool *)dest->values)[0], false, "Cast F32 0.0 -> BOOL should be false");
@@ -254,14 +254,14 @@ static void test_cast_bool_to_f32(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = T_Int(&ctx, shape, 0);
+  shapes_Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = BOOL;
   src->values = olib_Allocate(mem, getBytesForDtype(BOOL) * src->size);
   ((bool *)src->values)[0] = false;
   ((bool *)src->values)[1] = true;
   ((bool *)src->values)[2] = true;
 
-  Tensor *dest = Cast(&ctx, src, F32);
+  shapes_Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Cast BOOL -> F32 should succeed");
   ASSERT_EQ(dest->dtype, F32, "Cast BOOL -> F32 dest dtype should be F32");
   ASSERT_EQ(((f32 *)dest->values)[0], 0.0f, "Cast BOOL false -> F32 should be 0");
@@ -275,9 +275,9 @@ static void test_cast_same_dtype_clones(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 2.5f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 2.5f);
 
-  Tensor *dest = Cast(&ctx, src, F32);
+  shapes_Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Cast same dtype should succeed");
   ASSERT_EQ(dest->dtype, F32, "Cast same dtype should preserve dtype");
   ASSERT(dest->values != src->values, "Cast same dtype should produce a new allocation");
@@ -294,12 +294,12 @@ static void test_cast_f32_to_i32(void) {
 
   shapes_dim_t dims[] = {3};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   ((f32 *)src->values)[0] = 1.5f;
   ((f32 *)src->values)[1] = -3.9f;
   ((f32 *)src->values)[2] = 42.0f;
 
-  Tensor *dest = Cast(&ctx, src, I32);
+  shapes_Tensor *dest = Cast(&ctx, src, I32);
   ASSERT_NOT_NULL(dest, "Cast F32 -> I32 should succeed");
   ASSERT_EQ(dest->dtype, I32, "Cast F32 -> I32 dest dtype should be I32");
   ASSERT_EQ(((i32 *)dest->values)[0], 1, "Cast F32 1.5 -> I32 should truncate to 1");
@@ -313,14 +313,14 @@ static void test_cast_f64_to_i64(void) {
 
   shapes_dim_t dims[] = {2};
   shapes_Dim shape = {.dims = dims, .numOfDims = 1};
-  Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   src->dtype = F64;
   size_t bytes = getBytesForDtype(F64) * src->size;
   src->values = olib_Allocate(mem, bytes);
   ((f64 *)src->values)[0] = 99.9;
   ((f64 *)src->values)[1] = -50.1;
 
-  Tensor *dest = Cast(&ctx, src, I64);
+  shapes_Tensor *dest = Cast(&ctx, src, I64);
   ASSERT_NOT_NULL(dest, "Cast F64 -> I64 should succeed");
   ASSERT_EQ(((i64 *)dest->values)[0], 99, "Cast F64 99.9 -> I64 should truncate to 99");
   ASSERT_EQ(((i64 *)dest->values)[1], -50, "Cast F64 -50.1 -> I64 should truncate to -50");
@@ -332,9 +332,9 @@ static void test_cast_preserves_2d_shape(void) {
 
   shapes_dim_t dims[] = {3, 4};
   shapes_Dim shape = {.dims = dims, .numOfDims = 2};
-  Tensor *src = T_Int(&ctx, shape, 1);
+  shapes_Tensor *src = T_Int(&ctx, shape, 1);
 
-  Tensor *dest = Cast(&ctx, src, I16);
+  shapes_Tensor *dest = Cast(&ctx, src, I16);
   ASSERT_NOT_NULL(dest, "Cast 2D I8 -> I16 should succeed");
   ASSERT_EQ(dest->shape.numOfDims, 2, "Cast 2D should preserve ndims");
   ASSERT_EQ(dest->shape.dims[0], 3, "Cast 2D should preserve dim 0");
@@ -351,9 +351,9 @@ static void test_cast_same_dtype_cuda_clone(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   shapes_dim_t dims[] = {3};
-  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 2.5f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 2.5f);
 
-  Tensor *dest = Cast(&ctx, src, F32);
+  shapes_Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Same-dtype CUDA Cast should succeed");
   ASSERT(dest->context == &ctx, "Same-dtype CUDA Cast result should live on CUDA");
 
@@ -377,13 +377,13 @@ static void test_cast_cuda_dtype_change(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   shapes_dim_t dims[] = {2};
-  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 1.0f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 1.0f);
 
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
   shapes_MoveToCuda(&ctx, toMove);
 
-  Tensor *dest = Cast(&ctx, src, F64);
+  shapes_Tensor *dest = Cast(&ctx, src, F64);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support dtype-changing casts");
   ASSERT(dest->context == &ctx, "CUDA Cast dtype-changing result should live on CUDA");
 
@@ -408,7 +408,7 @@ static void test_cast_cuda_f32_to_i64(void) {
 
   shapes_dim_t dims[] = {3};
   f32 values[] = {0.0f, 7.9f, -2.1f};
-  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  shapes_Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   for (shapes_dim_t i = 0; i < 3; i++) {
     Value value = {.dtype = F32};
     value.as.f32 = values[i];
@@ -420,7 +420,7 @@ static void test_cast_cuda_f32_to_i64(void) {
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
   shapes_MoveToCuda(&ctx, toMove);
-  Tensor *dest = Cast(&ctx, src, I64);
+  shapes_Tensor *dest = Cast(&ctx, src, I64);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support F32 -> I64");
   ASSERT(dest->context == &ctx, "CUDA F32 -> I64 Cast result should live on CUDA");
 
@@ -445,7 +445,7 @@ static void test_cast_cuda_bool_to_f32(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   shapes_dim_t dims[] = {2};
-  Tensor *src = T_Int(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
+  shapes_Tensor *src = T_Int(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
   src->dtype = BOOL;
   src->values = olib_Allocate(hostCtx.memory, getBytesForDtype(BOOL) * src->size);
   ((bool *)src->values)[0] = false;
@@ -454,7 +454,7 @@ static void test_cast_cuda_bool_to_f32(void) {
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
   shapes_MoveToCuda(&ctx, toMove);
-  Tensor *dest = Cast(&ctx, src, F32);
+  shapes_Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "CUDA Cast should support BOOL -> F32");
   ASSERT(dest->context == &ctx, "CUDA BOOL -> F32 Cast result should live on CUDA");
 

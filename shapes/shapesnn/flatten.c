@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
+shapes_Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor) {
   PANIC_IF(layer != NULL, ERR_NO_OP); // there should be no layer
   PANIC_IF_NULL(tensor);
 
@@ -25,11 +25,11 @@ Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor)
 }
 
 olib_Array *flattenParameters(shapes_Context *ctx) {
-  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 0);
 }
 
 olib_Array *flattenLayerTensors(shapes_Context *ctx) {
-  return olib_MakeArray(ctx->memory, sizeof(Tensor), 0);
+  return olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 0);
 }
 
 void flattenLayerLoad(shapes_Context *ctx, olib_Array *tensors) {

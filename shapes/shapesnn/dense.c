@@ -12,16 +12,16 @@ typedef struct denseLayerData {
   bool withBias;
 } denseLayerData;
 
-void denseBackward(shapes_Context *ctx, Tensor *tensor) {
+void denseBackward(shapes_Context *ctx, shapes_Tensor *tensor) {
   PANIC_IF(ctx == NULL || tensor == NULL || tensor->inputs == NULL || tensor->grad == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->inputs->size < 2, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(tensor->opType != OP_DENSE, NOT_A_DENSE_LAYER);
 
   denseLayerData *layerData = tensor->opMetadata;
 
-  Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
-  Tensor weights = shapes_ArrayTensorIdx(tensor->inputs, 1);
-  Tensor bias = {};
+  shapes_Tensor input = shapes_ArrayTensorIdx(tensor->inputs, 0);
+  shapes_Tensor weights = shapes_ArrayTensorIdx(tensor->inputs, 1);
+  shapes_Tensor bias = {};
 
   if (layerData->withBias) {
     PANIC_IF(tensor != NULL, ERR_DIM_MISMATCH);
@@ -35,13 +35,13 @@ void denseBackward(shapes_Context *ctx, Tensor *tensor) {
   PANIC_IF(result != OK, result);
 }
 
-Tensor denseForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) {
+shapes_Tensor denseForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *tensor) {
   PANIC_IF(ctx == NULL || layer == NULL || tensor == NULL || layer->weights.values == NULL, ERR_NULL_TENSOR_PROVIDED);
 
   denseLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
-  Tensor out = shapes_DenseLinear(ctx, tensor, &layer->weights, &layer->bias, layerData->withBias);
-  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(Tensor));
+  shapes_Tensor out = shapes_DenseLinear(ctx, tensor, &layer->weights, &layer->bias, layerData->withBias);
+  out.inputs = olib_MakeDynamicArray(ctx->memory, sizeof(shapes_Tensor));
 
   shapes_ArrayAppendTensor(out.inputs, tensor);
   shapes_ArrayAppendTensor(out.inputs, &layer->weights);
@@ -57,7 +57,7 @@ Tensor denseForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor) 
 
 olib_Array *denseLayerParameters(shapes_Context *ctx, shapesnn_layer *layer) {
   denseLayerData *layerData = layer->layerData;
-  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
+  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 2);
   shapes_ArrayAppendTensor(params, &layer->weights);
 
   if (layerData->withBias) {
@@ -76,7 +76,7 @@ void denseLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *tens
   size_t expected = layerData->withBias ? 2 : 1;
   PANIC_IF(tensors->size != expected, ERR_DIM_MISMATCH);
 
-  Tensor temp = shapes_ArrayTensorIdx(tensors, 0);
+  shapes_Tensor temp = shapes_ArrayTensorIdx(tensors, 0);
   loadIntoTensor(ctx, &layer->weights, &temp);
   if (layerData->withBias) {
     temp = shapes_ArrayTensorIdx(tensors, 1);
@@ -100,7 +100,7 @@ shapesnn_FowardPassOp shapesnn_Dense(shapes_Context *ctx, shapes_Dtype dtype, si
     layer->bias = shapes_MakeRandomTensor(ctx, SHAPE1D(outputSize), -0.1, 0.1, dtype);
     layer->bias.label = "bias";
   } else {
-    layer->bias = (Tensor){0};
+    layer->bias = (shapes_Tensor){0};
   }
 
   return (shapesnn_FowardPassOp){.ctx = ctx, .type = OP_DENSE, .dtype = dtype, .op = layer};

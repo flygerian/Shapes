@@ -9,8 +9,8 @@ static void test_sgd_updates_f32_parameters(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
-  Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F32);
+  shapes_Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
+  shapes_Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F32);
 
   f32 *pVals = p->values;
   f32 *gVals = g->values;
@@ -23,7 +23,7 @@ static void test_sgd_updates_f32_parameters(void) {
 
   p->grad = g;
 
-  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = olib_MakeArray(mem, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(params, &p);
   Result r = Sgd(&ctx, params, 0.5f);
 
@@ -37,8 +37,8 @@ static void test_sgd_updates_f64_parameters(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F64);
-  Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F64);
+  shapes_Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F64);
+  shapes_Tensor *g = t_Zeros(&ctx, SHAPE1D(3), F64);
 
   f64 *pVals = p->values;
   f64 *gVals = g->values;
@@ -49,7 +49,7 @@ static void test_sgd_updates_f64_parameters(void) {
 
   p->grad = g;
 
-  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = olib_MakeArray(mem, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(params, &p);
   f32 learningRate = 0.1f;
   Result r = Sgd(&ctx, params, learningRate);
@@ -72,11 +72,11 @@ static void test_sgd_invalid_learning_rate(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, SHAPE1D(1), F32);
-  Tensor *g = t_Zeros(&ctx, SHAPE1D(1), F32);
+  shapes_Tensor *p = t_Zeros(&ctx, SHAPE1D(1), F32);
+  shapes_Tensor *g = t_Zeros(&ctx, SHAPE1D(1), F32);
   p->grad = g;
 
-  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = olib_MakeArray(mem, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.0f);
@@ -87,11 +87,11 @@ static void test_sgd_dtype_mismatch(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, SHAPE1D(2), F32);
-  Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F64);
+  shapes_Tensor *p = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F64);
   p->grad = g;
 
-  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = olib_MakeArray(mem, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
@@ -102,11 +102,11 @@ static void test_sgd_size_mismatch(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
-  Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *p = t_Zeros(&ctx, SHAPE1D(3), F32);
+  shapes_Tensor *g = t_Zeros(&ctx, SHAPE1D(2), F32);
   p->grad = g;
 
-  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = olib_MakeArray(mem, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);
@@ -117,11 +117,11 @@ static void test_sgd_requires_float_tensors(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *p = t_Zeros(&ctx, SHAPE1D(2), I32);
-  Tensor *g = t_Zeros(&ctx, SHAPE1D(2), I32);
+  shapes_Tensor *p = t_Zeros(&ctx, SHAPE1D(2), I32);
+  shapes_Tensor *g = t_Zeros(&ctx, SHAPE1D(2), I32);
   p->grad = g;
 
-  olib_Array *params = olib_MakeArray(mem, sizeof(Tensor *), 1);
+  olib_Array *params = olib_MakeArray(mem, sizeof(shapes_Tensor *), 1);
   olib_ArrayAppend(params, &p);
 
   Result r = Sgd(&ctx, params, 0.01f);

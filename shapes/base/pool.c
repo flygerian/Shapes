@@ -12,7 +12,7 @@ static inline shapes_dim_t adaptivePoolEnd(shapes_dim_t outIdx, shapes_dim_t inp
   return ((outIdx + 1) * inputSize + outputSize - 1) / outputSize;
 }
 
-static Result clearPoolTarget(shapes_Context *ctx, Tensor *target) {
+static Result clearPoolTarget(shapes_Context *ctx, shapes_Tensor *target) {
   if (ctx == NULL || target == NULL || target->values == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -20,7 +20,7 @@ static Result clearPoolTarget(shapes_Context *ctx, Tensor *target) {
   return clearTensorValues(target);
 }
 
-static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
+static Result maxPool2dImpl(shapes_Context *ctx, shapes_Tensor *x, shapes_Dim kernelShape, u8 stride, shapes_Tensor *dest, shapes_Tensor *indices) {
   if (ctx == NULL || dest == NULL || x == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -55,17 +55,17 @@ static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelSha
   shapes_dim_t outH = (h - kH) / stride + 1;
   shapes_dim_t outW = (w - kW) / stride + 1;
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, x);
   Result res = OK;
 
-  Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
   *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
   PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
   *dest = *createdDest;
 
   if (indices != NULL) {
-    Tensor *createdIndices = olib_Allocate(ctx->memory, sizeof(Tensor));
+    shapes_Tensor *createdIndices = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
     PANIC_IF(createdIndices == NULL, ALLOCATION_FAILED);
     *createdIndices = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), U64);
     PANIC_IF(createdIndices == NULL, ERR_OUT_OF_MEMORY);
@@ -151,15 +151,15 @@ static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelSha
   return OK;
 }
 
-Result shapes_MaxPool2d(shapes_Context *ctx, Tensor *x, shapes_Dim kernelShape, u8 stride, Tensor *dest) {
+Result shapes_MaxPool2d(shapes_Context *ctx, shapes_Tensor *x, shapes_Dim kernelShape, u8 stride, shapes_Tensor *dest) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, NULL);
 }
 
-Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, Tensor *x, shapes_Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
+Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, shapes_Tensor *x, shapes_Dim kernelShape, u8 stride, shapes_Tensor *dest, shapes_Tensor *indices) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, indices);
 }
 
-Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_Dim kernelShape, u8 stride, Tensor *dX) {
+Result shapes_MaxPool2dBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *gradOut, shapes_Dim kernelShape, u8 stride, shapes_Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -201,10 +201,10 @@ Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut,
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x);
-  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, x);
+  shapes_Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
@@ -280,7 +280,7 @@ Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut,
   return OK;
 }
 
-Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX) {
+Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *gradOut, shapes_Tensor *indices, shapes_Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut) || isInvalidTensor(indices)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -305,10 +305,10 @@ Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tenso
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
-  Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
+  shapes_Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
+  shapes_Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
 
-  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
@@ -342,7 +342,7 @@ Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tenso
   return OK;
 }
 
-Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, shapes_dim_t outH, shapes_dim_t outW, Tensor *dest) {
+Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Tensor *x, shapes_dim_t outH, shapes_dim_t outW, shapes_Tensor *dest) {
   if (ctx == NULL || dest == NULL || x == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -364,10 +364,10 @@ Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, shapes_dim_t out
   shapes_dim_t w = x->shape.dims[2];
   shapes_dim_t channels = x->shape.dims[3];
 
-  Tensor *xContig = materializeTensorOnContext(ctx, x);
+  shapes_Tensor *xContig = materializeTensorOnContext(ctx, x);
   Result res = OK;
 
-  Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
   *createdDest = t_Zeros(ctx, SHAPE4D(batch, outH, outW, channels), x->dtype);
   PANIC_IF(createdDest == NULL, ERR_OUT_OF_MEMORY);
@@ -433,7 +433,7 @@ Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, shapes_dim_t out
   return OK;
 }
 
-Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_dim_t outH, shapes_dim_t outW, Tensor *dX) {
+Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, shapes_Tensor *x, shapes_Tensor *gradOut, shapes_dim_t outH, shapes_dim_t outW, shapes_Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -459,9 +459,9 @@ Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *
     return ERR_DIM_MISMATCH;
   }
 
-  Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
+  shapes_Tensor *gradContig = materializeTensorOnContext(ctx, gradOut);
 
-  Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *createdDX = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);
   *createdDX = t_Zeros(ctx, x->shape, x->dtype);
   PANIC_IF(createdDX == NULL, ALLOCATION_FAILED);

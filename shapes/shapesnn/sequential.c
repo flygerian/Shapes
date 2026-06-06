@@ -43,7 +43,7 @@ shapesnn_FowardPassOp shapesnn_Sequential(shapes_Context *ctx, shapesnn_FowardPa
 
     olib_Array *params = shapesnn_Parameters(ctx, &op);
     for (RANGE(ip, params->size)) {
-      Tensor p = shapes_ArrayTensorIdx(params, ip);
+      shapes_Tensor p = shapes_ArrayTensorIdx(params, ip);
       shapes_ArrayAppendTensor(parameters, &p);
     }
   }
@@ -54,13 +54,13 @@ shapesnn_FowardPassOp shapesnn_Sequential(shapes_Context *ctx, shapesnn_FowardPa
   return (shapesnn_FowardPassOp){.type = OP_SEQUENTIAL, .op = model, .ctx = ctx, .dtype = dtype};
 }
 
-Tensor sequentialModelForward(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, Tensor *input) {
+shapes_Tensor sequentialModelForward(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, shapes_Tensor *input) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
 
   sequentialModel *model = modelOp->op;
   olib_Array *layers = model->layers;
 
-  Tensor out = *input;
+  shapes_Tensor out = *input;
   for (RANGE(i, layers->size)) {
     shapesnn_FowardPassOp layer = array_FowardPassOpIdx(layers, i);
     out = shapesnn_Forward(ctx, &layer, &out);
@@ -79,7 +79,7 @@ olib_Array *sequentialModelParameters(shapes_Context *ctx, shapesnn_FowardPassOp
 
 void sequentialModelLoad(shapes_Context *ctx, shapesnn_FowardPassOp *modelOp, olib_Array *tensors) {
   PANIC_IF(modelOp->type != OP_SEQUENTIAL, OP_NOT_SEQUENTIAL);
-  PANIC_IF(tensors->elemSize != sizeof(Tensor), ARRAY_ELEM_SIZE_MISMATCH);
+  PANIC_IF(tensors->elemSize != sizeof(shapes_Tensor), ARRAY_ELEM_SIZE_MISMATCH);
 
   sequentialModel *model = modelOp->op;
   olib_Array *layers = model->layers;

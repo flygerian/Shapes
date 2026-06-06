@@ -14,14 +14,14 @@ void shapesnn_ZeroGrad(shapes_Context *ctx, olib_Array *graph) {
   PANIC_IF(graph == NULL, ERR_NULL_PTR);
 
   for (size_t i = 0; i < graph->size; i++) {
-    Tensor p = shapes_ArrayTensorIdx(graph, i);
-    Tensor *g = p.grad;
+    shapes_Tensor p = shapes_ArrayTensorIdx(graph, i);
+    shapes_Tensor *g = p.grad;
 
     shapes_SetValues(g, VALUE(g->dtype, 0));
   }
 }
 
-Tensor shapesnn_Forward(shapes_Context *ctx, shapesnn_FowardPassOp *fwdOp, Tensor *input) {
+shapes_Tensor shapesnn_Forward(shapes_Context *ctx, shapesnn_FowardPassOp *fwdOp, shapes_Tensor *input) {
   PANIC_IF(fwdOp->ctx == NULL, NULL_CONTEXT);
   PANIC_IF(fwdOp == NULL, ERR_NULL_PTR);
   PANIC_IF(input == NULL, ERR_NULL_PTR);

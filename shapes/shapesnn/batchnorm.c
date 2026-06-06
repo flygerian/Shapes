@@ -13,30 +13,30 @@
 #include <time.h>
 
 typedef struct batchNormLayerData {
-  Tensor gamma;
-  Tensor beta;
+  shapes_Tensor gamma;
+  shapes_Tensor beta;
   shapes_dim_t numFeatures;
   f32 epsilon;
   f32 momentum;
   u8 dims;
   bool runningStatsInitialised;
-  Tensor runningMean;
-  Tensor runningVar;
+  shapes_Tensor runningMean;
+  shapes_Tensor runningVar;
 } batchNormLayerData;
 
 typedef struct reshapedFeatures {
-  Tensor reshaped;
+  shapes_Tensor reshaped;
   shapes_Dim originalShape;
 } reshapedFeatures;
 
-reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, shapes_dim_t numFeatures) {
+reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, shapes_Tensor *tensor, shapes_dim_t numFeatures) {
   u8 numDims = tensor->shape.numOfDims;
 
   shapes_dim_t lastDimSize = tensor->shape.dims[numDims - 1];
   PANIC_IF(lastDimSize != numFeatures, ERR_DIM_MISMATCH);
 
   if (numDims == 1) {
-    Tensor unsqueezed = shapes_UnSqueeze(ctx, tensor, 0);
+    shapes_Tensor unsqueezed = shapes_UnSqueeze(ctx, tensor, 0);
     return (reshapedFeatures){.reshaped = unsqueezed, .originalShape = tensor->shape};
   }
 
@@ -44,12 +44,12 @@ reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, sh
   shapes_tensor_size_t numElementsBeforeDim = 0;
   calculateNumElementsBeforeDim(tensor, lastDim, &numElementsBeforeDim);
   reshapedFeatures rf = {.originalShape = tensor->shape};
-  Tensor reshaped = shapes_Reshape(ctx, tensor, SHAPE2D(numElementsBeforeDim, numFeatures));
+  shapes_Tensor reshaped = shapes_Reshape(ctx, tensor, SHAPE2D(numElementsBeforeDim, numFeatures));
   rf.reshaped = reshaped;
   return rf;
 }
 
-reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, shapes_dim_t numFeatures) {
+reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, shapes_Tensor *tensor, shapes_dim_t numFeatures) {
   PANIC_IF(tensor->shape.numOfDims != 4, ERR_DIM_MISMATCH);
   shapes_dim_t channelDim = tensor->shape.dims[3];
   PANIC_IF(channelDim != numFeatures, ERR_DIM_MISMATCH);
@@ -59,7 +59,7 @@ reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, Tensor *tensor
   return result;
 }
 
-Tensor restoreBatchNorm2DOutput(shapes_Context *ctx, Tensor *x2d, shapes_Dim originalShape) {
+shapes_Tensor restoreBatchNorm2DOutput(shapes_Context *ctx, shapes_Tensor *x2d, shapes_Dim originalShape) {
   PANIC_IF(originalShape.numOfDims != 4, ERR_DIM_MISMATCH);
   shapes_dim_t n = originalShape.dims[0];
   shapes_dim_t h = originalShape.dims[1];
@@ -68,12 +68,12 @@ Tensor restoreBatchNorm2DOutput(shapes_Context *ctx, Tensor *x2d, shapes_Dim ori
   return shapes_Reshape(ctx, x2d, SHAPE4D(n, h, w, c));
 }
 
-void batchnormBackward(shapes_Context *ctx, Tensor *output) {
-  Tensor x = shapes_ArrayTensorIdx(output->inputs, 0);
+void batchnormBackward(shapes_Context *ctx, shapes_Tensor *output) {
+  shapes_Tensor x = shapes_ArrayTensorIdx(output->inputs, 0);
   batchNormLayerData *layerData = output->opMetadata;
 
-  Tensor x2d;
-  Tensor grad2d;
+  shapes_Tensor x2d;
+  shapes_Tensor grad2d;
   shapes_Dim originalShape;
 
   switch (layerData->dims) {
@@ -99,8 +99,8 @@ void batchnormBackward(shapes_Context *ctx, Tensor *output) {
   shapes_AddInPlace(ctx, layerData->beta.grad, &backwardResult.dBeta);
   shapes_AddInPlace(ctx, layerData->gamma.grad, &backwardResult.dGamma);
 
-  Tensor dX;
-  Tensor dXVal;
+  shapes_Tensor dX;
+  shapes_Tensor dXVal;
 
   if (layerData->dims == 2) {
     dX = restoreBatchNorm2DOutput(ctx, &backwardResult.dx2d, originalShape);
@@ -110,7 +110,7 @@ void batchnormBackward(shapes_Context *ctx, Tensor *output) {
     dX = shapes_Reshape(ctx, &backwardResult.dx2d, originalShape);
   }
 
-  Tensor gradX = shapes_ReduceBroadcast(ctx, &x, &dX);
+  shapes_Tensor gradX = shapes_ReduceBroadcast(ctx, &x, &dX);
   shapes_AddInPlace(ctx, x.grad, &gradX);
 }
 
@@ -119,7 +119,7 @@ olib_Array *batchNormLayerParameters(shapes_Context *ctx, shapesnn_layer *layer)
   PANIC_IF(layer == NULL, ERR_NULL_PTR);
 
   batchNormLayerData *layerData = layer->layerData;
-  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(Tensor), 2);
+  olib_Array *params = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 2);
   shapes_ArrayAppendTensor(params, &layerData->gamma);
   shapes_ArrayAppendTensor(params, &layerData->beta);
 
@@ -131,7 +131,7 @@ olib_Array *batchNormLayerTensors(shapes_Context *ctx, shapesnn_layer *layer) {
   PANIC_IF(layer == NULL, ERR_NULL_PTR);
 
   batchNormLayerData *layerData = layer->layerData;
-  olib_Array *tensors = olib_MakeArray(ctx->memory, sizeof(Tensor), 4);
+  olib_Array *tensors = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 4);
   shapes_ArrayAppendTensor(tensors, &layerData->gamma);
   shapes_ArrayAppendTensor(tensors, &layerData->beta);
   shapes_ArrayAppendTensor(tensors, &layerData->runningMean);
@@ -144,10 +144,10 @@ void batchNormLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *
   PANIC_IF(tensors->size != 4, ERR_DIM_MISMATCH);
   batchNormLayerData *layerData = layer->layerData;
 
-  Tensor gamma = shapes_ArrayTensorIdx(tensors, 0);
-  Tensor beta = shapes_ArrayTensorIdx(tensors, 1);
-  Tensor runningMean = shapes_ArrayTensorIdx(tensors, 2);
-  Tensor runningVar = shapes_ArrayTensorIdx(tensors, 3);
+  shapes_Tensor gamma = shapes_ArrayTensorIdx(tensors, 0);
+  shapes_Tensor beta = shapes_ArrayTensorIdx(tensors, 1);
+  shapes_Tensor runningMean = shapes_ArrayTensorIdx(tensors, 2);
+  shapes_Tensor runningVar = shapes_ArrayTensorIdx(tensors, 3);
 
   loadIntoTensor(ctx, &layerData->gamma, &gamma);
   loadIntoTensor(ctx, &layerData->beta, &beta);
@@ -155,7 +155,7 @@ void batchNormLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *
   loadIntoTensor(ctx, &layerData->runningVar, &runningVar);
 }
 
-void updateRunningStats(shapes_Context *ctx, batchNormLayerData *layerData, Tensor *mean, Tensor *variance) {
+void updateRunningStats(shapes_Context *ctx, batchNormLayerData *layerData, shapes_Tensor *mean, shapes_Tensor *variance) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(mean == NULL, ERR_NULL_PTR);
   PANIC_IF(variance == NULL, ERR_NULL_PTR);
@@ -163,29 +163,29 @@ void updateRunningStats(shapes_Context *ctx, batchNormLayerData *layerData, Tens
   PANIC_IF(mean->size != layerData->runningMean.size, ERR_DIM_MISMATCH);
   PANIC_IF(variance->size != layerData->runningVar.size, ERR_DIM_MISMATCH);
 
-  Tensor *keep = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *keep = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(keep == NULL, ALLOCATION_FAILED);
   *keep = shapes_MakeFloatTensor(ctx, SHAPE1D(1), 1.0 - layerData->momentum);
-  Tensor *tMomentum = olib_Allocate(ctx->memory, sizeof(Tensor));
+  shapes_Tensor *tMomentum = olib_Allocate(ctx->memory, sizeof(shapes_Tensor));
   PANIC_IF(tMomentum == NULL, ALLOCATION_FAILED);
   *tMomentum = shapes_MakeFloatTensor(ctx, SHAPE1D(1), layerData->momentum);
 
-  Tensor meanWeighted = shapes_Multiply(ctx, &layerData->runningMean, keep);
-  Tensor meanDelta = shapes_Multiply(ctx, mean, tMomentum);
-  Tensor newRunningMean = shapes_Add(ctx, &meanWeighted, &meanDelta);
+  shapes_Tensor meanWeighted = shapes_Multiply(ctx, &layerData->runningMean, keep);
+  shapes_Tensor meanDelta = shapes_Multiply(ctx, mean, tMomentum);
+  shapes_Tensor newRunningMean = shapes_Add(ctx, &meanWeighted, &meanDelta);
   shapes_Copy(ctx, &newRunningMean, &layerData->runningMean);
 
-  Tensor varWeighted = shapes_Multiply(ctx, &layerData->runningVar, keep);
-  Tensor varDelta = shapes_Multiply(ctx, variance, tMomentum);
-  Tensor newRunningVar = shapes_Add(ctx, &varWeighted, &varDelta);
+  shapes_Tensor varWeighted = shapes_Multiply(ctx, &layerData->runningVar, keep);
+  shapes_Tensor varDelta = shapes_Multiply(ctx, variance, tMomentum);
+  shapes_Tensor newRunningVar = shapes_Add(ctx, &varWeighted, &varDelta);
   shapes_Copy(ctx, &newRunningVar, &layerData->runningVar);
 }
 
-Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *input) {
+shapes_Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, shapes_Tensor *input) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
   PANIC_IF(input == NULL, ERR_NULL_PTR);
 
-  Tensor x2d;
+  shapes_Tensor x2d;
   shapes_Dim originalShape;
   batchNormLayerData *layerData = layer->layerData;
 
@@ -205,7 +205,7 @@ Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inpu
     default: PANIC_IF(true, ERR_DIM_MISMATCH);
   }
 
-  Tensor bnOut2d;
+  shapes_Tensor bnOut2d;
   if (ctx->isTraining) {
     shapes_BatchNormFowardResult bnResult = shapes_BatchNormForwardTraining(ctx, &x2d, &layerData->gamma, &layerData->beta, layerData->epsilon);
     bnOut2d = bnResult.out;
@@ -213,18 +213,18 @@ Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inpu
       updateRunningStats(ctx, layerData, &bnResult.mean, &bnResult.variance);
     }
   } else {
-    Tensor mean = layerData->runningMean;
-    Tensor variance = layerData->runningVar;
-    Tensor centered = shapes_Subtract(ctx, &x2d, &mean);
-    Tensor eps = shapes_MakeFloatTensor(ctx, SHAPE1D(1), layerData->epsilon);
-    Tensor varPlusEps = shapes_Add(ctx, &variance, &eps);
-    Tensor invStd = shapes_Pow(ctx, &varPlusEps, -0.5);
-    Tensor xHat = shapes_Multiply(ctx, &centered, &invStd);
-    Tensor scaled = shapes_Multiply(ctx, &xHat, &layerData->gamma);
+    shapes_Tensor mean = layerData->runningMean;
+    shapes_Tensor variance = layerData->runningVar;
+    shapes_Tensor centered = shapes_Subtract(ctx, &x2d, &mean);
+    shapes_Tensor eps = shapes_MakeFloatTensor(ctx, SHAPE1D(1), layerData->epsilon);
+    shapes_Tensor varPlusEps = shapes_Add(ctx, &variance, &eps);
+    shapes_Tensor invStd = shapes_Pow(ctx, &varPlusEps, -0.5);
+    shapes_Tensor xHat = shapes_Multiply(ctx, &centered, &invStd);
+    shapes_Tensor scaled = shapes_Multiply(ctx, &xHat, &layerData->gamma);
     bnOut2d = shapes_Add(ctx, &scaled, &layerData->beta);
   }
 
-  Tensor out;
+  shapes_Tensor out;
   if (layerData->dims == 2) {
     out = restoreBatchNorm2DOutput(ctx, &bnOut2d, originalShape);
   } else if (originalShape.numOfDims == 1) {
@@ -233,7 +233,7 @@ Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inpu
     out = shapes_Reshape(ctx, &bnOut2d, originalShape);
   }
 
-  out.inputs = olib_MakeArray(ctx->memory, sizeof(Tensor), 1);
+  out.inputs = olib_MakeArray(ctx->memory, sizeof(shapes_Tensor), 1);
   shapes_ArrayAppendTensor(out.inputs, input);
   out.opType = OP_BATCH_NORM;
   out.opMetadata = layerData;
@@ -242,9 +242,9 @@ Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inpu
 }
 
 shapesnn_FowardPassOp shapesnn_BatchNorm(shapes_Context *ctx, shapes_Dtype dtype, size_t numFeatures) {
-  Tensor gamma = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), 1.0);
+  shapes_Tensor gamma = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), 1.0);
   gamma.label = "gamma";
-  Tensor beta = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), dtype);
+  shapes_Tensor beta = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), dtype);
   beta.label = "beta";
 
   batchNormLayerData *data = olib_Allocate(ctx->memory, sizeof(batchNormLayerData));
@@ -269,9 +269,9 @@ shapesnn_FowardPassOp shapesnn_BatchNorm(shapes_Context *ctx, shapes_Dtype dtype
 }
 
 shapesnn_FowardPassOp shapesnn_BatchNorm2d(shapes_Context *ctx, shapes_Dtype dtype, size_t numFeatures) {
-  Tensor gamma = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), 1.0);
+  shapes_Tensor gamma = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), 1.0);
   gamma.label = "gamma";
-  Tensor beta = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), dtype);
+  shapes_Tensor beta = shapes_MakeFloatTensor(ctx, SHAPE1D(numFeatures), dtype);
   beta.label = "beta";
 
   batchNormLayerData *data = olib_Allocate(ctx->memory, sizeof(batchNormLayerData));

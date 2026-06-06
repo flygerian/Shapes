@@ -15,8 +15,8 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
-  Tensor t = {.context = ctx,
+static shapes_Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
+  shapes_Tensor t = {.context = ctx,
               .metadataMemory = ctx->memory,
               .values = olib_Allocate(ctx->memory, getBytesForDtype(dtype)),
               .boundary = NULL,
@@ -28,7 +28,7 @@ static Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
   return t;
 }
 
-static void assertMovedF32TensorClose(shapes_Context *srcCtx, Tensor *tensor, const f32 *expected, shapes_tensor_size_t size, f32 tolerance, const char *label) {
+static void assertMovedF32TensorClose(shapes_Context *srcCtx, shapes_Tensor *tensor, const f32 *expected, shapes_tensor_size_t size, f32 tolerance, const char *label) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
@@ -39,7 +39,7 @@ static void assertMovedF32TensorClose(shapes_Context *srcCtx, Tensor *tensor, co
   }
 }
 
-static void assertScalarF32Close(Tensor *tensor, f32 expected, f32 tolerance, const char *label) {
+static void assertScalarF32Close(shapes_Tensor *tensor, f32 expected, f32 tolerance, const char *label) {
   Value value;
   Result result = GetScalar(tensor, &value);
   ASSERT_EQ(result, OK, label);
@@ -50,10 +50,10 @@ static void test_dense_linear_forward_with_bias_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
-  Tensor *w = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
-  Tensor *b = t_Zeros(&ctx, SHAPE1D(2), F32);
-  Tensor *out;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *w = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *b = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *out;
 
   f32 *xVals = x->values;
   f32 *wVals = w->values;
@@ -91,13 +91,13 @@ static void test_dense_backward_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
-  Tensor *w = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *w = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
 
-  Tensor *dX = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
-  Tensor *dW = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
-  Tensor *dB = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *dX = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *dW = t_Zeros(&ctx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *dB = t_Zeros(&ctx, SHAPE1D(2), F32);
 
   f32 *xVals = x->values;
   f32 *wVals = w->values;
@@ -150,8 +150,8 @@ static void test_backward_graph_preserves_tensor_pointers(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *yGround = t_Zeros(&ctx, SHAPE1D(2), F32);
-  Tensor *yPred = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *yGround = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *yPred = t_Zeros(&ctx, SHAPE1D(2), F32);
 
   f32 *yGroundVals = yGround->values;
   f32 *yPredVals = yPred->values;
@@ -160,14 +160,14 @@ static void test_backward_graph_preserves_tensor_pointers(void) {
   yPredVals[0] = 0.25f;
   yPredVals[1] = -0.75f;
 
-  Tensor loss = loss_Mse(&ctx, yGround, yPred);
+  shapes_Tensor loss = loss_Mse(&ctx, yGround, yPred);
   olib_Array *graph = Backward(&ctx, &loss);
 
   ASSERT_EQ(graph->size, 3, "Backward graph should contain leaves and loss");
 
-  Tensor *first = *(Tensor **)olib_ArrayIdx(graph, 0);
-  Tensor *second = *(Tensor **)olib_ArrayIdx(graph, 1);
-  Tensor *third = *(Tensor **)olib_ArrayIdx(graph, 2);
+  shapes_Tensor *first = *(shapes_Tensor **)olib_ArrayIdx(graph, 0);
+  shapes_Tensor *second = *(shapes_Tensor **)olib_ArrayIdx(graph, 1);
+  shapes_Tensor *third = *(shapes_Tensor **)olib_ArrayIdx(graph, 2);
 
   ASSERT_EQ(first, yGround, "Backward graph should preserve first input pointer");
   ASSERT_EQ(second, yPred, "Backward graph should preserve second input pointer");
@@ -178,13 +178,13 @@ static void test_batch_norm_forward_training_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
-  Tensor *gamma = t_Zeros(&ctx, SHAPE1D(2), F32);
-  Tensor *beta = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  shapes_Tensor *gamma = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *beta = t_Zeros(&ctx, SHAPE1D(2), F32);
 
-  Tensor out;
-  Tensor mean;
-  Tensor variance;
+  shapes_Tensor out;
+  shapes_Tensor mean;
+  shapes_Tensor variance;
 
   f32 *xVals = x->values;
   f32 *gammaVals = gamma->values;
@@ -218,13 +218,13 @@ static void test_batch_norm_backward_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
-  Tensor *grad = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
-  Tensor *gamma = t_Zeros(&ctx, SHAPE1D(2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  shapes_Tensor *grad = t_Zeros(&ctx, SHAPE2D(2, 2), F32);
+  shapes_Tensor *gamma = t_Zeros(&ctx, SHAPE1D(2), F32);
 
-  Tensor dX;
-  Tensor dGamma;
-  Tensor dBeta;
+  shapes_Tensor dX;
+  shapes_Tensor dGamma;
+  shapes_Tensor dBeta;
 
   f32 *xVals = x->values;
   f32 *gVals = grad->values;
@@ -260,9 +260,9 @@ static void test_batch_norm_backward_f32(void) {
 static void test_conv2d_forward_f32_single_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor out;
 
   f32 *x = t->values;
   for (int i = 0; i < 9; i++) {
@@ -296,10 +296,10 @@ static void test_conv2d_forward_f32_single_channel(void) {
 static void test_conv2d_forward_f32_single_channel_with_bias(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *bias = t_Zeros(&ctx, SHAPE4D(1, 1, 1, 1), F32);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *bias = t_Zeros(&ctx, SHAPE4D(1, 1, 1, 1), F32);
+  shapes_Tensor out;
 
   f32 *x = t->values;
   for (int i = 0; i < 9; i++) {
@@ -328,10 +328,10 @@ static void test_conv2d_forward_f32_single_channel_with_bias(void) {
 static void test_conv2d_returns_col_buffer_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor out;
-  Tensor colBuffer;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor out;
+  shapes_Tensor colBuffer;
 
   f32 *x = t->values;
   for (int i = 0; i < 9; i++) {
@@ -368,9 +368,9 @@ static void test_conv2d_returns_col_buffer_f32(void) {
 static void test_conv2d_forward_f32_multi_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 2), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 2), F32);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 2), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 2), F32);
+  shapes_Tensor out;
 
   f32 *x = t->values;
   f32 input[18] = {1.0f, 10.0f, 2.0f, 11.0f, 3.0f, 12.0f, 4.0f, 13.0f, 5.0f, 14.0f, 6.0f, 15.0f, 7.0f, 16.0f, 8.0f, 17.0f, 9.0f, 18.0f};
@@ -404,9 +404,9 @@ static void test_conv2d_forward_f32_multi_channel(void) {
 static void test_conv2d_forward_f32_with_batch_dimension(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor out;
 
   f32 *x = t->values;
   for (int i = 0; i < 18; i++) {
@@ -442,9 +442,9 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
 static void test_conv2d_restores_openblas_threads_after_local_override(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor out;
 
   f32 *x = t->values;
   for (int i = 0; i < 9; i++) {
@@ -475,9 +475,9 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
 static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
+  shapes_Tensor out;
 
   f32 *x = t->values;
   for (int i = 0; i < 25; i++) {
@@ -512,9 +512,9 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
 static void test_conv2d_forward_f64_single_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F64);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F64);
-  Tensor out;
+  shapes_Tensor *t = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F64);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F64);
+  shapes_Tensor out;
 
   f64 *x = t->values;
   for (int i = 0; i < 9; i++) {
@@ -542,11 +542,11 @@ static void test_conv2d_forward_f64_single_channel(void) {
 static void test_conv2d_backward_f32_single_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 9; i++) {
@@ -590,12 +590,12 @@ static void test_conv2d_backward_f32_single_channel(void) {
 static void test_conv2d_backward_f32_bias_grad(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *dBias = t_Zeros(&ctx, SHAPE4D(1, 1, 1, 1), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *dBias = t_Zeros(&ctx, SHAPE4D(1, 1, 1, 1), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 9; i++) {
@@ -628,11 +628,11 @@ static void test_conv2d_backward_f32_bias_grad(void) {
 static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 9; i++) {
@@ -653,7 +653,7 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
   memset(dX->values, 0, dX->size * sizeof(f32));
   memset(dKernels->values, 0, dKernels->size * sizeof(f32));
 
-  Tensor *colBuffer = im2colF32(&ctx, x, 2, 2, 1);
+  shapes_Tensor *colBuffer = im2colF32(&ctx, x, 2, 2, 1);
   memset(colBuffer->values, 0, colBuffer->size * sizeof(f32));
 
   Result r = Conv2dBackward(&ctx, x, dX, kernels, dKernels, gradOut, colBuffer, NULL, false, 1);
@@ -675,11 +675,11 @@ static void test_conv2d_backward_uses_provided_col_buffer_f32(void) {
 static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor *dX = t_Zeros(&ctx, SHAPE4D(1, 5, 5, 1), F32);
+  shapes_Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 25; i++) {
@@ -701,7 +701,7 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
   memset(dX->values, 0, dX->size * sizeof(f32));
   memset(dKernels->values, 0, dKernels->size * sizeof(f32));
 
-  Tensor *colBuffer = im2colF32(&ctx, x, 2, 2, 2);
+  shapes_Tensor *colBuffer = im2colF32(&ctx, x, 2, 2, 2);
   Result r = Conv2dBackward(&ctx, x, dX, kernels, dKernels, gradOut, colBuffer, NULL, false, 2);
   ASSERT_EQ(r, OK, "Conv2dBackward stride-two should succeed");
 
@@ -721,11 +721,11 @@ static void test_conv2d_backward_f32_stride_two_single_channel(void) {
 static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(2, 2, 2, 2), F32);
-  Tensor *dX = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
-  Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(2, 2, 2, 2), F32);
+  shapes_Tensor *dX = t_Zeros(&ctx, SHAPE4D(2, 3, 3, 1), F32);
+  shapes_Tensor *dKernels = t_Zeros(&ctx, SHAPE4D(2, 1, 2, 2), F32);
 
   f32 *xVals = x->values;
   for (int i = 0; i < 18; i++) {
@@ -751,7 +751,7 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
   memset(dX->values, 0, dX->size * sizeof(f32));
   memset(dKernels->values, 0, dKernels->size * sizeof(f32));
 
-  Tensor *colBuffer = im2colF32(&ctx, x, 2, 2, 1);
+  shapes_Tensor *colBuffer = im2colF32(&ctx, x, 2, 2, 1);
   Result r = Conv2dBackward(&ctx, x, dX, kernels, dKernels, gradOut, colBuffer, NULL, false, 1);
   ASSERT_EQ(r, OK, "Conv2dBackward multi-batch multi-out should succeed");
 
@@ -771,9 +771,9 @@ static void test_conv2d_backward_f32_multi_batch_multi_out_channel(void) {
 static void test_conv_transpose2d_forward_f32_single_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor out;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor out;
 
   f32 *xVals = x->values;
   xVals[0] = 1.0f;
@@ -806,11 +806,11 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
 static void test_conv_transpose2d_backward_f32_single_channel(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
-  Tensor dX;
-  Tensor dKernels;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor *kernels = t_Zeros(&ctx, SHAPE4D(1, 1, 2, 2), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 3, 3, 1), F32);
+  shapes_Tensor dX;
+  shapes_Tensor dKernels;
 
   f32 *xVals = x->values;
   xVals[0] = 1.0f;
@@ -848,8 +848,8 @@ static void test_conv_transpose2d_backward_f32_single_channel(void) {
 static void test_max_pool2d_forward_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
-  Tensor out;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
+  shapes_Tensor out;
 
   f32 *xVals = x->values;
   f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f, 7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
@@ -872,9 +872,9 @@ static void test_max_pool2d_forward_f32(void) {
 static void test_max_pool2d_backward_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor dX;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor dX;
 
   f32 *xVals = x->values;
   f32 input[16] = {1.0f, 3.0f, 2.0f, 1.0f, 4.0f, 6.0f, 5.0f, 2.0f, 7.0f, 8.0f, 9.0f, 3.0f, 0.0f, 1.0f, 2.0f, 4.0f};
@@ -903,8 +903,8 @@ static void test_max_pool2d_backward_f32(void) {
 static void test_adaptive_avg_pool2d_forward_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
-  Tensor out;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
+  shapes_Tensor out;
 
   f32 *xVals = x->values;
   for (int i = 0; i < 16; i++) {
@@ -924,9 +924,9 @@ static void test_adaptive_avg_pool2d_forward_f32(void) {
 static void test_adaptive_avg_pool2d_backward_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
-  Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
-  Tensor dX;
+  shapes_Tensor *x = t_Zeros(&ctx, SHAPE4D(1, 4, 4, 1), F32);
+  shapes_Tensor *gradOut = t_Zeros(&ctx, SHAPE4D(1, 2, 2, 1), F32);
+  shapes_Tensor dX;
 
   f32 *xVals = x->values;
   for (int i = 0; i < 16; i++) {
@@ -957,10 +957,10 @@ static void test_cross_entropy_forward_cuda_dispatch_uses_target_context(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  Tensor *yGround = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
-  Tensor *logits = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
-  Tensor loss;
-  Tensor probs;
+  shapes_Tensor *yGround = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *logits = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
+  shapes_Tensor loss;
+  shapes_Tensor probs;
 
   f32 yValues[6] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
   f32 logitValues[6] = {2.0f, 1.0f, 0.0f, 0.0f, 1.0f, 2.0f};
@@ -993,10 +993,10 @@ static void test_cross_entropy_backward_cuda_dispatch_uses_target_context(void) 
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  Tensor *yGround = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
-  Tensor *probs = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
-  Tensor *gradOut = t_Zeros(&hostCtx, DIM_ZERO, F32);
-  Tensor dLogits;
+  shapes_Tensor *yGround = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *probs = t_Zeros(&hostCtx, SHAPE2D(2, 3), F32);
+  shapes_Tensor *gradOut = t_Zeros(&hostCtx, DIM_ZERO, F32);
+  shapes_Tensor dLogits;
 
   f32 yValues[6] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
   f32 probValues[6] = {0.66524094f, 0.24472848f, 0.09003057f, 0.09003057f, 0.24472848f, 0.66524094f};
