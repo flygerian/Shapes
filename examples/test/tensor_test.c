@@ -9,7 +9,7 @@ typedef struct {
   olib_Memory *mem;
 } TestTensor;
 
-static TestTensor createZerosTensor(dim_t *dims, u8 numOfDims) {
+static TestTensor createZerosTensor(shapes_dim_t *dims, u8 numOfDims) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims});
@@ -30,7 +30,7 @@ static Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
 }
 
 static void test_zeros_creates_tensor_with_correct_shape(void) {
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   TestTensor tt = createZerosTensor(dims, 2);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 2, "tensor should have 2 dimensions");
@@ -39,7 +39,7 @@ static void test_zeros_creates_tensor_with_correct_shape(void) {
 }
 
 static void test_zeros_values_are_zero(void) {
-  dim_t dims[] = {4};
+  shapes_dim_t dims[] = {4};
   TestTensor tt = createZerosTensor(dims, 1);
 
   f32 *values = (f32 *)tt.tensor.values;
@@ -57,7 +57,7 @@ static void test_int_creates_tensor_with_value(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 5);
 
   ASSERT_EQ(t->shape.numOfDims, 2, "tensor should have 2 dimensions");
@@ -162,7 +162,7 @@ static void test_make_from_contigous_array_copies_values_into_1d_tensor(void) {
 }
 
 static void test_zeros_1d_tensor(void) {
-  dim_t dims[] = {5};
+  shapes_dim_t dims[] = {5};
   TestTensor tt = createZerosTensor(dims, 1);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 1, "should be 1D tensor");
@@ -170,7 +170,7 @@ static void test_zeros_1d_tensor(void) {
 }
 
 static void test_zeros_3d_tensor(void) {
-  dim_t dims[] = {2, 3, 4};
+  shapes_dim_t dims[] = {2, 3, 4};
   TestTensor tt = createZerosTensor(dims, 3);
 
   ASSERT_EQ(tt.tensor.shape.numOfDims, 3, "should be 3D tensor");
@@ -189,7 +189,7 @@ static void test_zeros_3d_tensor(void) {
 
 // For shape [rows, cols], multipliers should be [cols, 1]
 static void test_multipliers_2d_tensor(void) {
-  dim_t dims[] = {3, 4}; // 3 rows, 4 cols
+  shapes_dim_t dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -199,7 +199,7 @@ static void test_multipliers_2d_tensor(void) {
 
 // For shape [d0, d1, d2], multipliers should be [d1*d2, d2, 1]
 static void test_multipliers_3d_tensor(void) {
-  dim_t dims[] = {2, 3, 4}; // shape: 2x3x4
+  shapes_dim_t dims[] = {2, 3, 4}; // shape: 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -210,7 +210,7 @@ static void test_multipliers_3d_tensor(void) {
 
 // For shape [d0, d1, d2, d3], multipliers should be [d1*d2*d3, d2*d3, d3, 1]
 static void test_multipliers_4d_tensor(void) {
-  dim_t dims[] = {2, 3, 4, 5}; // shape: 2x3x4x5
+  shapes_dim_t dims[] = {2, 3, 4, 5}; // shape: 2x3x4x5
   TestTensor tt = createZerosTensor(dims, 4);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -222,7 +222,7 @@ static void test_multipliers_4d_tensor(void) {
 
 // For shape [1, 512, 1], multipliers should preserve the full 512 stride.
 static void test_multipliers_support_large_strides(void) {
-  dim_t dims[] = {1, 512, 1};
+  shapes_dim_t dims[] = {1, 512, 1};
   TestTensor tt = createZerosTensor(dims, 3);
 
   ASSERT_NOT_NULL(tt.tensor.shape.multipliers, "multipliers should be allocated");
@@ -233,12 +233,12 @@ static void test_multipliers_support_large_strides(void) {
 
 // AssignValue tests
 static void test_assign_value_success(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {1, 2};
+  shapes_dim_t idx_dims[] = {1, 2};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 42.0f};
 
@@ -250,12 +250,12 @@ static void test_assign_value_success(void) {
 }
 
 static void test_assign_value_dtype_mismatch(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {0, 0};
+  shapes_dim_t idx_dims[] = {0, 0};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = U32, .as.u32 = 100};
 
@@ -264,12 +264,12 @@ static void test_assign_value_dtype_mismatch(void) {
 }
 
 static void test_assign_value_dim_mismatch(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {0, 0, 0};
+  shapes_dim_t idx_dims[] = {0, 0, 0};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 3};
   Value val = {.dtype = F32, .as.f32 = 10.0f};
 
@@ -278,12 +278,12 @@ static void test_assign_value_dim_mismatch(void) {
 }
 
 static void test_assign_value_out_of_bounds(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
+  shapes_dim_t idx_dims[] = {3, 0}; // 3 >= 3, out of bounds
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 10.0f};
 
@@ -295,7 +295,7 @@ static void test_assign_value_null_tensor(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {0, 0};
+  shapes_dim_t idx_dims[] = {0, 0};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 10.0f};
 
@@ -304,12 +304,12 @@ static void test_assign_value_null_tensor(void) {
 }
 
 static void test_assign_value_only_modifies_target_index(void) {
-  dim_t dims[] = {3, 4}; // 12 elements
+  shapes_dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {1, 2};
+  shapes_dim_t idx_dims[] = {1, 2};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 77.0f};
   shapes_AssignValueAt(&ctx, &tt.tensor, idx, val);
@@ -335,14 +335,14 @@ static void test_assign_value_only_modifies_target_index(void) {
 }
 
 static void test_assign_value_multiple_indices(void) {
-  dim_t dims[] = {2, 3}; // 6 elements
+  shapes_dim_t dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx0[] = {0, 0};
-  dim_t idx1[] = {0, 2};
-  dim_t idx2[] = {1, 1};
+  shapes_dim_t idx0[] = {0, 0};
+  shapes_dim_t idx1[] = {0, 2};
+  shapes_dim_t idx2[] = {1, 1};
 
   shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx0, .numOfDims = 2}, (Value){.dtype = F32, .as.f32 = 10.0f});
   shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx1, .numOfDims = 2}, (Value){.dtype = F32, .as.f32 = 20.0f});
@@ -359,12 +359,12 @@ static void test_assign_value_multiple_indices(void) {
 
 // shapes_GetAt tests
 static void test_get_at_success(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t idx_dims[] = {1, 2};
+  shapes_dim_t idx_dims[] = {1, 2};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   shapes_AssignValueAt(&ctx, &tt.tensor, idx, val);
@@ -377,10 +377,10 @@ static void test_get_at_success(void) {
 }
 
 static void test_get_at_dim_mismatch(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  dim_t idx_dims[] = {0};
+  shapes_dim_t idx_dims[] = {0};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 1};
   Value result;
 
@@ -389,10 +389,10 @@ static void test_get_at_dim_mismatch(void) {
 }
 
 static void test_get_at_out_of_bounds(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  dim_t idx_dims[] = {0, 5}; // 5 >= 4, out of bounds
+  shapes_dim_t idx_dims[] = {0, 5}; // 5 >= 4, out of bounds
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value result;
 
@@ -401,7 +401,7 @@ static void test_get_at_out_of_bounds(void) {
 }
 
 static void test_get_at_null_tensor(void) {
-  dim_t idx_dims[] = {0, 0};
+  shapes_dim_t idx_dims[] = {0, 0};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
   Value result;
 
@@ -410,10 +410,10 @@ static void test_get_at_null_tensor(void) {
 }
 
 static void test_get_at_null_result(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
 
-  dim_t idx_dims[] = {0, 0};
+  shapes_dim_t idx_dims[] = {0, 0};
   shapes_Dim idx = {.dims = idx_dims, .numOfDims = 2};
 
   Result r = shapes_GetAt(&tt.tensor, idx, NULL);
@@ -422,7 +422,7 @@ static void test_get_at_null_result(void) {
 
 // shapes_Slice tests
 static void test_slice_basic_2d(void) {
-  dim_t dims[] = {4, 5};
+  shapes_dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -430,7 +430,7 @@ static void test_slice_basic_2d(void) {
   // Populate tensor with values for testing
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
-      dim_t idx_dims[] = {i, j};
+      shapes_dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -445,13 +445,13 @@ static void test_slice_basic_2d(void) {
 }
 
 static void test_slice_shares_data_with_source(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
   // Set a value in source
-  dim_t idx_dims[] = {1, 2};
+  shapes_dim_t idx_dims[] = {1, 2};
   Value val = {.dtype = F32, .as.f32 = 42.0f};
   shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
@@ -461,7 +461,7 @@ static void test_slice_shares_data_with_source(void) {
 }
 
 static void test_slice_get_at_correct_values(void) {
-  dim_t dims[] = {4, 5};
+  shapes_dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -469,7 +469,7 @@ static void test_slice_get_at_correct_values(void) {
   // Populate: value at [i,j] = i*5 + j
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
-      dim_t idx_dims[] = {i, j};
+      shapes_dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -478,27 +478,27 @@ static void test_slice_get_at_correct_values(void) {
   Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 2, .end = 5});
 
   // Access slice[0,0] should be source[1,2] = 1*5+2 = 7
-  dim_t slice_idx[] = {0, 0};
+  shapes_dim_t slice_idx[] = {0, 0};
   Value result;
   Result r = shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "shapes_GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 7.0f, "slice[0,0] should be 7 (source[1,2])");
 
   // Access slice[1,2] should be source[2,4] = 2*5+4 = 14
-  dim_t slice_idx2[] = {1, 2};
+  shapes_dim_t slice_idx2[] = {1, 2};
   r = shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(r, OK, "shapes_GetAt on slice should return OK");
   ASSERT_EQ(result.as.f32, 14.0f, "slice[1,2] should be 14 (source[2,4])");
 }
 
 static void test_slice_single_element_range(void) {
-  dim_t dims[] = {4, 5};
+  shapes_dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
   // Set value at [2,3]
-  dim_t idx_dims[] = {2, 3};
+  shapes_dim_t idx_dims[] = {2, 3};
   Value val = {.dtype = F32, .as.f32 = 99.0f};
   shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
 
@@ -507,14 +507,14 @@ static void test_slice_single_element_range(void) {
   ASSERT_EQ(slice->shape.dims[0], 1, "slice dim[0] should be 1");
   ASSERT_EQ(slice->shape.dims[1], 1, "slice dim[1] should be 1");
 
-  dim_t slice_idx[] = {0, 0};
+  shapes_dim_t slice_idx[] = {0, 0};
   Value result;
   shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 99.0f, "single element slice value should be 99");
 }
 
 static void test_slice_full_range(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -526,14 +526,14 @@ static void test_slice_full_range(void) {
 }
 
 static void test_slice_1d_tensor(void) {
-  dim_t dims[] = {10};
+  shapes_dim_t dims[] = {10};
   TestTensor tt = createZerosTensor(dims, 1);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
   // Populate with values 0-9
   for (u32 i = 0; i < 10; i++) {
-    dim_t idx_dims[] = {i};
+    shapes_dim_t idx_dims[] = {i};
     Value val = {.dtype = F32, .as.f32 = (f32)i};
     shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 1}, val);
   }
@@ -543,19 +543,19 @@ static void test_slice_1d_tensor(void) {
   ASSERT_EQ(slice->shape.dims[0], 5, "1D slice should have 5 elements");
 
   // slice[0] should be source[3] = 3
-  dim_t slice_idx[] = {0};
+  shapes_dim_t slice_idx[] = {0};
   Value result;
   shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 3.0f, "slice[0] should be 3");
 
   // slice[4] should be source[7] = 7
-  dim_t slice_idx2[] = {4};
+  shapes_dim_t slice_idx2[] = {4};
   shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "slice[4] should be 7");
 }
 
 static void test_slice_modify_reflects_in_source(void) {
-  dim_t dims[] = {4, 5};
+  shapes_dim_t dims[] = {4, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -563,19 +563,19 @@ static void test_slice_modify_reflects_in_source(void) {
   Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 4});
 
   // Modify slice[0,1] which maps to source[1,2]
-  dim_t slice_idx[] = {0, 1};
+  shapes_dim_t slice_idx[] = {0, 1};
   Value val = {.dtype = F32, .as.f32 = 77.0f};
   shapes_AssignValueAt(&ctx, slice, (shapes_Dim){.dims = slice_idx, .numOfDims = 2}, val);
 
   // Check source[1,2]
-  dim_t src_idx[] = {1, 2};
+  shapes_dim_t src_idx[] = {1, 2};
   Value result;
   shapes_GetAt(&tt.tensor, (shapes_Dim){.dims = src_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 77.0f, "modifying slice should reflect in source");
 }
 
 static void test_slice_of_slice(void) {
-  dim_t dims[] = {6, 6};
+  shapes_dim_t dims[] = {6, 6};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -583,7 +583,7 @@ static void test_slice_of_slice(void) {
   // Populate: value at [i,j] = i*6 + j
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
-      dim_t idx_dims[] = {i, j};
+      shapes_dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 6 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -600,14 +600,14 @@ static void test_slice_of_slice(void) {
   ASSERT_EQ(slice2->shape.dims[1], 2, "nested slice dim[1] should be 2");
 
   // slice2[0,0] should be source[2,2] = 2*6+2 = 14
-  dim_t slice_idx[] = {0, 0};
+  shapes_dim_t slice_idx[] = {0, 0};
   Value result;
   shapes_GetAt(slice2, (shapes_Dim){.dims = slice_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "nested slice[0,0] should be 14 (source[2,2])");
 }
 
 static void test_slice_large_4d_tensor(void) {
-  dim_t dims[] = {8, 10, 12, 6}; // 8x10x12x6 = 5760 elements
+  shapes_dim_t dims[] = {8, 10, 12, 6}; // 8x10x12x6 = 5760 elements
   TestTensor tt = createZerosTensor(dims, 4);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -617,7 +617,7 @@ static void test_slice_large_4d_tensor(void) {
     for (u32 j = 0; j < 10; j++) {
       for (u32 k = 0; k < 12; k++) {
         for (u32 l = 0; l < 6; l++) {
-          dim_t idx_dims[] = {i, j, k, l};
+          shapes_dim_t idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 10 * 12 * 6 + j * 12 * 6 + k * 6 + l) % 256);
           Value val = {.dtype = F32, .as.f32 = (f32)val_num};
           shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 4}, val);
@@ -635,20 +635,20 @@ static void test_slice_large_4d_tensor(void) {
   ASSERT_EQ(slice->shape.dims[3], 4, "4D slice dim[3] should be 4");
 
   // Test slice[0,0,0,0] = source[2,3,4,1]
-  dim_t slice_idx[] = {0, 0, 0, 0};
+  shapes_dim_t slice_idx[] = {0, 0, 0, 0};
   Value result;
   shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx, .numOfDims = 4}, &result);
   f32 expected = (f32)((2 * 10 * 12 * 6 + 3 * 12 * 6 + 4 * 6 + 1) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice[0,0,0,0] should match source[2,3,4,1]");
 
   // Test slice[3,4,5,3] = source[5,7,9,4]
-  dim_t slice_idx2[] = {3, 4, 5, 3};
+  shapes_dim_t slice_idx2[] = {3, 4, 5, 3};
   shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx2, .numOfDims = 4}, &result);
   expected = (f32)((5 * 10 * 12 * 6 + 7 * 12 * 6 + 9 * 6 + 4) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice[3,4,5,3] should match source[5,7,9,4]");
 
   // Test middle element: slice[2,2,3,2] = source[4,5,7,3]
-  dim_t slice_idx3[] = {2, 2, 3, 2};
+  shapes_dim_t slice_idx3[] = {2, 2, 3, 2};
   shapes_GetAt(slice, (shapes_Dim){.dims = slice_idx3, .numOfDims = 4}, &result);
   expected = (f32)((4 * 10 * 12 * 6 + 5 * 12 * 6 + 7 * 6 + 3) % 256);
   ASSERT_EQ(result.as.f32, expected, "4D slice middle element should be correct");
@@ -659,7 +659,7 @@ static void test_slice_large_4d_tensor(void) {
     for (u32 j = 0; j < 5 && all_correct; j++) {
       for (u32 k = 0; k < 6 && all_correct; k++) {
         for (u32 l = 0; l < 4 && all_correct; l++) {
-          dim_t s_idx[] = {i, j, k, l};
+          shapes_dim_t s_idx[] = {i, j, k, l};
           shapes_GetAt(slice, (shapes_Dim){.dims = s_idx, .numOfDims = 4}, &result);
 
           u32 src_i = i + 2, src_j = j + 3, src_k = k + 4, src_l = l + 1;
@@ -676,12 +676,12 @@ static void test_slice_large_4d_tensor(void) {
 
 // shapes_Reshape tests
 static void test_reshape_basic_2d_to_1d(void) {
-  dim_t dims[] = {3, 4}; // 12 elements
+  shapes_dim_t dims[] = {3, 4}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t new_dims[] = {12};
+  shapes_dim_t new_dims[] = {12};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
@@ -691,12 +691,12 @@ static void test_reshape_basic_2d_to_1d(void) {
 }
 
 static void test_reshape_1d_to_2d(void) {
-  dim_t dims[] = {24};
+  shapes_dim_t dims[] = {24};
   TestTensor tt = createZerosTensor(dims, 1);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t new_dims[] = {4, 6};
+  shapes_dim_t new_dims[] = {4, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
@@ -707,7 +707,7 @@ static void test_reshape_1d_to_2d(void) {
 }
 
 static void test_reshape_preserves_data(void) {
-  dim_t dims[] = {2, 3}; // 6 elements
+  shapes_dim_t dims[] = {2, 3}; // 6 elements
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -715,20 +715,20 @@ static void test_reshape_preserves_data(void) {
   // Populate with sequential values
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx_dims[] = {i, j};
+      shapes_dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 3 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
   }
 
-  dim_t new_dims[] = {6};
+  shapes_dim_t new_dims[] = {6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
 
   // Verify all values preserved in row-major order
   for (u32 i = 0; i < 6; i++) {
-    dim_t idx[] = {i};
+    shapes_dim_t idx[] = {i};
     Value result;
     shapes_GetAt(reshaped, (shapes_Dim){.dims = idx, .numOfDims = 1}, &result);
     ASSERT_EQ(result.as.f32, i, "reshaped data should be preserved");
@@ -736,12 +736,12 @@ static void test_reshape_preserves_data(void) {
 }
 
 static void test_reshape_shares_data_with_source(void) {
-  dim_t dims[] = {4, 3};
+  shapes_dim_t dims[] = {4, 3};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  dim_t new_dims[] = {2, 6};
+  shapes_dim_t new_dims[] = {2, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
@@ -749,18 +749,18 @@ static void test_reshape_shares_data_with_source(void) {
   ASSERT_EQ(reshaped->values, tt.tensor.values, "reshaped should share values pointer");
 
   // Modify via reshaped, check source
-  dim_t r_idx[] = {0, 0};
+  shapes_dim_t r_idx[] = {0, 0};
   Value val = {.dtype = F32, .as.f32 = 55.0f};
   shapes_AssignValueAt(&ctx, reshaped, (shapes_Dim){.dims = r_idx, .numOfDims = 2}, val);
 
-  dim_t s_idx[] = {0, 0};
+  shapes_dim_t s_idx[] = {0, 0};
   Value result;
   shapes_GetAt(&tt.tensor, (shapes_Dim){.dims = s_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 55.0f, "modification via reshaped should reflect in source");
 }
 
 static void test_reshape_3d_to_2d(void) {
-  dim_t dims[] = {2, 3, 4}; // 24 elements
+  shapes_dim_t dims[] = {2, 3, 4}; // 24 elements
   TestTensor tt = createZerosTensor(dims, 3);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -769,14 +769,14 @@ static void test_reshape_3d_to_2d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
-        dim_t idx_dims[] = {i, j, k};
+        shapes_dim_t idx_dims[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)(i * 12 + j * 4 + k)};
         shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
     }
   }
 
-  dim_t new_dims[] = {6, 4};
+  shapes_dim_t new_dims[] = {6, 4};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
@@ -785,18 +785,18 @@ static void test_reshape_3d_to_2d(void) {
   ASSERT_EQ(reshaped->shape.dims[1], 4, "reshaped dim[1] should be 4");
 
   // Check reshaped[0,0] = 0, reshaped[5,3] = 23
-  dim_t idx1[] = {0, 0};
+  shapes_dim_t idx1[] = {0, 0};
   Value result;
   shapes_GetAt(reshaped, (shapes_Dim){.dims = idx1, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0,0] should be 0");
 
-  dim_t idx2[] = {5, 3};
+  shapes_dim_t idx2[] = {5, 3};
   shapes_GetAt(reshaped, (shapes_Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "reshaped[5,3] should be 23");
 }
 
 static void test_reshape_view(void) {
-  dim_t dims[] = {6, 6}; // 36 elements
+  shapes_dim_t dims[] = {6, 6}; // 36 elements
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -804,7 +804,7 @@ static void test_reshape_view(void) {
   // Populate
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
-      dim_t idx_dims[] = {i, j};
+      shapes_dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 6 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -815,7 +815,7 @@ static void test_reshape_view(void) {
   Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 1, .end = 4}, (Range){.start = 0, .end = 6});
 
   // shapes_Reshape the slice to 1D (18 elements)
-  dim_t new_dims[] = {18};
+  shapes_dim_t new_dims[] = {18};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
@@ -825,7 +825,7 @@ static void test_reshape_view(void) {
 }
 
 static void test_reshape_3d_view(void) {
-  dim_t dims[] = {4, 5, 6}; // 120 elements
+  shapes_dim_t dims[] = {4, 5, 6}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 3);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -834,7 +834,7 @@ static void test_reshape_3d_view(void) {
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
       for (u32 k = 0; k < 6; k++) {
-        dim_t idx_dims[] = {i, j, k};
+        shapes_dim_t idx_dims[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)((i * 30 + j * 6 + k) % 256)};
         shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
@@ -849,7 +849,7 @@ static void test_reshape_3d_view(void) {
   ASSERT_EQ(slice->shape.dims[2], 6, "3D slice dim[2] should be 6");
 
   // shapes_Reshape slice to 2D: 10x6 = 60 elements
-  dim_t new_dims[] = {10, 6};
+  shapes_dim_t new_dims[] = {10, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
@@ -859,14 +859,14 @@ static void test_reshape_3d_view(void) {
   ASSERT_EQ(reshaped->shape.dims[1], 6, "reshaped dim[1] should be 6");
 
   // Verify reshaped[0,0] = slice[0,0,0] = source[1,0,0] = 1*30 = 30
-  dim_t r_idx[] = {0, 0};
+  shapes_dim_t r_idx[] = {0, 0};
   Value result;
   shapes_GetAt(reshaped, (shapes_Dim){.dims = r_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 30.0f, "reshaped[0,0] should be 30");
 }
 
 static void test_reshape_4d_view(void) {
-  dim_t dims[] = {3, 4, 5, 6}; // 360 elements
+  shapes_dim_t dims[] = {3, 4, 5, 6}; // 360 elements
   TestTensor tt = createZerosTensor(dims, 4);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -876,7 +876,7 @@ static void test_reshape_4d_view(void) {
     for (u32 j = 0; j < 4; j++) {
       for (u32 k = 0; k < 5; k++) {
         for (u32 l = 0; l < 6; l++) {
-          dim_t idx_dims[] = {i, j, k, l};
+          shapes_dim_t idx_dims[] = {i, j, k, l};
           u8 val_num = (u8)((i * 120 + j * 30 + k * 6 + l) % 256);
           Value val = {.dtype = F32, .as.f32 = (f32)val_num};
           shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 4}, val);
@@ -894,7 +894,7 @@ static void test_reshape_4d_view(void) {
   ASSERT_EQ(slice->shape.dims[3], 6, "4D slice dim[3] should be 6");
 
   // shapes_Reshape to 3D: 6x5x6 = 180 elements
-  dim_t new_dims[] = {6, 5, 6};
+  shapes_dim_t new_dims[] = {6, 5, 6};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 3};
 
   Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
@@ -907,7 +907,7 @@ static void test_reshape_4d_view(void) {
 }
 
 static void test_reshape_4d_view_to_1d(void) {
-  dim_t dims[] = {2, 3, 4, 5}; // 120 elements
+  shapes_dim_t dims[] = {2, 3, 4, 5}; // 120 elements
   TestTensor tt = createZerosTensor(dims, 4);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -918,7 +918,7 @@ static void test_reshape_4d_view_to_1d(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
         for (u32 l = 0; l < 5; l++) {
-          dim_t idx_dims[] = {i, j, k, l};
+          shapes_dim_t idx_dims[] = {i, j, k, l};
           Value val = {.dtype = F32, .as.f32 = (f32)(counter++)};
           shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 4}, val);
         }
@@ -930,7 +930,7 @@ static void test_reshape_4d_view_to_1d(void) {
   Tensor *slice = shapes_Slice(&ctx, &tt.tensor, (Range){.start = 0, .end = 1}, (Range){.start = 0, .end = 3}, (Range){.start = 0, .end = 4}, (Range){.start = 0, .end = 5});
 
   // shapes_Reshape to 1D: 60 elements
-  dim_t new_dims[] = {60};
+  shapes_dim_t new_dims[] = {60};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor *reshaped = shapes_Reshape(&ctx, slice, newShape);
@@ -939,14 +939,14 @@ static void test_reshape_4d_view_to_1d(void) {
   ASSERT_EQ(reshaped->shape.dims[0], 60, "reshaped should have 60 elements");
 
   // Check first element: reshaped[0] = slice[0,0,0,0] = source[0,0,0,0] = 0
-  dim_t idx1[] = {0};
+  shapes_dim_t idx1[] = {0};
   Value result;
   shapes_GetAt(reshaped, (shapes_Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 }
 
 static void test_reshape_then_access_elements(void) {
-  dim_t dims[] = {2, 2, 3}; // 12 elements
+  shapes_dim_t dims[] = {2, 2, 3}; // 12 elements
   TestTensor tt = createZerosTensor(dims, 3);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -956,7 +956,7 @@ static void test_reshape_then_access_elements(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 3; k++) {
-        dim_t idx_dims[] = {i, j, k};
+        shapes_dim_t idx_dims[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)(counter++)};
         shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 3}, val);
       }
@@ -964,7 +964,7 @@ static void test_reshape_then_access_elements(void) {
   }
 
   // shapes_Reshape to 4x3
-  dim_t new_dims[] = {4, 3};
+  shapes_dim_t new_dims[] = {4, 3};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 2};
 
   Tensor *reshaped = shapes_Reshape(&ctx, &tt.tensor, newShape);
@@ -976,7 +976,7 @@ static void test_reshape_then_access_elements(void) {
   int all_correct = 1;
   for (u32 i = 0; i < 4 && all_correct; i++) {
     for (u32 j = 0; j < 3 && all_correct; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value result;
       shapes_GetAt(reshaped, (shapes_Dim){.dims = idx, .numOfDims = 2}, &result);
       f32 expected = (f32)(i * 3 + j);
@@ -990,12 +990,12 @@ static void test_reshape_then_access_elements(void) {
 
 // shapes_Transpose tests
 static void test_transpose_basic_2d(void) {
-  dim_t dims[] = {3, 4}; // 3 rows, 4 cols
+  shapes_dim_t dims[] = {3, 4}; // 3 rows, 4 cols
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT_NOT_NULL(transposed, "shapes_Transpose should return a tensor");
   ASSERT(transposed->isView, "transposed should be a view");
   ASSERT(!transposed->isContigous, "transposed should not be contiguous");
@@ -1004,33 +1004,33 @@ static void test_transpose_basic_2d(void) {
 }
 
 static void test_transpose_swaps_dims_and_multipliers(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  multiplier_t orig_mult_0 = tt.tensor.shape.multipliers[0];
-  multiplier_t orig_mult_1 = tt.tensor.shape.multipliers[1];
+  shapes_multiplier_t orig_mult_0 = tt.tensor.shape.multipliers[0];
+  shapes_multiplier_t orig_mult_1 = tt.tensor.shape.multipliers[1];
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   ASSERT_EQ(transposed->shape.multipliers[0], orig_mult_1, "multiplier[0] should be swapped");
   ASSERT_EQ(transposed->shape.multipliers[1], orig_mult_0, "multiplier[1] should be swapped");
 }
 
 static void test_transpose_shares_data(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   ASSERT_EQ(transposed->values, tt.tensor.values, "transposed should share values pointer");
 }
 
 static void test_transpose_access_elements(void) {
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -1040,13 +1040,13 @@ static void test_transpose_access_elements(void) {
   // source[1,0]=3, source[1,1]=4, source[1,2]=5
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 3 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx, .numOfDims = 2}, val);
     }
   }
 
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   // transposed[j,i] should equal source[i,j]
   // transposed[0,0] = source[0,0] = 0
@@ -1055,25 +1055,25 @@ static void test_transpose_access_elements(void) {
   // transposed[2,1] = source[1,2] = 5
   Value result;
 
-  dim_t idx1[] = {0, 0};
+  shapes_dim_t idx1[] = {0, 0};
   shapes_GetAt(transposed, (shapes_Dim){.dims = idx1, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0] should be 0");
 
-  dim_t idx2[] = {0, 1};
+  shapes_dim_t idx2[] = {0, 1};
   shapes_GetAt(transposed, (shapes_Dim){.dims = idx2, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 3.0f, "transposed[0,1] should be 3");
 
-  dim_t idx3[] = {1, 0};
+  shapes_dim_t idx3[] = {1, 0};
   shapes_GetAt(transposed, (shapes_Dim){.dims = idx3, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "transposed[1,0] should be 1");
 
-  dim_t idx4[] = {2, 1};
+  shapes_dim_t idx4[] = {2, 1};
   shapes_GetAt(transposed, (shapes_Dim){.dims = idx4, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "transposed[2,1] should be 5");
 }
 
 static void test_transpose_3d(void) {
-  dim_t dims[] = {2, 3, 4}; // 2x3x4
+  shapes_dim_t dims[] = {2, 3, 4}; // 2x3x4
   TestTensor tt = createZerosTensor(dims, 3);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -1082,7 +1082,7 @@ static void test_transpose_3d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
-        dim_t idx[] = {i, j, k};
+        shapes_dim_t idx[] = {i, j, k};
         Value val = {.dtype = F32, .as.f32 = (f32)(i * 12 + j * 4 + k)};
         shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx, .numOfDims = 3}, val);
       }
@@ -1090,7 +1090,7 @@ static void test_transpose_3d(void) {
   }
 
   // shapes_Transpose dims 0 and 2: shape becomes 4x3x2
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)2);
+  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)2);
   ASSERT_NOT_NULL(transposed, "shapes_Transpose 3D should return a tensor");
   ASSERT_EQ(transposed->shape.dims[0], 4, "transposed dim[0] should be 4");
   ASSERT_EQ(transposed->shape.dims[1], 3, "transposed dim[1] should be 3");
@@ -1101,17 +1101,17 @@ static void test_transpose_3d(void) {
   // transposed[3,2,1] = source[1,2,3] = 1*12 + 2*4 + 3 = 23
   Value result;
 
-  dim_t idx1[] = {0, 0, 0};
+  shapes_dim_t idx1[] = {0, 0, 0};
   shapes_GetAt(transposed, (shapes_Dim){.dims = idx1, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "transposed[0,0,0] should be 0");
 
-  dim_t idx2[] = {3, 2, 1};
+  shapes_dim_t idx2[] = {3, 2, 1};
   shapes_GetAt(transposed, (shapes_Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "transposed[3,2,1] should be 23");
 }
 
 static void test_reshape_after_transpose_copies(void) {
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -1119,17 +1119,17 @@ static void test_reshape_after_transpose_copies(void) {
   // Populate
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 4 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx, .numOfDims = 2}, val);
     }
   }
 
   // shapes_Transpose: 3x4 -> 4x3
-  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, &tt.tensor, (shapes_dim_t)0, (shapes_dim_t)1);
 
   // shapes_Reshape transposed to 1D: 12 elements
-  dim_t new_dims[] = {12};
+  shapes_dim_t new_dims[] = {12};
   shapes_Dim newShape = {.dims = new_dims, .numOfDims = 1};
 
   Tensor *reshaped = shapes_Reshape(&ctx, transposed, newShape);
@@ -1145,15 +1145,15 @@ static void test_reshape_after_transpose_copies(void) {
   //   ...
   // So reshaped = [0,4,8, 1,5,9, 2,6,10, 3,7,11]
   Value result;
-  dim_t idx0[] = {0};
+  shapes_dim_t idx0[] = {0};
   shapes_GetAt(reshaped, (shapes_Dim){.dims = idx0, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 0.0f, "reshaped[0] should be 0");
 
-  dim_t idx1[] = {1};
+  shapes_dim_t idx1[] = {1};
   shapes_GetAt(reshaped, (shapes_Dim){.dims = idx1, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "reshaped[1] should be 4 (transposed[0,1])");
 
-  dim_t idx3[] = {3};
+  shapes_dim_t idx3[] = {3};
   shapes_GetAt(reshaped, (shapes_Dim){.dims = idx3, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "reshaped[3] should be 1 (transposed[1,0])");
 }
@@ -1163,7 +1163,7 @@ static void test_add_basic_same_shape(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
@@ -1171,7 +1171,7 @@ static void test_add_basic_same_shape(void) {
   // b = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       Value vb = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1194,15 +1194,15 @@ static void test_add_broadcast_row_vector(void) {
   shapes_Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [1, 3] -> broadcast b across rows
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {1, 3};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {1, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1210,7 +1210,7 @@ static void test_add_broadcast_row_vector(void) {
 
   // b = [[10, 20, 30]]
   for (u32 j = 0; j < 3; j++) {
-    dim_t idx[] = {0, j};
+    shapes_dim_t idx[] = {0, j};
     Value v = {.dtype = F32, .as.f32 = (f32)((j + 1) * 10)};
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1233,15 +1233,15 @@ static void test_add_broadcast_col_vector(void) {
   shapes_Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [2, 1] -> broadcast b across cols
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {2, 1};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {2, 1};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1249,7 +1249,7 @@ static void test_add_broadcast_col_vector(void) {
 
   // b = [[10], [20]]
   for (u32 i = 0; i < 2; i++) {
-    dim_t idx[] = {i, 0};
+    shapes_dim_t idx[] = {i, 0};
     Value v = {.dtype = F32, .as.f32 = (f32)((i + 1) * 10)};
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1272,22 +1272,22 @@ static void test_add_broadcast_scalar(void) {
   shapes_Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [1, 1] -> broadcast scalar b to all elements
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {1, 1};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {1, 1};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[100]]
-  dim_t idx_b[] = {0, 0};
+  shapes_dim_t idx_b[] = {0, 0};
   Value vb = {.dtype = F32, .as.f32 = 100.0f};
   shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
@@ -1304,13 +1304,13 @@ static void test_add_1d_tensors(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {4};
+  shapes_dim_t dims[] = {4};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   // a = [1, 2, 3, 4], b = [10, 20, 30, 40]
   for (u32 i = 0; i < 4; i++) {
-    dim_t idx[] = {i};
+    shapes_dim_t idx[] = {i};
     Value va = {.dtype = F32, .as.f32 = (f32)(i + 1)};
     Value vb = {.dtype = F32, .as.f32 = (f32)((i + 1) * 10)};
     shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 1}, va);
@@ -1332,7 +1332,7 @@ static void test_subtract_basic_same_shape(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
@@ -1340,7 +1340,7 @@ static void test_subtract_basic_same_shape(void) {
   // b = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       Value vb = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1362,15 +1362,15 @@ static void test_subtract_broadcast(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {1, 3};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {1, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1378,7 +1378,7 @@ static void test_subtract_broadcast(void) {
 
   // b = [[1, 2, 3]]
   for (u32 j = 0; j < 3; j++) {
-    dim_t idx[] = {0, j};
+    shapes_dim_t idx[] = {0, j};
     Value v = {.dtype = F32, .as.f32 = (f32)(j + 1)};
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1397,7 +1397,7 @@ static void test_multiply_basic_same_shape(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
@@ -1405,7 +1405,7 @@ static void test_multiply_basic_same_shape(void) {
   // b = [[2,2,2], [3,3,3]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       Value vb = {.dtype = F32, .as.f32 = (f32)(i + 2)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1428,22 +1428,22 @@ static void test_multiply_broadcast_scalar(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {1, 1};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {1, 1};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // b = [[5]]
-  dim_t idx_b[] = {0, 0};
+  shapes_dim_t idx_b[] = {0, 0};
   Value vb = {.dtype = F32, .as.f32 = 5.0f};
   shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx_b, .numOfDims = 2}, vb);
 
@@ -1462,7 +1462,7 @@ static void test_divide_basic_same_shape(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
@@ -1470,7 +1470,7 @@ static void test_divide_basic_same_shape(void) {
   // b = [[2,4,5], [8,10,12]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value va = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       Value vb = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 2)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, va);
@@ -1491,15 +1491,15 @@ static void test_divide_broadcast(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {1, 3};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {1, 3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[10,20,30], [40,50,60]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)((i * 3 + j + 1) * 10)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1508,7 +1508,7 @@ static void test_divide_broadcast(void) {
   // b = [[2, 5, 10]]
   u8 divisors[] = {2, 5, 10};
   for (u32 j = 0; j < 3; j++) {
-    dim_t idx[] = {0, j};
+    shapes_dim_t idx[] = {0, j};
     Value v = {.dtype = F32, .as.f32 = (f32)divisors[j]};
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
   }
@@ -1531,15 +1531,15 @@ static void test_add_non_contiguous_transposed(void) {
   shapes_Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [3, 2] transposed to [2, 3]
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {3, 2};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {3, 2};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 2});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1548,7 +1548,7 @@ static void test_add_non_contiguous_transposed(void) {
   // b = [[10,20], [30,40], [50,60]] (3x2)
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 2; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)((i * 2 + j + 1) * 10)};
       shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1556,7 +1556,7 @@ static void test_add_non_contiguous_transposed(void) {
 
   // shapes_Transpose b: [3, 2] -> [2, 3]
   // transposed b = [[10,30,50], [20,40,60]]
-  Tensor *bTransposed = shapes_Transpose(&ctx, b, (dim_t)0, (dim_t)1);
+  Tensor *bTransposed = shapes_Transpose(&ctx, b, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!bTransposed->isContigous, "transposed tensor should be non-contiguous");
 
   Tensor *dest = shapes_Add(&ctx, a, bTransposed);
@@ -1578,15 +1578,15 @@ static void test_add_2d_plus_1d_broadcast(void) {
   shapes_Context ctx = {.memory = mem};
 
   // a: [2, 3], b: [3] -> broadcast 1D across rows
-  dim_t dims_a[] = {2, 3};
-  dim_t dims_b[] = {3};
+  shapes_dim_t dims_a[] = {2, 3};
+  shapes_dim_t dims_b[] = {3};
   Tensor *a = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_a, .numOfDims = 2});
   Tensor *b = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims_b, .numOfDims = 1});
 
   // a = [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, a, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1594,7 +1594,7 @@ static void test_add_2d_plus_1d_broadcast(void) {
 
   // b = [10, 20, 30]
   for (u32 j = 0; j < 3; j++) {
-    dim_t idx[] = {j};
+    shapes_dim_t idx[] = {j};
     Value v = {.dtype = F32, .as.f32 = (f32)((j + 1) * 10)};
     shapes_AssignValueAt(&ctx, b, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
   }
@@ -1617,7 +1617,7 @@ static void test_greater_than_basic_same_shape(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
   Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
 
@@ -1643,7 +1643,7 @@ static void test_greater_or_equal_and_less_or_equal(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
   Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
 
@@ -1675,8 +1675,8 @@ static void test_less_than_broadcast_row_vector(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {2, 3};
-  dim_t dimsB[] = {1, 3};
+  shapes_dim_t dimsA[] = {2, 3};
+  shapes_dim_t dimsB[] = {1, 3};
   Tensor *a = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dimsA, .numOfDims = 2}, 0);
   Tensor *b = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dimsB, .numOfDims = 2}, 0);
 
@@ -1709,12 +1709,12 @@ static void test_sum_dim0_2d(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1739,12 +1739,12 @@ static void test_sum_dim1_2d(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x3 tensor: [[1,2,3], [4,5,6]]
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -1768,14 +1768,14 @@ static void test_sum_3d_middle_dim(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x3x2 tensor
-  dim_t dims[] = {2, 3, 2};
+  shapes_dim_t dims[] = {2, 3, 2};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   // Fill with sequential values 1-12
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 2; k++) {
-        dim_t idx[] = {i, j, k};
+        shapes_dim_t idx[] = {i, j, k};
         Value v = {.dtype = F32, .as.f32 = (f32)(i * 6 + j * 2 + k + 1)};
         shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 3}, v);
       }
@@ -1805,20 +1805,20 @@ static void test_sum_non_contiguous(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Create 3x2, transpose to 2x3, then sum
-  dim_t dims[] = {3, 2};
+  shapes_dim_t dims[] = {3, 2};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // t = [[1,2], [3,4], [5,6]]
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 2; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 2 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // shapes_Transpose to 2x3: [[1,3,5], [2,4,6]]
-  Tensor *transposed = shapes_Transpose(&ctx, t, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!transposed->isContigous, "transposed should be non-contiguous");
 
   Tensor *dest = shapes_Sum(&ctx, transposed, 1);
@@ -1834,12 +1834,12 @@ static void test_sum_1d_tensor(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {5};
+  shapes_dim_t dims[] = {5};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   // t = [1, 2, 3, 4, 5]
   for (u32 i = 0; i < 5; i++) {
-    dim_t idx[] = {i};
+    shapes_dim_t idx[] = {i};
     Value v = {.dtype = F32, .as.f32 = (f32)(i + 1)};
     shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
   }
@@ -1860,7 +1860,7 @@ static void test_sum_4d_dim0(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x2x2x3 tensor
-  dim_t dims[] = {2, 2, 2, 3};
+  shapes_dim_t dims[] = {2, 2, 2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-24
@@ -1869,7 +1869,7 @@ static void test_sum_4d_dim0(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 3; l++) {
-          dim_t idx[] = {i, j, k, l};
+          shapes_dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -1901,7 +1901,7 @@ static void test_sum_4d_dim1(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x3x2x2 tensor
-  dim_t dims[] = {2, 3, 2, 2};
+  shapes_dim_t dims[] = {2, 3, 2, 2};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-24
@@ -1910,7 +1910,7 @@ static void test_sum_4d_dim1(void) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 2; l++) {
-          dim_t idx[] = {i, j, k, l};
+          shapes_dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -1942,7 +1942,7 @@ static void test_sum_4d_dim3(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x2x2x4 tensor
-  dim_t dims[] = {2, 2, 2, 4};
+  shapes_dim_t dims[] = {2, 2, 2, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with sequential values 1-32
@@ -1951,7 +1951,7 @@ static void test_sum_4d_dim3(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 2; k++) {
         for (u32 l = 0; l < 4; l++) {
-          dim_t idx[] = {i, j, k, l};
+          shapes_dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -1983,7 +1983,7 @@ static void test_sum_multiple_reduces_3d(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x3x4 tensor
-  dim_t dims[] = {2, 3, 4};
+  shapes_dim_t dims[] = {2, 3, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   // Fill with sequential values 1-24
@@ -1991,7 +1991,7 @@ static void test_sum_multiple_reduces_3d(void) {
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
       for (u32 k = 0; k < 4; k++) {
-        dim_t idx[] = {i, j, k};
+        shapes_dim_t idx[] = {i, j, k};
         Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
         shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 3}, v);
       }
@@ -2029,7 +2029,7 @@ static void test_sum_multiple_reduces_4d(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x2x3x2 tensor (24 elements)
-  dim_t dims[] = {2, 2, 3, 2};
+  shapes_dim_t dims[] = {2, 2, 3, 2};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   // Fill with values 1-24
@@ -2038,7 +2038,7 @@ static void test_sum_multiple_reduces_4d(void) {
     for (u32 j = 0; j < 2; j++) {
       for (u32 k = 0; k < 3; k++) {
         for (u32 l = 0; l < 2; l++) {
-          dim_t idx[] = {i, j, k, l};
+          shapes_dim_t idx[] = {i, j, k, l};
           Value v = {.dtype = F32, .as.f32 = (f32)(val++)};
           shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 4}, v);
         }
@@ -2068,13 +2068,13 @@ static void test_sum_reduce_to_scalar_2d(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 3x4 tensor
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // Fill with 1-12
   for (u32 i = 0; i < 3; i++) {
     for (u32 j = 0; j < 4; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 4 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2171,7 +2171,7 @@ static void test_squeeze_removes_single_dims(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [1, 3, 1, 4] -> [3, 4]
-  dim_t dims[] = {1, 3, 1, 4};
+  shapes_dim_t dims[] = {1, 3, 1, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   Tensor *squeezed = Squeeze(&ctx, t);
@@ -2188,7 +2188,7 @@ static void test_squeeze_middle_dim(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [2, 1, 3] -> [2, 3]
-  dim_t dims[] = {2, 1, 3};
+  shapes_dim_t dims[] = {2, 1, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   Tensor *squeezed = Squeeze(&ctx, t);
@@ -2204,7 +2204,7 @@ static void test_squeeze_no_single_dims(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [2, 3, 4] -> [2, 3, 4] (unchanged)
-  dim_t dims[] = {2, 3, 4};
+  shapes_dim_t dims[] = {2, 3, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   Tensor *squeezed = Squeeze(&ctx, t);
@@ -2221,7 +2221,7 @@ static void test_squeeze_all_ones(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [1, 1, 1] -> [1]
-  dim_t dims[] = {1, 1, 1};
+  shapes_dim_t dims[] = {1, 1, 1};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   Tensor *squeezed = Squeeze(&ctx, t);
@@ -2252,18 +2252,18 @@ static void test_squeeze_shares_data(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {1, 3};
+  shapes_dim_t dims[] = {1, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // Set a value
-  dim_t idx[] = {0, 1};
+  shapes_dim_t idx[] = {0, 1};
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
 
   Tensor *squeezed = Squeeze(&ctx, t);
 
   // Check value is accessible in squeezed tensor
-  dim_t sq_idx[] = {1};
+  shapes_dim_t sq_idx[] = {1};
   Value result;
   shapes_GetAt(squeezed, (shapes_Dim){.dims = sq_idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "squeezed should share data with source");
@@ -2278,7 +2278,7 @@ static void test_squeeze_preserves_grad_and_graph_metadata(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {1, 3};
+  shapes_dim_t dims[] = {1, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
   Tensor *input = shapes_Make_ZerosTensor(&ctx, SHAPE1D(3));
 
@@ -2299,7 +2299,7 @@ static void test_squeeze_dim_specific(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [1, 3, 1, 4] squeeze dim 0 -> [3, 1, 4]
-  dim_t dims[] = {1, 3, 1, 4};
+  shapes_dim_t dims[] = {1, 3, 1, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 4});
 
   Tensor *squeezed = SqueezeDim(&ctx, t, 0);
@@ -2323,12 +2323,12 @@ static void test_squeeze_after_sum(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 2x3 tensor
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2354,7 +2354,7 @@ static void test_unsqueeze_dim0(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [3, 4] -> [1, 3, 4]
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
@@ -2372,7 +2372,7 @@ static void test_unsqueeze_middle(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [3, 4] -> [3, 1, 4]
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   Tensor *unsqueezed = UnSqueeze(&ctx, t, 1);
@@ -2389,7 +2389,7 @@ static void test_unsqueeze_end(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [3, 4] -> [3, 4, 1]
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   Tensor *unsqueezed = UnSqueeze(&ctx, t, 2);
@@ -2406,7 +2406,7 @@ static void test_unsqueeze_1d(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [5] -> [1, 5]
-  dim_t dims[] = {5};
+  shapes_dim_t dims[] = {5};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
   Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
@@ -2421,17 +2421,17 @@ static void test_unsqueeze_shares_data(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
-  dim_t idx[] = {1};
+  shapes_dim_t idx[] = {1};
   Value v = {.dtype = F32, .as.f32 = 42.0f};
   shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
 
   Tensor *unsqueezed = UnSqueeze(&ctx, t, 0);
 
   // Access via [0, 1]
-  dim_t new_idx[] = {0, 1};
+  shapes_dim_t new_idx[] = {0, 1};
   Value result;
   shapes_GetAt(unsqueezed, (shapes_Dim){.dims = new_idx, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 42.0f, "unsqueezed should share data");
@@ -2442,20 +2442,20 @@ static void test_unsqueeze_non_contiguous(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Create 2x3, transpose to 3x2, then unsqueeze
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
   // shapes_Transpose to 3x2: [[1,4], [2,5], [3,6]]
-  Tensor *transposed = shapes_Transpose(&ctx, t, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!transposed->isContigous, "transposed should be non-contiguous");
 
   // Unsqueeze to [1, 3, 2]
@@ -2469,19 +2469,19 @@ static void test_unsqueeze_non_contiguous(void) {
 
   // Verify data access: [0, 0, 0] should be 1, [0, 0, 1] should be 4
   Value result;
-  dim_t idx1[] = {0, 0, 0};
+  shapes_dim_t idx1[] = {0, 0, 0};
   shapes_GetAt(unsqueezed, (shapes_Dim){.dims = idx1, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 1.0f, "unsqueezed[0,0,0] should be 1");
 
-  dim_t idx2[] = {0, 0, 1};
+  shapes_dim_t idx2[] = {0, 0, 1};
   shapes_GetAt(unsqueezed, (shapes_Dim){.dims = idx2, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "unsqueezed[0,0,1] should be 4");
 
-  dim_t idx3[] = {0, 1, 0};
+  shapes_dim_t idx3[] = {0, 1, 0};
   shapes_GetAt(unsqueezed, (shapes_Dim){.dims = idx3, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 2.0f, "unsqueezed[0,1,0] should be 2");
 
-  dim_t idx4[] = {0, 2, 1};
+  shapes_dim_t idx4[] = {0, 2, 1};
   shapes_GetAt(unsqueezed, (shapes_Dim){.dims = idx4, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "unsqueezed[0,2,1] should be 6");
 }
@@ -2491,12 +2491,12 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   shapes_Context ctx = {.memory = mem};
 
   // [2, 3] -> squeeze (no change) -> unsqueeze dim 1 -> [2, 1, 3] -> squeeze -> [2, 3]
-  dim_t dims[] = {2, 1, 3};
+  shapes_dim_t dims[] = {2, 1, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 k = 0; k < 3; k++) {
-      dim_t idx[] = {i, 0, k};
+      shapes_dim_t idx[] = {i, 0, k};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + k + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 3}, v);
     }
@@ -2512,7 +2512,7 @@ static void test_squeeze_unsqueeze_roundtrip(void) {
   ASSERT_EQ(unsqueezed->shape.dims[2], 3, "dim 2 should be 3");
 
   // Verify data
-  dim_t idx[] = {1, 0, 2};
+  shapes_dim_t idx[] = {1, 0, 2};
   Value result;
   shapes_GetAt(unsqueezed, (shapes_Dim){.dims = idx, .numOfDims = 3}, &result);
   ASSERT_EQ(result.as.f32, 6.0f, "data should be preserved");
@@ -2523,12 +2523,12 @@ static void test_clone_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2552,10 +2552,10 @@ static void test_clone_independent_data(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1});
 
-  dim_t idx[] = {1};
+  shapes_dim_t idx[] = {1};
   Value v = {.dtype = F32, .as.f32 = 10.0f};
   shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 1}, v);
 
@@ -2575,12 +2575,12 @@ static void test_clone_slice(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {4, 4};
+  shapes_dim_t dims[] = {4, 4};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 4; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 4 + j)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
@@ -2613,19 +2613,19 @@ static void test_clone_transposed(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_ZerosTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2});
 
   // [[1,2,3], [4,5,6]]
   for (u32 i = 0; i < 2; i++) {
     for (u32 j = 0; j < 3; j++) {
-      dim_t idx[] = {i, j};
+      shapes_dim_t idx[] = {i, j};
       Value v = {.dtype = F32, .as.f32 = (f32)(i * 3 + j + 1)};
       shapes_AssignValueAt(&ctx, t, (shapes_Dim){.dims = idx, .numOfDims = 2}, v);
     }
   }
 
-  Tensor *transposed = shapes_Transpose(&ctx, t, (dim_t)0, (dim_t)1);
+  Tensor *transposed = shapes_Transpose(&ctx, t, (shapes_dim_t)0, (shapes_dim_t)1);
 
   Tensor *cloned = shapes_Clone(&ctx, transposed);
   ASSERT_NOT_NULL(cloned, "shapes_Clone transposed should return a tensor");
@@ -2650,7 +2650,7 @@ static void test_view_slice_boundary_propagation(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 4x5 tensor, values[i][j] = i*5 + j
-  dim_t dims[] = {4, 5};
+  shapes_dim_t dims[] = {4, 5};
   Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 4; i++) {
     for (u32 j = 0; j < 5; j++) {
@@ -2665,23 +2665,23 @@ static void test_view_slice_boundary_propagation(void) {
   ASSERT_EQ(s->shape.dims[1], 3, "slice dim[1] should be 3");
 
   // s[0,0] should be x[1,2] = 1*5+2 = 7
-  dim_t idx00[] = {0, 0};
+  shapes_dim_t idx00[] = {0, 0};
   Value result;
   shapes_GetAt(s, (shapes_Dim){.dims = idx00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 7.0f, "s[0,0] should be x[1,2]=7");
 
   // s[0,2] should be x[1,4] = 1*5+4 = 9
-  dim_t idx02[] = {0, 2};
+  shapes_dim_t idx02[] = {0, 2};
   shapes_GetAt(s, (shapes_Dim){.dims = idx02, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 9.0f, "s[0,2] should be x[1,4]=9");
 
   // s[1,0] should be x[2,2] = 2*5+2 = 12
-  dim_t idx10[] = {1, 0};
+  shapes_dim_t idx10[] = {1, 0};
   shapes_GetAt(s, (shapes_Dim){.dims = idx10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 12.0f, "s[1,0] should be x[2,2]=12");
 
   // s[1,2] should be x[2,4] = 2*5+4 = 14
-  dim_t idx12[] = {1, 2};
+  shapes_dim_t idx12[] = {1, 2};
   shapes_GetAt(s, (shapes_Dim){.dims = idx12, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s[1,2] should be x[2,4]=14");
 }
@@ -2692,7 +2692,7 @@ static void test_view_nested_slice_correctness(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 6x6 tensor, values[i][j] = i*6 + j
-  dim_t dims[] = {6, 6};
+  shapes_dim_t dims[] = {6, 6};
   Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 6; j++) {
@@ -2710,23 +2710,23 @@ static void test_view_nested_slice_correctness(void) {
   ASSERT_EQ(s2->shape.dims[1], 2, "nested slice dim[1] should be 2");
 
   // s2[0,0] = x[2,2] = 2*6+2 = 14
-  dim_t idx00[] = {0, 0};
+  shapes_dim_t idx00[] = {0, 0};
   Value result;
   shapes_GetAt(s2, (shapes_Dim){.dims = idx00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 14.0f, "s2[0,0] should be x[2,2]=14");
 
   // s2[0,1] = x[2,3] = 2*6+3 = 15
-  dim_t idx01[] = {0, 1};
+  shapes_dim_t idx01[] = {0, 1};
   shapes_GetAt(s2, (shapes_Dim){.dims = idx01, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "s2[0,1] should be x[2,3]=15");
 
   // s2[1,0] = x[3,2] = 3*6+2 = 20
-  dim_t idx10[] = {1, 0};
+  shapes_dim_t idx10[] = {1, 0};
   shapes_GetAt(s2, (shapes_Dim){.dims = idx10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 20.0f, "s2[1,0] should be x[3,2]=20");
 
   // s2[1,1] = x[3,3] = 3*6+3 = 21
-  dim_t idx11[] = {1, 1};
+  shapes_dim_t idx11[] = {1, 1};
   shapes_GetAt(s2, (shapes_Dim){.dims = idx11, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "s2[1,1] should be x[3,3]=21");
 }
@@ -2737,7 +2737,7 @@ static void test_view_get_tensor_at_on_slice(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 5x4 tensor, values[i][j] = i*4 + j
-  dim_t dims[] = {5, 4};
+  shapes_dim_t dims[] = {5, 4};
   Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 5; i++) {
     for (u32 j = 0; j < 4; j++) {
@@ -2754,12 +2754,12 @@ static void test_view_get_tensor_at_on_slice(void) {
   ASSERT_EQ(row->shape.numOfDims, 1, "row should be 1D");
   ASSERT_EQ(row->shape.dims[0], 4, "row should have 4 elements");
 
-  dim_t idx[] = {0};
+  shapes_dim_t idx[] = {0};
   Value result;
   shapes_GetAt(row, (shapes_Dim){.dims = idx, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 12.0f, "row[0] should be x[3,0]=12");
 
-  dim_t idx2[] = {3};
+  shapes_dim_t idx2[] = {3};
   shapes_GetAt(row, (shapes_Dim){.dims = idx2, .numOfDims = 1}, &result);
   ASSERT_EQ(result.as.f32, 15.0f, "row[3] should be x[3,3]=15");
 }
@@ -2770,7 +2770,7 @@ static void test_view_advanced_indexing_on_slice(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 6x4 tensor, values[i][j] = i*4 + j
-  dim_t dims[] = {6, 4};
+  shapes_dim_t dims[] = {6, 4};
   Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 6; i++) {
     for (u32 j = 0; j < 4; j++) {
@@ -2782,7 +2782,7 @@ static void test_view_advanced_indexing_on_slice(void) {
   Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 2, .end = 6}, (Range){.start = 0, .end = 4});
 
   // IndexWithTensor(s, [0, 2]) should gather s[0,:] and s[2,:] = x[2,:] and x[4,:]
-  dim_t idxDims[] = {2};
+  shapes_dim_t idxDims[] = {2};
   Tensor *indices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)indices->values)[0] = 0;
   ((i8 *)indices->values)[1] = 2;
@@ -2812,7 +2812,7 @@ static void test_add_in_place_on_slice_view(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 4x4 base tensor with values [0..15]
-  dim_t dims[] = {4, 4};
+  shapes_dim_t dims[] = {4, 4};
   Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 16; i++) {
     ((f32 *)x->values)[i] = (f32)i;
@@ -2822,7 +2822,7 @@ static void test_add_in_place_on_slice_view(void) {
   Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 1, .end = 3});
 
   // ones = 2x2 tensor of all 1.0
-  Tensor *ones = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = (dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
+  Tensor *ones = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = (shapes_dim_t[]){2, 2}, .numOfDims = 2}, 1.0f);
 
   shapes_AddInPlace(&ctx, s, ones);
 
@@ -2845,7 +2845,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
   shapes_Context ctx = {.memory = mem};
 
   // 3x4 base tensor, values[i][j] = i*4 + j (0..11)
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   Tensor *x = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u32 i = 0; i < 12; i++) {
     ((f32 *)x->values)[i] = (f32)i;
@@ -2855,7 +2855,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
   Tensor *s = shapes_Slice(&ctx, x, (Range){.start = 1, .end = 3}, (Range){.start = 0, .end = 4});
 
   // t = shapes_Transpose(s, 0, 1) -> 4x2 view
-  Tensor *t = shapes_Transpose(&ctx, s, (dim_t)0, (dim_t)1);
+  Tensor *t = shapes_Transpose(&ctx, s, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT_NOT_NULL(t, "shapes_Transpose of slice should succeed");
 
   // Verify s and t have DIFFERENT boundary pointers (deep-copy)
@@ -2863,18 +2863,18 @@ static void test_view_boundary_deep_copy_transpose(void) {
 
   // Verify correct values through both views
   // s[0,0] = x[1,0] = 4
-  dim_t s00[] = {0, 0};
+  shapes_dim_t s00[] = {0, 0};
   Value result;
   shapes_GetAt(s, (shapes_Dim){.dims = s00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "s[0,0] should be x[1,0]=4");
 
   // t[0,0] = s[0,0] = x[1,0] = 4
-  dim_t t00[] = {0, 0};
+  shapes_dim_t t00[] = {0, 0};
   shapes_GetAt(t, (shapes_Dim){.dims = t00, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 4.0f, "t[0,0] should be x[1,0]=4");
 
   // t[1,0] = s[0,1] = x[1,1] = 5
-  dim_t t10[] = {1, 0};
+  shapes_dim_t t10[] = {1, 0};
   shapes_GetAt(t, (shapes_Dim){.dims = t10, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 5.0f, "t[1,0] should be x[1,1]=5");
 
@@ -2887,7 +2887,7 @@ static void test_view_boundary_deep_copy_transpose(void) {
 }
 
 static void test_slice_boundary_access(void) {
-  dim_t dims[] = {5, 5};
+  shapes_dim_t dims[] = {5, 5};
   TestTensor tt = createZerosTensor(dims, 2);
   olib_Memory *mem = tt.mem;
   shapes_Context ctx = {.memory = mem};
@@ -2895,7 +2895,7 @@ static void test_slice_boundary_access(void) {
   // Populate
   for (u32 i = 0; i < 5; i++) {
     for (u32 j = 0; j < 5; j++) {
-      dim_t idx_dims[] = {i, j};
+      shapes_dim_t idx_dims[] = {i, j};
       Value val = {.dtype = F32, .as.f32 = (f32)(i * 5 + j)};
       shapes_AssignValueAt(&ctx, &tt.tensor, (shapes_Dim){.dims = idx_dims, .numOfDims = 2}, val);
     }
@@ -2907,29 +2907,29 @@ static void test_slice_boundary_access(void) {
   Value result;
 
   // Top-left: slice[0,0] = source[2,1] = 11
-  dim_t tl[] = {0, 0};
+  shapes_dim_t tl[] = {0, 0};
   shapes_GetAt(slice, (shapes_Dim){.dims = tl, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 11.0f, "top-left corner should be 11");
 
   // Top-right: slice[0,2] = source[2,3] = 13
-  dim_t tr[] = {0, 2};
+  shapes_dim_t tr[] = {0, 2};
   shapes_GetAt(slice, (shapes_Dim){.dims = tr, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 13.0f, "top-right corner should be 13");
 
   // Bottom-left: slice[2,0] = source[4,1] = 21
-  dim_t bl[] = {2, 0};
+  shapes_dim_t bl[] = {2, 0};
   shapes_GetAt(slice, (shapes_Dim){.dims = bl, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 21.0f, "bottom-left corner should be 21");
 
   // Bottom-right: slice[2,2] = source[4,3] = 23
-  dim_t br[] = {2, 2};
+  shapes_dim_t br[] = {2, 2};
   shapes_GetAt(slice, (shapes_Dim){.dims = br, .numOfDims = 2}, &result);
   ASSERT_EQ(result.as.f32, 23.0f, "bottom-right corner should be 23");
 }
 
-static Tensor createF32Tensor(shapes_Context *ctx, dim_t *dims, u8 numOfDims, float *values, tensor_size_t size) {
-  multiplier_t *multipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
-  tensor_size_t mult = 1;
+static Tensor createF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, float *values, shapes_tensor_size_t size) {
+  shapes_multiplier_t *multipliers = olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * numOfDims);
+  shapes_tensor_size_t mult = 1;
   for (int i = numOfDims - 1; i >= 0; i--) {
     multipliers[i] = mult;
     mult *= dims[i];
@@ -2953,36 +2953,36 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static Tensor *createHostF32Tensor(shapes_Context *ctx, dim_t *dims, u8 numOfDims, const float *values, tensor_size_t size) {
+static Tensor *createHostF32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, const float *values, shapes_tensor_size_t size) {
   Tensor *tensor = shapes_Make_ZerosTensor(ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims});
   memcpy(tensor->values, values, sizeof(float) * size);
   return tensor;
 }
 
-static Tensor *createHostI32Tensor(shapes_Context *ctx, dim_t *dims, u8 numOfDims, const i32 *values, tensor_size_t size) {
+static Tensor *createHostI32Tensor(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims, const i32 *values, shapes_tensor_size_t size) {
   Tensor *tensor = t_Zeros(ctx, (shapes_Dim){.dims = dims, .numOfDims = numOfDims}, I32);
   memcpy(tensor->values, values, sizeof(i32) * size);
   return tensor;
 }
 
-static void assertF32TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, const float *expected, tensor_size_t size, const char *label) {
+static void assertF32TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, const float *expected, shapes_tensor_size_t size, const char *label) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
 
   float *values = tensor->values;
-  for (tensor_size_t i = 0; i < size; i++) {
+  for (shapes_tensor_size_t i = 0; i < size; i++) {
     ASSERT_EQ(values[i], expected[i], label);
   }
 }
 
-static void assertI64TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, const i64 *expected, tensor_size_t size, const char *label) {
+static void assertI64TensorMatchesOnCpu(shapes_Context *srcCtx, Tensor *tensor, const i64 *expected, shapes_tensor_size_t size, const char *label) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
 
   i64 *values = tensor->values;
-  for (tensor_size_t i = 0; i < size; i++) {
+  for (shapes_tensor_size_t i = 0; i < size; i++) {
     ASSERT_EQ(values[i], expected[i], label);
   }
 }
@@ -2994,9 +2994,9 @@ static void test_assign_value_gpu_dispatch_basic(void) {
 
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
-  dim_t dims[] = {2, 2};
+  shapes_dim_t dims[] = {2, 2};
   Tensor *tensor = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
-  dim_t idx[] = {1, 0};
+  shapes_dim_t idx[] = {1, 0};
   Value value = {.dtype = F32, .as.f32 = 77.0f};
   Value result;
 
@@ -3017,10 +3017,10 @@ static void test_get_tensor_at_gpu_scalar_result_lives_on_ctx(void) {
 
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *tensor = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
-  for (dim_t i = 0; i < 3; i++) {
-    dim_t idx[] = {i};
+  for (shapes_dim_t i = 0; i < 3; i++) {
+    shapes_dim_t idx[] = {i};
     Result assignResult = shapes_AssignValueAt(&ctx, tensor, (shapes_Dim){.dims = idx, .numOfDims = 1}, (Value){.dtype = F32, .as.f32 = (float)(i + 1)});
     ASSERT_EQ(assignResult, OK, "shapes_AssignValueAt should populate CUDA tensor");
   }
@@ -3046,7 +3046,7 @@ static void test_add_gpu_dispatch_materializes_cpu_inputs(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float aValues[] = {1, 2, 3, 4, 5, 6};
   float bValues[] = {10, 20, 30, 40, 50, 60};
   float expected[] = {11, 22, 33, 44, 55, 66};
@@ -3075,7 +3075,7 @@ static void test_subtract_gpu_dispatch_basic(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float aValues[] = {10, 20, 30, 40, 50, 60};
   float bValues[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {9, 18, 27, 36, 45, 54};
@@ -3103,7 +3103,7 @@ static void test_multiply_gpu_dispatch_basic(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float aValues[] = {1, 2, 3, 4, 5, 6};
   float bValues[] = {2, 2, 2, 3, 3, 3};
   float expected[] = {2, 4, 6, 12, 15, 18};
@@ -3131,7 +3131,7 @@ static void test_add_in_place_gpu_dispatch_basic(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float aValues[] = {1, 2, 3, 4, 5, 6};
   float bValues[] = {10, 20, 30, 40, 50, 60};
   float expected[] = {11, 22, 33, 44, 55, 66};
@@ -3158,7 +3158,7 @@ static void test_sum_gpu_dispatch_basic(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float values[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {5, 7, 9};
 
@@ -3183,7 +3183,7 @@ static void test_mean_gpu_dispatch_basic(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float values[] = {1, 2, 3, 4, 5, 6};
   float expected[] = {3.5f};
 
@@ -3209,7 +3209,7 @@ static void test_argmax_gpu_dispatch_basic(void) {
   shapes_Context cudaCtx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = cudaCtx.memory};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   float values[] = {1, 5, 3, 4, 2, 6};
   i64 expected[] = {1, 0, 1};
 
@@ -3230,9 +3230,9 @@ static void test_index_accumulate_1d_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t destDims[] = {3, 2};
-  dim_t indexDims[] = {2};
-  dim_t srcDims[] = {2, 2};
+  shapes_dim_t destDims[] = {3, 2};
+  shapes_dim_t indexDims[] = {2};
+  shapes_dim_t srcDims[] = {2, 2};
   i32 indicesValues[] = {1, 0};
   float srcValues[] = {10, 20, 30, 40};
   float expected[] = {30, 40, 10, 20, 0, 0};
@@ -3244,7 +3244,7 @@ static void test_index_accumulate_1d_basic(void) {
   IndexAccumulate1d(&ctx, dest, indices, srcGrad);
 
   float *values = dest->values;
-  for (tensor_size_t i = 0; i < 6; i++) {
+  for (shapes_tensor_size_t i = 0; i < 6; i++) {
     ASSERT_EQ(values[i], expected[i], "IndexAccumulate1d CPU result should match");
   }
 }
@@ -3257,9 +3257,9 @@ static void test_index_accumulate_1d_gpu_dispatch_basic(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  dim_t destDims[] = {3, 2};
-  dim_t indexDims[] = {2};
-  dim_t srcDims[] = {2, 2};
+  shapes_dim_t destDims[] = {3, 2};
+  shapes_dim_t indexDims[] = {2};
+  shapes_dim_t srcDims[] = {2, 2};
   i32 indicesValues[] = {1, 0};
   float srcValues[] = {10, 20, 30, 40};
   float expected[] = {30, 40, 10, 20, 0, 0};
@@ -3286,8 +3286,8 @@ static void test_index_with_tensor_gpu_dispatch_basic(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  dim_t sourceDims[] = {3, 2};
-  dim_t indexDims[] = {2};
+  shapes_dim_t sourceDims[] = {3, 2};
+  shapes_dim_t indexDims[] = {2};
   float sourceValues[] = {1, 2, 3, 4, 5, 6};
   i32 indexValues[] = {0, 2};
   float expected[] = {1, 2, 5, 6};
@@ -3315,8 +3315,8 @@ static void test_index_with_tensor_2d_gpu_dispatch_basic(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  dim_t sourceDims[] = {2, 3, 2};
-  dim_t indexDims[] = {2};
+  shapes_dim_t sourceDims[] = {2, 3, 2};
+  shapes_dim_t indexDims[] = {2};
   float sourceValues[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   i32 rowValues[] = {0, 1};
   i32 colValues[] = {2, 0};
@@ -3347,8 +3347,8 @@ static void test_concat_gpu_dispatch_materializes_cpu_inputs(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  dim_t targetDims[] = {2, 2};
-  dim_t addDims[] = {1, 2};
+  shapes_dim_t targetDims[] = {2, 2};
+  shapes_dim_t addDims[] = {1, 2};
   float targetValues[] = {1, 2, 3, 4};
   float addValues[] = {5, 6};
   float expected[] = {1, 2, 3, 4, 5, 6};
@@ -3443,11 +3443,11 @@ static void test_matmul_2d_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {2, 3};
+  shapes_dim_t dimsA[] = {2, 3};
   float valsA[] = {1, 2, 3, 4, 5, 6};
   Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 6);
 
-  dim_t dimsB[] = {3, 2};
+  shapes_dim_t dimsB[] = {3, 2};
   float valsB[] = {1, 2, 3, 4, 5, 6};
   Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 6);
 
@@ -3469,11 +3469,11 @@ static void test_matmul_2d_non_square(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {2, 4};
+  shapes_dim_t dimsA[] = {2, 4};
   float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8};
   Tensor a = createF32Tensor(&ctx, dimsA, 2, valsA, 8);
 
-  dim_t dimsB[] = {4, 3};
+  shapes_dim_t dimsB[] = {4, 3};
   float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   Tensor b = createF32Tensor(&ctx, dimsB, 2, valsB, 12);
 
@@ -3493,11 +3493,11 @@ static void test_matmul_3d_batch(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {2, 2, 3};
+  shapes_dim_t dimsA[] = {2, 2, 3};
   float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
 
-  dim_t dimsB[] = {2, 3, 2};
+  shapes_dim_t dimsB[] = {2, 3, 2};
   float valsB[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 12);
 
@@ -3518,11 +3518,11 @@ static void test_matmul_broadcast_batch(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {2, 2, 3};
+  shapes_dim_t dimsA[] = {2, 2, 3};
   float valsA[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   Tensor a = createF32Tensor(&ctx, dimsA, 3, valsA, 12);
 
-  dim_t dimsB[] = {1, 3, 2};
+  shapes_dim_t dimsB[] = {1, 3, 2};
   float valsB[] = {1, 2, 3, 4, 5, 6};
   Tensor b = createF32Tensor(&ctx, dimsB, 3, valsB, 6);
 
@@ -3542,11 +3542,11 @@ static void test_dot_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {3};
+  shapes_dim_t dimsA[] = {3};
   float valsA[] = {1, 2, 3};
   Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 3);
 
-  dim_t dimsB[] = {3};
+  shapes_dim_t dimsB[] = {3};
   float valsB[] = {4, 5, 6};
   Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 3);
 
@@ -3564,11 +3564,11 @@ static void test_dot_larger_vectors(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dimsA[] = {5};
+  shapes_dim_t dimsA[] = {5};
   float valsA[] = {1, 2, 3, 4, 5};
   Tensor a = createF32Tensor(&ctx, dimsA, 1, valsA, 5);
 
-  dim_t dimsB[] = {5};
+  shapes_dim_t dimsB[] = {5};
   float valsB[] = {1, 1, 1, 1, 1};
   Tensor b = createF32Tensor(&ctx, dimsB, 1, valsB, 5);
 
@@ -3582,7 +3582,7 @@ static void test_dot_larger_vectors(void) {
 static void test_negate_f32(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 5.0);
   Tensor *dest = Negate(&ctx, t);
   ASSERT_NOT_NULL(dest, "Negate should return a tensor");
@@ -3595,7 +3595,7 @@ static void test_negate_f32(void) {
 static void test_negate_already_negative(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
-  dim_t dims[] = {2};
+  shapes_dim_t dims[] = {2};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, -3.0);
   Tensor *dest = Negate(&ctx, t);
   ASSERT_NOT_NULL(dest, "Negate should return a tensor for negative values");
@@ -3699,14 +3699,14 @@ static void test_index_with_tensor_2d_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Create 3x4 source tensor: [[0,1,2,3], [4,5,6,7], [8,9,10,11]]
-  dim_t dims[] = {3, 4};
+  shapes_dim_t dims[] = {3, 4};
   Tensor *source = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
   for (u8 i = 0; i < 12; i++) {
     ((f32 *)source->values)[i] = (f32)i;
   }
 
   // Create row and column indices: extract [0,1], [1,2], [2,3] -> [1, 6, 11]
-  dim_t idxDims[] = {3};
+  shapes_dim_t idxDims[] = {3};
   Tensor *rowIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 1;
@@ -3733,14 +3733,14 @@ static void test_index_with_tensor_2d_3d_source(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Create 2x3x4 source tensor
-  dim_t dims[] = {2, 3, 4};
+  shapes_dim_t dims[] = {2, 3, 4};
   Tensor *source = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 3}, 0.0f);
   for (u8 i = 0; i < 24; i++) {
     ((f32 *)source->values)[i] = (f32)i;
   }
 
   // Extract [0,0,:], [1,2,:] -> first 4 elements and last 4 elements
-  dim_t idxDims[] = {2};
+  shapes_dim_t idxDims[] = {2};
   Tensor *rowIndices = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = idxDims, .numOfDims = 1}, 0);
   ((i8 *)rowIndices->values)[0] = 0;
   ((i8 *)rowIndices->values)[1] = 1;
@@ -3773,7 +3773,7 @@ static void test_mean_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // Set values: [[1, 2, 3], [4, 5, 6]]
@@ -3798,7 +3798,7 @@ static void test_std_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {4};
+  shapes_dim_t dims[] = {4};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   ((f32 *)t->values)[0] = 1.0f;
   ((f32 *)t->values)[1] = 2.0f;
@@ -3820,7 +3820,7 @@ static void test_log_basic(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 2};
+  shapes_dim_t dims[] = {2, 2};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // Set values: [[1.0, 2.718], [10.0, 100.0]]
@@ -3849,7 +3849,7 @@ static void test_abs_signed_int(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {4};
+  shapes_dim_t dims[] = {4};
   Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
 
   ((i8 *)t->values)[0] = -1;
@@ -3874,7 +3874,7 @@ static void test_abs_float(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 2};
+  shapes_dim_t dims[] = {2, 2};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   ((f32 *)t->values)[0] = -1.5f;
@@ -3901,7 +3901,7 @@ static void test_max_dim0(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -3928,7 +3928,7 @@ static void test_max_dim1(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -3954,7 +3954,7 @@ static void test_max_int_type(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 2};
+  shapes_dim_t dims[] = {2, 2};
   Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
 
   // [[1, 5], [3, 2]]
@@ -3975,7 +3975,7 @@ static void test_max_non_contiguous(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -3997,7 +3997,7 @@ static void test_argmax_dim0(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -4025,7 +4025,7 @@ static void test_argmax_dim1_with_ties(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 4};
+  shapes_dim_t dims[] = {2, 4};
   Tensor *t = shapes_Make_IntTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0);
 
   // [[1, 5, 5, 2], [3, 3, 1, 3]]
@@ -4053,7 +4053,7 @@ static void test_argmax_non_contiguous(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 5, 3], [4, 2, 6]]
@@ -4076,7 +4076,7 @@ static void test_meandim_dim0(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 2, 3], [4, 5, 6]]
@@ -4103,7 +4103,7 @@ static void test_meandim_dim1(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, 0.0f);
 
   // [[1, 2, 3], [4, 5, 6]]
@@ -4134,11 +4134,11 @@ static void test_concat_2d_dim0_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 2x3 tensor with values 1.0
-  dim_t targetDims[] = {2, 3};
+  shapes_dim_t targetDims[] = {2, 3};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
 
   // Additional tensor: 3x3 tensor with values 2.0
-  dim_t addDims[] = {3, 3};
+  shapes_dim_t addDims[] = {3, 3};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
 
   Tensor *tensors[] = {toAdd};
@@ -4158,11 +4158,11 @@ static void test_concat_2d_dim1_basic(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 2x2 tensor with values 1.0
-  dim_t targetDims[] = {2, 2};
+  shapes_dim_t targetDims[] = {2, 2};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
 
   // Additional tensor: 2x3 tensor with values 3.0
-  dim_t addDims[] = {2, 3};
+  shapes_dim_t addDims[] = {2, 3};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 3.0f);
 
   Tensor *tensors[] = {toAdd};
@@ -4178,14 +4178,14 @@ static void test_concat_multiple_tensors(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 1x2 tensor
-  dim_t targetDims[] = {1, 2};
+  shapes_dim_t targetDims[] = {1, 2};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
 
   // Two additional tensors: 2x2 and 3x2
-  dim_t add1Dims[] = {2, 2};
+  shapes_dim_t add1Dims[] = {2, 2};
   Tensor *toAdd1 = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = add1Dims, .numOfDims = 2}, 2.0f);
 
-  dim_t add2Dims[] = {3, 2};
+  shapes_dim_t add2Dims[] = {3, 2};
   Tensor *toAdd2 = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = add2Dims, .numOfDims = 2}, 3.0f);
 
   Tensor *tensors[] = {toAdd1, toAdd2};
@@ -4201,11 +4201,11 @@ static void test_concat_1d_tensors(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 3-element vector
-  dim_t targetDims[] = {3};
+  shapes_dim_t targetDims[] = {3};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 1}, 1.0f);
 
   // Additional: 2-element vector
-  dim_t addDims[] = {2};
+  shapes_dim_t addDims[] = {2};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 1}, 2.0f);
 
   Tensor *tensors[] = {toAdd};
@@ -4221,11 +4221,11 @@ static void test_concat_3d_tensors(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 2x3x4 tensor
-  dim_t targetDims[] = {2, 3, 4};
+  shapes_dim_t targetDims[] = {2, 3, 4};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 3}, 1.0f);
 
   // Additional: 3x3x4 tensor (concat along dim 0)
-  dim_t addDims[] = {3, 3, 4};
+  shapes_dim_t addDims[] = {3, 3, 4};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 3}, 2.0f);
 
   Tensor *tensors[] = {toAdd};
@@ -4243,7 +4243,7 @@ static void test_concat_data_correctness(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 2x2 tensor with sequential values 0, 1, 2, 3
-  dim_t targetDims[] = {2, 2};
+  shapes_dim_t targetDims[] = {2, 2};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 0.0f);
   f32 *targetVals = (f32 *)target->values;
   targetVals[0] = 0.0f;
@@ -4252,7 +4252,7 @@ static void test_concat_data_correctness(void) {
   targetVals[3] = 3.0f;
 
   // Additional: 2x2 tensor with values 10, 11, 12, 13
-  dim_t addDims[] = {2, 2};
+  shapes_dim_t addDims[] = {2, 2};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 0.0f);
   f32 *addVals = (f32 *)toAdd->values;
   addVals[0] = 10.0f;
@@ -4287,9 +4287,9 @@ static void test_concat_with_non_contiguous_target(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Create a transposed tensor (non-contiguous) as target
-  dim_t origDims[] = {3, 2};
+  shapes_dim_t origDims[] = {3, 2};
   Tensor *orig = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = origDims, .numOfDims = 2}, 1.0f);
-  Tensor *target = shapes_Transpose(&ctx, orig, (dim_t)0, (dim_t)1);
+  Tensor *target = shapes_Transpose(&ctx, orig, (shapes_dim_t)0, (shapes_dim_t)1);
   ASSERT(!target->isContigous, "target should not be contiguous");
 
   // Set specific values to verify copying works
@@ -4302,7 +4302,7 @@ static void test_concat_with_non_contiguous_target(void) {
   origVals[5] = 6.0f;
 
   // Additional tensor
-  dim_t addDims[] = {2, 3};
+  shapes_dim_t addDims[] = {2, 3};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 10.0f);
 
   Tensor *tensors[] = {toAdd};
@@ -4318,12 +4318,12 @@ static void test_concat_single_element_tensors(void) {
   shapes_Context ctx = {.memory = mem};
 
   // Target: 1x1 tensor
-  dim_t targetDims[] = {1, 1};
+  shapes_dim_t targetDims[] = {1, 1};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
   ((f32 *)target->values)[0] = 1.0f;
 
   // Additional: 1x1 tensor
-  dim_t addDims[] = {1, 1};
+  shapes_dim_t addDims[] = {1, 1};
   Tensor *toAdd = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = addDims, .numOfDims = 2}, 2.0f);
   ((f32 *)toAdd->values)[0] = 2.0f;
 
@@ -4344,7 +4344,7 @@ static void test_concat_no_additional_tensors(void) {
   olib_Memory *mem = olib_InitializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t targetDims[] = {2, 3};
+  shapes_dim_t targetDims[] = {2, 3};
   Tensor *target = shapes_Make_FloatTensor(&ctx, (shapes_Dim){.dims = targetDims, .numOfDims = 2}, 1.0f);
   ((f32 *)target->values)[0] = 5.0f;
   ((f32 *)target->values)[1] = 6.0f;

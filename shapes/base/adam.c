@@ -8,21 +8,21 @@ static inline float rsqrtf(float x) {
 }
 #endif
 
-static Result adamF32(AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
+static Result adamF32(shapes_AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
   f32 oneMinusB1 = 1.0f - b1;
   f32 oneMinusB2 = 1.0f - b2;
   f32 inv_bc1 = 1.0f / (1.0f - powf(b1, step));
   f32 inv_bc2 = 1.0f / (1.0f - powf(b2, step));
 
   for (size_t t = 0; t < numParameters; t++) {
-    AdamData *trip = &triplets[t];
+    shapes_AdamData *trip = &triplets[t];
     f32 *pVals = trip->param;
     f32 *gVals = trip->grad;
     f32 *mVals = trip->m;
     f32 *vVals = trip->v;
 
     SHAPES_PRAGMA_SIMD
-    for (tensor_size_t i = 0; i < trip->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < trip->size; i++) {
       mVals[i] = b1 * mVals[i] + oneMinusB1 * gVals[i];
       vVals[i] = b2 * vVals[i] + oneMinusB2 * gVals[i] * gVals[i];
 
@@ -38,21 +38,21 @@ static Result adamF32(AdamData *triplets, size_t numParameters, f32 b1, f32 b2, 
   return OK;
 }
 
-static Result adamF64(AdamData *triplets, size_t numParameters, f64 b1, f64 b2, size_t step, f64 a, f64 epsilon) {
+static Result adamF64(shapes_AdamData *triplets, size_t numParameters, f64 b1, f64 b2, size_t step, f64 a, f64 epsilon) {
   f64 oneMinusB1 = 1.0 - b1;
   f64 oneMinusB2 = 1.0 - b2;
   f64 inv_bc1 = 1.0 / (1.0 - pow(b1, step));
   f64 inv_bc2 = 1.0 / (1.0 - pow(b2, step));
 
   for (size_t t = 0; t < numParameters; t++) {
-    AdamData *trip = &triplets[t];
+    shapes_AdamData *trip = &triplets[t];
     f64 *pVals = trip->param;
     f64 *gVals = trip->grad;
     f64 *mVals = trip->m;
     f64 *vVals = trip->v;
 
     SHAPES_PRAGMA_SIMD
-    for (tensor_size_t i = 0; i < trip->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < trip->size; i++) {
       mVals[i] = b1 * mVals[i] + oneMinusB1 * gVals[i];
       vVals[i] = b2 * vVals[i] + oneMinusB2 * gVals[i] * gVals[i];
 
@@ -72,7 +72,7 @@ static bool isFloatDtype(shapes_Dtype dt) {
   return dt == F16 || dt == F32 || dt == F64;
 }
 
-Result shapes_optimizer_Adam(shapes_Context *ctx, AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
+Result shapes_optimizer_Adam(shapes_Context *ctx, shapes_AdamData *triplets, size_t numParameters, f32 b1, f32 b2, size_t step, f32 a, f32 epsilon) {
   (void)ctx;
 
   if (triplets == NULL) {
@@ -80,7 +80,7 @@ Result shapes_optimizer_Adam(shapes_Context *ctx, AdamData *triplets, size_t num
   }
 
   for (size_t tripletIdx = 0; tripletIdx < numParameters; tripletIdx++) {
-    AdamData *trip = &triplets[tripletIdx];
+    shapes_AdamData *trip = &triplets[tripletIdx];
 
     if (trip->param == NULL) {
       return ERR_ADAM_NULL_PARAM;

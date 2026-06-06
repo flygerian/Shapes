@@ -25,7 +25,7 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
     return false;
   }
 
-  for (tensor_size_t i = 0; i < a->shape.numOfDims; i++) {
+  for (shapes_tensor_size_t i = 0; i < a->shape.numOfDims; i++) {
     if (a->shape.dims[i] != b->shape.dims[i]) {
       return false;
     }
@@ -35,7 +35,7 @@ static bool areTensorsSameShape(Tensor *a, Tensor *b) {
 }
 
 static Result straightArithBinop(Tensor *a, Tensor *b, Tensor *dest, shapes_OpType opType) {
-  tensor_size_t n = dest->size;
+  shapes_tensor_size_t n = dest->size;
 
   switch (a->dtype) {
     case BOOL: {
@@ -212,7 +212,7 @@ static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, shapes_OpType op
   return ERR_NOT_A_BINOP;
 }
 
-static inline void unravel_index(tensor_size_t flatIdx, shapes_Dim *shape, dim_t *destCoords) {
+static inline void unravel_index(shapes_tensor_size_t flatIdx, shapes_Dim *shape, shapes_dim_t *destCoords) {
   for (int d = shape->numOfDims - 1; d >= 0; d--) {
     destCoords[d] = flatIdx % shape->dims[d];
     flatIdx /= shape->dims[d];
@@ -220,22 +220,22 @@ static inline void unravel_index(tensor_size_t flatIdx, shapes_Dim *shape, dim_t
 }
 
 static Result broadcastBinop(Tensor *opA, Tensor *opB, Tensor *output, shapes_OpType opType) {
-  dim_t currentCoord[output->shape.numOfDims];
-  dim_t aCoords[output->shape.numOfDims];
-  dim_t bCoords[output->shape.numOfDims];
+  shapes_dim_t currentCoord[output->shape.numOfDims];
+  shapes_dim_t aCoords[output->shape.numOfDims];
+  shapes_dim_t bCoords[output->shape.numOfDims];
 
   PANIC_IF(!areBroadcastable(opA, opB), TENSORS_CANNOT_BE_BROADCASTED);
 
-  dim_t broadcastDim = 0;
-  dim_t broadcastDimNumIterations = 0;
+  shapes_dim_t broadcastDim = 0;
+  shapes_dim_t broadcastDimNumIterations = 0;
   Tensor *widerOperand = opA->size > opB->size ? opA : opB;
   Tensor *smallerOperand = opA->size < opB->size ? opA : opB;
   Tensor *broadcastOperand = NULL;
   Tensor *nonBroadcastOperand = NULL;
 
-  for (dim_t i = widerOperand->shape.numOfDims - 1; i >= 0; i--) {
-    dim_t widerOpDim = widerOperand->shape.dims[i];
-    dim_t smallerOpDim = smallerOperand->shape.dims[i];
+  for (shapes_dim_t i = widerOperand->shape.numOfDims - 1; i >= 0; i--) {
+    shapes_dim_t widerOpDim = widerOperand->shape.dims[i];
+    shapes_dim_t smallerOpDim = smallerOperand->shape.dims[i];
 
     if (widerOpDim != smallerOpDim) {
       broadcastDim = i;
@@ -246,32 +246,32 @@ static Result broadcastBinop(Tensor *opA, Tensor *opB, Tensor *output, shapes_Op
     }
   }
 
-  tensor_size_t numOuterIterations;
+  shapes_tensor_size_t numOuterIterations;
   calculateNumElementsBeforeDim(widerOperand, broadcastDim, &numOuterIterations);
 
-  tensor_size_t broadcastOperandOuterSize;
+  shapes_tensor_size_t broadcastOperandOuterSize;
   calculateNumElementsBeforeDim(broadcastOperand, broadcastDim, &broadcastOperandOuterSize);
 
-  tensor_size_t nonBroadcastOperandOuterSize;
+  shapes_tensor_size_t nonBroadcastOperandOuterSize;
   calculateNumElementsBeforeDim(nonBroadcastOperand, broadcastDim, &nonBroadcastOperandOuterSize);
 
-  tensor_size_t numInnerIterations;
+  shapes_tensor_size_t numInnerIterations;
   calculateNumElementsAfterDim(widerOperand, broadcastDim, &numInnerIterations);
 
   size_t elemBytes = getBytesForDtype(opA->dtype);
   binopFn doBinaryOperation = getBinopFn(binopTable[opType], opA->dtype);
 
-  for (tensor_size_t outerIdx = 0; outerIdx < numOuterIterations; outerIdx++) {
-    for (dim_t broadcastDimIdx = 0; broadcastDimIdx < broadcastDimNumIterations; broadcastDimIdx++) {
-      tensor_size_t bOuterIdxPresenceMultiplier = broadcastOperandOuterSize == numOuterIterations ? 1 : 0;
-      tensor_size_t broadcastOperandIdx = bOuterIdxPresenceMultiplier * outerIdx * numInnerIterations;
+  for (shapes_tensor_size_t outerIdx = 0; outerIdx < numOuterIterations; outerIdx++) {
+    for (shapes_dim_t broadcastDimIdx = 0; broadcastDimIdx < broadcastDimNumIterations; broadcastDimIdx++) {
+      shapes_tensor_size_t bOuterIdxPresenceMultiplier = broadcastOperandOuterSize == numOuterIterations ? 1 : 0;
+      shapes_tensor_size_t broadcastOperandIdx = bOuterIdxPresenceMultiplier * outerIdx * numInnerIterations;
       void *broadcastOperandPos = (u8 *)broadcastOperand->values + broadcastOperandIdx * elemBytes;
 
-      tensor_size_t nbOuterIdxPresenceMultiplier = nonBroadcastOperandOuterSize == numOuterIterations ? 1 : 0;
-      tensor_size_t nonBroadcastOperandIdx = nbOuterIdxPresenceMultiplier * (outerIdx * broadcastDimNumIterations * numInnerIterations) + (broadcastDimIdx * numInnerIterations);
+      shapes_tensor_size_t nbOuterIdxPresenceMultiplier = nonBroadcastOperandOuterSize == numOuterIterations ? 1 : 0;
+      shapes_tensor_size_t nonBroadcastOperandIdx = nbOuterIdxPresenceMultiplier * (outerIdx * broadcastDimNumIterations * numInnerIterations) + (broadcastDimIdx * numInnerIterations);
       void *nonBroadcastOperandPos = (u8 *)nonBroadcastOperand->values + nonBroadcastOperandIdx * elemBytes;
 
-      tensor_size_t outputIdx = (outerIdx * broadcastDimNumIterations + broadcastDimIdx) * numInnerIterations;
+      shapes_tensor_size_t outputIdx = (outerIdx * broadcastDimNumIterations + broadcastDimIdx) * numInnerIterations;
       void *aPos = broadcastOperand == opA ? broadcastOperandPos : nonBroadcastOperandPos;
       void *bPos = broadcastOperand == opA ? nonBroadcastOperandPos : broadcastOperandPos;
 
@@ -285,7 +285,7 @@ static Result broadcastBinop(Tensor *opA, Tensor *opB, Tensor *output, shapes_Op
 static Tensor binaryOpCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
   PANIC_IF(a->dtype != b->dtype, ERR_DTYPE_MISMATCH);
 
-  TensorPair ops = {.a = *a, .b = *b};
+  shapes_TensorPair ops = {.a = *a, .b = *b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
     ops = padSmallerTensor(ctx, a, b);
   }
@@ -320,7 +320,7 @@ static Tensor binaryOpCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpTy
 
 static Tensor binaryOpCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpType opType) {
 
-  TensorPair ops = {.a = *a, .b = *b};
+  shapes_TensorPair ops = {.a = *a, .b = *b};
   if (a->shape.numOfDims != b->shape.numOfDims) {
     ops = padSmallerTensor(ctx, a, b);
   }
@@ -331,7 +331,7 @@ static Tensor binaryOpCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpT
   PANIC_IF(!areBroadcastable(opA, opB), ERR_DIM_MISMATCH);
 
   shapes_Dim outputShape;
-  tensor_size_t outputSize;
+  shapes_tensor_size_t outputSize;
   if (opA->size > opB->size) {
     outputShape = opA->shape;
     outputSize = opA->size;
@@ -349,8 +349,8 @@ static Tensor binaryOpCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpT
   }
 
   // Find the leftmost differing dimension (start of broadcast block)
-  dim_t broadcastDim = -1;
-  for (dim_t i = 0; i < opA->shape.numOfDims; i++) {
+  shapes_dim_t broadcastDim = -1;
+  for (shapes_dim_t i = 0; i < opA->shape.numOfDims; i++) {
     if (opA->shape.dims[i] != opB->shape.dims[i]) {
       broadcastDim = i;
       break;
@@ -364,12 +364,12 @@ static Tensor binaryOpCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpT
   Tensor *smaller = opA->size == outputSize ? opB : opA;
   PANIC_IF(larger->size != outputSize, ERR_NO_OP);
 
-  tensor_size_t outerSize;
+  shapes_tensor_size_t outerSize;
   Result r = calculateNumElementsBeforeDim(larger, broadcastDim, &outerSize);
   PANIC_IF(r != OK, r);
 
   // All broadcast dimensions are collapsed into one, innerSize is 1
-  tensor_size_t broadcastDimSize = larger->size / outerSize;
+  shapes_tensor_size_t broadcastDimSize = larger->size / outerSize;
 
   Result res = shapescuda_BroadcastBinaryOp(opA->dtype, opType, larger->values, smaller->values, output.values, outerSize, broadcastDimSize, 1);
   PANIC_IF(res != OK, res);
@@ -393,7 +393,7 @@ Tensor shapes_Add(shapes_Context *ctx, Tensor *a, Tensor *b) {
   return binaryOp(ctx, a, b, OP_ADD);
 }
 
-static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, tensor_size_t idx, dim_t *currentCoord, dim_t *bCoords) {
+static inline valuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, shapes_tensor_size_t idx, shapes_dim_t *currentCoord, shapes_dim_t *bCoords) {
   unravel_index(idx, &a->shape, currentCoord);
 
   // Compute storage index in a (accounts for per-dim boundary via getContigousIdxFromCoord).
@@ -410,14 +410,14 @@ static inline ValuePair getValueOperandsForInplaceBinop(Tensor *a, Tensor *opB, 
   u64 bIdx = getContigousIdxFromCoord(opB, bCoords);
   VALUE_GET_FROM_ARR(opB->values, bIdx, &bVal, opB->dtype);
 
-  return (ValuePair){.a = aVal, .b = bVal};
+  return (valuePair){.a = aVal, .b = bVal};
 }
 
 static inline void inPlaceBinopAdd(Tensor *a, Tensor *opB) {
-  dim_t currentCoord[a->shape.numOfDims];
-  dim_t bCoords[a->shape.numOfDims];
-  for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
+  shapes_dim_t currentCoord[a->shape.numOfDims];
+  shapes_dim_t bCoords[a->shape.numOfDims];
+  for (shapes_tensor_size_t x = 0; x < a->size; x++) {
+    valuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, +);
@@ -427,10 +427,10 @@ static inline void inPlaceBinopAdd(Tensor *a, Tensor *opB) {
 }
 
 static inline void inPlaceBinopMultiply(Tensor *a, Tensor *opB) {
-  dim_t currentCoord[a->shape.numOfDims];
-  dim_t bCoords[a->shape.numOfDims];
-  for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
+  shapes_dim_t currentCoord[a->shape.numOfDims];
+  shapes_dim_t bCoords[a->shape.numOfDims];
+  for (shapes_tensor_size_t x = 0; x < a->size; x++) {
+    valuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, *);
@@ -440,10 +440,10 @@ static inline void inPlaceBinopMultiply(Tensor *a, Tensor *opB) {
 }
 
 static inline void inPlaceBinopSubtract(Tensor *a, Tensor *opB) {
-  dim_t currentCoord[a->shape.numOfDims];
-  dim_t bCoords[a->shape.numOfDims];
-  for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
+  shapes_dim_t currentCoord[a->shape.numOfDims];
+  shapes_dim_t bCoords[a->shape.numOfDims];
+  for (shapes_tensor_size_t x = 0; x < a->size; x++) {
+    valuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, -);
@@ -453,10 +453,10 @@ static inline void inPlaceBinopSubtract(Tensor *a, Tensor *opB) {
 }
 
 static inline void inPlaceBinopDivide(Tensor *a, Tensor *opB) {
-  dim_t currentCoord[a->shape.numOfDims];
-  dim_t bCoords[a->shape.numOfDims];
-  for (tensor_size_t x = 0; x < a->size; x++) {
-    ValuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
+  shapes_dim_t currentCoord[a->shape.numOfDims];
+  shapes_dim_t bCoords[a->shape.numOfDims];
+  for (shapes_tensor_size_t x = 0; x < a->size; x++) {
+    valuePair pair = getValueOperandsForInplaceBinop(a, opB, x, currentCoord, bCoords);
 
     shapes_Value result;
     VALUE_BINOP(result, pair.a, pair.b, /);
@@ -472,13 +472,13 @@ static void inPlaceBinopCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_Op
   PANIC_IF(NUM_DIMS(a) != NUM_DIMS(b) && NUM_DIMS(b) != 1, ERR_DIM_MISMATCH);
 
   if (b->shape.numOfDims > 1) {
-    for (dim_t d = 1; d <= b->shape.numOfDims; d++) {
-      dim_t aDim = a->shape.dims[a->shape.numOfDims - d];
-      dim_t bDim = b->shape.dims[b->shape.numOfDims - d];
+    for (shapes_dim_t d = 1; d <= b->shape.numOfDims; d++) {
+      shapes_dim_t aDim = a->shape.dims[a->shape.numOfDims - d];
+      shapes_dim_t bDim = b->shape.dims[b->shape.numOfDims - d];
 
       PANIC_IF(aDim != bDim && bDim != 1, ERR_DIM_MISMATCH);
     }
-    // TensorPair ops = padSmallerTensor(ctx, a, b);
+    // shapes_TensorPair ops = padSmallerTensor(ctx, a, b);
     // opB = ops.b;
     // paddedB = ops.b;
   }
@@ -509,7 +509,7 @@ static void inPlaceBinopCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_O
 
   Tensor *opB = b;
   if (a->shape.numOfDims != b->shape.numOfDims) {
-    TensorPair ops = padSmallerTensor(ctx, a, b);
+    shapes_TensorPair ops = padSmallerTensor(ctx, a, b);
     opB = &ops.b;
   }
 

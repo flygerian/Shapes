@@ -36,10 +36,10 @@ Tensor shapes_Slice(shapes_Context *ctx, Tensor *source, ...) {
   }
   va_end(args);
 
-  shapes_Dim newShape = {.dims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims),
+  shapes_Dim newShape = {.dims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * source->shape.numOfDims),
                   .numOfDims = source->shape.numOfDims,
                   .multipliers =
-                      olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims)};
+                      olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * source->shape.numOfDims)};
   shapes_Range *boundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
   PANIC_IF(newShape.dims == NULL || newShape.multipliers == NULL || boundary == NULL,
            ALLOCATION_FAILED);
@@ -60,7 +60,7 @@ Tensor shapes_Slice(shapes_Context *ctx, Tensor *source, ...) {
   // Preserve source strides for views so boundary-adjusted indexing maps into
   // the same underlying storage layout (including sliced/transposed sources).
   memcpy(newShape.multipliers, source->shape.multipliers,
-         sizeof(multiplier_t) * source->shape.numOfDims);
+         sizeof(shapes_multiplier_t) * source->shape.numOfDims);
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newShape.dims, newShape.numOfDims);
 
   Tensor dest = tensorView(source->context, ctx->memory, source->values, snm.size, source->dtype,
@@ -103,9 +103,9 @@ Tensor shapes_Reshape(shapes_Context *ctx, Tensor *source, shapes_Dim newShape) 
                             .boundary = boundary,
                             .size = source->size,
                             .isContigous = true};
-  dim_t *copiedDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newShape.numOfDims);
+  shapes_dim_t *copiedDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * newShape.numOfDims);
   PANIC_IF(copiedDims == NULL, ALLOCATION_FAILED);
-  memcpy(copiedDims, newShape.dims, sizeof(dim_t) * newShape.numOfDims);
+  memcpy(copiedDims, newShape.dims, sizeof(shapes_dim_t) * newShape.numOfDims);
 
   dest.shape =
       (shapes_Dim){.dims = copiedDims, .numOfDims = newShape.numOfDims, .multipliers = snm.multipliers};
@@ -133,7 +133,7 @@ void shapes_ReshapeBackward(shapes_Context *ctx, Tensor *node) {
 }
 
 Tensor shapes_Transpose(shapes_Context *ctx, Tensor *source, ...) {
-  dim_t transposeDims[2];
+  shapes_dim_t transposeDims[2];
   u8 expectedDims = 2;
 
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
@@ -143,7 +143,7 @@ Tensor shapes_Transpose(shapes_Context *ctx, Tensor *source, ...) {
   va_start(args, source);
 
   for (u8 x = 0; x < expectedDims; x++) {
-    transposeDims[x] = va_arg(args, dim_t);
+    transposeDims[x] = va_arg(args, shapes_dim_t);
   }
   va_end(args);
 
@@ -151,20 +151,20 @@ Tensor shapes_Transpose(shapes_Context *ctx, Tensor *source, ...) {
                transposeDims[1] >= source->shape.numOfDims,
            ERR_DIM_MISMATCH);
 
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
-  memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
+  memcpy(newDims, source->shape.dims, sizeof(shapes_dim_t) * source->shape.numOfDims);
 
-  dim_t temp = newDims[transposeDims[0]];
+  shapes_dim_t temp = newDims[transposeDims[0]];
   newDims[transposeDims[0]] = newDims[transposeDims[1]];
   newDims[transposeDims[1]] = temp;
 
-  multiplier_t *newMultipliers =
-      olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  shapes_multiplier_t *newMultipliers =
+      olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
-  memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
+  memcpy(newMultipliers, source->shape.multipliers, sizeof(shapes_multiplier_t) * source->shape.numOfDims);
 
-  multiplier_t tempMultiplier = newMultipliers[transposeDims[0]];
+  shapes_multiplier_t tempMultiplier = newMultipliers[transposeDims[0]];
   newMultipliers[transposeDims[0]] = newMultipliers[transposeDims[1]];
   newMultipliers[transposeDims[1]] = tempMultiplier;
 
@@ -196,20 +196,20 @@ Tensor shapes_Permute(shapes_Context *ctx, Tensor *source, shapes_Dim order) {
   memset(seen, 0, sizeof(bool) * source->shape.numOfDims);
 
   for (u8 i = 0; i < order.numOfDims; i++) {
-    dim_t sourceDim = order.dims[i];
+    shapes_dim_t sourceDim = order.dims[i];
     if (sourceDim >= source->shape.numOfDims || seen[sourceDim]) {
       PANIC_IF(true, ERR_DIM_MISMATCH);
     }
     seen[sourceDim] = true;
   }
 
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
-  multiplier_t *newMultipliers =
-      olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * source->shape.numOfDims);
+  shapes_multiplier_t *newMultipliers =
+      olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL || newMultipliers == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < order.numOfDims; i++) {
-    dim_t sourceDim = order.dims[i];
+    shapes_dim_t sourceDim = order.dims[i];
     newDims[i] = source->shape.dims[sourceDim];
     newMultipliers[i] = source->shape.multipliers[sourceDim];
   }
@@ -219,7 +219,7 @@ Tensor shapes_Permute(shapes_Context *ctx, Tensor *source, shapes_Dim order) {
     newBoundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
     PANIC_IF(newBoundary == NULL, ALLOCATION_FAILED);
     for (u8 i = 0; i < order.numOfDims; i++) {
-      dim_t sourceDim = order.dims[i];
+      shapes_dim_t sourceDim = order.dims[i];
       newBoundary[i] = source->boundary[sourceDim];
     }
   }
@@ -258,7 +258,7 @@ Tensor shapes_Squeeze(shapes_Context *ctx, Tensor *t) {
     newNumDims = 1;
   }
 
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * newNumDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
   u8 destIdx = 0;
 
@@ -315,16 +315,16 @@ Tensor shapes_Squeeze(shapes_Context *ctx, Tensor *t) {
   return dest;
 }
 
-Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(t->shape.dims[dim] != 1, ERR_DIM_MISMATCH);
 
   if (t->shape.numOfDims == 1) {
-    dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t));
+    shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t));
     PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
     newDims[0] = 1;
-    multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t));
+    shapes_multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t));
     PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
     newMultipliers[0] = 1;
 
@@ -342,7 +342,7 @@ Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, dim_t dim) {
   }
 
   u8 newNumDims = t->shape.numOfDims - 1;
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * newNumDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
 
   u8 destIdx = 0;
@@ -376,13 +376,13 @@ Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, dim_t dim) {
   return destSqueezed;
 }
 
-Tensor shapes_UnSqueeze(shapes_Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_UnSqueeze(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim > t->shape.numOfDims, ERR_DIM_MISMATCH);
 
   u8 newNumDims = t->shape.numOfDims + 1;
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
-  multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * newNumDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * newNumDims);
+  shapes_multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * newNumDims);
   PANIC_IF(newDims == NULL || newMultipliers == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < newNumDims; i++) {
@@ -428,7 +428,7 @@ Tensor shapes_UnSqueeze(shapes_Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shapes_ArrayTensor tensors) {
+Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, shapes_dim_t targetDim, shapes_ArrayTensor tensors) {
   shapes_ArrayTensor tensorsContig = NULL;
 
   PANIC_IF(tensors->size <= 0, ERR_NO_OP);
@@ -438,12 +438,12 @@ Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shape
 
   Tensor *workingTarget = materializeTensorOnContext(ctx, target);
 
-  tensor_size_t numElementsBeforeTargetDim;
+  shapes_tensor_size_t numElementsBeforeTargetDim;
   Result result =
       calculateNumElementsBeforeDim(workingTarget, targetDim, &numElementsBeforeTargetDim);
   PANIC_IF(result != OK, result);
 
-  tensor_size_t numElementsAfterTargetDim;
+  shapes_tensor_size_t numElementsAfterTargetDim;
   result = calculateNumElementsAfterDim(workingTarget, targetDim, &numElementsAfterTargetDim);
   PANIC_IF(result != OK, result);
 
@@ -457,7 +457,7 @@ Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shape
              ERR_CONCAT_TENSORS_UNEQUAL_DIMS);
     PANIC_IF(currentTensor.dtype != workingTarget->dtype, ERR_CONCAT_TENSOR_NOT_SAME_DTYPE);
 
-    for (dim_t id = 0; id < workingTarget->shape.numOfDims; id++) {
+    for (shapes_dim_t id = 0; id < workingTarget->shape.numOfDims; id++) {
       PANIC_IF(id != targetDim && workingTarget->shape.dims[id] != currentTensor.shape.dims[id],
                ERR_CONCAT_TENSORS_UNEQUAL_DIMS);
     }
@@ -466,9 +466,9 @@ Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shape
     shapes_ArrayAppendTensor(tensorsContig, currentTensorContig);
   }
 
-  dim_t *outputDims = olib_Allocate(ctx->memory, sizeof(dim_t) * workingTarget->shape.numOfDims);
+  shapes_dim_t *outputDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * workingTarget->shape.numOfDims);
   PANIC_IF(result != OK, result);
-  dim_t dimsToAdd = 0;
+  shapes_dim_t dimsToAdd = 0;
 
   for (RANGE(ist, tensors->size)) {
     dimsToAdd += shapes_ArrayTensorIdx(tensorsContig, ist).shape.dims[targetDim]; // tensorsContig[ist]->shape.dims[targetDim];
@@ -476,7 +476,7 @@ Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shape
 
   for (RANGE(io, workingTarget->shape.numOfDims)) {
     if (io == targetDim) {
-      dim_t targetDimCurrSize = workingTarget->shape.dims[io];
+      shapes_dim_t targetDimCurrSize = workingTarget->shape.dims[io];
       outputDims[io] = targetDimCurrSize + dimsToAdd;
       continue;
     }
@@ -491,24 +491,24 @@ Tensor shapes_Concat(shapes_Context *ctx, Tensor *target, dim_t targetDim, shape
   outputShape.multipliers = snm.multipliers;
 
   Tensor dest = t_Zeros(ctx, outputShape, workingTarget->dtype);
-  dim_t currDimSize = workingTarget->shape.dims[targetDim];
-  dim_t newDimSize = outputShape.dims[targetDim];
+  shapes_dim_t currDimSize = workingTarget->shape.dims[targetDim];
+  shapes_dim_t newDimSize = outputShape.dims[targetDim];
   size_t bytesPerElem = getBytesForDtype(workingTarget->dtype);
 
-  for (tensor_size_t inb = 0; inb < numElementsBeforeTargetDim; inb++) {
-    tensor_size_t destSliceOffset = inb * newDimSize * numElementsAfterTargetDim;
-    tensor_size_t srcSliceOffset = inb * currDimSize * numElementsAfterTargetDim;
+  for (shapes_tensor_size_t inb = 0; inb < numElementsBeforeTargetDim; inb++) {
+    shapes_tensor_size_t destSliceOffset = inb * newDimSize * numElementsAfterTargetDim;
+    shapes_tensor_size_t srcSliceOffset = inb * currDimSize * numElementsAfterTargetDim;
 
     memcpy((char *)dest.values + destSliceOffset * bytesPerElem,
            (char *)workingTarget->values + srcSliceOffset * bytesPerElem,
            currDimSize * numElementsAfterTargetDim * bytesPerElem);
 
-    dim_t dimOffset = currDimSize;
+    shapes_dim_t dimOffset = currDimSize;
     for (RANGE(ist, tensors->size)) {
       Tensor curr = shapes_ArrayTensorIdx(tensorsContig, ist); //tensorsContig[ist];
-      dim_t currTargetDimSize = curr.shape.dims[targetDim];
-      tensor_size_t currDestOffset = destSliceOffset + (dimOffset * numElementsAfterTargetDim);
-      tensor_size_t currSrcOffset = inb * currTargetDimSize * numElementsAfterTargetDim;
+      shapes_dim_t currTargetDimSize = curr.shape.dims[targetDim];
+      shapes_tensor_size_t currDestOffset = destSliceOffset + (dimOffset * numElementsAfterTargetDim);
+      shapes_tensor_size_t currSrcOffset = inb * currTargetDimSize * numElementsAfterTargetDim;
       memcpy((char *)dest.values + currDestOffset * bytesPerElem,
              (char *)curr.values + currSrcOffset * bytesPerElem,
              currTargetDimSize * numElementsAfterTargetDim * bytesPerElem);

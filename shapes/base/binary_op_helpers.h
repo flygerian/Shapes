@@ -12,7 +12,7 @@
     TYPE *pa = a->values;                                                                                                                                                                              \
     TYPE *pb = b->values;                                                                                                                                                                              \
     bool *po = dest->values;                                                                                                                                                                           \
-    for (tensor_size_t i = 0; i < dest->size; i++) {                                                                                                                                                   \
+    for (shapes_tensor_size_t i = 0; i < dest->size; i++) {                                                                                                                                                   \
       po[i] = pa[i] op pb[i];                                                                                                                                                                          \
     }                                                                                                                                                                                                  \
     return OK;                                                                                                                                                                                         \
@@ -27,21 +27,21 @@
   }
 
 #define DEFINE_ARITH_HELPERS(TYPE, NAME)                                                                                                                                                               \
-  static inline void add_##NAME(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n) {                                                                                 \
+  static inline void add_##NAME(const void *restrict a, const void *restrict b, void *restrict out, shapes_tensor_size_t n) {                                                                                 \
     SHAPES_PRAGMA_SIMD                                                                                                                                                                                 \
-    for (tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
+    for (shapes_tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
       ((TYPE *)out)[i] = ((TYPE *)a)[i] + ((TYPE *)b)[i];                                                                                                                                              \
     }                                                                                                                                                                                                  \
   }                                                                                                                                                                                                    \
-  static inline void subtract_##NAME(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n) {                                                                            \
+  static inline void subtract_##NAME(const void *restrict a, const void *restrict b, void *restrict out, shapes_tensor_size_t n) {                                                                            \
     SHAPES_PRAGMA_SIMD                                                                                                                                                                                 \
-    for (tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
+    for (shapes_tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
       ((TYPE *)out)[i] = ((TYPE *)a)[i] - ((TYPE *)b)[i];                                                                                                                                              \
     }                                                                                                                                                                                                  \
   }                                                                                                                                                                                                    \
-  static inline void multiply_##NAME(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n) {                                                                            \
+  static inline void multiply_##NAME(const void *restrict a, const void *restrict b, void *restrict out, shapes_tensor_size_t n) {                                                                            \
     SHAPES_PRAGMA_SIMD                                                                                                                                                                                 \
-    for (tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
+    for (shapes_tensor_size_t i = 0; i < n; i++) {                                                                                                                                                            \
       ((TYPE *)out)[i] = ((TYPE *)a)[i] * ((TYPE *)b)[i];                                                                                                                                              \
     }                                                                                                                                                                                                  \
   }
@@ -58,7 +58,7 @@ DEFINE_ARITH_HELPERS(i64, i64)
 DEFINE_ARITH_HELPERS(f32, f32)
 DEFINE_ARITH_HELPERS(f64, f64)
 
-typedef void (*binopFn)(const void *restrict a, const void *restrict b, void *restrict out, tensor_size_t n);
+typedef void (*binopFn)(const void *restrict a, const void *restrict b, void *restrict out, shapes_tensor_size_t n);
 
 typedef struct binop {
   binopFn U8;

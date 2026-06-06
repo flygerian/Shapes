@@ -36,7 +36,7 @@ static Result indexAccumulate1dCpu(shapes_Context *ctx, Tensor *dest, Tensor *in
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
   Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  tensor_size_t sliceSize = 1;
+  shapes_tensor_size_t sliceSize = 1;
   for (u8 i = 1; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
@@ -45,10 +45,10 @@ static Result indexAccumulate1dCpu(shapes_Context *ctx, Tensor *dest, Tensor *in
     shapes_Value idxVal;
     VALUE_GET_FROM_ARR(indicesContig->values, i, &idxVal, indicesContig->dtype);
 
-    dim_t idx = indexValueToDim(idxVal, indicesContig->dtype);
+    shapes_dim_t idx = indexValueToDim(idxVal, indicesContig->dtype);
     PANIC_IF(idx >= dest->shape.dims[0], ERR_OUT_OF_BOUNDS);
 
-    dim_t destCoords[dest->shape.numOfDims];
+    shapes_dim_t destCoords[dest->shape.numOfDims];
     destCoords[0] = idx;
     for (u8 d = 1; d < dest->shape.numOfDims; d++) {
       destCoords[d] = 0;
@@ -56,7 +56,7 @@ static Result indexAccumulate1dCpu(shapes_Context *ctx, Tensor *dest, Tensor *in
 
     u64 destBase = getContigousIdxFromCoord(dest, destCoords);
     u64 srcBase = i * sliceSize;
-    for (tensor_size_t j = 0; j < sliceSize; j++) {
+    for (shapes_tensor_size_t j = 0; j < sliceSize; j++) {
       shapes_Value destValue, srcValue, resultValue;
       VALUE_GET_FROM_ARR(dest->values, destBase + j, &destValue, dest->dtype);
       VALUE_GET_FROM_ARR(srcContig->values, srcBase + j, &srcValue, srcContig->dtype);
@@ -74,7 +74,7 @@ static Result indexAccumulate2dCpu(shapes_Context *ctx, Tensor *dest, Tensor *ro
   Tensor *colContig = materializeTensorOnContext(ctx, colIndices);
   Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  tensor_size_t sliceSize = 1;
+  shapes_tensor_size_t sliceSize = 1;
   for (u8 i = 2; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
@@ -84,12 +84,12 @@ static Result indexAccumulate2dCpu(shapes_Context *ctx, Tensor *dest, Tensor *ro
     VALUE_GET_FROM_ARR(rowContig->values, i, &rowValue, rowContig->dtype);
     VALUE_GET_FROM_ARR(colContig->values, i, &colValue, colContig->dtype);
 
-    dim_t row = indexValueToDim(rowValue, rowContig->dtype);
-    dim_t col = indexValueToDim(colValue, colContig->dtype);
+    shapes_dim_t row = indexValueToDim(rowValue, rowContig->dtype);
+    shapes_dim_t col = indexValueToDim(colValue, colContig->dtype);
 
     PANIC_IF(row >= dest->shape.dims[0] || col >= dest->shape.dims[1], ERR_OUT_OF_BOUNDS);
 
-    dim_t destCoords[dest->shape.numOfDims];
+    shapes_dim_t destCoords[dest->shape.numOfDims];
     destCoords[0] = row;
     destCoords[1] = col;
     for (u8 d = 2; d < dest->shape.numOfDims; d++) {
@@ -98,7 +98,7 @@ static Result indexAccumulate2dCpu(shapes_Context *ctx, Tensor *dest, Tensor *ro
 
     u64 destBase = getContigousIdxFromCoord(dest, destCoords);
     u64 srcBase = i * sliceSize;
-    for (tensor_size_t j = 0; j < sliceSize; j++) {
+    for (shapes_tensor_size_t j = 0; j < sliceSize; j++) {
       shapes_Value destValue, srcValue, resultValue;
       VALUE_GET_FROM_ARR(dest->values, destBase + j, &destValue, dest->dtype);
       VALUE_GET_FROM_ARR(srcContig->values, srcBase + j, &srcValue, srcContig->dtype);
@@ -119,11 +119,11 @@ static Result sliceAccumulateCpu(shapes_Context *ctx, Tensor *dest, shapes_Range
   u64 srcStep = srcGradContig->shape.multipliers[lastDim];
   u64 dstStep = dest->shape.multipliers[lastDim];
 
-  dim_t srcCoords[ndims];
-  dim_t dstCoords[ndims];
+  shapes_dim_t srcCoords[ndims];
+  shapes_dim_t dstCoords[ndims];
   for (u8 i = 0; i < ndims; i++) {
     srcCoords[i] = 0;
-    dstCoords[i] = (dim_t)ranges[i].start;
+    dstCoords[i] = (shapes_dim_t)ranges[i].start;
   }
 
   u64 outerCount = 1;
@@ -137,7 +137,7 @@ static Result sliceAccumulateCpu(shapes_Context *ctx, Tensor *dest, shapes_Range
 
   for (u64 outer = 0; outer < outerCount; outer++) {
     srcCoords[lastDim] = 0;
-    dstCoords[lastDim] = (dim_t)ranges[lastDim].start;
+    dstCoords[lastDim] = (shapes_dim_t)ranges[lastDim].start;
 
     u64 srcBase = getContigousIdxFromCoord(srcGradContig, srcCoords);
     u64 dstBase = getContigousIdxFromCoord(dest, dstCoords);
@@ -150,7 +150,7 @@ static Result sliceAccumulateCpu(shapes_Context *ctx, Tensor *dest, shapes_Range
         break;
       }
       srcCoords[d] = 0;
-      dstCoords[d] = (dim_t)ranges[d].start;
+      dstCoords[d] = (shapes_dim_t)ranges[d].start;
     }
   }
 
@@ -165,7 +165,7 @@ static Result indexAccumulate1dCuda(shapes_Context *ctx, Tensor *dest, Tensor *i
   Tensor *indicesContig = materializeTensorOnContext(ctx, indices);
   Tensor *srcContig = materializeTensorOnContext(ctx, srcGrad);
 
-  tensor_size_t sliceSize = 1;
+  shapes_tensor_size_t sliceSize = 1;
   for (u8 i = 1; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }
@@ -184,7 +184,7 @@ static Result indexAccumulate2dCuda(shapes_Context *ctx, Tensor *dest, Tensor *r
   Tensor *colConfig = materializeTensorOnContext(ctx, colIndices);
   Tensor *srcGradContig = materializeTensorOnContext(ctx, srcGrad);
 
-  tensor_size_t sliceSize = 1;
+  shapes_tensor_size_t sliceSize = 1;
   for (u8 i = 2; i < dest->shape.numOfDims; i++) {
     sliceSize *= dest->shape.dims[i];
   }

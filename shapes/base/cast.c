@@ -134,7 +134,7 @@ static bool isCastSafe(shapes_Dtype source, shapes_Dtype target) {
 static Tensor castOnCpu(shapes_Context *ctx, Tensor *source, shapes_Dtype target) {
   Tensor *src = materializeTensorOnContext(ctx, source);
   Tensor dest = t_Zeros(ctx, source->shape, target);
-  for (tensor_size_t i = 0; i < src->size; i++) {
+  for (shapes_tensor_size_t i = 0; i < src->size; i++) {
     shapes_Value v;
     VALUE_GET_FROM_ARR(src->values, i, &v, src->dtype);
     shapes_Value converted = castValue(v, target);

@@ -39,11 +39,11 @@ void adamStep(shapes_Context *ctx, shapesnn_Optimizer *opts, olib_Array *paramet
     }
   }
 
-  AdamData triplets[parameters->size];
+  shapes_AdamData triplets[parameters->size];
 
   for (size_t i = 0; i < parameters->size; i++) {
     Tensor *p = shapes_ArrayTensorPtrIdx(parameters, i);
-    triplets[i] = (AdamData){
+    triplets[i] = (shapes_AdamData){
         .m = ((Tensor *)PtrMap_Get(m, p))->values,
         .v = ((Tensor *)PtrMap_Get(v, p))->values,
         .param = p->values,

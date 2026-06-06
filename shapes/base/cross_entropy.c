@@ -4,17 +4,17 @@
 #include <math.h>
 #include <sched.h>
 
-static inline Tensor crossEnthropyFowardCpu(shapes_Context *ctx, Tensor *logitsContig, Tensor *yContig, Tensor *probs, tensor_size_t rows, dim_t classCount) {
+static inline Tensor crossEnthropyFowardCpu(shapes_Context *ctx, Tensor *logitsContig, Tensor *yContig, Tensor *probs, shapes_tensor_size_t rows, shapes_dim_t classCount) {
   if (logitsContig->dtype == F64) {
     double *yVals = yContig->values;
     double *logitVals = logitsContig->values;
     double *probVals = probs->values;
     double totalLoss = 0.0;
 
-    for (tensor_size_t r = 0; r < rows; r++) {
-      tensor_size_t base = r * classCount;
+    for (shapes_tensor_size_t r = 0; r < rows; r++) {
+      shapes_tensor_size_t base = r * classCount;
       double rowMax = logitVals[base];
-      for (tensor_size_t c = 1; c < classCount; c++) {
+      for (shapes_tensor_size_t c = 1; c < classCount; c++) {
         double v = logitVals[base + c];
         if (v > rowMax) {
           rowMax = v;
@@ -22,14 +22,14 @@ static inline Tensor crossEnthropyFowardCpu(shapes_Context *ctx, Tensor *logitsC
       }
 
       double sumExp = 0.0;
-      for (tensor_size_t c = 0; c < classCount; c++) {
+      for (shapes_tensor_size_t c = 0; c < classCount; c++) {
         double e = exp(logitVals[base + c] - rowMax);
         probVals[base + c] = e;
         sumExp += e;
       }
 
       double rowLoss = 0.0;
-      for (tensor_size_t c = 0; c < classCount; c++) {
+      for (shapes_tensor_size_t c = 0; c < classCount; c++) {
         double p = probVals[base + c] / sumExp;
         probVals[base + c] = p;
         if (yVals[base + c] != 0.0) {
@@ -47,10 +47,10 @@ static inline Tensor crossEnthropyFowardCpu(shapes_Context *ctx, Tensor *logitsC
     float *probVals = probs->values;
     float totalLoss = 0.0f;
 
-    for (tensor_size_t r = 0; r < rows; r++) {
-      tensor_size_t base = r * classCount;
+    for (shapes_tensor_size_t r = 0; r < rows; r++) {
+      shapes_tensor_size_t base = r * classCount;
       float rowMax = logitVals[base];
-      for (tensor_size_t c = 1; c < classCount; c++) {
+      for (shapes_tensor_size_t c = 1; c < classCount; c++) {
         float v = logitVals[base + c];
         if (v > rowMax) {
           rowMax = v;
@@ -58,14 +58,14 @@ static inline Tensor crossEnthropyFowardCpu(shapes_Context *ctx, Tensor *logitsC
       }
 
       float sumExp = 0.0f;
-      for (tensor_size_t c = 0; c < classCount; c++) {
+      for (shapes_tensor_size_t c = 0; c < classCount; c++) {
         float e = expf(logitVals[base + c] - rowMax);
         probVals[base + c] = e;
         sumExp += e;
       }
 
       float rowLoss = 0.0f;
-      for (tensor_size_t c = 0; c < classCount; c++) {
+      for (shapes_tensor_size_t c = 0; c < classCount; c++) {
         float p = probVals[base + c] / sumExp;
         probVals[base + c] = p;
         if (yVals[base + c] != 0.0f) {
@@ -80,7 +80,7 @@ static inline Tensor crossEnthropyFowardCpu(shapes_Context *ctx, Tensor *logitsC
   }
 }
 
-TensorPair shapes_loss_CrossEntropyForward(shapes_Context *ctx, Tensor *yGround, Tensor *logits) {
+shapes_TensorPair shapes_loss_CrossEntropyForward(shapes_Context *ctx, Tensor *yGround, Tensor *logits) {
   PANIC_IF(isInvalidTensor(yGround) || isInvalidTensor(logits), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(yGround->shape.numOfDims != logits->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(yGround->dtype != logits->dtype, ERR_DTYPE_MISMATCH);
@@ -92,10 +92,10 @@ TensorPair shapes_loss_CrossEntropyForward(shapes_Context *ctx, Tensor *yGround,
 
   PANIC_IF(logits->shape.numOfDims == 0, ERR_DIM_MISMATCH);
 
-  dim_t classCount = logits->shape.dims[logits->shape.numOfDims - 1];
+  shapes_dim_t classCount = logits->shape.dims[logits->shape.numOfDims - 1];
   PANIC_IF(classCount == 0 || logits->size % classCount != 0, ERR_DIM_MISMATCH);
 
-  tensor_size_t rows = logits->size / classCount;
+  shapes_tensor_size_t rows = logits->size / classCount;
 
   Tensor *yContig = materializeTensorOnContext(ctx, yGround);
   Tensor *logitsContig = materializeTensorOnContext(ctx, logits);
@@ -113,7 +113,7 @@ TensorPair shapes_loss_CrossEntropyForward(shapes_Context *ctx, Tensor *yGround,
       break;
   }
 
-  return (TensorPair){.a = loss, .b = probs};
+  return (shapes_TensorPair){.a = loss, .b = probs};
 }
 
 static inline void crossEnthropyBackwardCpu(Tensor *pContig, Tensor *yContig, Tensor *gContig, Tensor *dLogits, bool scalarGradOut, f32 rows) {
@@ -125,7 +125,7 @@ static inline void crossEnthropyBackwardCpu(Tensor *pContig, Tensor *yContig, Te
     double invRows = 1.0 / (double)rows;
     double scalar = scalarGradOut ? gVals[0] : 1.0;
 
-    for (tensor_size_t i = 0; i < pContig->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < pContig->size; i++) {
       double localGrad = (pVals[i] - yVals[i]) * invRows;
       dVals[i] = localGrad * (scalarGradOut ? scalar : gVals[i]);
     }
@@ -137,7 +137,7 @@ static inline void crossEnthropyBackwardCpu(Tensor *pContig, Tensor *yContig, Te
     float invRows = 1.0f / (float)rows;
     float scalar = scalarGradOut ? gVals[0] : 1.0f;
 
-    for (tensor_size_t i = 0; i < pContig->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < pContig->size; i++) {
       float localGrad = (pVals[i] - yVals[i]) * invRows;
       dVals[i] = localGrad * (scalarGradOut ? scalar : gVals[i]);
     }
@@ -156,13 +156,13 @@ Tensor shapes_loss_CrossEntropyBackward(shapes_Context *ctx, Tensor *yGround, Te
 
   PANIC_IF(probs->shape.numOfDims == 0, ERR_DIM_MISMATCH);
 
-  dim_t classCount = probs->shape.dims[probs->shape.numOfDims - 1];
+  shapes_dim_t classCount = probs->shape.dims[probs->shape.numOfDims - 1];
   PANIC_IF(classCount == 0 || probs->size % classCount != 0, ERR_DIM_MISMATCH);
 
   bool scalarGradOut = gradOut->size == 1;
   PANIC_IF(!scalarGradOut && gradOut->size != probs->size, ERR_DIM_MISMATCH);
 
-  tensor_size_t rows = probs->size / classCount;
+  shapes_tensor_size_t rows = probs->size / classCount;
 
   Tensor *yContig = materializeTensorOnContext(ctx, yGround);
   Tensor *pContig = materializeTensorOnContext(ctx, probs);

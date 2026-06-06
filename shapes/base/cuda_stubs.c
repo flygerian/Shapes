@@ -90,7 +90,7 @@ Result shapescuda_BroadcastBinaryOp(shapes_Dtype dtype, shapes_OpType opType, vo
 }
 
 Result shapescuda_UnaryOp(shapes_Dtype dtype, shapes_UnaryOpType opType, const void *src, void *dest,
-                      tensor_size_t n, f32 param) {
+                      shapes_tensor_size_t n, f32 param) {
   
   (void)dtype;
   (void)opType;
@@ -102,7 +102,7 @@ Result shapescuda_UnaryOp(shapes_Dtype dtype, shapes_UnaryOpType opType, const v
 }
 
 Result shapescuda_ReluBackward(shapes_Dtype dtype, const void *output, const void *gradOut,
-                           void *dest, tensor_size_t n) {
+                           void *dest, shapes_tensor_size_t n) {
   
   (void)dtype;
   (void)output;
@@ -113,7 +113,7 @@ Result shapescuda_ReluBackward(shapes_Dtype dtype, const void *output, const voi
 }
 
 Result shapescuda_ReluBackwardAccumulate(shapes_Dtype dtype, const void *output,
-                                     const void *gradOut, void *dest, tensor_size_t n) {
+                                     const void *gradOut, void *dest, shapes_tensor_size_t n) {
   
   (void)dtype;
   (void)output;
@@ -147,7 +147,7 @@ Result shapescuda_ReduceAll(shapes_Dtype dtype, shapes_ReductionOpType opType, c
   return ERR_NO_OP;
 }
 
-Result shapescuda_Std(shapes_Dtype dtype, const void *src, void *dest, tensor_size_t n) {
+Result shapescuda_Std(shapes_Dtype dtype, const void *src, void *dest, shapes_tensor_size_t n) {
   
   (void)dtype;
   (void)src;
@@ -158,7 +158,7 @@ Result shapescuda_Std(shapes_Dtype dtype, const void *src, void *dest, tensor_si
 
 Result shapescuda_IndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *indices,
                                  shapes_Dtype indexDtype, const void *srcGrad,
-                                 tensor_size_t numIndices, tensor_size_t sliceSize) {
+                                 shapes_tensor_size_t numIndices, shapes_tensor_size_t sliceSize) {
   
   (void)dtype;
   (void)dest;
@@ -170,11 +170,11 @@ Result shapescuda_IndexAccumulate1d(shapes_Dtype dtype, void *dest, const void *
   return ERR_NO_OP;
 }
 
-Result shapescuda_IndexAccumulate2d(shapes_Dtype dtype, void *dest, dim_t destDim1,
+Result shapescuda_IndexAccumulate2d(shapes_Dtype dtype, void *dest, shapes_dim_t destDim1,
                                  const void *rowIndices, shapes_Dtype rowIndexDtype,
                                  const void *colIndices, shapes_Dtype colIndexDtype,
-                                 const void *srcGrad, tensor_size_t numIndices,
-                                 tensor_size_t sliceSize) {
+                                 const void *srcGrad, shapes_tensor_size_t numIndices,
+                                 shapes_tensor_size_t sliceSize) {
   
   (void)dtype;
   (void)dest;
@@ -205,7 +205,7 @@ Result shapescuda_SliceAccumulate(shapes_Dtype dtype, void *dest, size_t destNum
 }
 
 Result shapescuda_Cast(shapes_Dtype sourceDtype, const void *src, shapes_Dtype targetDtype, void *dest,
-                   tensor_size_t n) {
+                   shapes_tensor_size_t n) {
   
   (void)sourceDtype;
   (void)src;
@@ -215,7 +215,7 @@ Result shapescuda_Cast(shapes_Dtype sourceDtype, const void *src, shapes_Dtype t
   return ERR_NO_OP;
 }
 
-Result shapescuda_FillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, shapes_Value value) {
+Result shapescuda_FillTensor(shapes_Dtype dtype, void *dest, shapes_tensor_size_t n, shapes_Value value) {
   
   (void)dtype;
   (void)dest;
@@ -224,7 +224,7 @@ Result shapescuda_FillTensor(shapes_Dtype dtype, void *dest, tensor_size_t n, sh
   return ERR_NO_OP;
 }
 
-Result shapescuda_Arange(f32 start, f32 step, void *dest, tensor_size_t n) {
+Result shapescuda_Arange(f32 start, f32 step, void *dest, shapes_tensor_size_t n) {
   
   (void)start;
   (void)step;
@@ -233,8 +233,8 @@ Result shapescuda_Arange(f32 start, f32 step, void *dest, tensor_size_t n) {
   return ERR_NO_OP;
 }
 
-Result shapescuda_OneHot(shapes_Dtype indexDtype, const void *indices, tensor_size_t n,
-                     dim_t numClasses, void *dest) {
+Result shapescuda_OneHot(shapes_Dtype indexDtype, const void *indices, shapes_tensor_size_t n,
+                     shapes_dim_t numClasses, void *dest) {
   
   (void)indexDtype;
   (void)indices;
@@ -245,8 +245,8 @@ Result shapescuda_OneHot(shapes_Dtype indexDtype, const void *indices, tensor_si
 }
 
 Result shapescuda_IndexSelect1d(shapes_Dtype dtype, const void *src, const void *indices,
-                              shapes_Dtype indexDtype, void *dest, tensor_size_t numIndices,
-                              tensor_size_t sliceSize) {
+                              shapes_Dtype indexDtype, void *dest, shapes_tensor_size_t numIndices,
+                              shapes_tensor_size_t sliceSize) {
   
   (void)dtype;
   (void)src;
@@ -258,10 +258,10 @@ Result shapescuda_IndexSelect1d(shapes_Dtype dtype, const void *src, const void 
   return ERR_NO_OP;
 }
 
-Result shapescuda_IndexSelect2d(shapes_Dtype dtype, const void *src, dim_t sourceDim1,
+Result shapescuda_IndexSelect2d(shapes_Dtype dtype, const void *src, shapes_dim_t sourceDim1,
                               const void *rowIndices, shapes_Dtype rowIndexDtype,
                               const void *colIndices, shapes_Dtype colIndexDtype, void *dest,
-                              tensor_size_t numIndices, tensor_size_t sliceSize) {
+                              shapes_tensor_size_t numIndices, shapes_tensor_size_t sliceSize) {
   
   (void)dtype;
   (void)src;
@@ -276,7 +276,7 @@ Result shapescuda_IndexSelect2d(shapes_Dtype dtype, const void *src, dim_t sourc
   return ERR_NO_OP;
 }
 
-Result shapescuda_Sgd(shapes_Dtype dtype, void *param, const void *grad, tensor_size_t n,
+Result shapescuda_Sgd(shapes_Dtype dtype, void *param, const void *grad, shapes_tensor_size_t n,
                    f32 learningRate) {
   
   (void)dtype;
@@ -289,8 +289,8 @@ Result shapescuda_Sgd(shapes_Dtype dtype, void *param, const void *grad, tensor_
 
 // ---- shapesnn_layer ops ----
 
-Result shapescuda_Im2col(shapes_Dtype dtype, const void *input, dim_t batch, dim_t inChannels,
-                     dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, void *colBuffer) {
+Result shapescuda_Im2col(shapes_Dtype dtype, const void *input, shapes_dim_t batch, shapes_dim_t inChannels,
+                     shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, void *colBuffer) {
   
   (void)dtype;
   (void)input;
@@ -306,8 +306,8 @@ Result shapescuda_Im2col(shapes_Dtype dtype, const void *input, dim_t batch, dim
 }
 
 Result shapescuda_Col2imAccumulate(shapes_Dtype dtype, void *dest, const void *colBuffer,
-                                dim_t batch, dim_t inChannels, dim_t h, dim_t w, dim_t kH,
-                                dim_t kW, u8 stride) {
+                                shapes_dim_t batch, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH,
+                                shapes_dim_t kW, u8 stride) {
   
   (void)dtype;
   (void)dest;
@@ -322,8 +322,8 @@ Result shapescuda_Col2imAccumulate(shapes_Dtype dtype, void *dest, const void *c
   return ERR_NO_OP;
 }
 
-Result shapescuda_MaxPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
-                        dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride,
+Result shapescuda_MaxPool2d(shapes_Dtype dtype, const void *input, shapes_dim_t batch,
+                        shapes_dim_t channels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride,
                         void *output) {
   
   (void)dtype;
@@ -339,8 +339,8 @@ Result shapescuda_MaxPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
   return ERR_NO_OP;
 }
 
-Result shapescuda_MaxPool2dWithIndices(shapes_Dtype dtype, const void *input, dim_t batch,
-                                   dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride,
+Result shapescuda_MaxPool2dWithIndices(shapes_Dtype dtype, const void *input, shapes_dim_t batch,
+                                   shapes_dim_t channels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride,
                                    void *output, void *indices) {
   
   (void)dtype;
@@ -358,7 +358,7 @@ Result shapescuda_MaxPool2dWithIndices(shapes_Dtype dtype, const void *input, di
 }
 
 Result shapescuda_MaxPool2dBackward(shapes_Dtype dtype, const void *input, const void *gradOut,
-                                dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t kH, dim_t kW,
+                                shapes_dim_t batch, shapes_dim_t channels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW,
                                 u8 stride, void *dX) {
   
   (void)dtype;
@@ -376,7 +376,7 @@ Result shapescuda_MaxPool2dBackward(shapes_Dtype dtype, const void *input, const
 }
 
 Result shapescuda_MaxPool2dBackwardWithIndices(shapes_Dtype dtype, const void *gradOut,
-                                           const void *indices, tensor_size_t numGradValues,
+                                           const void *indices, shapes_tensor_size_t numGradValues,
                                            void *dX) {
   
   (void)dtype;
@@ -387,8 +387,8 @@ Result shapescuda_MaxPool2dBackwardWithIndices(shapes_Dtype dtype, const void *g
   return ERR_NO_OP;
 }
 
-Result shapescuda_AdaptiveAvgPool2d(shapes_Dtype dtype, const void *input, dim_t batch,
-                                dim_t channels, dim_t h, dim_t w, dim_t outH, dim_t outW,
+Result shapescuda_AdaptiveAvgPool2d(shapes_Dtype dtype, const void *input, shapes_dim_t batch,
+                                shapes_dim_t channels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t outH, shapes_dim_t outW,
                                 void *output) {
   
   (void)dtype;
@@ -404,8 +404,8 @@ Result shapescuda_AdaptiveAvgPool2d(shapes_Dtype dtype, const void *input, dim_t
 }
 
 Result shapescuda_AdaptiveAvgPool2dBackward(shapes_Dtype dtype, const void *gradOut,
-                                        dim_t batch, dim_t channels, dim_t h, dim_t w, dim_t outH,
-                                        dim_t outW, void *dX) {
+                                        shapes_dim_t batch, shapes_dim_t channels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t outH,
+                                        shapes_dim_t outW, void *dX) {
   
   (void)dtype;
   (void)gradOut;
@@ -422,7 +422,7 @@ Result shapescuda_AdaptiveAvgPool2dBackward(shapes_Dtype dtype, const void *grad
 // ---- Loss ops ----
 
 Result shapescuda_CrossEntropyForward(shapes_Dtype dtype, const void *yGround,
-                                  const void *logits, tensor_size_t rows, dim_t classCount,
+                                  const void *logits, shapes_tensor_size_t rows, shapes_dim_t classCount,
                                   void *probs, void *loss) {
   
   (void)dtype;
@@ -436,8 +436,8 @@ Result shapescuda_CrossEntropyForward(shapes_Dtype dtype, const void *yGround,
 }
 
 Result shapescuda_CrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
-                                   const void *probs, const void *gradOut, tensor_size_t rows,
-                                   dim_t classCount, bool scalarGradOut, void *dLogits) {
+                                   const void *probs, const void *gradOut, shapes_tensor_size_t rows,
+                                   shapes_dim_t classCount, bool scalarGradOut, void *dLogits) {
   
   (void)dtype;
   (void)yGround;
@@ -453,7 +453,7 @@ Result shapescuda_CrossEntropyBackward(shapes_Dtype dtype, const void *yGround,
 // ---- Conv bias (declared locally in layer/conv.c) ----
 
 Result shapescuda_ConvBiasAdd(shapes_Dtype dtype, void *output, const void *bias,
-                          tensor_size_t numValues, dim_t channels) {
+                          shapes_tensor_size_t numValues, shapes_dim_t channels) {
   
   (void)dtype;
   (void)output;
@@ -464,7 +464,7 @@ Result shapescuda_ConvBiasAdd(shapes_Dtype dtype, void *output, const void *bias
 }
 
 Result shapescuda_ConvBiasBackward(shapes_Dtype dtype, const void *outputGrad, void *dBias,
-                               tensor_size_t numValues, dim_t channels) {
+                               shapes_tensor_size_t numValues, shapes_dim_t channels) {
   
   (void)dtype;
   (void)outputGrad;

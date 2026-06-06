@@ -16,13 +16,13 @@ static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  dim_t channels = output->shape.dims[3];
-  tensor_size_t numValues = output->size;
+  shapes_dim_t channels = output->shape.dims[3];
+  shapes_tensor_size_t numValues = output->size;
 
   if (output->dtype == F64) {
     f64 *outValues = output->values;
     f64 *biasValues = bias->values;
-    for (tensor_size_t i = 0; i < numValues; i++) {
+    for (shapes_tensor_size_t i = 0; i < numValues; i++) {
       outValues[i] += biasValues[i % channels];
     }
     return OK;
@@ -30,7 +30,7 @@ static Result addConvBiasCpu(Tensor *output, Tensor *bias) {
 
   f32 *outValues = output->values;
   f32 *biasValues = bias->values;
-  for (tensor_size_t i = 0; i < numValues; i++) {
+  for (shapes_tensor_size_t i = 0; i < numValues; i++) {
     outValues[i] += biasValues[i % channels];
   }
   return OK;
@@ -47,8 +47,8 @@ static Result addConvBias(shapes_Context *ctx, Tensor *output, Tensor *bias) {
 static void accumulateConvBiasGradCuda(shapes_Context *ctx, Tensor *outputGrad, Tensor *dBias) {
   PANIC_IF(ctx == NULL || outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  dim_t channels = outputGrad->shape.dims[3];
-  tensor_size_t rows = outputGrad->size / channels;
+  shapes_dim_t channels = outputGrad->shape.dims[3];
+  shapes_tensor_size_t rows = outputGrad->size / channels;
   size_t oneBytes = rows * getBytesForDtype(outputGrad->dtype);
   double phaseStartMs = 0.0;
   void *ones = olib_Allocate(ctx->memory, oneBytes);
@@ -71,18 +71,18 @@ static void accumulateConvBiasGradCuda(shapes_Context *ctx, Tensor *outputGrad, 
 static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
   PANIC_IF(outputGrad == NULL || dBias == NULL, ERR_NULL_TENSOR_PROVIDED);
 
-  dim_t channels = outputGrad->shape.dims[3];
+  shapes_dim_t channels = outputGrad->shape.dims[3];
   PANIC_IF(channels == 0, ERR_DTYPE_MISMATCH);
 
-  tensor_size_t numValues = outputGrad->size;
+  shapes_tensor_size_t numValues = outputGrad->size;
 
   if (outputGrad->dtype == F64) {
     f64 *gradValues = outputGrad->values;
     f64 *biasGradValues = dBias->values;
-    for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t c = 0; c < channels; c++) {
       biasGradValues[c] = 0.0;
     }
-    for (tensor_size_t i = 0; i < numValues; i++) {
+    for (shapes_tensor_size_t i = 0; i < numValues; i++) {
       biasGradValues[i % channels] += gradValues[i];
     }
     return;
@@ -90,10 +90,10 @@ static void accumulateConvBiasGradCpu(Tensor *outputGrad, Tensor *dBias) {
 
   f32 *gradValues = outputGrad->values;
   f32 *biasGradValues = dBias->values;
-  for (dim_t c = 0; c < channels; c++) {
+  for (shapes_dim_t c = 0; c < channels; c++) {
     biasGradValues[c] = 0.0f;
   }
-  for (tensor_size_t i = 0; i < numValues; i++) {
+  for (shapes_tensor_size_t i = 0; i < numValues; i++) {
     biasGradValues[i % channels] += gradValues[i];
   }
 }
@@ -137,19 +137,19 @@ Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels,
     PANIC_IF(bias->shape.dims[0] != 1 || bias->shape.dims[1] != 1 || bias->shape.dims[2] != 1 || bias->shape.dims[3] != outChannels, ERR_DIM_MISMATCH);
   }
 
-  dim_t kernelHeight = kernels->shape.dims[2];
-  dim_t kernelWidth = kernels->shape.dims[3];
-  dim_t batch = t->shape.dims[0];
-  dim_t height = t->shape.dims[1];
-  dim_t width = t->shape.dims[2];
-  dim_t numChannels = t->shape.dims[3];
+  shapes_dim_t kernelHeight = kernels->shape.dims[2];
+  shapes_dim_t kernelWidth = kernels->shape.dims[3];
+  shapes_dim_t batch = t->shape.dims[0];
+  shapes_dim_t height = t->shape.dims[1];
+  shapes_dim_t width = t->shape.dims[2];
+  shapes_dim_t numChannels = t->shape.dims[3];
 
   PANIC_IF(kernelHeight == 0 || kernelWidth == 0 || numChannels != inChannels || height < kernelHeight || width < kernelWidth, ERR_DIM_MISMATCH);
 
   PANIC_IF(kernels->shape.dims[0] != outChannels || kernels->shape.dims[1] != inChannels || kernels->shape.dims[2] != kernelHeight || kernels->shape.dims[3] != kernelWidth, ERR_DIM_MISMATCH);
 
-  dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
-  dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
+  shapes_dim_t outputChannelHeight = (height - kernelHeight) / stride + 1;
+  shapes_dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
   Tensor *createdGemmOutput = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdGemmOutput == NULL, ALLOCATION_FAILED);
@@ -163,11 +163,11 @@ Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels,
     biasContig = materializeTensorOnContext(ctx, bias);
   }
 
-  tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
-  tensor_size_t positions = outputChannelHeight * outputChannelWidth;
+  shapes_tensor_size_t patchSize = inChannels * kernelHeight * kernelWidth;
+  shapes_tensor_size_t positions = outputChannelHeight * outputChannelWidth;
 
   Tensor *colBuffer;
-  tensor_size_t colBufferSize;
+  shapes_tensor_size_t colBufferSize;
 
   if (t->dtype == F64) {
     f64 *kernelValues = kernelContig->values;
@@ -237,21 +237,21 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t batch = input->shape.dims[0];
-  dim_t h = input->shape.dims[1];
-  dim_t w = input->shape.dims[2];
-  dim_t inChannels = input->shape.dims[3];
-  dim_t outChannels = kernels->shape.dims[0];
-  dim_t kernelInChannels = kernels->shape.dims[1];
-  dim_t kH = kernels->shape.dims[2];
-  dim_t kW = kernels->shape.dims[3];
+  shapes_dim_t batch = input->shape.dims[0];
+  shapes_dim_t h = input->shape.dims[1];
+  shapes_dim_t w = input->shape.dims[2];
+  shapes_dim_t inChannels = input->shape.dims[3];
+  shapes_dim_t outChannels = kernels->shape.dims[0];
+  shapes_dim_t kernelInChannels = kernels->shape.dims[1];
+  shapes_dim_t kH = kernels->shape.dims[2];
+  shapes_dim_t kW = kernels->shape.dims[3];
 
   if (inChannels != kernelInChannels || h < kH || w < kW) {
     return ERR_DIM_MISMATCH;
   }
 
-  dim_t outH = (h - kH) / stride + 1;
-  dim_t outW = (w - kW) / stride + 1;
+  shapes_dim_t outH = (h - kH) / stride + 1;
+  shapes_dim_t outW = (w - kW) / stride + 1;
 
   if (outputGrad->shape.dims[0] != batch || outputGrad->shape.dims[1] != outH || outputGrad->shape.dims[2] != outW || outputGrad->shape.dims[3] != outChannels) {
     return ERR_DIM_MISMATCH;
@@ -295,20 +295,20 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
     }
   }
 
-  dim_t C_in = input->shape.dims[3];
-  dim_t kS = C_in * kH * kW;
+  shapes_dim_t C_in = input->shape.dims[3];
+  shapes_dim_t kS = C_in * kH * kW;
 
   if (input->dtype == F64) {
     f64 *wValues = kernelContig->values;     // (C_out, Cin, kH, kW) -> (C_out, kS)
     f64 *dWValues = dKernels->values;        // (C_out, Cin, kH, kW) -> (C_out, kS)
     f64 *dOutput = outputGradContig->values; // (B,outH, outW, C_out)
 
-    dim_t batch = input->shape.dims[0];
-    dim_t outH = outputGradContig->shape.dims[1];
-    dim_t outW = outputGradContig->shape.dims[2];
-    dim_t C_out = outputGradContig->shape.dims[3];
+    shapes_dim_t batch = input->shape.dims[0];
+    shapes_dim_t outH = outputGradContig->shape.dims[1];
+    shapes_dim_t outW = outputGradContig->shape.dims[2];
+    shapes_dim_t C_out = outputGradContig->shape.dims[3];
 
-    dim_t outputPositions = batch * outH * outW;
+    shapes_dim_t outputPositions = batch * outH * outW;
 
     Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F64);
     dColBuffer = dColBufferTensor.values;
@@ -323,12 +323,12 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
     f32 *dWValues = dKernels->values;        // (C_out, Cin, kH, kW) -> (C_out, kS)
     f32 *dOutput = outputGradContig->values; // (B,outH, outW, C_out)
 
-    dim_t batch = input->shape.dims[0];
-    dim_t outH = outputGradContig->shape.dims[1];
-    dim_t outW = outputGradContig->shape.dims[2];
-    dim_t C_out = outputGradContig->shape.dims[3];
+    shapes_dim_t batch = input->shape.dims[0];
+    shapes_dim_t outH = outputGradContig->shape.dims[1];
+    shapes_dim_t outW = outputGradContig->shape.dims[2];
+    shapes_dim_t C_out = outputGradContig->shape.dims[3];
 
-    dim_t outputPositions = batch * outH * outW;
+    shapes_dim_t outputPositions = batch * outH * outW;
 
     Tensor dColBufferTensor = t_Empty(ctx, SHAPE1D(outputPositions * kS), F32);
     dColBuffer = dColBufferTensor.values;
@@ -382,12 +382,12 @@ Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t out
     return ERR_NULL_TENSOR_PROVIDED;
   }
 
-  dim_t kH = kernelShape.dims[0];
-  dim_t kW = kernelShape.dims[1];
-  dim_t batch = t->shape.dims[0];
-  dim_t h = t->shape.dims[1];
-  dim_t w = t->shape.dims[2];
-  dim_t c = t->shape.dims[3];
+  shapes_dim_t kH = kernelShape.dims[0];
+  shapes_dim_t kW = kernelShape.dims[1];
+  shapes_dim_t batch = t->shape.dims[0];
+  shapes_dim_t h = t->shape.dims[1];
+  shapes_dim_t w = t->shape.dims[2];
+  shapes_dim_t c = t->shape.dims[3];
 
   if (kH == 0 || kW == 0 || c != inChannels) {
     return ERR_DIM_MISMATCH;
@@ -403,8 +403,8 @@ Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t out
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t outH = (h - 1) * stride + kH;
-  dim_t outW = (w - 1) * stride + kW;
+  shapes_dim_t outH = (h - 1) * stride + kH;
+  shapes_dim_t outW = (w - 1) * stride + kW;
 
   Tensor *createdDest = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(createdDest == NULL, ALLOCATION_FAILED);
@@ -419,21 +419,21 @@ Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t out
     f64 *kernelValues = kernels->values;
     f64 *outValues = dest->values;
 
-    for (dim_t b = 0; b < batch; b++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
       for (size_t ic = 0; ic < inChannels; ic++) {
-        for (dim_t ih = 0; ih < h; ih++) {
-          for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
+        for (shapes_dim_t ih = 0; ih < h; ih++) {
+          for (shapes_dim_t iw = 0; iw < w; iw++) {
+            shapes_dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
             f64 inputValue = input[inputIdx];
-            dim_t outY = ih * stride;
-            dim_t outX = iw * stride;
+            shapes_dim_t outY = ih * stride;
+            shapes_dim_t outX = iw * stride;
 
             for (size_t oc = 0; oc < outChannels; oc++) {
-              dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
-              for (dim_t ky = 0; ky < kH; ky++) {
-                for (dim_t kx = 0; kx < kW; kx++) {
-                  dim_t outIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
-                  dim_t kernelIdx = kernelBase + ky * kW + kx;
+              shapes_dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
+              for (shapes_dim_t ky = 0; ky < kH; ky++) {
+                for (shapes_dim_t kx = 0; kx < kW; kx++) {
+                  shapes_dim_t outIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
+                  shapes_dim_t kernelIdx = kernelBase + ky * kW + kx;
                   outValues[outIdx] += inputValue * kernelValues[kernelIdx];
                 }
               }
@@ -447,21 +447,21 @@ Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t out
     f32 *kernelValues = kernels->values;
     f32 *outValues = dest->values;
 
-    for (dim_t b = 0; b < batch; b++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
       for (size_t ic = 0; ic < inChannels; ic++) {
-        for (dim_t ih = 0; ih < h; ih++) {
-          for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
+        for (shapes_dim_t ih = 0; ih < h; ih++) {
+          for (shapes_dim_t iw = 0; iw < w; iw++) {
+            shapes_dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
             f32 inputValue = input[inputIdx];
-            dim_t outY = ih * stride;
-            dim_t outX = iw * stride;
+            shapes_dim_t outY = ih * stride;
+            shapes_dim_t outX = iw * stride;
 
             for (size_t oc = 0; oc < outChannels; oc++) {
-              dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
-              for (dim_t ky = 0; ky < kH; ky++) {
-                for (dim_t kx = 0; kx < kW; kx++) {
-                  dim_t outIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
-                  dim_t kernelIdx = kernelBase + ky * kW + kx;
+              shapes_dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
+              for (shapes_dim_t ky = 0; ky < kH; ky++) {
+                for (shapes_dim_t kx = 0; kx < kW; kx++) {
+                  shapes_dim_t outIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
+                  shapes_dim_t kernelIdx = kernelBase + ky * kW + kx;
                   outValues[outIdx] += inputValue * kernelValues[kernelIdx];
                 }
               }
@@ -496,21 +496,21 @@ Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *ke
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t batch = x->shape.dims[0];
-  dim_t h = x->shape.dims[1];
-  dim_t w = x->shape.dims[2];
-  dim_t inChannels = x->shape.dims[3];
-  dim_t kernelInChannels = kernels->shape.dims[0];
-  dim_t outChannels = kernels->shape.dims[1];
-  dim_t kH = kernels->shape.dims[2];
-  dim_t kW = kernels->shape.dims[3];
+  shapes_dim_t batch = x->shape.dims[0];
+  shapes_dim_t h = x->shape.dims[1];
+  shapes_dim_t w = x->shape.dims[2];
+  shapes_dim_t inChannels = x->shape.dims[3];
+  shapes_dim_t kernelInChannels = kernels->shape.dims[0];
+  shapes_dim_t outChannels = kernels->shape.dims[1];
+  shapes_dim_t kH = kernels->shape.dims[2];
+  shapes_dim_t kW = kernels->shape.dims[3];
 
   if (inChannels != kernelInChannels) {
     return ERR_DIM_MISMATCH;
   }
 
-  dim_t outH = (h - 1) * stride + kH;
-  dim_t outW = (w - 1) * stride + kW;
+  shapes_dim_t outH = (h - 1) * stride + kH;
+  shapes_dim_t outW = (w - 1) * stride + kW;
 
   if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[1] != outH || gradOut->shape.dims[2] != outW || gradOut->shape.dims[3] != outChannels) {
     return ERR_DIM_MISMATCH;
@@ -544,20 +544,20 @@ Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *ke
     f64 *dxValues = dX->values;
     f64 *dKernelValues = dKernels->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t ic = 0; ic < inChannels; ic++) {
-        for (dim_t ih = 0; ih < h; ih++) {
-          for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
-            dim_t outY = ih * stride;
-            dim_t outX = iw * stride;
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t ic = 0; ic < inChannels; ic++) {
+        for (shapes_dim_t ih = 0; ih < h; ih++) {
+          for (shapes_dim_t iw = 0; iw < w; iw++) {
+            shapes_dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
+            shapes_dim_t outY = ih * stride;
+            shapes_dim_t outX = iw * stride;
 
-            for (dim_t oc = 0; oc < outChannels; oc++) {
-              dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
-              for (dim_t ky = 0; ky < kH; ky++) {
-                for (dim_t kx = 0; kx < kW; kx++) {
-                  dim_t gradIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
-                  dim_t kernelIdx = kernelBase + ky * kW + kx;
+            for (shapes_dim_t oc = 0; oc < outChannels; oc++) {
+              shapes_dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
+              for (shapes_dim_t ky = 0; ky < kH; ky++) {
+                for (shapes_dim_t kx = 0; kx < kW; kx++) {
+                  shapes_dim_t gradIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
+                  shapes_dim_t kernelIdx = kernelBase + ky * kW + kx;
                   f64 grad = gradValues[gradIdx];
                   dxValues[inputIdx] += grad * kernelValues[kernelIdx];
                   dKernelValues[kernelIdx] += xValues[inputIdx] * grad;
@@ -575,20 +575,20 @@ Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *ke
     f32 *dxValues = dX->values;
     f32 *dKernelValues = dKernels->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t ic = 0; ic < inChannels; ic++) {
-        for (dim_t ih = 0; ih < h; ih++) {
-          for (dim_t iw = 0; iw < w; iw++) {
-            dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
-            dim_t outY = ih * stride;
-            dim_t outX = iw * stride;
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t ic = 0; ic < inChannels; ic++) {
+        for (shapes_dim_t ih = 0; ih < h; ih++) {
+          for (shapes_dim_t iw = 0; iw < w; iw++) {
+            shapes_dim_t inputIdx = (((b * h + ih) * w + iw) * inChannels) + ic;
+            shapes_dim_t outY = ih * stride;
+            shapes_dim_t outX = iw * stride;
 
-            for (dim_t oc = 0; oc < outChannels; oc++) {
-              dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
-              for (dim_t ky = 0; ky < kH; ky++) {
-                for (dim_t kx = 0; kx < kW; kx++) {
-                  dim_t gradIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
-                  dim_t kernelIdx = kernelBase + ky * kW + kx;
+            for (shapes_dim_t oc = 0; oc < outChannels; oc++) {
+              shapes_dim_t kernelBase = ((ic * outChannels + oc) * kH) * kW;
+              for (shapes_dim_t ky = 0; ky < kH; ky++) {
+                for (shapes_dim_t kx = 0; kx < kW; kx++) {
+                  shapes_dim_t gradIdx = (((b * outH + (outY + ky)) * outW + outX + kx) * outChannels) + oc;
+                  shapes_dim_t kernelIdx = kernelBase + ky * kW + kx;
                   f32 grad = gradValues[gradIdx];
                   dxValues[inputIdx] += grad * kernelValues[kernelIdx];
                   dKernelValues[kernelIdx] += xValues[inputIdx] * grad;

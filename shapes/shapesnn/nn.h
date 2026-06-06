@@ -48,7 +48,7 @@ void shapesnn_LoadFromSafeTensors(shapes_Context *ctx, shapesnn_FowardPassOp *mo
 void shapesnn_SafeTensors_Save(shapes_Context *ctx, olib_Array *named, string path);
 olib_Array *shapesnn_SafeTensors_Load(shapes_Context *ctx, string path);
 shapesnn_FowardPassOp shapesnn_Dense(shapes_Context *ctx, shapes_Dtype dtype, size_t inputSize, size_t outputSize, bool withBias);
-shapesnn_FowardPassOp shapesnn_Embedding(shapes_Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim);
+shapesnn_FowardPassOp shapesnn_Embedding(shapes_Context *ctx, shapes_Dtype dtype, size_t vocabSize, shapes_dim_t embeddingDim);
 shapesnn_Optimizer shapesnn_SGD(shapes_Context *ctx, f32 learningRate);
 shapesnn_Optimizer shapesnn_Adam(shapes_Context *ctx, f32 learningRate);
 Tensor shapesnn_Mse(shapes_Context *ctx, Tensor *yGround, Tensor *yPred);
@@ -57,9 +57,9 @@ shapesnn_FowardPassOp shapesnn_BatchNorm(shapes_Context *ctx, shapes_Dtype dtype
 shapesnn_FowardPassOp shapesnn_BatchNorm2d(shapes_Context *ctx, shapes_Dtype dtype, size_t numFeatures);
 shapesnn_FowardPassOp shapesnn_Tanh(shapes_Context *ctx, shapes_Dtype dtype);
 shapesnn_FowardPassOp shapesnn_Relu(shapes_Context *ctx, shapes_Dtype dtype);
-shapesnn_FowardPassOp shapesnn_MaxPool2d(shapes_Context *ctx, shapes_Dtype dtype, dim_t kernelH, dim_t kW, u8 stride);
-shapesnn_FowardPassOp shapesnn_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Dtype dtype, dim_t outH, dim_t outW);
-shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias);
+shapesnn_FowardPassOp shapesnn_MaxPool2d(shapes_Context *ctx, shapes_Dtype dtype, shapes_dim_t kernelH, shapes_dim_t kW, u8 stride);
+shapesnn_FowardPassOp shapesnn_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Dtype dtype, shapes_dim_t outH, shapes_dim_t outW);
+shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, shapes_dim_t kH, shapes_dim_t kW, u8 stride, bool withBias);
 shapesnn_FowardPassOp shapesnn_Flatten(shapes_Context *ctx, shapes_Dtype type);
 shapesnn_FowardPassOp shapesnn_Sequential(shapes_Context *ctx, shapesnn_FowardPassOp *layerOps, size_t numLayers, shapes_Dtype dtype);
 olib_Array *shapesnn_Backward(shapes_Context *ctx, Tensor *tensor);

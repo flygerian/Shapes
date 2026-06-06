@@ -5,9 +5,9 @@
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
 // the last dim (feature width). Dense uses this to preserve any batch axes.
-static shapes_Dim swapLastDim(shapes_Context *ctx, shapes_Dim dim, dim_t lastDim) {
+static shapes_Dim swapLastDim(shapes_Context *ctx, shapes_Dim dim, shapes_dim_t lastDim) {
   u8 numDims = dim.numOfDims;
-  dim_t *dims = olib_Allocate(ctx->memory, sizeof(dim_t) * numDims);
+  shapes_dim_t *dims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * numDims);
   PANIC_IF(dims == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < numDims; i++) {
@@ -41,7 +41,7 @@ static Result validateDenseGradBuffer(Tensor *grad, Tensor *reference, shapes_Dt
   return OK;
 }
 
-static Result validateDenseBiasGradBuffer(Tensor *grad, dim_t outputSize, shapes_Dtype dtype) {
+static Result validateDenseBiasGradBuffer(Tensor *grad, shapes_dim_t outputSize, shapes_Dtype dtype) {
   if (grad == NULL) {
     return OK;
   }
@@ -79,8 +79,8 @@ Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, 
 
   PANIC_IF(x->dtype != F16 && x->dtype != F32 && x->dtype != F64, ERR_DTYPE_MISMATCH);
 
-  dim_t inputSize = x->shape.dims[x->shape.numOfDims - 1];
-  dim_t outputSize = w->shape.dims[0];
+  shapes_dim_t inputSize = x->shape.dims[x->shape.numOfDims - 1];
+  shapes_dim_t outputSize = w->shape.dims[0];
 
   PANIC_IF(w->shape.dims[1] != inputSize, ERR_MATMUL_INNER_DIM_MISMATCH);
 
@@ -91,7 +91,7 @@ Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Tensor *wContig = materializeTensorOnContext(ctx, w);
 
-  tensor_size_t rows = x->size / inputSize;
+  shapes_tensor_size_t rows = x->size / inputSize;
 
   shapes_Dim newDims = swapLastDim(ctx, x->shape, outputSize);
   Tensor out = shapes_MakeZerosTensor(ctx, newDims);
@@ -133,8 +133,8 @@ Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *g
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t inputSize = x2d.shape.dims[x2d.shape.numOfDims - 1];
-  dim_t outputSize = w->shape.dims[0];
+  shapes_dim_t inputSize = x2d.shape.dims[x2d.shape.numOfDims - 1];
+  shapes_dim_t outputSize = w->shape.dims[0];
 
   if (w->shape.dims[1] != inputSize) {
     return ERR_MATMUL_INNER_DIM_MISMATCH;
@@ -156,7 +156,7 @@ Result shapes_DenseBackward(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *g
     return res;
   }
 
-  tensor_size_t rows = x2d.size / inputSize;
+  shapes_tensor_size_t rows = x2d.size / inputSize;
   if (gradOut2d.size != rows * outputSize) {
     return ERR_DIM_MISMATCH;
   }

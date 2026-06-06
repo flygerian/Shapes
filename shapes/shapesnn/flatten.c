@@ -17,7 +17,7 @@ Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor)
 
   size_t flattenedSize = 1;
   for (RANGE_FROM(1, shape.numOfDims, i)) {
-    dim_t dim = shape.dims[i];
+    shapes_dim_t dim = shape.dims[i];
     flattenedSize *= dim;
   }
 

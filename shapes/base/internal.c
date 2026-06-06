@@ -35,23 +35,23 @@ size_t getBytesForDtype(shapes_Dtype type) {
   }
 }
 
-dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype) {
+shapes_dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype) {
   switch (dtype) {
     case U8: return idxVal.as.u8;
     case U16: return idxVal.as.u16;
     case U32: return idxVal.as.u32;
     case U64: return idxVal.as.u64;
-    case I8: return (dim_t)idxVal.as.i8;
-    case I16: return (dim_t)idxVal.as.i16;
-    case I32: return (dim_t)idxVal.as.i32;
-    case I64: return (dim_t)idxVal.as.i64;
+    case I8: return (shapes_dim_t)idxVal.as.i8;
+    case I16: return (shapes_dim_t)idxVal.as.i16;
+    case I32: return (shapes_dim_t)idxVal.as.i32;
+    case I64: return (shapes_dim_t)idxVal.as.i64;
     default: PANIC_WITH_CODE(ERR_DTYPE_MISMATCH);
   }
   return -1;
 }
 
 void shapes_PrintItem(Tensor *t) {
-  dim_t zero[1] = {0};
+  shapes_dim_t zero[1] = {0};
   shapes_Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
   shapes_Value *val = shapes_GetAt(t, zeroIdx);
@@ -60,7 +60,7 @@ void shapes_PrintItem(Tensor *t) {
 }
 
 char *shapes_GetItem(shapes_Context *ctx, Tensor *t) {
-  dim_t zero[1] = {0};
+  shapes_dim_t zero[1] = {0};
   shapes_Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
   shapes_Value *val = shapes_GetAt(t, zeroIdx);
@@ -72,7 +72,7 @@ char *shapes_GetItem(shapes_Context *ctx, Tensor *t) {
   return valueStr;
 }
 
-Result shapes_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
+Result shapes_CopyShape(Tensor *t, shapes_dim_t *destDims, u8 *numDims) {
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -86,19 +86,19 @@ Result shapes_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims) {
     return OK;
   }
 
-  memcpy(destDims, t->shape.dims, sizeof(dim_t) * t->shape.numOfDims);
+  memcpy(destDims, t->shape.dims, sizeof(shapes_dim_t) * t->shape.numOfDims);
   return OK;
 }
 
-sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, dim_t *dims, u8 numOfDims) {
+sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);
 
   if (dims == NULL || numOfDims == 0) {
     return (sizeAndMultipliers){.size = 1, .multipliers = NULL};
   }
 
-  multiplier_t *multipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * numOfDims);
-  tensor_size_t size = 1;
+  shapes_multiplier_t *multipliers = olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * numOfDims);
+  shapes_tensor_size_t size = 1;
 
   for (int x = numOfDims - 1; x >= 0; x--) {
     multipliers[x] = size;
@@ -132,7 +132,7 @@ Result clearTensorValues(Tensor *t) {
   return OK;
 }
 
-u64 getContigousIdxFromCoord(Tensor *restrict t, dim_t *restrict idx) {
+u64 getContigousIdxFromCoord(Tensor *restrict t, shapes_dim_t *restrict idx) {
   u64 result = 0;
 
   for (u8 x = 0; x < t->shape.numOfDims; x++) {
@@ -197,7 +197,7 @@ Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source) {
   }
   memset(indices, 0, sizeof(size_t) * source->shape.numOfDims);
 
-  for (tensor_size_t i = 0; i < source->size; i++) {
+  for (shapes_tensor_size_t i = 0; i < source->size; i++) {
     shapes_Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
     shapes_Value *val = shapes_GetAt(source, idx);
     writeTensorValueAtFlatIndex(copy, i, *val);
@@ -241,8 +241,8 @@ bool areBroadcastable(Tensor *a, Tensor *b) {
     int aIdx = a->shape.numOfDims - 1 - d;
     int bIdx = b->shape.numOfDims - 1 - d;
 
-    dim_t aDim = aIdx >= 0 ? a->shape.dims[aIdx] : 1;
-    dim_t bDim = bIdx >= 0 ? b->shape.dims[bIdx] : 1;
+    shapes_dim_t aDim = aIdx >= 0 ? a->shape.dims[aIdx] : 1;
+    shapes_dim_t bDim = bIdx >= 0 ? b->shape.dims[bIdx] : 1;
 
     if (aDim == bDim) {
       pastBroadcastRegion = true;
@@ -261,14 +261,14 @@ bool areBroadcastable(Tensor *a, Tensor *b) {
   return true;
 }
 
-TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b) {
+shapes_TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b) {
   Tensor *smaller = a->shape.numOfDims < b->shape.numOfDims ? a : b;
   Tensor *larger = a->shape.numOfDims < b->shape.numOfDims ? b : a;
   u8 diff = larger->shape.numOfDims - smaller->shape.numOfDims;
 
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * larger->shape.numOfDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * larger->shape.numOfDims);
   if (newDims == NULL) {
-    return (TensorPair){.a = *a, .b = *b};
+    return (shapes_TensorPair){.a = *a, .b = *b};
   }
   for (u8 i = 0; i < diff; i++) {
     newDims[i] = 1;
@@ -281,12 +281,11 @@ TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b) {
   Tensor reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
 
   if (smaller == a) {
-    return (TensorPair){.a = reshapedSmaller, .b = *b};
-  }
-  return (TensorPair){.a = *a, .b = reshapedSmaller};
+    return (shapes_TensorPair){.a = reshapedSmaller, .b = *b};
+  } return (shapes_TensorPair){.a = *a, .b = reshapedSmaller};
 }
 
-Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result) {
+Result calculateNumElementsBeforeDim(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result) {
   if (dim == 0) {
     *result = 1;
     return OK;
@@ -296,8 +295,8 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
     return ERR_OUT_OF_BOUNDS;
   }
 
-  tensor_size_t totalElements = t->shape.dims[0];
-  for (dim_t d = 1; d < t->shape.numOfDims; d++) {
+  shapes_tensor_size_t totalElements = t->shape.dims[0];
+  for (shapes_dim_t d = 1; d < t->shape.numOfDims; d++) {
     if (d == dim) {
       break;
     }
@@ -308,7 +307,7 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
   return OK;
 }
 
-Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, shapes_Dim *result) {
+Result getDimsBefore(shapes_Context *ctx, Tensor *t, shapes_dim_t dim, shapes_Dim *result) {
   (void)ctx;
   if (dim == 0) {
     return OK;
@@ -318,14 +317,14 @@ Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, shapes_Dim *resu
     return ERR_OUT_OF_BOUNDS;
   }
 
-  for (dim_t d = 0; d < dim; d++) {
+  for (shapes_dim_t d = 0; d < dim; d++) {
     result->dims[d] = t->shape.dims[d];
   }
 
   return OK;
 }
 
-Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result) {
+Result calculateNumElementsAfterDim(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result) {
   if (dim == t->shape.numOfDims - 1) {
     *result = 1;
     return OK;
@@ -335,8 +334,8 @@ Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result)
     return ERR_OUT_OF_BOUNDS;
   }
 
-  tensor_size_t numElements = t->shape.dims[dim + 1];
-  for (dim_t d = dim + 2; d < t->shape.numOfDims; d++) {
+  shapes_tensor_size_t numElements = t->shape.dims[dim + 1];
+  for (shapes_dim_t d = dim + 2; d < t->shape.numOfDims; d++) {
     if (d >= t->shape.numOfDims) {
       break;
     }
@@ -472,7 +471,7 @@ void shapes_ArrayAppendTensorArray(olib_Array *array, olib_Array *tensorArray) {
 
 static void printTensorDim(Tensor *t, size_t *flatIdx, u8 dim, u8 indent) {
   printf("[");
-  for (dim_t i = 0; i < t->shape.dims[dim]; i++) {
+  for (shapes_dim_t i = 0; i < t->shape.dims[dim]; i++) {
     if (i > 0) {
       if (dim == t->shape.numOfDims - 1) {
         printf(", ");

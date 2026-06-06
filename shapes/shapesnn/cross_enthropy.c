@@ -22,7 +22,7 @@ Tensor shapesnn_CrossEnthropy(shapes_Context *ctx, Tensor *yGround, Tensor *logi
   PANIC_IF(yGround == NULL, ERR_NULL_PTR);
   PANIC_IF(logits == NULL, ERR_NULL_PTR);
 
-  TensorPair crossEnthropyResult = shapes_loss_CrossEntropyForward(ctx, yGround, logits);
+  shapes_TensorPair crossEnthropyResult = shapes_loss_CrossEntropyForward(ctx, yGround, logits);
 
   Tensor loss = crossEnthropyResult.a;
   Tensor probs = crossEnthropyResult.b;

@@ -137,25 +137,25 @@ static Result validateAbsTensor(Tensor *t) {
   }
 }
 
-static void tanhCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
+static void tanhCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvtanhf(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = tanhf(src[i]);
   }
   #endif
 }
 
-static void tanhCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
+static void tanhCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvtanh(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = tanh(src[i]);
   }
   #endif
@@ -177,14 +177,14 @@ static Tensor tanhCpu(shapes_Context *ctx, Tensor *t) {
 
 // Left scalar deliberately: -O3 auto-vectorizes to fmaxnm.4s with a 16-wide unrolled main loop.
 // vDSP/vForce have no ReLU equivalent that beats this.
-static void reluCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
-  for (tensor_size_t i = 0; i < n; i++) {
+static void reluCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = src[i] > 0.0f ? src[i] : 0.0f;
   }
 }
 
-static void reluCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
-  for (tensor_size_t i = 0; i < n; i++) {
+static void reluCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = src[i] > 0.0 ? src[i] : 0.0;
   }
 }
@@ -203,25 +203,25 @@ static Tensor reluCpu(shapes_Context *ctx, Tensor *t) {
   return output;
 }
 
-static void powCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n, f32 power) {
+static void powCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n, f32 power) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvpowsf(dst, &power, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = powf(src[i], power);
   }
   #endif
 }
 
-static void powCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n, f64 power) {
+static void powCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n, f64 power) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvpows(dst, &power, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = pow(src[i], power);
   }
   #endif
@@ -245,25 +245,25 @@ static Tensor powCpu(shapes_Context *ctx, Tensor *t, f32 power) {
   return output;
 }
 
-static void sqrtCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
+static void sqrtCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvsqrtf(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = sqrtf(src[i]);
   }
   #endif
 }
 
-static void sqrtCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
+static void sqrtCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvsqrt(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = sqrt(src[i]);
   }
   #endif
@@ -283,25 +283,25 @@ static Tensor sqrtCpu(shapes_Context *ctx, Tensor *t) {
   return output;
 }
 
-static void expCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
+static void expCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvexpf(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = expf(src[i]);
   }
   #endif
 }
 
-static void expCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
+static void expCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvexp(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = exp(src[i]);
   }
   #endif
@@ -321,25 +321,25 @@ static Tensor expCpu(shapes_Context *ctx, Tensor *t) {
   return output;
 }
 
-static void logCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
+static void logCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvlogf(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = logf(src[i]);
   }
   #endif
 }
 
-static void logCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
+static void logCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvlog(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = log(src[i]);
   }
   #endif
@@ -359,25 +359,25 @@ static Tensor logCpu(shapes_Context *ctx, Tensor *t) {
   return output;
 }
 
-static void absCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
+static void absCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvfabsf(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = fabsf(src[i]);
   }
   #endif
 }
 
-static void absCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
+static void absCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     int ni = (int)n;
     PANIC_IF(ni <= 0, ERR_NO_OP);
     vvfabs(dst, src, &ni);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = fabs(src[i]);
   }
   #endif
@@ -394,7 +394,7 @@ static Tensor absCpu(shapes_Context *ctx, Tensor *t) {
     case I8: {
       const i8 *s = input->values;
       i8 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? (i8)-s[i] : s[i];
       }
       break;
@@ -402,7 +402,7 @@ static Tensor absCpu(shapes_Context *ctx, Tensor *t) {
     case I16: {
       const i16 *s = input->values;
       i16 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? (i16)-s[i] : s[i];
       }
       break;
@@ -410,7 +410,7 @@ static Tensor absCpu(shapes_Context *ctx, Tensor *t) {
     case I32: {
       const i32 *s = input->values;
       i32 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? -s[i] : s[i];
       }
       break;
@@ -418,7 +418,7 @@ static Tensor absCpu(shapes_Context *ctx, Tensor *t) {
     case I64: {
       const i64 *s = input->values;
       i64 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = s[i] < 0 ? -s[i] : s[i];
       }
       break;
@@ -429,23 +429,23 @@ static Tensor absCpu(shapes_Context *ctx, Tensor *t) {
   return output;
 }
 
-static void negateCpuF32(const f32 *restrict src, f32 *restrict dst, tensor_size_t n) {
+static void negateCpuF32(const f32 *restrict src, f32 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     PANIC_IF(n == 0, ERR_NO_OP);
     vDSP_vneg(src, 1, dst, 1, (vDSP_Length)n);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = -src[i];
   }
   #endif
 }
 
-static void negateCpuF64(const f64 *restrict src, f64 *restrict dst, tensor_size_t n) {
+static void negateCpuF64(const f64 *restrict src, f64 *restrict dst, shapes_tensor_size_t n) {
   #ifdef __APPLE__
     PANIC_IF(n == 0, ERR_NO_OP);
     vDSP_vnegD(src, 1, dst, 1, (vDSP_Length)n);
   #else
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     dst[i] = -src[i];
   }
   #endif
@@ -466,7 +466,7 @@ static Tensor negateCpu(shapes_Context *ctx, Tensor *t) {
     case I8: {
       const i8 *s = input->values;
       i8 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = (i8)-s[i];
       }
       break;
@@ -474,7 +474,7 @@ static Tensor negateCpu(shapes_Context *ctx, Tensor *t) {
     case I16: {
       const i16 *s = input->values;
       i16 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = (i16)-s[i];
       }
       break;
@@ -482,7 +482,7 @@ static Tensor negateCpu(shapes_Context *ctx, Tensor *t) {
     case I32: {
       const i32 *s = input->values;
       i32 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = -s[i];
       }
       break;
@@ -490,7 +490,7 @@ static Tensor negateCpu(shapes_Context *ctx, Tensor *t) {
     case I64: {
       const i64 *s = input->values;
       i64 *d = output.values;
-      for (tensor_size_t i = 0; i < input->size; i++) {
+      for (shapes_tensor_size_t i = 0; i < input->size; i++) {
         d[i] = -s[i];
       }
       break;
@@ -577,14 +577,14 @@ Tensor shapes_ReluBackward(shapes_Context *ctx, Tensor *output, Tensor *gradOut)
     f64 *outputValues = outputWork->values;
     f64 *gradValues = gradWork->values;
     f64 *destValues = dInput.values;
-    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < outputWork->size; i++) {
       destValues[i] = outputValues[i] > 0.0 ? gradValues[i] : 0.0;
     }
   } else {
     f32 *outputValues = outputWork->values;
     f32 *gradValues = gradWork->values;
     f32 *destValues = dInput.values;
-    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < outputWork->size; i++) {
       destValues[i] = outputValues[i] > 0.0f ? gradValues[i] : 0.0f;
     }
   }
@@ -634,14 +634,14 @@ void shapes_ReluBackwardAccumulate(shapes_Context *ctx, Tensor *output, Tensor *
     f64 *outputValues = outputWork->values;
     f64 *gradValues = gradWork->values;
     f64 *destValues = dest->values;
-    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < outputWork->size; i++) {
       destValues[i] += outputValues[i] > 0.0 ? gradValues[i] : 0.0;
     }
   } else {
     f32 *outputValues = outputWork->values;
     f32 *gradValues = gradWork->values;
     f32 *destValues = dest->values;
-    for (tensor_size_t i = 0; i < outputWork->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < outputWork->size; i++) {
       destValues[i] += outputValues[i] > 0.0f ? gradValues[i] : 0.0f;
     }
   }

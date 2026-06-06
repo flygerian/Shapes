@@ -28,13 +28,13 @@ static Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
   return t;
 }
 
-static void assertMovedF32TensorClose(shapes_Context *srcCtx, Tensor *tensor, const f32 *expected, tensor_size_t size, f32 tolerance, const char *label) {
+static void assertMovedF32TensorClose(shapes_Context *srcCtx, Tensor *tensor, const f32 *expected, shapes_tensor_size_t size, f32 tolerance, const char *label) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, label);
 
   f32 *values = tensor->values;
-  for (tensor_size_t i = 0; i < size; i++) {
+  for (shapes_tensor_size_t i = 0; i < size; i++) {
     ASSERT(fabsf(values[i] - expected[i]) < tolerance, label);
   }
 }
@@ -275,7 +275,7 @@ static void test_conv2d_forward_f32_single_channel(void) {
   k[2] = 0.0f;
   k[3] = 1.0f;
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   Result r = Conv2d(&ctx, 1, 1, 1, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d single-channel forward should succeed");
@@ -386,7 +386,7 @@ static void test_conv2d_forward_f32_multi_channel(void) {
     k[i] = 0.5f;
   }
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   Result r = Conv2d(&ctx, 2, 1, 1, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d multi-channel forward should succeed");
@@ -419,7 +419,7 @@ static void test_conv2d_forward_f32_with_batch_dimension(void) {
   k[2] = 0.0f;
   k[3] = 1.0f;
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   Result r = Conv2d(&ctx, 1, 1, 1, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d batched forward should succeed");
@@ -463,7 +463,7 @@ static void test_conv2d_restores_openblas_threads_after_local_override(void) {
 
   setenv("SHAPES_CONV_THREADS", overrideValue, 1);
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   Result r = Conv2d(&ctx, 1, 1, 1, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d with a local thread override should succeed");
@@ -494,7 +494,7 @@ static void test_conv2d_forward_f32_stride_two_multi_out_channel(void) {
   k[6] = 0.0f;
   k[7] = 0.0f;
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   Result r = Conv2d(&ctx, 1, 2, 2, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d stride-two forward should succeed");
@@ -527,7 +527,7 @@ static void test_conv2d_forward_f64_single_channel(void) {
   k[2] = -1.0;
   k[3] = 2.0;
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   Result r = Conv2d(&ctx, 1, 1, 1, kernels, NULL, false, t, &out, NULL);
 
   ASSERT_EQ(r, OK, "Conv2d f64 forward should succeed");
@@ -787,7 +787,7 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
   kVals[2] = 0.0f;
   kVals[3] = 1.0f;
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   shapes_Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = ConvTranspose2d(&ctx, 1, 1, 1, kernels, kernel, x, &out);
 
@@ -857,7 +857,7 @@ static void test_max_pool2d_forward_f32(void) {
     xVals[i] = input[i];
   }
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   shapes_Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = MaxPool2d(&ctx, x, kernel, 2, &out);
   ASSERT_EQ(r, OK, "MaxPool2d should succeed");
@@ -888,7 +888,7 @@ static void test_max_pool2d_backward_f32(void) {
   gVals[2] = 3.0f;
   gVals[3] = 4.0f;
 
-  dim_t kernelDimsArr[2] = {2, 2};
+  shapes_dim_t kernelDimsArr[2] = {2, 2};
   shapes_Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = MaxPool2dBackward(&ctx, x, gradOut, kernel, 2, &dX);
   ASSERT_EQ(r, OK, "MaxPool2dBackward should succeed");

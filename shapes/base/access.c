@@ -51,9 +51,9 @@ Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indic
   bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
   u8 newNumDims = workingSource->shape.numOfDims - 1 + workingIndices->shape.numOfDims;
-  dim_t *newDims = NULL;
+  shapes_dim_t *newDims = NULL;
   if (newNumDims > 0) {
-    newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+    newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * newNumDims);
   }
 
   for (RANGE(i, workingIndices->shape.numOfDims)) {
@@ -66,7 +66,7 @@ Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indic
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
-  tensor_size_t sliceSize = 1;
+  shapes_tensor_size_t sliceSize = 1;
   for (RANGE(i, workingIndices->shape.numOfDims)) {
     sliceSize *= workingSource->shape.dims[i];
   }
@@ -78,17 +78,17 @@ Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indic
     PANIC_IF(result != OK, result);
   }
 
-  tensor_size_t destOffset = 0;
+  shapes_tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
   for (RANGE(i, workingIndices->size)) {
     shapes_Value idxVal;
     Result result = readTensorValueAtFlatIndex(workingIndices, i, &idxVal);
     PANIC_IF(result != OK, result);
 
-    dim_t idx = indexValueToDim(idxVal, workingIndices->dtype);
+    shapes_dim_t idx = indexValueToDim(idxVal, workingIndices->dtype);
     PANIC_IF(result != OK, result);
 
-    dim_t srcCoords[workingSource->shape.numOfDims];
+    shapes_dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = idx;
     for (RANGE(d, workingSource->shape.numOfDims)) {
       srcCoords[d] = 0;
@@ -117,9 +117,9 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
   bool isCudaCtx = ctx->device != NULL && ctx->device->type == CUDA;
 
   u8 newNumDims = workingRows->shape.numOfDims + workingSource->shape.numOfDims - 2;
-  dim_t *newDims = NULL;
+  shapes_dim_t *newDims = NULL;
   if (newNumDims > 0) {
-    newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * newNumDims);
+    newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * newNumDims);
   }
 
   for (RANGE(i, workingRows->shape.numOfDims)) {
@@ -132,7 +132,7 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
 
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
-  tensor_size_t sliceSize = 1;
+  shapes_tensor_size_t sliceSize = 1;
   for (u8 i = 2; i < workingSource->shape.numOfDims; i++) {
     sliceSize *= workingSource->shape.dims[i];
   }
@@ -145,7 +145,7 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
     PANIC_IF(result != OK, result);
   }
 
-  tensor_size_t destOffset = 0;
+  shapes_tensor_size_t destOffset = 0;
   size_t bytesPerElem = getBytesForDtype(workingSource->dtype);
   for (u64 i = 0; i < workingRows->size; i++) {
     shapes_Value rowVal, colVal;
@@ -155,10 +155,10 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
     result = readTensorValueAtFlatIndex(workingCols, i, &colVal);
     PANIC_IF(result != OK, result);
 
-    dim_t rowIdx = indexValueToDim(rowVal, workingRows->dtype);
-    dim_t colIdx = indexValueToDim(colVal, workingCols->dtype);
+    shapes_dim_t rowIdx = indexValueToDim(rowVal, workingRows->dtype);
+    shapes_dim_t colIdx = indexValueToDim(colVal, workingCols->dtype);
 
-    dim_t srcCoords[workingSource->shape.numOfDims];
+    shapes_dim_t srcCoords[workingSource->shape.numOfDims];
     srcCoords[0] = rowIdx;
     srcCoords[1] = colIdx;
 

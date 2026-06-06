@@ -15,7 +15,7 @@
 typedef struct batchNormLayerData {
   Tensor gamma;
   Tensor beta;
-  dim_t numFeatures;
+  shapes_dim_t numFeatures;
   f32 epsilon;
   f32 momentum;
   u8 dims;
@@ -29,10 +29,10 @@ typedef struct reshapedFeatures {
   shapes_Dim originalShape;
 } reshapedFeatures;
 
-reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, dim_t numFeatures) {
+reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, shapes_dim_t numFeatures) {
   u8 numDims = tensor->shape.numOfDims;
 
-  dim_t lastDimSize = tensor->shape.dims[numDims - 1];
+  shapes_dim_t lastDimSize = tensor->shape.dims[numDims - 1];
   PANIC_IF(lastDimSize != numFeatures, ERR_DIM_MISMATCH);
 
   if (numDims == 1) {
@@ -41,7 +41,7 @@ reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, di
   }
 
   u8 lastDim = tensor->shape.numOfDims - 1;
-  tensor_size_t numElementsBeforeDim = 0;
+  shapes_tensor_size_t numElementsBeforeDim = 0;
   calculateNumElementsBeforeDim(tensor, lastDim, &numElementsBeforeDim);
   reshapedFeatures rf = {.originalShape = tensor->shape};
   Tensor reshaped = shapes_Reshape(ctx, tensor, SHAPE2D(numElementsBeforeDim, numFeatures));
@@ -49,9 +49,9 @@ reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, di
   return rf;
 }
 
-reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, dim_t numFeatures) {
+reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, shapes_dim_t numFeatures) {
   PANIC_IF(tensor->shape.numOfDims != 4, ERR_DIM_MISMATCH);
-  dim_t channelDim = tensor->shape.dims[3];
+  shapes_dim_t channelDim = tensor->shape.dims[3];
   PANIC_IF(channelDim != numFeatures, ERR_DIM_MISMATCH);
 
   reshapedFeatures rf = reshapeToBatchFeature2D(ctx, tensor, numFeatures);
@@ -61,10 +61,10 @@ reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, Tensor *tensor
 
 Tensor restoreBatchNorm2DOutput(shapes_Context *ctx, Tensor *x2d, shapes_Dim originalShape) {
   PANIC_IF(originalShape.numOfDims != 4, ERR_DIM_MISMATCH);
-  dim_t n = originalShape.dims[0];
-  dim_t h = originalShape.dims[1];
-  dim_t w = originalShape.dims[2];
-  dim_t c = originalShape.dims[3];
+  shapes_dim_t n = originalShape.dims[0];
+  shapes_dim_t h = originalShape.dims[1];
+  shapes_dim_t w = originalShape.dims[2];
+  shapes_dim_t c = originalShape.dims[3];
   return shapes_Reshape(ctx, x2d, SHAPE4D(n, h, w, c));
 }
 
@@ -94,7 +94,7 @@ void batchnormBackward(shapes_Context *ctx, Tensor *output) {
     default: PANIC_IF(true, ERR_NO_OP);
   }
 
-  BatchNormBackwardResult backwardResult = shapes_BatchNormBackward(ctx, &x2d, &grad2d, &layerData->gamma, layerData->epsilon);
+  shapes_BatchNormBackwardResult backwardResult = shapes_BatchNormBackward(ctx, &x2d, &grad2d, &layerData->gamma, layerData->epsilon);
 
   shapes_AddInPlace(ctx, layerData->beta.grad, &backwardResult.dBeta);
   shapes_AddInPlace(ctx, layerData->gamma.grad, &backwardResult.dGamma);
@@ -207,7 +207,7 @@ Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inpu
 
   Tensor bnOut2d;
   if (ctx->isTraining) {
-    BatchNormFowardResult bnResult = shapes_BatchNormForwardTraining(ctx, &x2d, &layerData->gamma, &layerData->beta, layerData->epsilon);
+    shapes_BatchNormFowardResult bnResult = shapes_BatchNormForwardTraining(ctx, &x2d, &layerData->gamma, &layerData->beta, layerData->epsilon);
     bnOut2d = bnResult.out;
     if (layerData->runningStatsInitialised) {
       updateRunningStats(ctx, layerData, &bnResult.mean, &bnResult.variance);

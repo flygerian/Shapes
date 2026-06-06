@@ -159,7 +159,7 @@ olib_Array *BuildDataset(shapes_Context *ctx, olib_Array *words, olib_Array *sto
 }
 
 olib_Array *BuildTensorDataset(shapes_Context *ctx, olib_Array *datasetPairs) {
-  olib_Array *tensorPairs = olib_MakeArray(ctx->memory, sizeof(TensorPair), datasetPairs->size);
+  olib_Array *tensorPairs = olib_MakeArray(ctx->memory, sizeof(shapes_TensorPair), datasetPairs->size);
 
   for (size_t i = 0; i < datasetPairs->size; i++) {
     DatasetPair *dp = (DatasetPair *)olib_ArrayIdx(datasetPairs, i);
@@ -169,7 +169,7 @@ olib_Array *BuildTensorDataset(shapes_Context *ctx, olib_Array *datasetPairs) {
 
     Tensor castedCtx = Cast(ctx, &context, F32);
     Tensor castedTgt = Cast(ctx, &target, F32);
-    TensorPair tp = {.a = castedCtx, .b = castedTgt};
+    shapes_TensorPair tp = {.a = castedCtx, .b = castedTgt};
     olib_ArrayAppend(tensorPairs, &tp);
   }
 
@@ -267,7 +267,7 @@ olib_Array *Model_ParameterGradNorms(shapes_Context *ctx, Model *model) {
   return gradNorms;
 }
 
-static Tensor *softmax(shapes_Context *ctx, Tensor *logits, dim_t dim) {
+static Tensor *softmax(shapes_Context *ctx, Tensor *logits, shapes_dim_t dim) {
   Tensor maxVal = shapes_Max(ctx, logits, dim);
   Tensor shifted = shapes_Subtract(ctx, logits, &maxVal);
   Tensor expVals = shapes_Exp(ctx, &shifted);
@@ -278,12 +278,12 @@ static Tensor *softmax(shapes_Context *ctx, Tensor *logits, dim_t dim) {
   return probs;
 }
 
-static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
+static int sampleFromProbs(Tensor *probs, shapes_dim_t numClasses) {
   f32 r = (f32)rand() / (f32)RAND_MAX;
   f32 cumulative = 0.0f;
 
-  for (dim_t i = 0; i < numClasses; i++) {
-    dim_t idx[2] = {0, i};
+  for (shapes_dim_t i = 0; i < numClasses; i++) {
+    shapes_dim_t idx[2] = {0, i};
     shapes_Value *p = shapes_GetAt(probs, (shapes_Dim){.dims = idx, .numOfDims = 2});
     cumulative += p->as.f32;
     if (r <= cumulative) {
@@ -294,7 +294,7 @@ static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
   return 0;
 }
 
-void Model_Generate(shapes_Context *ctx, Model *model, olib_Array *itos, int numSamples, int maxNameLen, dim_t vocabSize) {
+void Model_Generate(shapes_Context *ctx, Model *model, olib_Array *itos, int numSamples, int maxNameLen, shapes_dim_t vocabSize) {
   printf("\nGenerated names:\n");
 
   for (int sample = 0; sample < numSamples; sample++) {
@@ -350,7 +350,7 @@ void runInference(string path) {
   shapesnn_LoadFromSafeTensors(&ctx, &model.layers, path);
 
   olib_Array *itos = loadItosFromFile(&ctx, path);
-  Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
+  Model_Generate(&ctx, &model, itos, 10, 20, (shapes_dim_t)itos->size);
 }
 
 void makemore() {
@@ -397,7 +397,7 @@ void makemore() {
       Tensor input = shapes_ArrayTensorIdx(batchedData.inputs, b);
       Tensor target = shapes_ArrayTensorIdx(batchedData.targets, b);
 
-      dim_t batchSize = input.shape.dims[0];
+      shapes_dim_t batchSize = input.shape.dims[0];
       totalSamples += batchSize;
 
       Tensor logits = Model_Forward(&scratchCtx, &model, &input);
@@ -456,7 +456,7 @@ void makemore() {
   olib_ArrayAppend(named, &stoiNt);
   shapesnn_SafeTensors_Save(&ctx, named, modelFilePath);
 
-  Model_Generate(&ctx, &model, itos, 10, 20, (dim_t)itos->size);
+  Model_Generate(&ctx, &model, itos, 10, 20, (shapes_dim_t)itos->size);
 
   printf("Using saved model \n\n");
 

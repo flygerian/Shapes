@@ -67,13 +67,13 @@ Tensor conv2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor)
   Tensor *kernels = &layer->weights;
   Tensor *bias = layerData->withBias ? &layer->bias : NULL;
 
-  dim_t kH = kernels->shape.dims[2];
-  dim_t kW = kernels->shape.dims[3];
-  dim_t batch = tensor->shape.dims[0];
-  dim_t h = tensor->shape.dims[1];
-  dim_t w = tensor->shape.dims[2];
-  dim_t outH = (h - kH) / layerData->stride + 1;
-  dim_t outW = (w - kW) / layerData->stride + 1;
+  shapes_dim_t kH = kernels->shape.dims[2];
+  shapes_dim_t kW = kernels->shape.dims[3];
+  shapes_dim_t batch = tensor->shape.dims[0];
+  shapes_dim_t h = tensor->shape.dims[1];
+  shapes_dim_t w = tensor->shape.dims[2];
+  shapes_dim_t outH = (h - kH) / layerData->stride + 1;
+  shapes_dim_t outW = (w - kW) / layerData->stride + 1;
 
   Tensor dest = shapes_MakeFloatTensor(ctx, SHAPE4D(batch, outH, outW, layerData->outChannels), tensor->dtype);
 
@@ -129,7 +129,7 @@ void conv2dLayerLoad(shapes_Context *ctx, shapesnn_layer *state, olib_Array *ten
   }
 }
 
-shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, dim_t kH, dim_t kW, u8 stride, bool withBias) {
+shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, size_t inChannels, size_t outChannels, shapes_dim_t kH, shapes_dim_t kW, u8 stride, bool withBias) {
   f32 initVal = (5.0f / 3.0f) / powf((f32)inChannels, 0.5f);
 
   conv2dLayerData *layerData = olib_Allocate(ctx->memory, sizeof(conv2dLayerData));

@@ -5,8 +5,8 @@
 #include "shapes_internal.h"
 #include "value.h"
 
-static shapes_Value *contigousSum(olib_Memory *m, void *position, tensor_size_t limit, shapes_Dtype dtype) {
-  tensor_size_t x = 0;
+static shapes_Value *contigousSum(olib_Memory *m, void *position, shapes_tensor_size_t limit, shapes_Dtype dtype) {
+  shapes_tensor_size_t x = 0;
   shapes_Value sums[MAX_PARALLEL_SUMS] = {};
 
   for (u8 i = 0; i < MAX_PARALLEL_SUMS; i++) {
@@ -51,7 +51,7 @@ static void validateReductionTensor(Tensor *t) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 }
 
-static void validateReduceDim(Tensor *t, dim_t dim, Result dimError) {
+static void validateReduceDim(Tensor *t, shapes_dim_t dim, Result dimError) {
   validateReductionTensor(t);
   PANIC_IF(dim >= t->shape.numOfDims, dimError);
   PANIC_IF(t->size == 0, ERR_NO_OP);
@@ -73,8 +73,8 @@ static void validateStdTensor(Tensor *t) {
   PANIC_IF(isNotFloatType(t), ERR_STD_NOT_FLOAT_TYPE);
 }
 
-static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numBeforeDim,
-                                       tensor_size_t *numAfterDim, dim_t *reduce) {
+static Result prepareReductionGeometry(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *numBeforeDim,
+                                       shapes_tensor_size_t *numAfterDim, shapes_dim_t *reduce) {
   Result result = calculateNumElementsBeforeDim(t, dim, numBeforeDim);
   if (result != OK) {
     return result;
@@ -84,22 +84,22 @@ static Result prepareReductionGeometry(Tensor *t, dim_t dim, tensor_size_t *numB
   return calculateNumElementsAfterDim(t, dim, numAfterDim);
 }
 
-static Tensor sumCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor sumCpu(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
   Result result =
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, result);
 
   Tensor dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
-  for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
-    for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
+  for (shapes_tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
+    for (shapes_tensor_size_t inner = 0; inner < numAfterDim; inner++) {
       shapes_Value acc = VALUE(workingTensor->dtype, 0);
-      for (dim_t r = 0; r < reduce; r++) {
-        tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
+      for (shapes_dim_t r = 0; r < reduce; r++) {
+        shapes_tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
         shapes_Value value;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &value, workingTensor->dtype);
         VALUE_BINOP(acc, acc, value, +);
@@ -125,23 +125,23 @@ static Tensor meanCpu(shapes_Context *ctx, Tensor *t) {
   return dest;
 }
 
-static Tensor meanDimCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor meanDimCpu(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
 
   Result result =
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   Tensor dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
-  for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
-    for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
+  for (shapes_tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
+    for (shapes_tensor_size_t inner = 0; inner < numAfterDim; inner++) {
       f64 sum = 0.0;
-      for (dim_t r = 0; r < reduce; r++) {
-        tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
+      for (shapes_dim_t r = 0; r < reduce; r++) {
+        shapes_tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
         shapes_Value value;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &value, workingTensor->dtype);
 
@@ -153,7 +153,7 @@ static Tensor meanDimCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
         }
       }
 
-      tensor_size_t destIdx = outer * numAfterDim + inner;
+      shapes_tensor_size_t destIdx = outer * numAfterDim + inner;
       switch (workingTensor->dtype) {
         case F16: ((f16 *)dest.values)[destIdx] = (f16)(sum / (f64)reduce); break;
         case F32: ((f32 *)dest.values)[destIdx] = (f32)(sum / (f64)reduce); break;
@@ -180,7 +180,7 @@ static Tensor stdCpu(shapes_Context *ctx, Tensor *t) {
   }
 
   f64 deviationSquaredSum = 0.0;
-  for (tensor_size_t i = 0; i < input->size; i++) {
+  for (shapes_tensor_size_t i = 0; i < input->size; i++) {
     shapes_Value value;
     VALUE_GET_FROM_ARR(input->values, i, &value, input->dtype);
 
@@ -209,26 +209,26 @@ static Tensor stdCpu(shapes_Context *ctx, Tensor *t) {
   return dest;
 }
 
-static Tensor maxCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor maxCpu(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
 
   Result result =
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, result);
 
   Tensor dest = t_Reduced(ctx, workingTensor, dim, workingTensor->dtype);
-  for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
-    for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
-      tensor_size_t firstIdx = outer * reduce * numAfterDim + inner;
+  for (shapes_tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
+    for (shapes_tensor_size_t inner = 0; inner < numAfterDim; inner++) {
+      shapes_tensor_size_t firstIdx = outer * reduce * numAfterDim + inner;
       shapes_Value maxValue;
       VALUE_GET_FROM_ARR(workingTensor->values, firstIdx, &maxValue, workingTensor->dtype);
 
-      for (dim_t r = 1; r < reduce; r++) {
-        tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
+      for (shapes_dim_t r = 1; r < reduce; r++) {
+        shapes_tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
         shapes_Value candidate;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &candidate, workingTensor->dtype);
         if (VALUE_CMP(candidate, maxValue, >, workingTensor->dtype)) {
@@ -244,27 +244,27 @@ static Tensor maxCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor argMaxCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor argMaxCpu(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *workingTensor = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
   Result result =
       prepareReductionGeometry(workingTensor, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, ALLOCATION_FAILED);
 
   Tensor dest = t_Reduced(ctx, workingTensor, dim, I64);
   i64 *destValues = (i64 *)dest.values;
-  for (tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
-    for (tensor_size_t inner = 0; inner < numAfterDim; inner++) {
-      tensor_size_t firstIdx = outer * reduce * numAfterDim + inner;
+  for (shapes_tensor_size_t outer = 0; outer < numBeforeDim; outer++) {
+    for (shapes_tensor_size_t inner = 0; inner < numAfterDim; inner++) {
+      shapes_tensor_size_t firstIdx = outer * reduce * numAfterDim + inner;
       shapes_Value maxValue;
       VALUE_GET_FROM_ARR(workingTensor->values, firstIdx, &maxValue, workingTensor->dtype);
 
       i64 argMax = 0;
-      for (dim_t r = 1; r < reduce; r++) {
-        tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
+      for (shapes_dim_t r = 1; r < reduce; r++) {
+        shapes_tensor_size_t sourceIdx = outer * reduce * numAfterDim + r * numAfterDim + inner;
         shapes_Value candidate;
         VALUE_GET_FROM_ARR(workingTensor->values, sourceIdx, &candidate, workingTensor->dtype);
         if (VALUE_CMP(candidate, maxValue, >, workingTensor->dtype)) {
@@ -281,12 +281,12 @@ static Tensor argMaxCpu(shapes_Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor sumCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor sumCuda(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, result);
 
@@ -307,12 +307,12 @@ static Tensor meanCuda(shapes_Context *ctx, Tensor *t) {
   return dest;
 }
 
-static Tensor meanDimCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor meanDimCuda(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, result);
 
@@ -332,12 +332,12 @@ static Tensor stdCuda(shapes_Context *ctx, Tensor *t) {
   return dest;
 }
 
-static Tensor maxCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor maxCuda(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, result);
 
@@ -348,12 +348,12 @@ static Tensor maxCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-static Tensor argMaxCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
+static Tensor argMaxCuda(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   Tensor *input = materializeTensorOnContext(ctx, t);
 
-  tensor_size_t numBeforeDim = 0;
-  tensor_size_t numAfterDim = 0;
-  dim_t reduce = 0;
+  shapes_tensor_size_t numBeforeDim = 0;
+  shapes_tensor_size_t numAfterDim = 0;
+  shapes_dim_t reduce = 0;
 
   Result result = prepareReductionGeometry(input, dim, &numBeforeDim, &numAfterDim, &reduce);
   PANIC_IF(result != OK, result);
@@ -365,7 +365,7 @@ static Tensor argMaxCuda(shapes_Context *ctx, Tensor *t, dim_t dim) {
   return dest;
 }
 
-Tensor shapes_Sum(shapes_Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_Sum(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   validateReduceDim(t, dim, ERR_SUM_DIM_OUT_OF_BOUNDS);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -419,7 +419,7 @@ Tensor shapes_Mean(shapes_Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_MeanDim(shapes_Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_MeanDim(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   validateMeanLike(t, ERR_MEAN_VALUE_NOT_FLOAT);
   PANIC_IF(dim >= t->shape.numOfDims, ERR_DIM_MISMATCH);
 
@@ -440,7 +440,7 @@ Tensor shapes_Std(shapes_Context *ctx, Tensor *t) {
   }
 }
 
-Tensor shapes_Max(shapes_Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_Max(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {
@@ -450,7 +450,7 @@ Tensor shapes_Max(shapes_Context *ctx, Tensor *t, dim_t dim) {
   }
 }
 
-Tensor shapes_ArgMax(shapes_Context *ctx, Tensor *t, dim_t dim) {
+Tensor shapes_ArgMax(shapes_Context *ctx, Tensor *t, shapes_dim_t dim) {
   validateReduceDim(t, dim, ERR_DIM_MISMATCH);
 
   switch (getReductionDispatchDevice(ctx)) {

@@ -56,7 +56,7 @@ void embeddingLayerLoad(shapes_Context *ctx, shapesnn_layer *layer, olib_Array *
   loadIntoTensor(ctx, &layer->weights, &temp);
 }
 
-shapesnn_FowardPassOp shapesnn_Embedding(shapes_Context *ctx, shapes_Dtype dtype, size_t vocabSize, dim_t embeddingDim) {
+shapesnn_FowardPassOp shapesnn_Embedding(shapes_Context *ctx, shapes_Dtype dtype, size_t vocabSize, shapes_dim_t embeddingDim) {
   shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(shapesnn_layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
   layer->weights = shapes_MakeRandomTensor(ctx, SHAPE2D(vocabSize, embeddingDim), -0.1f, 0.1f, dtype);

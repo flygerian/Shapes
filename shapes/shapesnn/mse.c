@@ -33,8 +33,8 @@ Tensor shapesnn_Mse(shapes_Context *ctx, Tensor *yGround, Tensor *yPred) {
   PANIC_IF(loss == NULL, ALLOCATION_FAILED);
   *loss = shapes_Pow(ctx, &diffVal, 2);
 
-  for (dim_t i = 0; i < loss->shape.numOfDims; i++) {
-    dim_t dim = loss->shape.dims[i];
+  for (shapes_dim_t i = 0; i < loss->shape.numOfDims; i++) {
+    shapes_dim_t dim = loss->shape.dims[i];
     if (dim > 1) {
       Tensor *newLoss = olib_Allocate(ctx->memory, sizeof(Tensor));
       PANIC_IF(newLoss == NULL, ALLOCATION_FAILED);

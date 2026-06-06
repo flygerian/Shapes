@@ -12,24 +12,24 @@
   #include <cublas_v2.h>
 #endif
 
-typedef size_t dim_t;
-typedef size_t multiplier_t;
-typedef size_t tensor_size_t;
+typedef size_t shapes_dim_t;
+typedef size_t shapes_multiplier_t;
+typedef size_t shapes_tensor_size_t;
 
 typedef struct {
-  dim_t *dims;
-  multiplier_t *multipliers;
+  shapes_dim_t *dims;
+  shapes_multiplier_t *multipliers;
   u8 numOfDims;
 } shapes_Dim;
 
 typedef struct ValuePair {
   shapes_Value a;
   shapes_Value b;
-} ValuePair;
+} valuePair;
 
 typedef struct sizeAndMultipliers {
   size_t size;
-  multiplier_t *multipliers;
+  shapes_multiplier_t *multipliers;
 } sizeAndMultipliers;
 
 typedef enum { CPU, CUDA } DeviceType;
@@ -37,13 +37,13 @@ typedef enum { CPU, CUDA } DeviceType;
 typedef struct {
   DeviceType type;
   char *id;
-} Device;
+} shapes_Device;
 
 typedef struct shapes_Context {
   olib_Memory *memory;
   olib_Memory *cudaMetadataMemory;
   shapescuda_Memory cudaMemory;
-  Device *device;
+  shapes_Device *device;
   bool isTraining;
 
   #ifdef SHAPES_HAS_CUDA
@@ -78,24 +78,24 @@ typedef struct {
   void *v;
   size_t size;
   shapes_Dtype dtype;
-} AdamData;
+} shapes_AdamData;
 
-typedef struct BatchNormFowardResult {
+typedef struct shapes_BatchNormFowardResult {
   Tensor out;
   Tensor mean;
   Tensor variance;
-} BatchNormFowardResult;
+} shapes_BatchNormFowardResult;
 
-typedef struct BatchNormBackwardResult {
+typedef struct shapes_BatchNormBackwardResult {
   Tensor dx2d;
   Tensor dGamma;
   Tensor dBeta;
-} BatchNormBackwardResult;
+} shapes_BatchNormBackwardResult;
 
 typedef struct {
   Tensor a;
   Tensor b;
-} TensorPair;
+} shapes_TensorPair;
 
 size_t getBytesForDtype(shapes_Dtype type);
 

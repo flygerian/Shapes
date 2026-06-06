@@ -4,11 +4,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-static inline dim_t adaptivePoolStart(dim_t outIdx, dim_t inputSize, dim_t outputSize) {
+static inline shapes_dim_t adaptivePoolStart(shapes_dim_t outIdx, shapes_dim_t inputSize, shapes_dim_t outputSize) {
   return (outIdx * inputSize) / outputSize;
 }
 
-static inline dim_t adaptivePoolEnd(dim_t outIdx, dim_t inputSize, dim_t outputSize) {
+static inline shapes_dim_t adaptivePoolEnd(shapes_dim_t outIdx, shapes_dim_t inputSize, shapes_dim_t outputSize) {
   return ((outIdx + 1) * inputSize + outputSize - 1) / outputSize;
 }
 
@@ -41,19 +41,19 @@ static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelSha
     return ERR_CONV2D_KERNEL_NOT_2D;
   }
 
-  dim_t kH = kernelShape.dims[0];
-  dim_t kW = kernelShape.dims[1];
-  dim_t batch = x->shape.dims[0];
-  dim_t h = x->shape.dims[1];
-  dim_t w = x->shape.dims[2];
-  dim_t channels = x->shape.dims[3];
+  shapes_dim_t kH = kernelShape.dims[0];
+  shapes_dim_t kW = kernelShape.dims[1];
+  shapes_dim_t batch = x->shape.dims[0];
+  shapes_dim_t h = x->shape.dims[1];
+  shapes_dim_t w = x->shape.dims[2];
+  shapes_dim_t channels = x->shape.dims[3];
 
   if (kH == 0 || kW == 0 || h < kH || w < kW) {
     return ERR_DIM_MISMATCH;
   }
 
-  dim_t outH = (h - kH) / stride + 1;
-  dim_t outW = (w - kW) / stride + 1;
+  shapes_dim_t outH = (h - kH) / stride + 1;
+  shapes_dim_t outW = (w - kW) / stride + 1;
 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Result res = OK;
@@ -87,16 +87,16 @@ static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelSha
     f64 *output = dest->values;
     u64 *argmax = indices != NULL ? indices->values : NULL;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = oh * stride;
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = ow * stride;
-          for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = oh * stride;
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = ow * stride;
+          for (shapes_dim_t c = 0; c < channels; c++) {
             size_t maxIdx = (((b * h + startY) * w + startX) * channels) + c;
             f64 maxValue = input[maxIdx];
-            for (dim_t ky = 0; ky < kH; ky++) {
-              for (dim_t kx = 0; kx < kW; kx++) {
+            for (shapes_dim_t ky = 0; ky < kH; ky++) {
+              for (shapes_dim_t kx = 0; kx < kW; kx++) {
                 size_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f64 candidate = input[inputIdx];
                 if (candidate > maxValue) {
@@ -119,16 +119,16 @@ static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelSha
     f32 *output = dest->values;
     u64 *argmax = indices != NULL ? indices->values : NULL;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = oh * stride;
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = ow * stride;
-          for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = oh * stride;
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = ow * stride;
+          for (shapes_dim_t c = 0; c < channels; c++) {
             size_t maxIdx = (((b * h + startY) * w + startX) * channels) + c;
             f32 maxValue = input[maxIdx];
-            for (dim_t ky = 0; ky < kH; ky++) {
-              for (dim_t kx = 0; kx < kW; kx++) {
+            for (shapes_dim_t ky = 0; ky < kH; ky++) {
+              for (shapes_dim_t kx = 0; kx < kW; kx++) {
                 size_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f32 candidate = input[inputIdx];
                 if (candidate > maxValue) {
@@ -184,19 +184,19 @@ Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut,
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t kH = kernelShape.dims[0];
-  dim_t kW = kernelShape.dims[1];
-  dim_t batch = x->shape.dims[0];
-  dim_t h = x->shape.dims[1];
-  dim_t w = x->shape.dims[2];
-  dim_t channels = x->shape.dims[3];
+  shapes_dim_t kH = kernelShape.dims[0];
+  shapes_dim_t kW = kernelShape.dims[1];
+  shapes_dim_t batch = x->shape.dims[0];
+  shapes_dim_t h = x->shape.dims[1];
+  shapes_dim_t w = x->shape.dims[2];
+  shapes_dim_t channels = x->shape.dims[3];
 
   if (kH == 0 || kW == 0 || h < kH || w < kW) {
     return ERR_DIM_MISMATCH;
   }
 
-  dim_t outH = (h - kH) / stride + 1;
-  dim_t outW = (w - kW) / stride + 1;
+  shapes_dim_t outH = (h - kH) / stride + 1;
+  shapes_dim_t outW = (w - kW) / stride + 1;
   if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[1] != outH || gradOut->shape.dims[2] != outW || gradOut->shape.dims[3] != channels) {
     return ERR_DIM_MISMATCH;
   }
@@ -224,17 +224,17 @@ Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut,
     f64 *grad = gradContig->values;
     f64 *dx = dX->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = oh * stride;
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = ow * stride;
-          for (dim_t c = 0; c < channels; c++) {
-            dim_t maxIdx = (((b * h + startY) * w + startX) * channels) + c;
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = oh * stride;
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = ow * stride;
+          for (shapes_dim_t c = 0; c < channels; c++) {
+            shapes_dim_t maxIdx = (((b * h + startY) * w + startX) * channels) + c;
             f64 maxValue = input[maxIdx];
-            for (dim_t ky = 0; ky < kH; ky++) {
-              for (dim_t kx = 0; kx < kW; kx++) {
-                dim_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
+            for (shapes_dim_t ky = 0; ky < kH; ky++) {
+              for (shapes_dim_t kx = 0; kx < kW; kx++) {
+                shapes_dim_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f64 candidate = input[inputIdx];
                 if (candidate > maxValue) {
                   maxValue = candidate;
@@ -252,17 +252,17 @@ Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut,
     f32 *grad = gradContig->values;
     f32 *dx = dX->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = oh * stride;
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = ow * stride;
-          for (dim_t c = 0; c < channels; c++) {
-            dim_t maxIdx = (((b * h + startY) * w + startX) * channels) + c;
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = oh * stride;
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = ow * stride;
+          for (shapes_dim_t c = 0; c < channels; c++) {
+            shapes_dim_t maxIdx = (((b * h + startY) * w + startX) * channels) + c;
             f32 maxValue = input[maxIdx];
-            for (dim_t ky = 0; ky < kH; ky++) {
-              for (dim_t kx = 0; kx < kW; kx++) {
-                dim_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
+            for (shapes_dim_t ky = 0; ky < kH; ky++) {
+              for (shapes_dim_t kx = 0; kx < kW; kx++) {
+                shapes_dim_t inputIdx = (((b * h + (startY + ky)) * w + (startX + kx)) * channels) + c;
                 f32 candidate = input[inputIdx];
                 if (candidate > maxValue) {
                   maxValue = candidate;
@@ -297,8 +297,8 @@ Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tenso
     return ERR_DTYPE_MISMATCH;
   }
 
-  dim_t batch = x->shape.dims[0];
-  dim_t channels = x->shape.dims[3];
+  shapes_dim_t batch = x->shape.dims[0];
+  shapes_dim_t channels = x->shape.dims[3];
 
   if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[3] != channels || indices->shape.dims[0] != batch || indices->shape.dims[3] != channels ||
       gradOut->shape.dims[1] != indices->shape.dims[1] || gradOut->shape.dims[2] != indices->shape.dims[2]) {
@@ -327,14 +327,14 @@ Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tenso
     f64 *grad = gradContig->values;
     f64 *dx = dX->values;
     u64 *argmax = indicesContig->values;
-    for (tensor_size_t i = 0; i < gradContig->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < gradContig->size; i++) {
       dx[argmax[i]] += grad[i];
     }
   } else {
     f32 *grad = gradContig->values;
     f32 *dx = dX->values;
     u64 *argmax = indicesContig->values;
-    for (tensor_size_t i = 0; i < gradContig->size; i++) {
+    for (shapes_tensor_size_t i = 0; i < gradContig->size; i++) {
       dx[argmax[i]] += grad[i];
     }
   }
@@ -342,7 +342,7 @@ Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tenso
   return OK;
 }
 
-Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest) {
+Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, shapes_dim_t outH, shapes_dim_t outW, Tensor *dest) {
   if (ctx == NULL || dest == NULL || x == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -359,10 +359,10 @@ Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, dim_t outH, dim_
     return ERR_DIM_MISMATCH;
   }
 
-  dim_t batch = x->shape.dims[0];
-  dim_t h = x->shape.dims[1];
-  dim_t w = x->shape.dims[2];
-  dim_t channels = x->shape.dims[3];
+  shapes_dim_t batch = x->shape.dims[0];
+  shapes_dim_t h = x->shape.dims[1];
+  shapes_dim_t w = x->shape.dims[2];
+  shapes_dim_t channels = x->shape.dims[3];
 
   Tensor *xContig = materializeTensorOnContext(ctx, x);
   Result res = OK;
@@ -382,18 +382,18 @@ Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, dim_t outH, dim_
     f64 *input = xContig->values;
     f64 *output = dest->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = adaptivePoolStart(oh, h, outH);
-        dim_t endY = adaptivePoolEnd(oh, h, outH);
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = adaptivePoolStart(ow, w, outW);
-          dim_t endX = adaptivePoolEnd(ow, w, outW);
-          dim_t count = (endY - startY) * (endX - startX);
-          for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = adaptivePoolStart(oh, h, outH);
+        shapes_dim_t endY = adaptivePoolEnd(oh, h, outH);
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = adaptivePoolStart(ow, w, outW);
+          shapes_dim_t endX = adaptivePoolEnd(ow, w, outW);
+          shapes_dim_t count = (endY - startY) * (endX - startX);
+          for (shapes_dim_t c = 0; c < channels; c++) {
             f64 sum = 0.0;
-            for (dim_t iy = startY; iy < endY; iy++) {
-              for (dim_t ix = startX; ix < endX; ix++) {
+            for (shapes_dim_t iy = startY; iy < endY; iy++) {
+              for (shapes_dim_t ix = startX; ix < endX; ix++) {
                 sum += input[(((b * h + iy) * w + ix) * channels) + c];
               }
             }
@@ -407,18 +407,18 @@ Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, dim_t outH, dim_
     f32 *input = xContig->values;
     f32 *output = dest->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = adaptivePoolStart(oh, h, outH);
-        dim_t endY = adaptivePoolEnd(oh, h, outH);
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = adaptivePoolStart(ow, w, outW);
-          dim_t endX = adaptivePoolEnd(ow, w, outW);
-          dim_t count = (endY - startY) * (endX - startX);
-          for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = adaptivePoolStart(oh, h, outH);
+        shapes_dim_t endY = adaptivePoolEnd(oh, h, outH);
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = adaptivePoolStart(ow, w, outW);
+          shapes_dim_t endX = adaptivePoolEnd(ow, w, outW);
+          shapes_dim_t count = (endY - startY) * (endX - startX);
+          for (shapes_dim_t c = 0; c < channels; c++) {
             f32 sum = 0.0f;
-            for (dim_t iy = startY; iy < endY; iy++) {
-              for (dim_t ix = startX; ix < endX; ix++) {
+            for (shapes_dim_t iy = startY; iy < endY; iy++) {
+              for (shapes_dim_t ix = startX; ix < endX; ix++) {
                 sum += input[(((b * h + iy) * w + ix) * channels) + c];
               }
             }
@@ -433,7 +433,7 @@ Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, dim_t outH, dim_
   return OK;
 }
 
-Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW, Tensor *dX) {
+Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_dim_t outH, shapes_dim_t outW, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -450,10 +450,10 @@ Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *
     return ERR_DIM_MISMATCH;
   }
 
-  dim_t batch = x->shape.dims[0];
-  dim_t h = x->shape.dims[1];
-  dim_t w = x->shape.dims[2];
-  dim_t channels = x->shape.dims[3];
+  shapes_dim_t batch = x->shape.dims[0];
+  shapes_dim_t h = x->shape.dims[1];
+  shapes_dim_t w = x->shape.dims[2];
+  shapes_dim_t channels = x->shape.dims[3];
 
   if (gradOut->shape.dims[0] != batch || gradOut->shape.dims[1] != outH || gradOut->shape.dims[2] != outW || gradOut->shape.dims[3] != channels) {
     return ERR_DIM_MISMATCH;
@@ -480,18 +480,18 @@ Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *
     f64 *grad = gradContig->values;
     f64 *dx = dX->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = adaptivePoolStart(oh, h, outH);
-        dim_t endY = adaptivePoolEnd(oh, h, outH);
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = adaptivePoolStart(ow, w, outW);
-          dim_t endX = adaptivePoolEnd(ow, w, outW);
-          dim_t count = (endY - startY) * (endX - startX);
-          for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = adaptivePoolStart(oh, h, outH);
+        shapes_dim_t endY = adaptivePoolEnd(oh, h, outH);
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = adaptivePoolStart(ow, w, outW);
+          shapes_dim_t endX = adaptivePoolEnd(ow, w, outW);
+          shapes_dim_t count = (endY - startY) * (endX - startX);
+          for (shapes_dim_t c = 0; c < channels; c++) {
             f64 scaledGrad = grad[(((b * outH + oh) * outW + ow) * channels) + c] / (f64)count;
-            for (dim_t iy = startY; iy < endY; iy++) {
-              for (dim_t ix = startX; ix < endX; ix++) {
+            for (shapes_dim_t iy = startY; iy < endY; iy++) {
+              for (shapes_dim_t ix = startX; ix < endX; ix++) {
                 dx[(((b * h + iy) * w + ix) * channels) + c] += scaledGrad;
               }
             }
@@ -503,18 +503,18 @@ Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *
     f32 *grad = gradContig->values;
     f32 *dx = dX->values;
 
-    for (dim_t b = 0; b < batch; b++) {
-      for (dim_t oh = 0; oh < outH; oh++) {
-        dim_t startY = adaptivePoolStart(oh, h, outH);
-        dim_t endY = adaptivePoolEnd(oh, h, outH);
-        for (dim_t ow = 0; ow < outW; ow++) {
-          dim_t startX = adaptivePoolStart(ow, w, outW);
-          dim_t endX = adaptivePoolEnd(ow, w, outW);
-          dim_t count = (endY - startY) * (endX - startX);
-          for (dim_t c = 0; c < channels; c++) {
+    for (shapes_dim_t b = 0; b < batch; b++) {
+      for (shapes_dim_t oh = 0; oh < outH; oh++) {
+        shapes_dim_t startY = adaptivePoolStart(oh, h, outH);
+        shapes_dim_t endY = adaptivePoolEnd(oh, h, outH);
+        for (shapes_dim_t ow = 0; ow < outW; ow++) {
+          shapes_dim_t startX = adaptivePoolStart(ow, w, outW);
+          shapes_dim_t endX = adaptivePoolEnd(ow, w, outW);
+          shapes_dim_t count = (endY - startY) * (endX - startX);
+          for (shapes_dim_t c = 0; c < channels; c++) {
             f32 scaledGrad = grad[(((b * outH + oh) * outW + ow) * channels) + c] / (f32)count;
-            for (dim_t iy = startY; iy < endY; iy++) {
-              for (dim_t ix = startX; ix < endX; ix++) {
+            for (shapes_dim_t iy = startY; iy < endY; iy++) {
+              for (shapes_dim_t ix = startX; ix < endX; ix++) {
                 dx[(((b * h + iy) * w + ix) * channels) + c] += scaledGrad;
               }
             }

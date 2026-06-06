@@ -224,7 +224,7 @@ static olib_Array *parseHeader(olib_Memory *memory, const char *json, size_t jso
         PANIC_IF(fieldVal->type != JSMN_ARRAY, ERR_NO_OP);
         int numDims = fieldVal->size;
         meta.shape.numOfDims = (u8)numDims;
-        meta.shape.dims = olib_Allocate(memory, sizeof(dim_t) * (size_t)numDims);
+        meta.shape.dims = olib_Allocate(memory, sizeof(shapes_dim_t) * (size_t)numDims);
         idx += 1;
         for (int d = 0; d < numDims; d++) {
           meta.shape.dims[d] = tokenToSize(json, &tokens[idx]);

@@ -6,8 +6,8 @@
 #include "memory.h"
 
 typedef struct adaptiveAvgPool2dLayerData {
-  dim_t outH;
-  dim_t outW;
+  shapes_dim_t outH;
+  shapes_dim_t outW;
 } adaptiveAvgPool2dLayerData;
 
 void adaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *tensor) {
@@ -33,8 +33,8 @@ Tensor adaptiveAvgPool2dForward(shapes_Context *ctx, shapesnn_layer *layer, Tens
   adaptiveAvgPool2dLayerData *layerData = layer->layerData;
   PANIC_IF(layerData == NULL, ERR_NULL_PTR);
 
-  dim_t batch = tensor->shape.dims[0];
-  dim_t channels = tensor->shape.dims[3];
+  shapes_dim_t batch = tensor->shape.dims[0];
+  shapes_dim_t channels = tensor->shape.dims[3];
 
   Tensor dest = shapes_MakeFloatTensor(ctx, SHAPE4D(batch, layerData->outH, layerData->outW, channels), tensor->dtype);
   Result result = shapes_AdaptiveAvgPool2d(ctx, tensor, layerData->outH, layerData->outW, &dest);
@@ -66,7 +66,7 @@ void adaptiveAvgPool2dLayerLoad(shapes_Context *ctx, shapesnn_layer *state, olib
   PANIC_IF(tensors->size != 0, ERR_DIM_MISMATCH);
 }
 
-shapesnn_FowardPassOp shapesnn_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Dtype dtype, dim_t outH, dim_t outW) {
+shapesnn_FowardPassOp shapesnn_AdaptiveAvgPool2d(shapes_Context *ctx, shapes_Dtype dtype, shapes_dim_t outH, shapes_dim_t outW) {
   adaptiveAvgPool2dLayerData *layerData = olib_Allocate(ctx->memory, sizeof(adaptiveAvgPool2dLayerData));
   *layerData = (adaptiveAvgPool2dLayerData){.outH = outH, .outW = outW};
 

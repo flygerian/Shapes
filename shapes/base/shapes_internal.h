@@ -22,7 +22,7 @@ typedef struct {
 
 u64 nextNodeId(void);
 
-static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, shapes_Dim shape, shapes_Range *boundary,
+static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, shapes_tensor_size_t size, shapes_Dtype dtype, shapes_Dim shape, shapes_Range *boundary,
                                 bool isContigous) {
   return (Tensor){.context = ctx,
                   .metadataMemory = metadataMemory,
@@ -41,22 +41,22 @@ void attachCudaDevice(shapes_Context *ctx);
 Result readTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value *result);
 Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value value);
 
-dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype);
-u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
+shapes_dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype);
+u64 getContigousIdxFromCoord(Tensor *t, shapes_dim_t *idx);
 Tensor t_Zeros(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
 Tensor t_Empty(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
-Tensor t_Reduced(shapes_Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type);
+Tensor t_Reduced(shapes_Context *ctx, Tensor *source, shapes_dim_t dim, shapes_Dtype type);
 Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source);
 bool isSameContext(shapes_Context *a, shapes_Context *b);
 Tensor *materializeTensorOnContext(shapes_Context *ctx, Tensor *src);
 Result clearTensorValues(Tensor *t);
 bool areBroadcastable(Tensor *a, Tensor *b);
-TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b);
+shapes_TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b);
 
-sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, dim_t *dims, u8 numOfDims);
-Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result);
-Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
-Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, shapes_Dim *result);
+sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims);
+Result calculateNumElementsBeforeDim(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result);
+Result calculateNumElementsAfterDim(Tensor *t, shapes_dim_t dim, shapes_tensor_size_t *result);
+Result getDimsBefore(shapes_Context *ctx, Tensor *t, shapes_dim_t dim, shapes_Dim *result);
 
 void accumulateStridedByDtype(shapes_Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 
@@ -65,18 +65,18 @@ void runGemm(shapes_Context *ctx, shapes_Dtype dtype, TRANSPOSE transA, TRANSPOS
              int ldb, bool accumulate, void *c, int ldc);
 
 
-void im2colNchwF32(const f32 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f32 *colBuffer);
+void im2colNchwF32(const f32 *input, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, shapes_dim_t outH, shapes_dim_t outW, f32 *colBuffer);
 
-Tensor *im2colF32(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
-Tensor *im2colF64(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+Tensor *im2colF32(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
+Tensor *im2colF64(shapes_Context *ctx, Tensor *t, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
 
-void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
-void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, dim_t kernelHeight, dim_t kernelWidth, u8 stride);
+void col2imAccumulateF32(Tensor *dInput, f32 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
+void col2imAccumulateF64(Tensor *dInput, f64 *dColBuffer, shapes_dim_t kernelHeight, shapes_dim_t kernelWidth, u8 stride);
 
-void im2colNchwF64(const f64 *input, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f64 *colBuffer);
+void im2colNchwF64(const f64 *input, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, shapes_dim_t outH, shapes_dim_t outW, f64 *colBuffer);
 
-void col2imNchwAddF32(const f32 *colBuffer, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f32 *dest);
-void col2imNchwAddF64(const f64 *colBuffer, dim_t inChannels, dim_t h, dim_t w, dim_t kH, dim_t kW, u8 stride, dim_t outH, dim_t outW, f64 *dest);
+void col2imNchwAddF32(const f32 *colBuffer, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, shapes_dim_t outH, shapes_dim_t outW, f32 *dest);
+void col2imNchwAddF64(const f64 *colBuffer, shapes_dim_t inChannels, shapes_dim_t h, shapes_dim_t w, shapes_dim_t kH, shapes_dim_t kW, u8 stride, shapes_dim_t outH, shapes_dim_t outW, f64 *dest);
 
 #ifdef __cplusplus
 extern "C" {

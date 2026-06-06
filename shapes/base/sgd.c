@@ -40,7 +40,7 @@ Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 lea
       if (p.dtype == F16) {
         f16 *parameterVals = pWork->values;
         f16 *gradVals = gWork->values;
-        for (tensor_size_t x = 0; x < pWork->size; x++) {
+        for (shapes_tensor_size_t x = 0; x < pWork->size; x++) {
           parameterVals[x] -= (gradVals[x] * learningRate);
         }
       }
@@ -48,7 +48,7 @@ Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 lea
       if (p.dtype == F32) {
         f32 *parameterVals = pWork->values;
         f32 *gradVals = gWork->values;
-        for (tensor_size_t x = 0; x < pWork->size; x++) {
+        for (shapes_tensor_size_t x = 0; x < pWork->size; x++) {
           parameterVals[x] -= (gradVals[x] * learningRate);
         }
       }
@@ -56,7 +56,7 @@ Result shapes_optimizer_Sgd(shapes_Context *ctx, olib_Array *parameters, f32 lea
       if (p.dtype == F64) {
         f64 *parameterVals = pWork->values;
         f64 *gradVals = gWork->values;
-        for (tensor_size_t x = 0; x < pWork->size; x++) {
+        for (shapes_tensor_size_t x = 0; x < pWork->size; x++) {
           parameterVals[x] -= (gradVals[x] * learningRate);
         }
       }

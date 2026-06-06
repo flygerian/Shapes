@@ -10,24 +10,24 @@ static bool hasCudaDevice(void) {
   return cudaGetDeviceCount(&deviceCount) == cudaSuccess && deviceCount > 0;
 }
 
-static void assertMovedF32Values(shapes_Context *srcCtx, Tensor *tensor, const f32 *expected, tensor_size_t size, const char *msg) {
+static void assertMovedF32Values(shapes_Context *srcCtx, Tensor *tensor, const f32 *expected, shapes_tensor_size_t size, const char *msg) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, msg);
 
   f32 *values = tensor->values;
-  for (tensor_size_t i = 0; i < size; i++) {
+  for (shapes_tensor_size_t i = 0; i < size; i++) {
     ASSERT(fabsf(values[i] - expected[i]) < 1e-6f, msg);
   }
 }
 
-static void assertMovedI32Values(shapes_Context *srcCtx, Tensor *tensor, const i32 *expected, tensor_size_t size, const char *msg) {
+static void assertMovedI32Values(shapes_Context *srcCtx, Tensor *tensor, const i32 *expected, shapes_tensor_size_t size, const char *msg) {
   shapes_Context cpuCtx = {.memory = srcCtx->memory};
   Result moveResult = moveTensor(srcCtx, &cpuCtx, tensor);
   ASSERT_EQ(moveResult, OK, msg);
 
   i32 *values = tensor->values;
-  for (tensor_size_t i = 0; i < size; i++) {
+  for (shapes_tensor_size_t i = 0; i < size; i++) {
     ASSERT_EQ(values[i], expected[i], msg);
   }
 }
@@ -38,7 +38,7 @@ static void test_pow_scalar_power_of_2(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {1};
+  shapes_dim_t dims[] = {1};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 3.0f;
@@ -53,7 +53,7 @@ static void test_pow_scalar_power_of_3(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {1};
+  shapes_dim_t dims[] = {1};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.0f;
@@ -68,7 +68,7 @@ static void test_pow_power_of_0(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 5.0f;
@@ -89,7 +89,7 @@ static void test_pow_power_of_1(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.5f;
@@ -110,7 +110,7 @@ static void test_pow_negative_power(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2};
+  shapes_dim_t dims[] = {2};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.0f;
@@ -129,7 +129,7 @@ static void test_pow_fractional_power(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 4.0f;
@@ -150,7 +150,7 @@ static void test_pow_2d_tensor(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2, 3};
+  shapes_dim_t dims[] = {2, 3};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 1.0f;
@@ -177,7 +177,7 @@ static void test_pow_f64_dtype(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {2};
+  shapes_dim_t dims[] = {2};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F64);
   f64 *values = (f64 *)t->values;
   values[0] = 2.0;
@@ -194,7 +194,7 @@ static void test_relu_forward(void) {
   Memory *mem = initializeMemory();
   shapes_Context ctx = {.memory = mem};
 
-  dim_t dims[] = {3};
+  shapes_dim_t dims[] = {3};
   Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = -1.0f;
@@ -217,7 +217,7 @@ static void test_negate_cuda_dispatch_i32(void) {
   shapes_Context ctx = InitializeContext((size_t)1024 * 1024, 1, true);
   shapes_Context hostCtx = {.memory = ctx.memory};
 
-  dim_t dims[] = {4};
+  shapes_dim_t dims[] = {4};
   Tensor *t = t_Zeros(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, I32);
   i32 *values = (i32 *)t->values;
   values[0] = 1;

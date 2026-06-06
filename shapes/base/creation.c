@@ -171,9 +171,9 @@ Tensor t_Empty(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type) {
 static Tensor zeroTensorWithGrad(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type, bool withGrad) {
   shapes_Dim tShape = {.numOfDims = shape.numOfDims};
   if (shape.numOfDims > 0) {
-    tShape.dims = olib_Allocate(ctx->memory, sizeof(dim_t) * shape.numOfDims);
+    tShape.dims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * shape.numOfDims);
     PANIC_IF(tShape.dims == NULL, ALLOCATION_FAILED);
-    memcpy(tShape.dims, shape.dims, sizeof(dim_t) * shape.numOfDims);
+    memcpy(tShape.dims, shape.dims, sizeof(shapes_dim_t) * shape.numOfDims);
   } else {
     tShape.dims = NULL;
   }
@@ -193,16 +193,16 @@ Tensor t_Zeros(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type) {
   return zeroTensorWithGrad(ctx, shape, type, true);
 }
 
-Tensor t_Reduced(shapes_Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type) {
+Tensor t_Reduced(shapes_Context *ctx, Tensor *source, shapes_dim_t dim, shapes_Dtype type) {
   PANIC_IF(source == NULL, ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(dim >= source->shape.numOfDims, ERR_OUT_OF_BOUNDS);
 
-  dim_t *dims = NULL;
+  shapes_dim_t *dims = NULL;
   if (source->shape.numOfDims > 0) {
 
-    dims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+    dims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * source->shape.numOfDims);
     PANIC_IF(dims == NULL, ALLOCATION_FAILED);
-    memcpy(dims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
+    memcpy(dims, source->shape.dims, sizeof(shapes_dim_t) * source->shape.numOfDims);
     dims[dim] = 1;
   }
 
@@ -234,13 +234,13 @@ Tensor shapes_Clone(shapes_Context *ctx, Tensor *t) {
   Result valueCopyRes = shapes_CopyBetweenDevices(source->context->device->type, ctx->device->type, source->values, newValues, valueBytes);
   PANIC_IF(valueCopyRes != OK, valueCopyRes);
 
-  dim_t *newDims = olib_Allocate(ctx->memory, sizeof(dim_t) * source->shape.numOfDims);
+  shapes_dim_t *newDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * source->shape.numOfDims);
   PANIC_IF(newDims == NULL, ALLOCATION_FAILED);
-  memcpy(newDims, source->shape.dims, sizeof(dim_t) * source->shape.numOfDims);
+  memcpy(newDims, source->shape.dims, sizeof(shapes_dim_t) * source->shape.numOfDims);
 
-  multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(multiplier_t) * source->shape.numOfDims);
+  shapes_multiplier_t *newMultipliers = olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * source->shape.numOfDims);
   PANIC_IF(newMultipliers == NULL, ALLOCATION_FAILED);
-  memcpy(newMultipliers, source->shape.multipliers, sizeof(multiplier_t) * source->shape.numOfDims);
+  memcpy(newMultipliers, source->shape.multipliers, sizeof(shapes_multiplier_t) * source->shape.numOfDims);
 
   Tensor dest = (Tensor){.context = ctx,
                          .metadataMemory = ctx != NULL ? ctx->memory : NULL,
@@ -282,7 +282,7 @@ void shapes_SetValues(Tensor *t, shapes_Value value) {
     }
   }
 
-  for (tensor_size_t i = 0; i < t->size; i++) {
+  for (shapes_tensor_size_t i = 0; i < t->size; i++) {
     VALUE_SET(t->values, i, value);
   }
 }
@@ -343,13 +343,13 @@ Tensor shapes_MakeRandomTensor(shapes_Context *ctx, shapes_Dim shape, f32 minVal
   if (ctx->device != NULL && ctx->device->type == CUDA) {
     void *tempValues = olib_Allocate(ctx->memory, valueBytes);
     PANIC_IF(tempValues == NULL, ALLOCATION_FAILED);
-    for (tensor_size_t i = 0; i < tensor.size; i++) {
+    for (shapes_tensor_size_t i = 0; i < tensor.size; i++) {
       VALUE_SET(tempValues, i, randomValueForRange(minValue, maxValue, dtype));
     }
     Result copyRes = shapes_CopyBetweenDevices(CPU, ctx->device->type, tempValues, tensor.values, valueBytes);
     PANIC_IF(copyRes != OK, copyRes);
   } else {
-    for (tensor_size_t i = 0; i < tensor.size; i++) {
+    for (shapes_tensor_size_t i = 0; i < tensor.size; i++) {
       VALUE_SET(tensor.values, i, randomValueForRange(minValue, maxValue, dtype));
     }
   }
@@ -365,16 +365,16 @@ Tensor shapes_MakeArangeTensor(shapes_Context *ctx, f32 start, f32 end, f32 step
   // Calculate number of elements
   // Use a small epsilon to handle floating-point precision issues
   const f32 eps = 1e-6f;
-  tensor_size_t n = 0;
+  shapes_tensor_size_t n = 0;
   if (step > 0) {
     PANIC_IF(start >= end, ERR_INVALID_RANGE);
-    n = (tensor_size_t)((end - start + eps) / step);
+    n = (shapes_tensor_size_t)((end - start + eps) / step);
     while (n > 0 && start + (n - 1) * step >= end - eps) {
       n--;
     }
   } else {
     PANIC_IF(start <= end, ERR_INVALID_RANGE);
-    n = (tensor_size_t)((start - end + eps) / (-step));
+    n = (shapes_tensor_size_t)((start - end + eps) / (-step));
     while (n > 0 && start + (n - 1) * step <= end + eps) {
       n--;
     }
@@ -392,21 +392,21 @@ Tensor shapes_MakeArangeTensor(shapes_Context *ctx, f32 start, f32 end, f32 step
   }
 
   f32 *values = (f32 *)t.values;
-  for (tensor_size_t i = 0; i < n; i++) {
+  for (shapes_tensor_size_t i = 0; i < n; i++) {
     values[i] = start + (f32)i * step;
   }
 
   return t;
 }
 
-Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, dim_t numClasses) {
+Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, shapes_dim_t numClasses) {
   PANIC_IF(isInvalidTensor(indices), ERR_NULL_TENSOR_PROVIDED);
 
   Tensor *source = materializeTensorOnContext(ctx, indices);
 
   // Build output shape: input shape + [numClasses]
   u8 outNumDims = source->shape.numOfDims + 1;
-  dim_t *outDims = olib_Allocate(ctx->memory, sizeof(dim_t) * outNumDims);
+  shapes_dim_t *outDims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * outNumDims);
   PANIC_IF(outDims == NULL, ALLOCATION_FAILED);
 
   for (u8 i = 0; i < source->shape.numOfDims; i++) {
@@ -425,8 +425,8 @@ Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, dim_t numCl
 
   // Set one-hot values
   // For each element in indices, set the corresponding position to 1.0
-  dim_t lastDimStride = numClasses;
-  for (tensor_size_t i = 0; i < source->size; i++) {
+  shapes_dim_t lastDimStride = numClasses;
+  for (shapes_tensor_size_t i = 0; i < source->size; i++) {
     shapes_Value idxVal;
     Result readResult = readTensorValueAtFlatIndex(source, i, &idxVal);
     PANIC_IF(readResult != OK, readResult);
@@ -450,7 +450,7 @@ Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, dim_t numCl
       continue;
     }
 
-    tensor_size_t outIdx = i * lastDimStride + (tensor_size_t)classIdx;
+    shapes_tensor_size_t outIdx = i * lastDimStride + (shapes_tensor_size_t)classIdx;
     Result writeResult = writeTensorValueAtFlatIndex(&out, outIdx, (shapes_Value){.dtype = F32, .as.f32 = 1.0f});
     PANIC_IF(writeResult != OK, ERR_NO_OP);
   }

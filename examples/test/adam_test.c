@@ -3,9 +3,9 @@
 #include "common.h"
 #include <math.h>
 
-static Tensor create1DTensor(shapes_Context *ctx, dim_t size, shapes_Dtype dtype) {
-  dim_t *dims = allocate(ctx->memory, sizeof(dim_t));
-  multiplier_t *multipliers = allocate(ctx->memory, sizeof(multiplier_t));
+static Tensor create1DTensor(shapes_Context *ctx, shapes_dim_t size, shapes_Dtype dtype) {
+  shapes_dim_t *dims = allocate(ctx->memory, sizeof(shapes_dim_t));
+  shapes_multiplier_t *multipliers = allocate(ctx->memory, sizeof(shapes_multiplier_t));
   dims[0] = size;
   multipliers[0] = 1;
 
@@ -53,7 +53,7 @@ static void test_adam_single_step(void) {
   f32 b1 = 0.9f, b2 = 0.999f, a = 0.1f, epsilon = 1e-8f;
   size_t step = 1;
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, b1, b2, step, a, epsilon);
 
   ASSERT_EQ(r, OK, "Adam single step should return OK");
@@ -109,7 +109,7 @@ static void test_adam_two_steps_accumulation(void) {
 
   // Step 1 with grad = 0.5
   gVals[0] = 0.5f;
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, b1, b2, 1, a, epsilon);
   ASSERT_EQ(r, OK, "Adam step 1 should succeed");
 
@@ -157,7 +157,7 @@ static void test_adam_pytorch_reference(void) {
 
   f32 b1 = 0.9f, b2 = 0.999f, a = 0.001f, epsilon = 1e-8f;
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, b1, b2, 1, a, epsilon);
   ASSERT_EQ(r, OK, "Adam should match PyTorch behavior");
 
@@ -188,22 +188,22 @@ static void test_adam_null_tensors(void) {
   Tensor v = create1DTensor(&ctx, 1, F32);
 
   // Test NULL m
-  AdamData triplet1 = {.param = &param, .paramGrad = &paramGrad, .m = NULL, .v = &v};
+  shapes_AdamData triplet1 = {.param = &param, .paramGrad = &paramGrad, .m = NULL, .v = &v};
   Result r = Adam(&ctx, &triplet1, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_M, "NULL m should return ERR_ADAM_NULL_M");
 
   // Test NULL v
-  AdamData triplet2 = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = NULL};
+  shapes_AdamData triplet2 = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = NULL};
   r = Adam(&ctx, &triplet2, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_V, "NULL v should return ERR_ADAM_NULL_V");
 
   // Test NULL param
-  AdamData triplet3 = {.param = NULL, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet3 = {.param = NULL, .paramGrad = &paramGrad, .m = &m, .v = &v};
   r = Adam(&ctx, &triplet3, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_PARAM, "NULL param should return ERR_ADAM_NULL_PARAM");
 
   // Test NULL paramGrad
-  AdamData triplet4 = {.param = &param, .paramGrad = NULL, .m = &m, .v = &v};
+  shapes_AdamData triplet4 = {.param = &param, .paramGrad = NULL, .m = &m, .v = &v};
   r = Adam(&ctx, &triplet4, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_NULL_GRAD, "NULL paramGrad should return ERR_ADAM_NULL_GRAD");
 }
@@ -218,7 +218,7 @@ static void test_adam_non_float_type(void) {
   Tensor m = create1DTensor(&ctx, 1, I32);
   Tensor v = create1DTensor(&ctx, 1, I32);
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_ONLY_FLOAT_TENSORS, "Integer tensors should return ERR_ADAM_ONLY_FLOAT_TENSORS");
 }
@@ -233,7 +233,7 @@ static void test_adam_size_mismatch(void) {
   Tensor m = create1DTensor(&ctx, 2, F32); // Wrong size
   Tensor v = create1DTensor(&ctx, 3, F32);
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, ERR_ADAM_PARAMS_SIZE_MISMATCH, "Size mismatch should return ERR_ADAM_PARAMS_SIZE_MISMATCH");
 }
@@ -276,7 +276,7 @@ static void test_adam_multiple_triplets(void) {
   v2v[0] = 0.0f;
   v2v[1] = 0.0f;
 
-  AdamData triplets[2] = {{.param = &param1, .paramGrad = &grad1, .m = &m1, .v = &v1}, {.param = &param2, .paramGrad = &grad2, .m = &m2, .v = &v2}};
+  shapes_AdamData triplets[2] = {{.param = &param1, .paramGrad = &grad1, .m = &m1, .v = &v1}, {.param = &param2, .paramGrad = &grad2, .m = &m2, .v = &v2}};
 
   Result r = Adam(&ctx, triplets, 2, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, OK, "Multiple triplets should work");
@@ -309,7 +309,7 @@ static void test_adam_bias_correction(void) {
   f32 b1 = 0.9f, b2 = 0.999f, a = 0.1f, epsilon = 1e-8f;
 
   // Step 1: strong bias correction (dividing by small numbers)
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, b1, b2, 1, a, epsilon);
   ASSERT_EQ(r, OK, "Step 1 should succeed");
 
@@ -349,7 +349,7 @@ static void test_adam_small_gradients(void) {
   mVals[0] = 0.0f;
   vVals[0] = 0.0f;
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.1f, 1e-8f);
   ASSERT_EQ(r, OK, "Small gradients should not cause numerical issues");
 
@@ -379,7 +379,7 @@ static void test_adam_f64_precision(void) {
 
   f32 b1 = 0.9f, b2 = 0.999f, a = 0.1f, epsilon = 1e-8f;
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, b1, b2, 1, a, epsilon);
   // Note: Adam implementation currently uses f32 internally, so F64 runs but may not
   // produce exact F64-precision results. This test verifies it doesn't crash.
@@ -406,7 +406,7 @@ static void test_adam_zero_learning_rate(void) {
   mVals[0] = 0.0f;
   vVals[0] = 0.0f;
 
-  AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
+  shapes_AdamData triplet = {.param = &param, .paramGrad = &paramGrad, .m = &m, .v = &v};
   Result r = Adam(&ctx, &triplet, 1, 0.9f, 0.999f, 1, 0.0f, 1e-8f);
   ASSERT_EQ(r, OK, "Zero learning rate should succeed but not update");
 
