@@ -39,7 +39,7 @@ static void test_pow_scalar_power_of_2(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {1};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 3.0f;
 
@@ -54,7 +54,7 @@ static void test_pow_scalar_power_of_3(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {1};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.0f;
 
@@ -69,7 +69,7 @@ static void test_pow_power_of_0(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 5.0f;
   values[1] = 10.0f;
@@ -90,7 +90,7 @@ static void test_pow_power_of_1(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.5f;
   values[1] = -7.3f;
@@ -111,7 +111,7 @@ static void test_pow_negative_power(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 2.0f;
   values[1] = 4.0f;
@@ -130,7 +130,7 @@ static void test_pow_fractional_power(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 4.0f;
   values[1] = 9.0f;
@@ -151,7 +151,7 @@ static void test_pow_2d_tensor(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 3};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 2}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 2}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = 1.0f;
   values[1] = 2.0f;
@@ -178,7 +178,7 @@ static void test_pow_f64_dtype(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F64);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F64);
   f64 *values = (f64 *)t->values;
   values[0] = 2.0;
   values[1] = 3.0;
@@ -195,7 +195,7 @@ static void test_relu_forward(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Tensor *t = t_Zeros(&ctx, (Dim){.dims = dims, .numOfDims = 1}, F32);
+  Tensor *t = t_Zeros(&ctx, (shapes_Dim){.dims = dims, .numOfDims = 1}, F32);
   f32 *values = (f32 *)t->values;
   values[0] = -1.0f;
   values[1] = 0.0f;
@@ -218,7 +218,7 @@ static void test_negate_cuda_dispatch_i32(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {4};
-  Tensor *t = t_Zeros(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, I32);
+  Tensor *t = t_Zeros(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, I32);
   i32 *values = (i32 *)t->values;
   values[0] = 1;
   values[1] = -2;

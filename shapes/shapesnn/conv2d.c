@@ -135,7 +135,7 @@ shapesnn_FowardPassOp shapesnn_Conv2d(shapes_Context *ctx, shapes_Dtype dtype, s
   conv2dLayerData *layerData = olib_Allocate(ctx->memory, sizeof(conv2dLayerData));
   *layerData = (conv2dLayerData){.inChannels = inChannels, .outChannels = outChannels, .stride = stride, .withBias = withBias, .colBuffer = NULL};
 
-  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(layer));
+  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(shapesnn_layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
   layer->weights = shapes_MakeRandomTensor(ctx, SHAPE4D(outChannels, inChannels, kH, kW), -initVal, initVal, dtype);
   layer->weights.label = "weights";

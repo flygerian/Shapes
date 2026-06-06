@@ -12,7 +12,7 @@ static Tensor create1DTensor(shapes_Context *ctx, dim_t size, shapes_Dtype dtype
   Tensor t = {.dtype = dtype,
               .values = allocate(ctx->memory, size * getBytesForDtype(dtype)),
               .size = size,
-              .shape = (Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
+              .shape = (shapes_Dim){.dims = dims, .numOfDims = 1, .multipliers = multipliers},
               .isView = false,
               .isContigous = true,
               .boundary = NULL};

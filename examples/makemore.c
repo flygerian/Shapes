@@ -284,7 +284,7 @@ static int sampleFromProbs(Tensor *probs, dim_t numClasses) {
 
   for (dim_t i = 0; i < numClasses; i++) {
     dim_t idx[2] = {0, i};
-    shapes_Value *p = shapes_GetAt(probs, (Dim){.dims = idx, .numOfDims = 2});
+    shapes_Value *p = shapes_GetAt(probs, (shapes_Dim){.dims = idx, .numOfDims = 2});
     cumulative += p->as.f32;
     if (r <= cumulative) {
       return (int)i;

@@ -90,7 +90,7 @@ shapesnn_FowardPassOp shapesnn_Dense(shapes_Context *ctx, shapes_Dtype dtype, si
   denseLayerData *layerData = olib_Allocate(ctx->memory, sizeof(denseLayerData));
   *layerData = (denseLayerData){.withBias = withBias};
 
-  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(layer));
+  shapesnn_layer *layer = olib_Allocate(ctx->memory, sizeof(shapesnn_layer));
   PANIC_IF(layer == NULL, ALLOCATION_FAILED);
   layer->weights = shapes_MakeRandomTensor(ctx, SHAPE2D(outputSize, inputSize), -initVal, initVal, dtype);
   layer->weights.label = "weights";

@@ -21,7 +21,7 @@ static Tensor createScalarTensor(shapes_Context *ctx, shapes_Dtype dtype) {
               .values = olib_Allocate(ctx->memory, getBytesForDtype(dtype)),
               .boundary = NULL,
               .size = 1,
-              .shape = (Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL},
+              .shape = (shapes_Dim){.dims = NULL, .numOfDims = 0, .multipliers = NULL},
               .dtype = dtype,
               .isView = false,
               .isContigous = true};
@@ -788,7 +788,7 @@ static void test_conv_transpose2d_forward_f32_single_channel(void) {
   kVals[3] = 1.0f;
 
   dim_t kernelDimsArr[2] = {2, 2};
-  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  shapes_Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = ConvTranspose2d(&ctx, 1, 1, 1, kernels, kernel, x, &out);
 
   ASSERT_EQ(r, OK, "ConvTranspose2d should succeed");
@@ -858,7 +858,7 @@ static void test_max_pool2d_forward_f32(void) {
   }
 
   dim_t kernelDimsArr[2] = {2, 2};
-  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  shapes_Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = MaxPool2d(&ctx, x, kernel, 2, &out);
   ASSERT_EQ(r, OK, "MaxPool2d should succeed");
 
@@ -889,7 +889,7 @@ static void test_max_pool2d_backward_f32(void) {
   gVals[3] = 4.0f;
 
   dim_t kernelDimsArr[2] = {2, 2};
-  Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
+  shapes_Dim kernel = {.dims = kernelDimsArr, .numOfDims = 2, .multipliers = NULL};
   Result r = MaxPool2dBackward(&ctx, x, gradOut, kernel, 2, &dX);
   ASSERT_EQ(r, OK, "MaxPool2dBackward should succeed");
 

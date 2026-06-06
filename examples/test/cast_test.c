@@ -17,7 +17,7 @@ static void test_cast_i8_to_i16(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 5);
 
   Tensor *dest = Cast(&ctx, src, I16);
@@ -38,7 +38,7 @@ static void test_cast_i8_to_i32(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, -3);
 
   Tensor *dest = Cast(&ctx, src, I32);
@@ -56,7 +56,7 @@ static void test_cast_i8_to_i64(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 7);
 
   Tensor *dest = Cast(&ctx, src, I64);
@@ -74,7 +74,7 @@ static void test_cast_i16_to_i32(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   // Manually set I16 values
   src->dtype = I16;
@@ -94,7 +94,7 @@ static void test_cast_f32_to_f64(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2, 2};
-  Dim shape = {.dims = dims, .numOfDims = 2};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 2};
   Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 3.14f);
 
   Tensor *dest = Cast(&ctx, src, F64);
@@ -116,7 +116,7 @@ static void test_cast_u8_to_u16(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   // Manually set U8 values
   src->dtype = U8;
@@ -139,7 +139,7 @@ static void test_cast_u8_to_u32(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
@@ -158,7 +158,7 @@ static void test_cast_i8_to_f32(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, -2);
 
   Tensor *dest = Cast(&ctx, src, F32);
@@ -176,7 +176,7 @@ static void test_cast_i32_to_f64(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = I32;
   size_t bytes = getBytesForDtype(I32) * src->size;
@@ -195,7 +195,7 @@ static void test_cast_i8_to_bool(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   ((i8 *)src->values)[0] = 0;
   ((i8 *)src->values)[1] = -2;
@@ -214,7 +214,7 @@ static void test_cast_u8_to_bool(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = U8;
   size_t bytes = getBytesForDtype(U8) * src->size;
@@ -234,7 +234,7 @@ static void test_cast_f32_to_bool(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   ((f32 *)src->values)[0] = 0.0f;
   ((f32 *)src->values)[1] = 0.1f;
@@ -253,7 +253,7 @@ static void test_cast_bool_to_f32(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = T_Int(&ctx, shape, 0);
   src->dtype = BOOL;
   src->values = olib_Allocate(mem, getBytesForDtype(BOOL) * src->size);
@@ -274,7 +274,7 @@ static void test_cast_same_dtype_clones(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 2.5f);
 
   Tensor *dest = Cast(&ctx, src, F32);
@@ -293,7 +293,7 @@ static void test_cast_f32_to_i32(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   ((f32 *)src->values)[0] = 1.5f;
   ((f32 *)src->values)[1] = -3.9f;
@@ -312,7 +312,7 @@ static void test_cast_f64_to_i64(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {2};
-  Dim shape = {.dims = dims, .numOfDims = 1};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 1};
   Tensor *src = shapes_Make_FloatTensor(&ctx, shape, 0.0f);
   src->dtype = F64;
   size_t bytes = getBytesForDtype(F64) * src->size;
@@ -331,7 +331,7 @@ static void test_cast_preserves_2d_shape(void) {
   shapes_Context ctx = {.memory = mem};
 
   dim_t dims[] = {3, 4};
-  Dim shape = {.dims = dims, .numOfDims = 2};
+  shapes_Dim shape = {.dims = dims, .numOfDims = 2};
   Tensor *src = T_Int(&ctx, shape, 1);
 
   Tensor *dest = Cast(&ctx, src, I16);
@@ -351,7 +351,7 @@ static void test_cast_same_dtype_cuda_clone(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {3};
-  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 2.5f);
+  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 2.5f);
 
   Tensor *dest = Cast(&ctx, src, F32);
   ASSERT_NOT_NULL(dest, "Same-dtype CUDA Cast should succeed");
@@ -360,7 +360,7 @@ static void test_cast_same_dtype_cuda_clone(void) {
   for (dim_t i = 0; i < 3; i++) {
     dim_t idx[] = {i};
     Value value;
-    Result getResult = GetAt(dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
+    Result getResult = GetAt(dest, (shapes_Dim){.dims = idx, .numOfDims = 1}, &value);
     ASSERT_EQ(getResult, OK, "GetAt should read CUDA Cast results");
     ASSERT_EQ(value.as.f32, 2.5f, "CUDA Cast clone should preserve each element");
   }
@@ -377,7 +377,7 @@ static void test_cast_cuda_dtype_change(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {2};
-  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 1.0f);
+  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 1.0f);
 
   olib_Array *toMove = Make_DynamicTensorArray(ctx.memory);
   Array_AppendTensor(toMove, src);
@@ -390,7 +390,7 @@ static void test_cast_cuda_dtype_change(void) {
   for (dim_t i = 0; i < 2; i++) {
     dim_t idx[] = {i};
     Value value;
-    Result getResult = GetAt(dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
+    Result getResult = GetAt(dest, (shapes_Dim){.dims = idx, .numOfDims = 1}, &value);
     ASSERT_EQ(getResult, OK, "GetAt should read CUDA cast results");
     ASSERT_EQ(value.as.f64, 1.0, "CUDA cast should preserve each element");
   }
@@ -408,12 +408,12 @@ static void test_cast_cuda_f32_to_i64(void) {
 
   dim_t dims[] = {3};
   f32 values[] = {0.0f, 7.9f, -2.1f};
-  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0.0f);
+  Tensor *src = shapes_Make_FloatTensor(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0.0f);
   for (dim_t i = 0; i < 3; i++) {
     Value value = {.dtype = F32};
     value.as.f32 = values[i];
     dim_t idx[] = {i};
-    Result assignResult = AssignValueAt(&hostCtx, src, (Dim){.dims = idx, .numOfDims = 1}, value);
+    Result assignResult = AssignValueAt(&hostCtx, src, (shapes_Dim){.dims = idx, .numOfDims = 1}, value);
     ASSERT_EQ(assignResult, OK, "AssignValueAt should populate the source tensor");
   }
 
@@ -428,7 +428,7 @@ static void test_cast_cuda_f32_to_i64(void) {
   for (dim_t i = 0; i < 3; i++) {
     dim_t idx[] = {i};
     Value value;
-    Result getResult = GetAt(dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
+    Result getResult = GetAt(dest, (shapes_Dim){.dims = idx, .numOfDims = 1}, &value);
     ASSERT_EQ(getResult, OK, "GetAt should read CUDA F32 -> I64 cast results");
     ASSERT_EQ(value.as.i64, expected[i], "CUDA F32 -> I64 cast should preserve converted value");
   }
@@ -445,7 +445,7 @@ static void test_cast_cuda_bool_to_f32(void) {
   shapes_Context hostCtx = {.memory = ctx.memory};
 
   dim_t dims[] = {2};
-  Tensor *src = T_Int(&hostCtx, (Dim){.dims = dims, .numOfDims = 1}, 0);
+  Tensor *src = T_Int(&hostCtx, (shapes_Dim){.dims = dims, .numOfDims = 1}, 0);
   src->dtype = BOOL;
   src->values = olib_Allocate(hostCtx.memory, getBytesForDtype(BOOL) * src->size);
   ((bool *)src->values)[0] = false;
@@ -462,7 +462,7 @@ static void test_cast_cuda_bool_to_f32(void) {
   for (dim_t i = 0; i < 2; i++) {
     dim_t idx[] = {i};
     Value value;
-    Result getResult = GetAt(dest, (Dim){.dims = idx, .numOfDims = 1}, &value);
+    Result getResult = GetAt(dest, (shapes_Dim){.dims = idx, .numOfDims = 1}, &value);
     ASSERT_EQ(getResult, OK, "GetAt should read CUDA BOOL -> F32 cast results");
     ASSERT_EQ(value.as.f32, expected[i], "CUDA BOOL -> F32 cast should preserve converted value");
   }

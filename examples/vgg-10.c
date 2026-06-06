@@ -241,9 +241,6 @@ shapesnn_FowardPassOp Make_Model(shapes_Context *ctx, u8 numLabels) {
 }
 
 shapesnn_FowardPassOp runTraining(shapes_Context *hostCtx, shapes_Context *cudaCtx, dataset ds) {
-  // Tensor *first = Array_TensorIdx(ds.Xtest, 246);
-  // basicRaylibWindow(first);
-
   u8 numLabels = ds.labels->size;
   shapesnn_FowardPassOp model = Make_Model(cudaCtx, numLabels);
   shapesnn_Optimizer optimzer = shapesnn_SGD(cudaCtx, LEARNING_RATE);
@@ -329,7 +326,6 @@ void runInference(shapes_Context *hostCtx, shapesnn_FowardPassOp *model, dataset
   shapes_Context cudaCtx = shapes_InitializeCudaContext(6 * GB);
   shapes_MoveToCuda(&cudaCtx, Xtest);
   shapes_MoveToCuda(&cudaCtx, Ytest);
-
 
   shapes_Context scratch = shapes_GetScratchContext(&cudaCtx, 5 * GB);
   for (RANGE(i, BATCH_SIZE)) {

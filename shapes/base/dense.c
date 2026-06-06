@@ -71,11 +71,6 @@ static void promoteDenseBackwardInput(shapes_Context *ctx, Tensor *src, Tensor *
 }
 
 Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, bool withBias) {
-  // Dense expects:
-  // x: [..., inputSize]
-  // w: [outputSize, inputSize]
-  // b: [outputSize] (optional)
-  // out: [..., outputSize]
   PANIC_IF(isInvalidTensor(x) || isInvalidTensor(w) || (withBias && isInvalidTensor(b)), ERR_NULL_TENSOR_PROVIDED);
 
   PANIC_IF(x->shape.numOfDims < 2 || w->shape.numOfDims != 2, ERR_MATMUL_MIN_2D);
