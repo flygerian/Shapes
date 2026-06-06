@@ -18,7 +18,7 @@ Tensor *im2colF32(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kern
   dim_t outputChannelWidth = (width - kernelWidth) / stride + 1;
 
   dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
-  Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
+  shapes_Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
   Tensor *colBuffer = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(colBuffer == NULL, ALLOCATION_FAILED);
   *colBuffer = t_Zeros(ctx, colBufferShape, F32);
@@ -72,7 +72,7 @@ Tensor *im2colF64(shapes_Context *ctx, Tensor *t, dim_t kernelHeight, dim_t kern
   size_t dtypeByteSize = getBytesForDtype(t->dtype);
 
   dim_t colBufferDims[2] = {batch * outputChannelHeight * outputChannelWidth, numInputChannels * kernelSize};
-  Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
+  shapes_Dim colBufferShape = {.dims = colBufferDims, .numOfDims = 2};
   Tensor *colBuffer = olib_Allocate(ctx->memory, sizeof(Tensor));
   PANIC_IF(colBuffer == NULL, ALLOCATION_FAILED);
   *colBuffer = t_Zeros(ctx, colBufferShape, F64);

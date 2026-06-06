@@ -12,7 +12,7 @@ Tensor flattenFoward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *tensor)
   PANIC_IF(layer != NULL, ERR_NO_OP); // there should be no layer
   PANIC_IF_NULL(tensor);
 
-  Dim shape = tensor->shape;
+  shapes_Dim shape = tensor->shape;
   PANIC_IF(shape.numOfDims < 2, ERR_NO_OP);
 
   size_t flattenedSize = 1;

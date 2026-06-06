@@ -212,7 +212,7 @@ static Result straightBinop(Tensor *a, Tensor *b, Tensor *dest, shapes_OpType op
   return ERR_NOT_A_BINOP;
 }
 
-static inline void unravel_index(tensor_size_t flatIdx, Dim *shape, dim_t *destCoords) {
+static inline void unravel_index(tensor_size_t flatIdx, shapes_Dim *shape, dim_t *destCoords) {
   for (int d = shape->numOfDims - 1; d >= 0; d--) {
     destCoords[d] = flatIdx % shape->dims[d];
     flatIdx /= shape->dims[d];
@@ -293,7 +293,7 @@ static Tensor binaryOpCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpTy
   Tensor *opA = materializeTensorOnContext(ctx, &ops.a);
   Tensor *opB = materializeTensorOnContext(ctx, &ops.b);
 
-  Dim outputShape;
+  shapes_Dim outputShape;
   if (opA->size > opB->size) {
     outputShape = opA->shape;
   } else {
@@ -330,7 +330,7 @@ static Tensor binaryOpCuda(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_OpT
 
   PANIC_IF(!areBroadcastable(opA, opB), ERR_DIM_MISMATCH);
 
-  Dim outputShape;
+  shapes_Dim outputShape;
   tensor_size_t outputSize;
   if (opA->size > opB->size) {
     outputShape = opA->shape;
@@ -495,7 +495,7 @@ static void inPlaceBinopCpu(shapes_Context *ctx, Tensor *a, Tensor *b, shapes_Op
   if (opA->isContigous && opB->isContigous && areTensorsSameShape(opA, opB)) {
     fn(opA->values, opB->values, opA->values, opA->size);
   } else {
-    Dim outputShape = opA->size > opB->size ? opA->shape : opB->shape;
+    shapes_Dim outputShape = opA->size > opB->size ? opA->shape : opB->shape;
     broadcastBinop(opA, opB, opA, opType);
   }
 }

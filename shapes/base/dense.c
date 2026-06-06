@@ -5,7 +5,7 @@
 
 // Build a destination tensor that matches x's rank and leading dims, but swaps
 // the last dim (feature width). Dense uses this to preserve any batch axes.
-static Dim swapLastDim(shapes_Context *ctx, Dim dim, dim_t lastDim) {
+static shapes_Dim swapLastDim(shapes_Context *ctx, shapes_Dim dim, dim_t lastDim) {
   u8 numDims = dim.numOfDims;
   dim_t *dims = olib_Allocate(ctx->memory, sizeof(dim_t) * numDims);
   PANIC_IF(dims == NULL, ALLOCATION_FAILED);
@@ -14,7 +14,7 @@ static Dim swapLastDim(shapes_Context *ctx, Dim dim, dim_t lastDim) {
     dims[i] = dim.dims[i];
   }
   dims[numDims - 1] = lastDim;
-  Dim shape = {.dims = dims, .numOfDims = numDims};
+  shapes_Dim shape = {.dims = dims, .numOfDims = numDims};
 
   return shape;
 }
@@ -93,7 +93,7 @@ Tensor shapes_DenseLinear(shapes_Context *ctx, Tensor *x, Tensor *w, Tensor *b, 
 
   tensor_size_t rows = x->size / inputSize;
 
-  Dim newDims = swapLastDim(ctx, x->shape, outputSize);
+  shapes_Dim newDims = swapLastDim(ctx, x->shape, outputSize);
   Tensor out = shapes_MakeZerosTensor(ctx, newDims);
 
   // Flatten all leading dims into a single "rows" dimension and run:

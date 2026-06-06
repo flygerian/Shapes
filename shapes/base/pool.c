@@ -20,7 +20,7 @@ static Result clearPoolTarget(shapes_Context *ctx, Tensor *target) {
   return clearTensorValues(target);
 }
 
-static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
+static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, shapes_Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
   if (ctx == NULL || dest == NULL || x == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }
@@ -151,15 +151,15 @@ static Result maxPool2dImpl(shapes_Context *ctx, Tensor *x, Dim kernelShape, u8 
   return OK;
 }
 
-Result shapes_MaxPool2d(shapes_Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest) {
+Result shapes_MaxPool2d(shapes_Context *ctx, Tensor *x, shapes_Dim kernelShape, u8 stride, Tensor *dest) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, NULL);
 }
 
-Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, Tensor *x, Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
+Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, Tensor *x, shapes_Dim kernelShape, u8 stride, Tensor *dest, Tensor *indices) {
   return maxPool2dImpl(ctx, x, kernelShape, stride, dest, indices);
 }
 
-Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, Dim kernelShape, u8 stride, Tensor *dX) {
+Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_Dim kernelShape, u8 stride, Tensor *dX) {
   if (ctx == NULL || dX == NULL || isInvalidTensor(x) || isInvalidTensor(gradOut)) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

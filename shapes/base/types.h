@@ -20,7 +20,7 @@ typedef struct {
   dim_t *dims;
   multiplier_t *multipliers;
   u8 numOfDims;
-} Dim;
+} shapes_Dim;
 
 typedef struct ValuePair {
   shapes_Value a;
@@ -59,7 +59,7 @@ typedef struct Tensor {
   void *values;
   shapes_Range *boundary;
   size_t size;
-  Dim shape;
+  shapes_Dim shape;
   shapes_Dtype dtype;
   bool isView;
   bool isContigous;

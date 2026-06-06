@@ -10,12 +10,12 @@
 #define MAX_SUM_N_DIMS    2
 #define MAX_PARALLEL_SUMS 4
 
-#define SHAPE(dimensions, numberOfDimensions)           ((Dim){.dims = (dimensions), .numOfDims = (numberOfDimensions)})
-#define SCALAR                                          ((Dim){.dims = (dim_t[]){1}, .numOfDims = 1})
-#define SHAPE1D(dimSize)                                ((Dim){.dims = (dim_t[]){dimSize}, .numOfDims = 1})
-#define SHAPE2D(dim0Size, dim1Size)                     ((Dim){.dims = (dim_t[]){dim0Size, dim1Size}, .numOfDims = 2})
-#define SHAPE3D(dim0Size, dim1Size, dim2Size)           ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size}, .numOfDims = 3})
-#define SHAPE4D(dim0Size, dim1Size, dim2Size, dim3Size) ((Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size, dim3Size}, .numOfDims = 4})
+#define SHAPE(dimensions, numberOfDimensions)           ((shapes_Dim){.dims = (dimensions), .numOfDims = (numberOfDimensions)})
+#define SCALAR                                          ((shapes_Dim){.dims = (dim_t[]){1}, .numOfDims = 1})
+#define SHAPE1D(dimSize)                                ((shapes_Dim){.dims = (dim_t[]){dimSize}, .numOfDims = 1})
+#define SHAPE2D(dim0Size, dim1Size)                     ((shapes_Dim){.dims = (dim_t[]){dim0Size, dim1Size}, .numOfDims = 2})
+#define SHAPE3D(dim0Size, dim1Size, dim2Size)           ((shapes_Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size}, .numOfDims = 3})
+#define SHAPE4D(dim0Size, dim1Size, dim2Size, dim3Size) ((shapes_Dim){.dims = (dim_t[]){dim0Size, dim1Size, dim2Size, dim3Size}, .numOfDims = 4})
 
 // Arrays
 typedef olib_Array *shapes_ArrayTensor;
@@ -61,16 +61,16 @@ void shapes_SubtractInPlace(shapes_Context *ctx, Tensor *a, Tensor *b);
 void shapes_MultiplyInPlace(shapes_Context *ctx, Tensor *a, Tensor *b);
 
 // Access and shapes
-shapes_Value *shapes_GetAt(Tensor *t, Dim dim);
+shapes_Value *shapes_GetAt(Tensor *t, shapes_Dim dim);
 Result shapes_CopyShape(Tensor *t, dim_t *destDims, u8 *numDims);
-Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, Dim dim, shapes_Value value);
+Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, shapes_Dim dim, shapes_Value value);
 Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indices);
 Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *rowIndices, Tensor *colIndices);
 Tensor shapes_Slice(shapes_Context *ctx, Tensor *source, ...);
-Tensor shapes_Reshape(shapes_Context *ctx, Tensor *source, Dim newShape);
+Tensor shapes_Reshape(shapes_Context *ctx, Tensor *source, shapes_Dim newShape);
 void   shapes_ReshapeBackward(shapes_Context *ctx, Tensor *node);
 Tensor shapes_Transpose(shapes_Context *ctx, Tensor *source, ...);
-Tensor shapes_Permute(shapes_Context *ctx, Tensor *source, Dim order);
+Tensor shapes_Permute(shapes_Context *ctx, Tensor *source, shapes_Dim order);
 Tensor shapes_Squeeze(shapes_Context *ctx, Tensor *t);
 Tensor shapes_SqueezeDim(shapes_Context *ctx, Tensor *t, dim_t dim);
 Tensor shapes_UnSqueeze(shapes_Context *ctx, Tensor *t, dim_t dim);
@@ -122,11 +122,11 @@ Result shapes_Conv2d(shapes_Context *ctx, size_t inChannels, size_t outChannels,
               Tensor *colBuffer);
 Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput, Tensor *kernels, Tensor *dKernels, Tensor *outputGrad, Tensor *colBuffer,
                       Tensor *dBias, bool withBias, u8 stride);
-Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernel, Tensor *t, Tensor *dest);
+Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, shapes_Dim kernel, Tensor *t, Tensor *dest);
 Result shapes_ConvTranspose2dBackward(shapes_Context *ctx, Tensor *x, Tensor *kernels, Tensor *gradOut, u8 stride, Tensor *dX, Tensor *dKernels);
-Result shapes_MaxPool2d(shapes_Context *ctx, Tensor *x, Dim kernel, u8 stride, Tensor *dest);
-Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, Tensor *x, Dim kernel, u8 stride, Tensor *dest, Tensor *indices);
-Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, Dim kernel, u8 stride, Tensor *dX);
+Result shapes_MaxPool2d(shapes_Context *ctx, Tensor *x, shapes_Dim kernel, u8 stride, Tensor *dest);
+Result shapes_MaxPool2dWithIndices(shapes_Context *ctx, Tensor *x, shapes_Dim kernel, u8 stride, Tensor *dest, Tensor *indices);
+Result shapes_MaxPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, shapes_Dim kernel, u8 stride, Tensor *dX);
 Result shapes_MaxPool2dBackwardWithIndices(shapes_Context *ctx, Tensor *x, Tensor *gradOut, Tensor *indices, Tensor *dX);
 Result shapes_AdaptiveAvgPool2d(shapes_Context *ctx, Tensor *x, dim_t outH, dim_t outW, Tensor *dest);
 Result shapes_AdaptiveAvgPool2dBackward(shapes_Context *ctx, Tensor *x, Tensor *gradOut, dim_t outH, dim_t outW, Tensor *dX);
@@ -146,13 +146,13 @@ char *shapes_GetItem(shapes_Context *ctx, Tensor *t);
 void shapes_PrintTensor(Tensor *tensor);
 
 // Tensor creation
-Tensor shapes_MakeZerosTensor(shapes_Context *ctx, Dim shape);
-Tensor shapes_MakeIntTensor(shapes_Context *ctx, Dim shape, i8 initialValues);
-Tensor shapes_MakeUIntTensor(shapes_Context *ctx, Dim shape, u8 initialValue);
-Tensor shapes_MakeFloatTensor(shapes_Context *ctx, Dim shape, f32 initialValues);
-Tensor shapes_MakeFloat64Tensor(shapes_Context *ctx, Dim shape, f64 initialValue);
-Tensor shapes_MakeFromContigousArray(shapes_Context *ctx, Dim shape, void *values, shapes_Dtype dtype);
-Tensor shapes_MakeRandomTensor(shapes_Context *ctx, Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype);
+Tensor shapes_MakeZerosTensor(shapes_Context *ctx, shapes_Dim shape);
+Tensor shapes_MakeIntTensor(shapes_Context *ctx, shapes_Dim shape, i8 initialValues);
+Tensor shapes_MakeUIntTensor(shapes_Context *ctx, shapes_Dim shape, u8 initialValue);
+Tensor shapes_MakeFloatTensor(shapes_Context *ctx, shapes_Dim shape, f32 initialValues);
+Tensor shapes_MakeFloat64Tensor(shapes_Context *ctx, shapes_Dim shape, f64 initialValue);
+Tensor shapes_MakeFromContigousArray(shapes_Context *ctx, shapes_Dim shape, void *values, shapes_Dtype dtype);
+Tensor shapes_MakeRandomTensor(shapes_Context *ctx, shapes_Dim shape, f32 minValue, f32 maxValue, shapes_Dtype dtype);
 Tensor shapes_MakeOneHotTensor(shapes_Context *ctx, Tensor *indices, dim_t numClasses);
 Tensor shapes_MakeArangeTensor(shapes_Context *ctx, f32 start, f32 end, f32 step);
 void   shapes_SetValues(Tensor *t, shapes_Value value);

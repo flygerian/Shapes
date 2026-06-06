@@ -22,7 +22,7 @@ typedef struct {
 
 u64 nextNodeId(void);
 
-static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, Dim shape, shapes_Range *boundary,
+static inline Tensor tensorView(shapes_Context *ctx, olib_Memory *metadataMemory, void *values, tensor_size_t size, shapes_Dtype dtype, shapes_Dim shape, shapes_Range *boundary,
                                 bool isContigous) {
   return (Tensor){.context = ctx,
                   .metadataMemory = metadataMemory,
@@ -43,8 +43,8 @@ Result writeTensorValueAtFlatIndex(Tensor *t, u64 idx, shapes_Value value);
 
 dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype);
 u64 getContigousIdxFromCoord(Tensor *t, dim_t *idx);
-Tensor t_Zeros(shapes_Context *ctx, Dim shape, shapes_Dtype type);
-Tensor t_Empty(shapes_Context *ctx, Dim shape, shapes_Dtype type);
+Tensor t_Zeros(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
+Tensor t_Empty(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype type);
 Tensor t_Reduced(shapes_Context *ctx, Tensor *source, dim_t dim, shapes_Dtype type);
 Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source);
 bool isSameContext(shapes_Context *a, shapes_Context *b);
@@ -56,7 +56,7 @@ TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b);
 sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, dim_t *dims, u8 numOfDims);
 Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result);
 Result calculateNumElementsAfterDim(Tensor *t, dim_t dim, tensor_size_t *result);
-Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, Dim *result);
+Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, shapes_Dim *result);
 
 void accumulateStridedByDtype(shapes_Dtype dtype, void *destValues, u64 destBase, u64 destStep, void *srcValues, u64 srcBase, u64 srcStep, u64 count);
 

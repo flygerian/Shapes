@@ -6,7 +6,7 @@
 #include "memory.h"
 
 typedef struct maxPool2dLayerData {
-  Dim kernel;
+  shapes_Dim kernel;
   u8 stride;
 } maxPool2dLayerData;
 

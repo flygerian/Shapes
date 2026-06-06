@@ -52,7 +52,7 @@ dim_t indexValueToDim(shapes_Value idxVal, shapes_Dtype dtype) {
 
 void shapes_PrintItem(Tensor *t) {
   dim_t zero[1] = {0};
-  Dim zeroIdx = {.dims = zero, .numOfDims = 1};
+  shapes_Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
   shapes_Value *val = shapes_GetAt(t, zeroIdx);
 
@@ -61,7 +61,7 @@ void shapes_PrintItem(Tensor *t) {
 
 char *shapes_GetItem(shapes_Context *ctx, Tensor *t) {
   dim_t zero[1] = {0};
-  Dim zeroIdx = {.dims = zero, .numOfDims = 1};
+  shapes_Dim zeroIdx = {.dims = zero, .numOfDims = 1};
 
   shapes_Value *val = shapes_GetAt(t, zeroIdx);
 
@@ -198,7 +198,7 @@ Tensor *copyToContiguous(shapes_Context *ctx, Tensor *source) {
   memset(indices, 0, sizeof(size_t) * source->shape.numOfDims);
 
   for (tensor_size_t i = 0; i < source->size; i++) {
-    Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
+    shapes_Dim idx = {.dims = indices, .numOfDims = source->shape.numOfDims};
     shapes_Value *val = shapes_GetAt(source, idx);
     writeTensorValueAtFlatIndex(copy, i, *val);
 
@@ -277,7 +277,7 @@ TensorPair padSmallerTensor(shapes_Context *ctx, Tensor *a, Tensor *b) {
     newDims[diff + i] = smaller->shape.dims[i];
   }
 
-  Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
+  shapes_Dim newShape = {.dims = newDims, .numOfDims = larger->shape.numOfDims};
   Tensor reshapedSmaller = shapes_Reshape(ctx, smaller, newShape);
 
   if (smaller == a) {
@@ -308,7 +308,7 @@ Result calculateNumElementsBeforeDim(Tensor *t, dim_t dim, tensor_size_t *result
   return OK;
 }
 
-Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, Dim *result) {
+Result getDimsBefore(shapes_Context *ctx, Tensor *t, dim_t dim, shapes_Dim *result) {
   (void)ctx;
   if (dim == 0) {
     return OK;

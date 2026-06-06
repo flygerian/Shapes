@@ -349,7 +349,7 @@ Result shapes_Conv2dBackward(shapes_Context *ctx, Tensor *input, Tensor *dInput,
   return res;
 }
 
-Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, Dim kernelShape, Tensor *t, Tensor *dest) {
+Result shapes_ConvTranspose2d(shapes_Context *ctx, size_t inChannels, size_t outChannels, u8 stride, Tensor *kernels, shapes_Dim kernelShape, Tensor *t, Tensor *dest) {
   if (t == NULL || dest == NULL || ctx == NULL) {
     return ERR_NULL_TENSOR_PROVIDED;
   }

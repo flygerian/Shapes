@@ -26,7 +26,7 @@ typedef struct batchNormLayerData {
 
 typedef struct reshapedFeatures {
   Tensor reshaped;
-  Dim originalShape;
+  shapes_Dim originalShape;
 } reshapedFeatures;
 
 reshapedFeatures reshapeToBatchFeature2D(shapes_Context *ctx, Tensor *tensor, dim_t numFeatures) {
@@ -59,7 +59,7 @@ reshapedFeatures reshapeNHWCToBatchFeature2D(shapes_Context *ctx, Tensor *tensor
   return result;
 }
 
-Tensor restoreBatchNorm2DOutput(shapes_Context *ctx, Tensor *x2d, Dim originalShape) {
+Tensor restoreBatchNorm2DOutput(shapes_Context *ctx, Tensor *x2d, shapes_Dim originalShape) {
   PANIC_IF(originalShape.numOfDims != 4, ERR_DIM_MISMATCH);
   dim_t n = originalShape.dims[0];
   dim_t h = originalShape.dims[1];
@@ -74,7 +74,7 @@ void batchnormBackward(shapes_Context *ctx, Tensor *output) {
 
   Tensor x2d;
   Tensor grad2d;
-  Dim originalShape;
+  shapes_Dim originalShape;
 
   switch (layerData->dims) {
     case 1: {
@@ -186,7 +186,7 @@ Tensor batchNormForward(shapes_Context *ctx, shapesnn_layer *layer, Tensor *inpu
   PANIC_IF(input == NULL, ERR_NULL_PTR);
 
   Tensor x2d;
-  Dim originalShape;
+  shapes_Dim originalShape;
   batchNormLayerData *layerData = layer->layerData;
 
   switch (layerData->dims) {

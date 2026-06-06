@@ -165,7 +165,7 @@ static int skipSubtree(jsmntok_t *tokens, int idx) {
 typedef struct ParsedTensorMeta {
   olib_String name;
   shapes_Dtype dtype;
-  Dim shape;
+  shapes_Dim shape;
   size_t startOffset;
   size_t endOffset;
 } ParsedTensorMeta;

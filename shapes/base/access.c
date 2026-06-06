@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static bool isOutOfBounds(Tensor *t, Dim dim) {
+static bool isOutOfBounds(Tensor *t, shapes_Dim dim) {
   for (u8 i = 0; i < dim.numOfDims; i++) {
     if (dim.dims[i] >= t->shape.dims[i]) {
       return true;
@@ -16,7 +16,7 @@ static bool isOutOfBounds(Tensor *t, Dim dim) {
   return false;
 }
 
-shapes_Value *shapes_GetAt(Tensor *t, Dim dim) {
+shapes_Value *shapes_GetAt(Tensor *t, shapes_Dim dim) {
   PANIC_IF(dim.numOfDims != t->shape.numOfDims, ERR_DIM_MISMATCH);
   PANIC_IF(isOutOfBounds(t, dim), ERR_OUT_OF_BOUNDS);
 
@@ -71,7 +71,7 @@ Tensor shapes_IndexWithTensor(shapes_Context *ctx, Tensor *source, Tensor *indic
     sliceSize *= workingSource->shape.dims[i];
   }
 
-  Dim destShape = {.dims = newDims, .numOfDims = newNumDims};
+  shapes_Dim destShape = {.dims = newDims, .numOfDims = newNumDims};
   Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
   if (isCudaCtx) {
     Result result = shapescuda_IndexSelect1d(workingSource->dtype, workingSource->values, workingIndices->values, workingIndices->dtype, dest.values, workingIndices->size, sliceSize);
@@ -137,7 +137,7 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
     sliceSize *= workingSource->shape.dims[i];
   }
 
-  Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers};
+  shapes_Dim destShape = {.dims = newDims, .numOfDims = newNumDims, .multipliers = snm.multipliers};
   Tensor dest = t_Empty(ctx, destShape, workingSource->dtype);
   if (isCudaCtx) {
     Result result = shapescuda_IndexSelect2d(workingSource->dtype, workingSource->values, workingSource->shape.dims[1], workingRows->values, workingRows->dtype, workingCols->values,
@@ -174,7 +174,7 @@ Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, Tensor *source, Tensor *row
   return dest;
 }
 
-Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, Dim dim, shapes_Value value) {
+Result shapes_AssignValueAt(shapes_Context *ctx, Tensor *t, shapes_Dim dim, shapes_Value value) {
   (void)ctx;
   if (isInvalidTensor(t)) {
     return ERR_NULL_TENSOR_PROVIDED;
