@@ -62,11 +62,8 @@ void shapes_MultiplyInPlace(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor
 
 // Access and shapes
 shapes_Value *shapes_GetAt(shapes_Tensor *t, shapes_Dim dim);
-Result shapes_CopyShape(shapes_Tensor *t, shapes_dim_t *destDims, u8 *numDims);
-Result shapes_AssignValueAt(shapes_Context *ctx, shapes_Tensor *t, shapes_Dim dim, shapes_Value value);
 shapes_Tensor shapes_IndexWithTensor(shapes_Context *ctx, shapes_Tensor *source, shapes_Tensor *indices);
 shapes_Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, shapes_Tensor *source, shapes_Tensor *rowIndices, shapes_Tensor *colIndices);
-shapes_Tensor shapes_Slice(shapes_Context *ctx, shapes_Tensor *source, ...);
 shapes_Tensor shapes_Reshape(shapes_Context *ctx, shapes_Tensor *source, shapes_Dim newShape);
 void   shapes_ReshapeBackward(shapes_Context *ctx, shapes_Tensor *node);
 shapes_Tensor shapes_Transpose(shapes_Context *ctx, shapes_Tensor *source, ...);
@@ -107,7 +104,6 @@ shapes_Tensor shapes_ArgMax(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t 
 // Accumulate
 void shapes_IndexAccumulate1d(shapes_Context *ctx, shapes_Tensor *dest, shapes_Tensor *indices, shapes_Tensor *srcGrad);
 void shapes_IndexAccumulate2d(shapes_Context *ctx, shapes_Tensor *dest, shapes_Tensor *rowIndices, shapes_Tensor *colIndices, shapes_Tensor *srcGrad);
-void shapes_SliceAccumulate(shapes_Context *ctx, shapes_Tensor *dest, shapes_Range *ranges, shapes_Tensor *srcGrad);
 
 // Matrix ops
 shapes_Tensor shapes_MatMul(shapes_Context *ctx, shapes_Tensor *a, shapes_Tensor *b);

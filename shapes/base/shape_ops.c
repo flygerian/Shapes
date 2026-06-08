@@ -11,63 +11,6 @@
 #include <stdlib.h>
 #include "shapes_internal.h"
 
-shapes_Tensor shapes_Slice(shapes_Context *ctx, shapes_Tensor *source, ...) {
-  PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
-
-  shapes_Range *ranges = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
-  PANIC_IF(ranges == NULL, ERR_OUT_OF_MEMORY);
-
-  va_list args;
-  va_start(args, source);
-
-  for (u8 x = 0; x < source->shape.numOfDims; x++) {
-    ranges[x] = va_arg(args, shapes_Range);
-
-    if (ranges[x].end < ranges[x].start) {
-      va_end(args);
-      PANIC_IF(true, ERR_INVALID_RANGE);
-    }
-
-    if (ranges[x].start < 0 || ranges[x].start > source->shape.dims[x] || ranges[x].end < 0 ||
-        ranges[x].end > source->shape.dims[x]) {
-      va_end(args);
-      PANIC_IF(true, ERR_DIM_MISMATCH);
-    }
-  }
-  va_end(args);
-
-  shapes_Dim newShape = {.dims = olib_Allocate(ctx->memory, sizeof(shapes_dim_t) * source->shape.numOfDims),
-                  .numOfDims = source->shape.numOfDims,
-                  .multipliers =
-                      olib_Allocate(ctx->memory, sizeof(shapes_multiplier_t) * source->shape.numOfDims)};
-  shapes_Range *boundary = olib_Allocate(ctx->memory, sizeof(shapes_Range) * source->shape.numOfDims);
-  PANIC_IF(newShape.dims == NULL || newShape.multipliers == NULL || boundary == NULL,
-           ALLOCATION_FAILED);
-
-  for (u8 x = 0; x < source->shape.numOfDims; x++) {
-    shapes_Range r = ranges[x];
-    u32 dimsize = (r.end - r.start);
-    newShape.dims[x] = dimsize;
-
-    if (source->isView && source->boundary) {
-      boundary[x] = (shapes_Range){.start = source->boundary[x].start + ranges[x].start,
-                            .end = source->boundary[x].start + ranges[x].end};
-    } else {
-      boundary[x] = ranges[x];
-    }
-  }
-
-  // Preserve source strides for views so boundary-adjusted indexing maps into
-  // the same underlying storage layout (including sliced/transposed sources).
-  memcpy(newShape.multipliers, source->shape.multipliers,
-         sizeof(shapes_multiplier_t) * source->shape.numOfDims);
-  sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newShape.dims, newShape.numOfDims);
-
-  shapes_Tensor dest = tensorView(source->context, ctx->memory, source->values, snm.size, source->dtype,
-                     newShape, boundary, false);
-  return dest;
-}
-
 shapes_Tensor shapes_Reshape(shapes_Context *ctx, shapes_Tensor *source, shapes_Dim newShape) {
   PANIC_IF(isInvalidTensor(source), ERR_NULL_TENSOR_PROVIDED);
   PANIC_IF(newShape.dims == NULL, ERR_NULL_SHAPE_PROVIDED);

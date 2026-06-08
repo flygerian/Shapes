@@ -72,23 +72,6 @@ char *shapes_GetItem(shapes_Context *ctx, shapes_Tensor *t) {
   return valueStr;
 }
 
-Result shapes_CopyShape(shapes_Tensor *t, shapes_dim_t *destDims, u8 *numDims) {
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (numDims == NULL) {
-    return ERR_NULL_PTR;
-  }
-
-  *numDims = t->shape.numOfDims;
-  if (destDims == NULL || t->shape.numOfDims == 0) {
-    return OK;
-  }
-
-  memcpy(destDims, t->shape.dims, sizeof(shapes_dim_t) * t->shape.numOfDims);
-  return OK;
-}
 
 sizeAndMultipliers calculateSizeAndMultipliers(shapes_Context *ctx, shapes_dim_t *dims, u8 numOfDims) {
   PANIC_IF(ctx == NULL, NULL_CONTEXT);

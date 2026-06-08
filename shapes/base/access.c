@@ -173,29 +173,3 @@ shapes_Tensor shapes_IndexWithTensor2d(shapes_Context *ctx, shapes_Tensor *sourc
 
   return dest;
 }
-
-Result shapes_AssignValueAt(shapes_Context *ctx, shapes_Tensor *t, shapes_Dim dim, shapes_Value value) {
-  (void)ctx;
-  if (isInvalidTensor(t)) {
-    return ERR_NULL_TENSOR_PROVIDED;
-  }
-
-  if (dim.dims == NULL) {
-    return ERR_NULL_SHAPE_PROVIDED;
-  }
-
-  if (t->dtype != value.dtype) {
-    return ERR_DTYPE_MISMATCH;
-  }
-
-  if (dim.numOfDims != t->shape.numOfDims) {
-    return ERR_DIM_MISMATCH;
-  }
-
-  if (isOutOfBounds(t, dim)) {
-    return ERR_OUT_OF_BOUNDS;
-  }
-
-  u64 idx = getContigousIdxFromCoord(t, dim.dims);
-  return writeTensorValueAtFlatIndex(t, idx, value);
-}

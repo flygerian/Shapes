@@ -1,5 +1,6 @@
 #include "result.h"
 #include "shapescuda.h"
+#include "types.h"
 
 // ---- shapescuda_Memory functions ----
 
@@ -16,19 +17,19 @@ shapescuda_Memory GetCudaMemoryScratchCheckPoint(shapescuda_Memory *restrict cud
                       .blocks = cudaMemory->blocks};
 }
 
-void Rewind(shapescuda_Memory *restrict cudaMemory) {
+void shapescuda_RewindMemory(shapescuda_Memory *restrict cudaMemory) {
   cudaMemory->allocationPointer = cudaMemory->allocationCheckpoint;
 }
 
-void Releaseshapescuda_Blocks(shapescuda_Memory *restrict cudaMemory) {
+void shapescuda_ReleaseBlocks(shapescuda_Memory *restrict cudaMemory) {
   (void)cudaMemory;
 }
 
-void FreeCudaScratchMemory(shapescuda_Memory *restrict cudaMemory) {
+void shapescuda_FreeScratchMemory(shapescuda_Memory *restrict cudaMemory) {
   (void)cudaMemory;
 }
 
-shapescuda_Block AllocateOnCuda(shapescuda_Memory *restrict cudaMemory, olib_Memory *restrict hostMemory,
+shapescuda_Block shapescuda_Allocate(shapescuda_Memory *restrict cudaMemory, olib_Memory *restrict hostMemory,
                          size_t size) {
   (void)cudaMemory;
   (void)hostMemory;
