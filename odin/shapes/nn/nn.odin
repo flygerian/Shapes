@@ -1,5 +1,5 @@
 package shapesnn
-import shapes "../"
+import "../"
 
 Tensor :: struct {
 	using tensor: shapes.Tensor,
@@ -38,6 +38,10 @@ doDenseOp :: proc(x: Tensor, w: Tensor, bias: Tensor, withBias: bool) -> Tensor 
 	_bias := ToRawTensor(bias)
 	result := shapes._DenseLinear(ctx, &_x, &_w, &_bias, withBias)
 	return FromRawTensor(result)
+}
+
+Forward :: proc {
+	denseForward,
 }
 
 DenseBackward :: proc(

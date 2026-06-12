@@ -73,8 +73,9 @@ shapes_Tensor shapes_SqueezeDim(shapes_Context *ctx, shapes_Tensor *t, shapes_di
 shapes_Tensor shapes_UnSqueeze(shapes_Context *ctx, shapes_Tensor *t, shapes_dim_t dim);
 shapes_Tensor shapes_Clone(shapes_Context *ctx, shapes_Tensor *t);
 void   shapes_Copy(shapes_Context *ctx, shapes_Tensor *src, shapes_Tensor *dest);
-shapes_Tensor shapes_Concat(shapes_Context *ctx, shapes_Tensor *target, shapes_dim_t targetDim, shapes_ArrayTensor tensors);
+shapes_Tensor shapes_Concat(shapes_Context *ctx, shapes_ArrayTensor tensors, shapes_dim_t targetDim);
 shapes_Tensor shapes_Stack(shapes_Context *ctx, shapes_ArrayTensor tensors);
+shapes_ArrayTensor shapes_SplitAtDim(shapes_Context *ctx, shapes_Tensor *input, shapes_dim_t dim, u8 numSplits);
 
 // Cast
 shapes_Tensor Cast(shapes_Context *ctx, shapes_Tensor *source, shapes_Dtype targetDtype);
@@ -143,6 +144,7 @@ void shapes_PrintTensor(shapes_Tensor *tensor);
 
 // shapes_Tensor creation
 shapes_Tensor shapes_MakeZerosTensor(shapes_Context *ctx, shapes_Dim shape);
+shapes_Tensor shapes_MakeZerosTensorWithDtype(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype dtype);
 shapes_Tensor shapes_MakeIntTensor(shapes_Context *ctx, shapes_Dim shape, i8 initialValues);
 shapes_Tensor shapes_MakeUIntTensor(shapes_Context *ctx, shapes_Dim shape, u8 initialValue);
 shapes_Tensor shapes_MakeFloatTensor(shapes_Context *ctx, shapes_Dim shape, f32 initialValues);

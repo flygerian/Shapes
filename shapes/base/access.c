@@ -67,7 +67,7 @@ shapes_Tensor shapes_IndexWithTensor(shapes_Context *ctx, shapes_Tensor *source,
   sizeAndMultipliers snm = calculateSizeAndMultipliers(ctx, newDims, newNumDims);
 
   shapes_tensor_size_t sliceSize = 1;
-  for (RANGE(i, workingIndices->shape.numOfDims)) {
+  for (u8 i = workingIndices->shape.numOfDims; i < workingSource->shape.numOfDims; i++) {
     sliceSize *= workingSource->shape.dims[i];
   }
 
@@ -89,10 +89,10 @@ shapes_Tensor shapes_IndexWithTensor(shapes_Context *ctx, shapes_Tensor *source,
     PANIC_IF(result != OK, result);
 
     shapes_dim_t srcCoords[workingSource->shape.numOfDims];
-    srcCoords[0] = idx;
     for (RANGE(d, workingSource->shape.numOfDims)) {
       srcCoords[d] = 0;
     }
+    srcCoords[0] = idx;
     u64 srcOffset = getContigousIdxFromCoord(workingSource, srcCoords);
 
     memcpy((char *)dest.values + destOffset * bytesPerElem, (char *)workingSource->values + srcOffset * bytesPerElem, sliceSize * bytesPerElem);

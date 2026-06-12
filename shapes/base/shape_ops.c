@@ -371,7 +371,7 @@ shapes_Tensor shapes_UnSqueeze(shapes_Context *ctx, shapes_Tensor *t, shapes_dim
   return dest;
 }
 
-shapes_Tensor shapes_Concat(shapes_Context *ctx, shapes_Tensor *target, shapes_dim_t targetDim, shapes_ArrayTensor tensors) {
+shapes_Tensor shapes_concat(shapes_Context *ctx, shapes_Tensor *target, shapes_dim_t targetDim, shapes_ArrayTensor tensors) {
   shapes_ArrayTensor tensorsContig = NULL;
 
   PANIC_IF(tensors->size <= 0, ERR_NO_OP);
@@ -462,6 +462,18 @@ shapes_Tensor shapes_Concat(shapes_Context *ctx, shapes_Tensor *target, shapes_d
   return dest;
 }
 
+shapes_Tensor shapes_Concat(shapes_Context *ctx, shapes_ArrayTensor tensors, shapes_dim_t targetDim) {
+  shapes_Tensor firstItem = shapes_ArrayTensorIdx(tensors, 0); 
+  shapes_ArrayTensor rest = shapes_MakeTensorArray(ctx->memory, tensors->size - 1);
+  for (size_t ti = 1; ti < tensors->size; ti++) {
+    shapes_Tensor t = shapes_ArrayTensorIdx(tensors, ti);
+    shapes_ArrayAppendTensor(rest, &t);
+  }
+
+  return shapes_concat(ctx, &firstItem, targetDim, rest);
+}
+
+
 shapes_Tensor shapes_Stack(shapes_Context *ctx, shapes_ArrayTensor tensors) {
   PANIC_IF_NULL(ctx);
   PANIC_IF_NULL(tensors);
@@ -479,5 +491,54 @@ shapes_Tensor shapes_Stack(shapes_Context *ctx, shapes_ArrayTensor tensors) {
   }
 
   shapes_Tensor firstTensorUnsqueezed = shapes_UnSqueeze(ctx, &firstTensor, 0);
-  return shapes_Concat(ctx, &firstTensorUnsqueezed, 0, unsqueezed);
+  return shapes_concat(ctx, &firstTensorUnsqueezed, 0, unsqueezed);
 }
+
+shapes_ArrayTensor shapes_SplitAtDim(shapes_Context *ctx, shapes_Tensor *input, shapes_dim_t dim, u8 numSplits) {
+  PANIC_IF(dim > input->shape.numOfDims - 1, ERR_DIM_MISMATCH);
+  PANIC_IF(dim < 0, ERR_DIM_MISMATCH);
+  PANIC_IF(input->shape.dims[dim] % numSplits != 0, ERR_DIM_MISMATCH);
+
+  shapes_tensor_size_t outer;
+  calculateNumElementsBeforeDim(input, dim, &outer);
+
+  shapes_tensor_size_t inner;
+  calculateNumElementsAfterDim(input, dim, &inner);
+
+  shapes_tensor_size_t dimSize = input->shape.dims[dim];
+
+  size_t splitSize = dimSize / numSplits;
+  shapes_ArrayTensor result = shapes_MakeTensorArray(ctx->memory, splitSize);
+
+  shapes_dim_t newDims[input->shape.numOfDims];
+  for (RANGE(d, input->shape.numOfDims)) {
+    if (d == dim) {
+      newDims[d] = splitSize;
+      continue;
+    }
+
+    newDims[d] = input->shape.dims[d];
+  }
+
+  shapes_Dim newShape = {.dims = newDims, .numOfDims = input->shape.numOfDims};
+
+  for (shapes_tensor_size_t splitIdx = 0; splitIdx < numSplits; splitIdx++) {
+      shapes_Tensor splitTensor = shapes_MakeZerosTensor(ctx, newShape);
+
+      for (shapes_tensor_size_t outerIdx = 0; outerIdx < outer; outerIdx++) {
+          shapes_tensor_size_t srcIdx = outerIdx * dimSize * inner + splitIdx * splitSize * inner;
+          shapes_tensor_size_t dstIdx = outerIdx * splitSize * inner;
+
+          void *src = (u8*)input->values + srcIdx * getBytesForDtype(input->dtype);
+          void *dst = (u8*)splitTensor.values + dstIdx * getBytesForDtype(input->dtype);
+
+          memcpy(dst, src, splitSize * inner * getBytesForDtype(input->dtype));
+      }
+
+      shapes_ArrayAppendTensor(result, &splitTensor);
+  }
+  
+  return result;
+} 
+
+

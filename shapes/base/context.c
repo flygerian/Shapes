@@ -1,6 +1,7 @@
 #include "result.h"
 #include "shapes.h"
 #include "memory.h"
+#include "types.h"
 #ifdef SHAPES_HAS_CUDA 
   #include "shapescuda.h"
   #include "cuda_runtime.h"

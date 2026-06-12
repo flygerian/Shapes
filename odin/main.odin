@@ -1,6 +1,7 @@
 package main
 import "core:fmt"
 import "shapes"
+import nn "shapes/nn"
 
 main :: proc() {
 	dims := []uint{2, 3}
@@ -10,9 +11,10 @@ main :: proc() {
 	gb :: 1024 * mb
 
 	ctx := shapes.InitializeHostContext(5 * mb, 1)
-	tensor := shapes.MakeRandomTensor(&ctx, shapes.Shape2D(1, 3), -4, -3, .F32)
 	context.user_ptr = &ctx
 
-
+	x := shapes.MakeRandomTensor(minValue = -4, maxValue = -3, shape = shapes.Shape2D(1, 3))
+	denseLayer: LayerWithState = nn.Dense(3, 100, false)
+	out := nn.denseForward(&denseLayer, x)
 }
 

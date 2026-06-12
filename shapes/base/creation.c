@@ -1,3 +1,4 @@
+#include "olib.h"
 #include "result.h"
 #include "shapes.h"
 #include "types.h"
@@ -218,6 +219,10 @@ shapes_Tensor shapes_MakeZerosTensor(shapes_Context *ctx, shapes_Dim shape) {
   return t_Zeros(ctx, shape, F32);
 }
 
+shapes_Tensor shapes_MakeZerosTensorWithDtype(shapes_Context *ctx, shapes_Dim shape, shapes_Dtype dtype) {
+  return t_Zeros(ctx, shape, dtype); 
+}
+
 shapes_Tensor shapes_Clone(shapes_Context *ctx, shapes_Tensor *t) {
   PANIC_IF(isInvalidTensor(t), ERR_NULL_TENSOR_PROVIDED);
 
@@ -339,19 +344,9 @@ shapes_Tensor shapes_MakeRandomTensor(shapes_Context *ctx, shapes_Dim shape, f32
 
   seedRandomOnce();
 
-  size_t valueBytes = tensor.size * getBytesForDtype(dtype);
-  if (ctx->device != NULL && ctx->device->type == CUDA) {
-    void *tempValues = olib_Allocate(ctx->memory, valueBytes);
-    PANIC_IF(tempValues == NULL, ALLOCATION_FAILED);
-    for (shapes_tensor_size_t i = 0; i < tensor.size; i++) {
-      VALUE_SET(tempValues, i, randomValueForRange(minValue, maxValue, dtype));
-    }
-    Result copyRes = shapes_CopyBetweenDevices(CPU, ctx->device->type, tempValues, tensor.values, valueBytes);
-    PANIC_IF(copyRes != OK, copyRes);
-  } else {
-    for (shapes_tensor_size_t i = 0; i < tensor.size; i++) {
-      VALUE_SET(tensor.values, i, randomValueForRange(minValue, maxValue, dtype));
-    }
+  for (RANGE(i, tensor.size)) {
+    shapes_Value nextValue = randomValueForRange(minValue, maxValue, dtype);
+    VALUE_SET(tensor.values, i, nextValue);
   }
 
   return tensor;

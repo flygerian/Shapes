@@ -23,21 +23,21 @@ Dense :: proc(inputSize: uint, outputSize: uint, withBias: bool) -> LayerWithSta
 	return layer
 }
 
-denseForward :: proc(layer: LayerWithState, x: Tensor) -> Tensor {
+denseForward :: proc(layer: ^LayerWithState, x: Tensor) -> Tensor {
 	if layer == nil {
-		return Tensor{}, .ERR_NULL_TENSOR_PROVIDED
+		return Tensor{}
 	}
 
-	out := doDenseOp(x, layer.weights, layer.bias, layer.withBias)
+	out: Tensor = doDenseOp(x, layer.weights, layer.bias, layer.withBias)
 
 	arrSize := 4 if layer.withBias else 3
-	out.inputs = make([]^Tensor, arrSize)
+	out.inputs = shapes.MakeTensorArray(uint(arrSize))
 
-	out.inputs[0] = x
-	out.inputs[1] = layer.weights
+	shapes.ArrayAppendTensor(out.inputs, x)
+	shapes.ArrayAppendTensor(out.inputs, &layer.weights)
 
 	if layer.withBias != true {
-		out.inputs[1] = layer.bias
+		shapes.ArrayAppendTensor(out.inputs, &layer.bias)
 	}
 
 	out.opMetadata = rawptr(layer)
