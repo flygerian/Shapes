@@ -14,7 +14,11 @@ main :: proc() {
 	context.user_ptr = &ctx
 
 	x := shapes.MakeRandomTensor(minValue = -4, maxValue = -3, shape = shapes.Shape2D(1, 3))
-	denseLayer: LayerWithState = nn.Dense(3, 100, false)
-	out := nn.denseForward(&denseLayer, x)
+
+	denseLayer := nn.Dense(3, 100, false)
+	out := nn.Forward(&denseLayer, &x)
+	shapes.PrintTensor(out)
+	nn.denseBackward(&out)
+
 }
 

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/vgg10.dir/link.d "CMakeFiles/vgg10.dir/examples/vgg-10.c.o" -o vgg10  libshapes.a libshapesnn.a openblas-install/lib/libopenblas.a -lm libshapes.a openblas-install/lib/libopenblas.a -lstdc++ libolib.a

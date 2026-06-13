@@ -136,6 +136,7 @@ add_library(shapes
     shapes/base/cast.c
     shapes/base/accumulate.c
     shapes/base/gemm.c
+    shapes/base/matrix_ops.c
 )
 
 if(NOT SHAPES_ENABLE_CUDA)
@@ -196,18 +197,26 @@ add_executable(vgg10
     examples/vgg-10.c
 )
 
+add_executable(transformer
+    examples/transformer.c
+)
+
 if(SHAPES_ENABLE_CUDA)
   target_link_libraries(makemore shapes shapesnn openblas CUDA::cublas CUDA::cudart stdc++ m)
-  target_link_libraries(vgg10 shapes shapesnn openblas CUDA::cublas CUDA::cudart stdc++ m)
+  target_link_libraries(vgg10 shapes shapesnn openblas cuda::cublas cuda::cudart stdc++ m)
+  target_link_libraries(transformer shapes shapesnn openblas cuda::cublas cuda::cudart stdc++ m)
 else()
   target_link_libraries(makemore shapes shapesnn openblas m)
   target_link_libraries(vgg10 shapes shapesnn openblas m)
+  target_link_libraries(transformer shapes shapesnn openblas m)
 endif()
 
 target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapesnn)
 target_include_directories(makemore PUBLIC ${CMAKE_SOURCE_DIR}/deps)
 target_include_directories(vgg10 PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapesnn)
 target_include_directories(vgg10 PUBLIC ${CMAKE_SOURCE_DIR}/deps)
+target_include_directories(transformer PUBLIC ${CMAKE_SOURCE_DIR}/shapes/shapesnn)
+target_include_directories(transformer PUBLIC ${CMAKE_SOURCE_DIR}/deps)
 
 # Enable CTest
 enable_testing()

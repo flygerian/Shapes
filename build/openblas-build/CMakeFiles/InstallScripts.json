@@ -1,0 +1,15 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/olabode/repos/Shapes/build/openblas-build/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/interface/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/driver/level2/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/driver/level3/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/driver/others/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/kernel/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/lapack/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/utest/cmake_install.cmake",
+		"/home/olabode/repos/Shapes/build/openblas-build/ctest/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

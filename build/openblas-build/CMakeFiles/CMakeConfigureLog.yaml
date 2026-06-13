@@ -1,0 +1,2836 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineSystem.cmake:12 (find_program)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_UNAME"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "uname"
+    candidate_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+      - "/bin/"
+    searched_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/uname"
+      - "/home/olabode/Odin/uname"
+      - "/opt/cuda/bin/uname"
+      - "/home/olabode/zig/uname"
+      - "/home/olabode/.amp/bin/uname"
+      - "/home/olabode/.opencode/bin/uname"
+      - "/home/olabode/.local/bin/uname"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/uname"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/uname"
+      - "/home/olabode/.local/share/omarchy/bin/uname"
+      - "/home/olabode/.local/share/mise/shims/uname"
+      - "/usr/local/sbin/uname"
+      - "/usr/local/bin/uname"
+    found: "/usr/bin/uname"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineSystem.cmake:212 (message)"
+      - "CMakeLists.txt:8 (project)"
+    message: |
+      The system is: Linux - 7.0.3-arch1-2 - x86_64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeUnixFindMake.cmake:5 (find_program)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_MAKE_PROGRAM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "gmake"
+      - "make"
+      - "smake"
+    candidate_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/gmake"
+      - "/home/olabode/Odin/gmake"
+      - "/opt/cuda/bin/gmake"
+      - "/home/olabode/zig/gmake"
+      - "/home/olabode/.amp/bin/gmake"
+      - "/home/olabode/.opencode/bin/gmake"
+      - "/home/olabode/.local/bin/gmake"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gmake"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gmake"
+      - "/home/olabode/.local/share/omarchy/bin/gmake"
+      - "/home/olabode/.local/share/mise/shims/gmake"
+      - "/usr/local/sbin/gmake"
+      - "/usr/local/bin/gmake"
+      - "/usr/bin/gmake"
+      - "/usr/lib/jvm/default/bin/gmake"
+      - "/usr/bin/site_perl/gmake"
+      - "/usr/bin/vendor_perl/gmake"
+      - "/usr/bin/core_perl/gmake"
+      - "/home/olabode/.lmstudio/bin/gmake"
+      - "/home/olabode/.local/share/nvim/mason/bin/gmake"
+      - "/home/olabode/miniconda3/bin/gmake"
+      - "/home/olabode/miniconda3/condabin/gmake"
+      - "/home/olabode/.cargo/bin/gmake"
+      - "/home/olabode/go/bin/gmake"
+      - "/home/olabode/Downloads/c3-linux-static/c3/make"
+      - "/home/olabode/Odin/make"
+      - "/opt/cuda/bin/make"
+      - "/home/olabode/zig/make"
+      - "/home/olabode/.amp/bin/make"
+      - "/home/olabode/.opencode/bin/make"
+      - "/home/olabode/.local/bin/make"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/make"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/make"
+      - "/home/olabode/.local/share/omarchy/bin/make"
+      - "/home/olabode/.local/share/mise/shims/make"
+      - "/usr/local/sbin/make"
+      - "/usr/local/bin/make"
+    found: "/usr/bin/make"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompiler.cmake:73 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:64 (_cmake_find_compiler)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_C_COMPILER"
+    description: "C compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "cc"
+      - "gcc"
+      - "cl"
+      - "bcc"
+      - "xlc"
+      - "icx"
+      - "clang"
+    candidate_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/cc"
+      - "/home/olabode/Odin/cc"
+      - "/opt/cuda/bin/cc"
+      - "/home/olabode/zig/cc"
+      - "/home/olabode/.amp/bin/cc"
+      - "/home/olabode/.opencode/bin/cc"
+      - "/home/olabode/.local/bin/cc"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/cc"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/cc"
+      - "/home/olabode/.local/share/omarchy/bin/cc"
+      - "/home/olabode/.local/share/mise/shims/cc"
+      - "/usr/local/sbin/cc"
+      - "/usr/local/bin/cc"
+    found: "/usr/bin/cc"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:468 (find_file)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:506 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCCompilerId.c.in"
+    candidate_directories:
+      - "/usr/share/cmake/Modules/"
+    found: "/usr/share/cmake/Modules/CMakeCCompilerId.c.in"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:8 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/bin/cc 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+      
+      The C compiler identification is GNU, found in:
+        /home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/4.3.2/CompilerIdC/a.out
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ar"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/ar"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_RANLIB"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ranlib"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_STRIP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "strip"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/strip"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ld"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/ld"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_NM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "nm"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/nm"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJDUMP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "objdump"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/objdump"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJCOPY"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "objcopy"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/objcopy"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_READELF"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "readelf"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/readelf"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_DLLTOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "dlltool"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/usr/bin/dlltool"
+      - "/home/olabode/Downloads/c3-linux-static/c3/dlltool"
+      - "/home/olabode/Odin/dlltool"
+      - "/opt/cuda/bin/dlltool"
+      - "/home/olabode/zig/dlltool"
+      - "/home/olabode/.amp/bin/dlltool"
+      - "/home/olabode/.opencode/bin/dlltool"
+      - "/home/olabode/.local/bin/dlltool"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/dlltool"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/dlltool"
+      - "/home/olabode/.local/share/omarchy/bin/dlltool"
+      - "/home/olabode/.local/share/mise/shims/dlltool"
+      - "/usr/local/sbin/dlltool"
+      - "/usr/local/bin/dlltool"
+      - "/usr/lib/jvm/default/bin/dlltool"
+      - "/usr/bin/site_perl/dlltool"
+      - "/usr/bin/vendor_perl/dlltool"
+      - "/usr/bin/core_perl/dlltool"
+      - "/home/olabode/.lmstudio/bin/dlltool"
+      - "/home/olabode/.local/share/nvim/mason/bin/dlltool"
+      - "/home/olabode/miniconda3/bin/dlltool"
+      - "/home/olabode/miniconda3/condabin/dlltool"
+      - "/home/olabode/.cargo/bin/dlltool"
+      - "/home/olabode/go/bin/dlltool"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_ADDR2LINE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "addr2line"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    found: "/usr/bin/addr2line"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_TAPI"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "tapi"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/usr/bin/tapi"
+      - "/home/olabode/Downloads/c3-linux-static/c3/tapi"
+      - "/home/olabode/Odin/tapi"
+      - "/opt/cuda/bin/tapi"
+      - "/home/olabode/zig/tapi"
+      - "/home/olabode/.amp/bin/tapi"
+      - "/home/olabode/.opencode/bin/tapi"
+      - "/home/olabode/.local/bin/tapi"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/tapi"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/tapi"
+      - "/home/olabode/.local/share/omarchy/bin/tapi"
+      - "/home/olabode/.local/share/mise/shims/tapi"
+      - "/usr/local/sbin/tapi"
+      - "/usr/local/bin/tapi"
+      - "/usr/lib/jvm/default/bin/tapi"
+      - "/usr/bin/site_perl/tapi"
+      - "/usr/bin/vendor_perl/tapi"
+      - "/usr/bin/core_perl/tapi"
+      - "/home/olabode/.lmstudio/bin/tapi"
+      - "/home/olabode/.local/share/nvim/mason/bin/tapi"
+      - "/home/olabode/miniconda3/bin/tapi"
+      - "/home/olabode/miniconda3/condabin/tapi"
+      - "/home/olabode/.cargo/bin/tapi"
+      - "/home/olabode/go/bin/tapi"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/GNU-FindBinUtils.cmake:18 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:201 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_C_COMPILER_AR"
+    description: "A wrapper around 'ar' adding the appropriate '--plugin' option for the GCC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "gcc-ar-16.1"
+      - "gcc-ar-16"
+      - "gcc-ar16"
+      - "gcc-ar"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/usr/bin/gcc-ar-16.1"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ar-16.1"
+      - "/home/olabode/Odin/gcc-ar-16.1"
+      - "/opt/cuda/bin/gcc-ar-16.1"
+      - "/home/olabode/zig/gcc-ar-16.1"
+      - "/home/olabode/.amp/bin/gcc-ar-16.1"
+      - "/home/olabode/.opencode/bin/gcc-ar-16.1"
+      - "/home/olabode/.local/bin/gcc-ar-16.1"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ar-16.1"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ar-16.1"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ar-16.1"
+      - "/home/olabode/.local/share/mise/shims/gcc-ar-16.1"
+      - "/usr/local/sbin/gcc-ar-16.1"
+      - "/usr/local/bin/gcc-ar-16.1"
+      - "/usr/lib/jvm/default/bin/gcc-ar-16.1"
+      - "/usr/bin/site_perl/gcc-ar-16.1"
+      - "/usr/bin/vendor_perl/gcc-ar-16.1"
+      - "/usr/bin/core_perl/gcc-ar-16.1"
+      - "/home/olabode/.lmstudio/bin/gcc-ar-16.1"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ar-16.1"
+      - "/home/olabode/miniconda3/bin/gcc-ar-16.1"
+      - "/home/olabode/miniconda3/condabin/gcc-ar-16.1"
+      - "/home/olabode/.cargo/bin/gcc-ar-16.1"
+      - "/home/olabode/go/bin/gcc-ar-16.1"
+      - "/usr/bin/gcc-ar-16"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ar-16"
+      - "/home/olabode/Odin/gcc-ar-16"
+      - "/opt/cuda/bin/gcc-ar-16"
+      - "/home/olabode/zig/gcc-ar-16"
+      - "/home/olabode/.amp/bin/gcc-ar-16"
+      - "/home/olabode/.opencode/bin/gcc-ar-16"
+      - "/home/olabode/.local/bin/gcc-ar-16"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ar-16"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ar-16"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ar-16"
+      - "/home/olabode/.local/share/mise/shims/gcc-ar-16"
+      - "/usr/local/sbin/gcc-ar-16"
+      - "/usr/local/bin/gcc-ar-16"
+      - "/usr/lib/jvm/default/bin/gcc-ar-16"
+      - "/usr/bin/site_perl/gcc-ar-16"
+      - "/usr/bin/vendor_perl/gcc-ar-16"
+      - "/usr/bin/core_perl/gcc-ar-16"
+      - "/home/olabode/.lmstudio/bin/gcc-ar-16"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ar-16"
+      - "/home/olabode/miniconda3/bin/gcc-ar-16"
+      - "/home/olabode/miniconda3/condabin/gcc-ar-16"
+      - "/home/olabode/.cargo/bin/gcc-ar-16"
+      - "/home/olabode/go/bin/gcc-ar-16"
+      - "/usr/bin/gcc-ar16"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ar16"
+      - "/home/olabode/Odin/gcc-ar16"
+      - "/opt/cuda/bin/gcc-ar16"
+      - "/home/olabode/zig/gcc-ar16"
+      - "/home/olabode/.amp/bin/gcc-ar16"
+      - "/home/olabode/.opencode/bin/gcc-ar16"
+      - "/home/olabode/.local/bin/gcc-ar16"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ar16"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ar16"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ar16"
+      - "/home/olabode/.local/share/mise/shims/gcc-ar16"
+      - "/usr/local/sbin/gcc-ar16"
+      - "/usr/local/bin/gcc-ar16"
+      - "/usr/lib/jvm/default/bin/gcc-ar16"
+      - "/usr/bin/site_perl/gcc-ar16"
+      - "/usr/bin/vendor_perl/gcc-ar16"
+      - "/usr/bin/core_perl/gcc-ar16"
+      - "/home/olabode/.lmstudio/bin/gcc-ar16"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ar16"
+      - "/home/olabode/miniconda3/bin/gcc-ar16"
+      - "/home/olabode/miniconda3/condabin/gcc-ar16"
+      - "/home/olabode/.cargo/bin/gcc-ar16"
+      - "/home/olabode/go/bin/gcc-ar16"
+    found: "/usr/bin/gcc-ar"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/GNU-FindBinUtils.cmake:30 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCCompiler.cmake:201 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_C_COMPILER_RANLIB"
+    description: "A wrapper around 'ranlib' adding the appropriate '--plugin' option for the GCC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "gcc-ranlib-16.1"
+      - "gcc-ranlib-16"
+      - "gcc-ranlib16"
+      - "gcc-ranlib"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/usr/bin/gcc-ranlib-16.1"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ranlib-16.1"
+      - "/home/olabode/Odin/gcc-ranlib-16.1"
+      - "/opt/cuda/bin/gcc-ranlib-16.1"
+      - "/home/olabode/zig/gcc-ranlib-16.1"
+      - "/home/olabode/.amp/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.opencode/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.local/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.local/share/mise/shims/gcc-ranlib-16.1"
+      - "/usr/local/sbin/gcc-ranlib-16.1"
+      - "/usr/local/bin/gcc-ranlib-16.1"
+      - "/usr/lib/jvm/default/bin/gcc-ranlib-16.1"
+      - "/usr/bin/site_perl/gcc-ranlib-16.1"
+      - "/usr/bin/vendor_perl/gcc-ranlib-16.1"
+      - "/usr/bin/core_perl/gcc-ranlib-16.1"
+      - "/home/olabode/.lmstudio/bin/gcc-ranlib-16.1"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ranlib-16.1"
+      - "/home/olabode/miniconda3/bin/gcc-ranlib-16.1"
+      - "/home/olabode/miniconda3/condabin/gcc-ranlib-16.1"
+      - "/home/olabode/.cargo/bin/gcc-ranlib-16.1"
+      - "/home/olabode/go/bin/gcc-ranlib-16.1"
+      - "/usr/bin/gcc-ranlib-16"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ranlib-16"
+      - "/home/olabode/Odin/gcc-ranlib-16"
+      - "/opt/cuda/bin/gcc-ranlib-16"
+      - "/home/olabode/zig/gcc-ranlib-16"
+      - "/home/olabode/.amp/bin/gcc-ranlib-16"
+      - "/home/olabode/.opencode/bin/gcc-ranlib-16"
+      - "/home/olabode/.local/bin/gcc-ranlib-16"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ranlib-16"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ranlib-16"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ranlib-16"
+      - "/home/olabode/.local/share/mise/shims/gcc-ranlib-16"
+      - "/usr/local/sbin/gcc-ranlib-16"
+      - "/usr/local/bin/gcc-ranlib-16"
+      - "/usr/lib/jvm/default/bin/gcc-ranlib-16"
+      - "/usr/bin/site_perl/gcc-ranlib-16"
+      - "/usr/bin/vendor_perl/gcc-ranlib-16"
+      - "/usr/bin/core_perl/gcc-ranlib-16"
+      - "/home/olabode/.lmstudio/bin/gcc-ranlib-16"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ranlib-16"
+      - "/home/olabode/miniconda3/bin/gcc-ranlib-16"
+      - "/home/olabode/miniconda3/condabin/gcc-ranlib-16"
+      - "/home/olabode/.cargo/bin/gcc-ranlib-16"
+      - "/home/olabode/go/bin/gcc-ranlib-16"
+      - "/usr/bin/gcc-ranlib16"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ranlib16"
+      - "/home/olabode/Odin/gcc-ranlib16"
+      - "/opt/cuda/bin/gcc-ranlib16"
+      - "/home/olabode/zig/gcc-ranlib16"
+      - "/home/olabode/.amp/bin/gcc-ranlib16"
+      - "/home/olabode/.opencode/bin/gcc-ranlib16"
+      - "/home/olabode/.local/bin/gcc-ranlib16"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ranlib16"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ranlib16"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ranlib16"
+      - "/home/olabode/.local/share/mise/shims/gcc-ranlib16"
+      - "/usr/local/sbin/gcc-ranlib16"
+      - "/usr/local/bin/gcc-ranlib16"
+      - "/usr/lib/jvm/default/bin/gcc-ranlib16"
+      - "/usr/bin/site_perl/gcc-ranlib16"
+      - "/usr/bin/vendor_perl/gcc-ranlib16"
+      - "/usr/bin/core_perl/gcc-ranlib16"
+      - "/home/olabode/.lmstudio/bin/gcc-ranlib16"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ranlib16"
+      - "/home/olabode/miniconda3/bin/gcc-ranlib16"
+      - "/home/olabode/miniconda3/condabin/gcc-ranlib16"
+      - "/home/olabode/.cargo/bin/gcc-ranlib16"
+      - "/home/olabode/go/bin/gcc-ranlib16"
+    found: "/usr/bin/gcc-ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompiler.cmake:54 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:61 (_cmake_find_compiler)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_ASM_COMPILER"
+    description: "ASM compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "/usr/bin/cc"
+    candidate_directories:
+      - "/usr/bin/"
+    found: "/usr/bin/cc"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1296 (message)"
+      - "/usr/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:170 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "CMakeLists.txt:8 (project)"
+    message: |
+      Checking whether the ASM compiler is GNU using "--version" matched "(GNU assembler)|(GCC)|(Free Software Foundation)":
+      cc (GCC) 16.1.1 20260430
+      Copyright (C) 2026 Free Software Foundation, Inc.
+      This is free software; see the source for copying conditions.  There is NO
+      warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/GNU-FindBinUtils.cmake:18 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:268 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_ASM_COMPILER_AR"
+    description: "A wrapper around 'ar' adding the appropriate '--plugin' option for the GCC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "gcc-ar-"
+      - "gcc-ar-"
+      - "gcc-ar"
+      - "gcc-ar"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/usr/bin/gcc-ar-"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ar-"
+      - "/home/olabode/Odin/gcc-ar-"
+      - "/opt/cuda/bin/gcc-ar-"
+      - "/home/olabode/zig/gcc-ar-"
+      - "/home/olabode/.amp/bin/gcc-ar-"
+      - "/home/olabode/.opencode/bin/gcc-ar-"
+      - "/home/olabode/.local/bin/gcc-ar-"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ar-"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ar-"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ar-"
+      - "/home/olabode/.local/share/mise/shims/gcc-ar-"
+      - "/usr/local/sbin/gcc-ar-"
+      - "/usr/local/bin/gcc-ar-"
+      - "/usr/lib/jvm/default/bin/gcc-ar-"
+      - "/usr/bin/site_perl/gcc-ar-"
+      - "/usr/bin/vendor_perl/gcc-ar-"
+      - "/usr/bin/core_perl/gcc-ar-"
+      - "/home/olabode/.lmstudio/bin/gcc-ar-"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ar-"
+      - "/home/olabode/miniconda3/bin/gcc-ar-"
+      - "/home/olabode/miniconda3/condabin/gcc-ar-"
+      - "/home/olabode/.cargo/bin/gcc-ar-"
+      - "/home/olabode/go/bin/gcc-ar-"
+      - "/usr/bin/gcc-ar-"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ar-"
+      - "/home/olabode/Odin/gcc-ar-"
+      - "/opt/cuda/bin/gcc-ar-"
+      - "/home/olabode/zig/gcc-ar-"
+      - "/home/olabode/.amp/bin/gcc-ar-"
+      - "/home/olabode/.opencode/bin/gcc-ar-"
+      - "/home/olabode/.local/bin/gcc-ar-"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ar-"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ar-"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ar-"
+      - "/home/olabode/.local/share/mise/shims/gcc-ar-"
+      - "/usr/local/sbin/gcc-ar-"
+      - "/usr/local/bin/gcc-ar-"
+      - "/usr/lib/jvm/default/bin/gcc-ar-"
+      - "/usr/bin/site_perl/gcc-ar-"
+      - "/usr/bin/vendor_perl/gcc-ar-"
+      - "/usr/bin/core_perl/gcc-ar-"
+      - "/home/olabode/.lmstudio/bin/gcc-ar-"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ar-"
+      - "/home/olabode/miniconda3/bin/gcc-ar-"
+      - "/home/olabode/miniconda3/condabin/gcc-ar-"
+      - "/home/olabode/.cargo/bin/gcc-ar-"
+      - "/home/olabode/go/bin/gcc-ar-"
+    found: "/usr/bin/gcc-ar"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/GNU-FindBinUtils.cmake:30 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:268 (include)"
+      - "CMakeLists.txt:8 (project)"
+    mode: "program"
+    variable: "CMAKE_ASM_COMPILER_RANLIB"
+    description: "A wrapper around 'ranlib' adding the appropriate '--plugin' option for the GCC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "gcc-ranlib-"
+      - "gcc-ranlib-"
+      - "gcc-ranlib"
+      - "gcc-ranlib"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+    searched_directories:
+      - "/usr/bin/gcc-ranlib-"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ranlib-"
+      - "/home/olabode/Odin/gcc-ranlib-"
+      - "/opt/cuda/bin/gcc-ranlib-"
+      - "/home/olabode/zig/gcc-ranlib-"
+      - "/home/olabode/.amp/bin/gcc-ranlib-"
+      - "/home/olabode/.opencode/bin/gcc-ranlib-"
+      - "/home/olabode/.local/bin/gcc-ranlib-"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/mise/shims/gcc-ranlib-"
+      - "/usr/local/sbin/gcc-ranlib-"
+      - "/usr/local/bin/gcc-ranlib-"
+      - "/usr/lib/jvm/default/bin/gcc-ranlib-"
+      - "/usr/bin/site_perl/gcc-ranlib-"
+      - "/usr/bin/vendor_perl/gcc-ranlib-"
+      - "/usr/bin/core_perl/gcc-ranlib-"
+      - "/home/olabode/.lmstudio/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ranlib-"
+      - "/home/olabode/miniconda3/bin/gcc-ranlib-"
+      - "/home/olabode/miniconda3/condabin/gcc-ranlib-"
+      - "/home/olabode/.cargo/bin/gcc-ranlib-"
+      - "/home/olabode/go/bin/gcc-ranlib-"
+      - "/usr/bin/gcc-ranlib-"
+      - "/home/olabode/Downloads/c3-linux-static/c3/gcc-ranlib-"
+      - "/home/olabode/Odin/gcc-ranlib-"
+      - "/opt/cuda/bin/gcc-ranlib-"
+      - "/home/olabode/zig/gcc-ranlib-"
+      - "/home/olabode/.amp/bin/gcc-ranlib-"
+      - "/home/olabode/.opencode/bin/gcc-ranlib-"
+      - "/home/olabode/.local/bin/gcc-ranlib-"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/omarchy/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/mise/shims/gcc-ranlib-"
+      - "/usr/local/sbin/gcc-ranlib-"
+      - "/usr/local/bin/gcc-ranlib-"
+      - "/usr/lib/jvm/default/bin/gcc-ranlib-"
+      - "/usr/bin/site_perl/gcc-ranlib-"
+      - "/usr/bin/vendor_perl/gcc-ranlib-"
+      - "/usr/bin/core_perl/gcc-ranlib-"
+      - "/home/olabode/.lmstudio/bin/gcc-ranlib-"
+      - "/home/olabode/.local/share/nvim/mason/bin/gcc-ranlib-"
+      - "/home/olabode/miniconda3/bin/gcc-ranlib-"
+      - "/home/olabode/miniconda3/condabin/gcc-ranlib-"
+      - "/home/olabode/.cargo/bin/gcc-ranlib-"
+      - "/home/olabode/go/bin/gcc-ranlib-"
+    found: "/usr/bin/gcc-ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/usr/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:8 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK"
+      binary: "/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ebbd7/fast
+        make[3]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK'
+        /usr/bin/make  -f CMakeFiles/cmTC_ebbd7.dir/build.make CMakeFiles/cmTC_ebbd7.dir/build
+        make[4]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK'
+        Building C object CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o
+        /usr/bin/cc   -v -o CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -c /usr/share/cmake/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        Target: x86_64-pc-linux-gnu
+        Configured with: /build/gcc/src/gcc/configure --enable-languages=ada,c,c++,d,fortran,go,lto,m2,objc,obj-c++,rust,cobol --enable-bootstrap --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://gitlab.archlinux.org/archlinux/packaging/packages/gcc/-/issues --with-build-config=bootstrap-lto --with-linker-hash-style=gnu --with-system-zlib --enable-cet=auto --enable-checking=release --enable-clocale=gnu --enable-default-pie --enable-default-ssp --enable-gnu-indirect-function --enable-gnu-unique-object --enable-libstdcxx-backtrace --enable-link-serialization=1 --enable-linker-build-id --enable-lto --enable-multilib --enable-plugin --enable-shared --enable-threads=posix --disable-libssp --disable-libstdcxx-pch --disable-werror --disable-fixincludes
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 16.1.1 20260430 (GCC) 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_ebbd7.dir/'
+         /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/cc1 -quiet -v /usr/share/cmake/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_ebbd7.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -o /tmp/ccoIum6j.s
+        GNU C23 (GCC) version 16.1.1 20260430 (x86_64-pc-linux-gnu)
+        	compiled by GNU C version 16.1.1 20260430, GMP version 6.3.0, MPFR version 4.2.2, MPC version 1.4.1, isl version isl-0.27-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../x86_64-pc-linux-gnu/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include
+         /usr/local/include
+         /usr/include
+        End of search list.
+        Compiler executable checksum: d640c2d0cc84ebd71ee43ed7e2df63fb
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_ebbd7.dir/'
+         as -v --64 -o CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o /tmp/ccoIum6j.s
+        GNU assembler version 2.46.0 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.46.0
+        COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.'
+        Linking C executable cmTC_ebbd7
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ebbd7.dir/link.txt --verbose=1
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper
+        Target: x86_64-pc-linux-gnu
+        Configured with: /build/gcc/src/gcc/configure --enable-languages=ada,c,c++,d,fortran,go,lto,m2,objc,obj-c++,rust,cobol --enable-bootstrap --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://gitlab.archlinux.org/archlinux/packaging/packages/gcc/-/issues --with-build-config=bootstrap-lto --with-linker-hash-style=gnu --with-system-zlib --enable-cet=auto --enable-checking=release --enable-clocale=gnu --enable-default-pie --enable-default-ssp --enable-gnu-indirect-function --enable-gnu-unique-object --enable-libstdcxx-backtrace --enable-link-serialization=1 --enable-linker-build-id --enable-lto --enable-multilib --enable-plugin --enable-shared --enable-threads=posix --disable-libssp --disable-libstdcxx-pch --disable-werror --disable-fixincludes
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 16.1.1 20260430 (GCC) 
+        COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_ebbd7' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_ebbd7.'
+         /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/collect2 -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccOY0biV.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded -plugin-opt=-pass-through=-latomic_asneeded -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_ebbd7 /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -lgcc -lgcc_s_asneeded -latomic_asneeded -lc -lgcc -lgcc_s_asneeded /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o
+        collect2 version 16.1.1 20260430
+        /usr/bin/ld -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccOY0biV.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded -plugin-opt=-pass-through=-latomic_asneeded -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_ebbd7 /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -lgcc -lgcc_s_asneeded -latomic_asneeded -lc -lgcc -lgcc_s_asneeded /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o
+        GNU ld (GNU Binutils) 2.46.0
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_ebbd7' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_ebbd7.'
+        /usr/bin/cc  -v -Wl,-v CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -o cmTC_ebbd7
+        make[4]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK'
+        make[3]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:217 (message)"
+      - "/usr/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:8 (project)"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include]
+          add: [/usr/local/include]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include] ==> [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include;/usr/local/include;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "/usr/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:8 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK']
+        ignore line: []
+        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ebbd7/fast]
+        ignore line: [make[3]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK']
+        ignore line: [/usr/bin/make  -f CMakeFiles/cmTC_ebbd7.dir/build.make CMakeFiles/cmTC_ebbd7.dir/build]
+        ignore line: [make[4]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-jgE2OK']
+        ignore line: [Building C object CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o]
+        ignore line: [/usr/bin/cc   -v -o CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -c /usr/share/cmake/Modules/CMakeCCompilerABI.c]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Configured with: /build/gcc/src/gcc/configure --enable-languages=ada c c++ d fortran go lto m2 objc obj-c++ rust cobol --enable-bootstrap --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://gitlab.archlinux.org/archlinux/packaging/packages/gcc/-/issues --with-build-config=bootstrap-lto --with-linker-hash-style=gnu --with-system-zlib --enable-cet=auto --enable-checking=release --enable-clocale=gnu --enable-default-pie --enable-default-ssp --enable-gnu-indirect-function --enable-gnu-unique-object --enable-libstdcxx-backtrace --enable-link-serialization=1 --enable-linker-build-id --enable-lto --enable-multilib --enable-plugin --enable-shared --enable-threads=posix --disable-libssp --disable-libstdcxx-pch --disable-werror --disable-fixincludes]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 16.1.1 20260430 (GCC) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_ebbd7.dir/']
+        ignore line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/cc1 -quiet -v /usr/share/cmake/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_ebbd7.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -o /tmp/ccoIum6j.s]
+        ignore line: [GNU C23 (GCC) version 16.1.1 20260430 (x86_64-pc-linux-gnu)]
+        ignore line: [	compiled by GNU C version 16.1.1 20260430  GMP version 6.3.0  MPFR version 4.2.2  MPC version 1.4.1  isl version isl-0.27-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../x86_64-pc-linux-gnu/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [Compiler executable checksum: d640c2d0cc84ebd71ee43ed7e2df63fb]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_ebbd7.dir/']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o /tmp/ccoIum6j.s]
+        ignore line: [GNU assembler version 2.46.0 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.46.0]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.']
+        ignore line: [Linking C executable cmTC_ebbd7]
+        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ebbd7.dir/link.txt --verbose=1]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Configured with: /build/gcc/src/gcc/configure --enable-languages=ada c c++ d fortran go lto m2 objc obj-c++ rust cobol --enable-bootstrap --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://gitlab.archlinux.org/archlinux/packaging/packages/gcc/-/issues --with-build-config=bootstrap-lto --with-linker-hash-style=gnu --with-system-zlib --enable-cet=auto --enable-checking=release --enable-clocale=gnu --enable-default-pie --enable-default-ssp --enable-gnu-indirect-function --enable-gnu-unique-object --enable-libstdcxx-backtrace --enable-link-serialization=1 --enable-linker-build-id --enable-lto --enable-multilib --enable-plugin --enable-shared --enable-threads=posix --disable-libssp --disable-libstdcxx-pch --disable-werror --disable-fixincludes]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 16.1.1 20260430 (GCC) ]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_ebbd7' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_ebbd7.']
+        link line: [ /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/collect2 -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccOY0biV.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded -plugin-opt=-pass-through=-latomic_asneeded -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_ebbd7 /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -lgcc -lgcc_s_asneeded -latomic_asneeded -lc -lgcc -lgcc_s_asneeded /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o]
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccOY0biV.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s_asneeded] ==> ignore
+          arg [-plugin-opt=-pass-through=-latomic_asneeded] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s_asneeded] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_ebbd7] ==> ignore
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o]
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o]
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o]
+          arg [-L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1] ==> dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1]
+          arg [-L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib]
+          arg [-L/lib/../lib] ==> dir [/lib/../lib]
+          arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+          arg [-L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../..] ==> dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../..]
+          arg [-L/lib] ==> dir [/lib]
+          arg [-L/usr/lib] ==> dir [/usr/lib]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o] ==> ignore
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lgcc_s_asneeded] ==> lib [gcc_s_asneeded]
+          arg [-latomic_asneeded] ==> lib [atomic_asneeded]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lgcc_s_asneeded] ==> lib [gcc_s_asneeded]
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o]
+          arg [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o] ==> obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o]
+        ignore line: [collect2 version 16.1.1 20260430]
+        ignore line: [/usr/bin/ld -plugin /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/lto-wrapper -plugin-opt=-fresolution=/tmp/ccOY0biV.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded -plugin-opt=-pass-through=-latomic_asneeded -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s_asneeded --build-id --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -o cmTC_ebbd7 /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1 -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../.. -L/lib -L/usr/lib -v CMakeFiles/cmTC_ebbd7.dir/CMakeCCompilerABI.c.o -lgcc -lgcc_s_asneeded -latomic_asneeded -lc -lgcc -lgcc_s_asneeded /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o]
+        linker tool for 'C': /usr/bin/ld
+        collapse obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/Scrt1.o] ==> [/usr/lib/Scrt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crti.o] ==> [/usr/lib/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib/crtn.o] ==> [/usr/lib/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1] ==> [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1]
+        collapse library dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib] ==> [/usr/lib]
+        collapse library dir [/lib/../lib] ==> [/lib]
+        collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+        collapse library dir [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/../../..] ==> [/usr/lib]
+        collapse library dir [/lib] ==> [/lib]
+        collapse library dir [/usr/lib] ==> [/usr/lib]
+        implicit libs: [gcc;gcc_s_asneeded;atomic_asneeded;c;gcc;gcc_s_asneeded]
+        implicit objs: [/usr/lib/Scrt1.o;/usr/lib/crti.o;/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o;/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o;/usr/lib/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1;/usr/lib;/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Internal/CMakeDetermineLinkerId.cmake:38 (message)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "/usr/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:8 (project)"
+    message: |
+      Running the C compiler's linker: "/usr/bin/ld" "-v"
+      GNU ld (GNU Binutils) 2.46.0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CheckIncludeFile.cmake:174 (try_compile)"
+      - "cmake/system_check.cmake:159 (CHECK_INCLUDE_FILE)"
+      - "cmake/system.cmake:35 (include)"
+      - "CMakeLists.txt:125 (include)"
+    checks:
+      - "Looking for stdatomic.h"
+    directories:
+      source: "/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR"
+      binary: "/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "HAVE_C11"
+      cached: true
+      stdout: |
+        Change Dir: '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_26430/fast
+        make[3]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR'
+        /usr/bin/make  -f CMakeFiles/cmTC_26430.dir/build.make CMakeFiles/cmTC_26430.dir/build
+        make[4]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR'
+        Building C object CMakeFiles/cmTC_26430.dir/CheckIncludeFile.c.o
+        /usr/bin/cc    -o CMakeFiles/cmTC_26430.dir/CheckIncludeFile.c.o -c /home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR/CheckIncludeFile.c
+        Linking C executable cmTC_26430
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_26430.dir/link.txt --verbose=1
+        /usr/bin/cc CMakeFiles/cmTC_26430.dir/CheckIncludeFile.c.o -o cmTC_26430
+        make[4]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR'
+        make[3]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-mi6swR'
+        
+      exitCode: 0
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/ProcessorCount.cmake:90 (find_program)"
+      - "cmake/system.cmake:166 (ProcessorCount)"
+      - "CMakeLists.txt:125 (include)"
+    mode: "program"
+    variable: "ProcessorCount_cmd_sysctl"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "sysctl"
+    candidate_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/home/olabode/repos/Shapes/build/openblas-install/bin/"
+      - "/home/olabode/repos/Shapes/build/openblas-install/sbin/"
+      - "/home/olabode/repos/Shapes/build/openblas-install/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/usr/sbin/"
+      - "/sbin/"
+    searched_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/sysctl"
+      - "/home/olabode/Odin/sysctl"
+      - "/opt/cuda/bin/sysctl"
+      - "/home/olabode/zig/sysctl"
+      - "/home/olabode/.amp/bin/sysctl"
+      - "/home/olabode/.opencode/bin/sysctl"
+      - "/home/olabode/.local/bin/sysctl"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/sysctl"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/sysctl"
+      - "/home/olabode/.local/share/omarchy/bin/sysctl"
+      - "/home/olabode/.local/share/mise/shims/sysctl"
+      - "/usr/local/sbin/sysctl"
+      - "/usr/local/bin/sysctl"
+    found: "/usr/bin/sysctl"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/home/olabode/repos/Shapes/build/openblas-install"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/ProcessorCount.cmake:105 (find_program)"
+      - "cmake/system.cmake:166 (ProcessorCount)"
+      - "CMakeLists.txt:125 (include)"
+    mode: "program"
+    variable: "ProcessorCount_cmd_nproc"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "nproc"
+    candidate_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/"
+      - "/home/olabode/Odin/"
+      - "/opt/cuda/bin/"
+      - "/home/olabode/zig/"
+      - "/home/olabode/.amp/bin/"
+      - "/home/olabode/.opencode/bin/"
+      - "/home/olabode/.local/bin/"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/"
+      - "/home/olabode/.local/share/omarchy/bin/"
+      - "/home/olabode/.local/share/mise/shims/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/home/olabode/.lmstudio/bin/"
+      - "/home/olabode/.local/share/nvim/mason/bin/"
+      - "/home/olabode/miniconda3/bin/"
+      - "/home/olabode/miniconda3/condabin/"
+      - "/home/olabode/.cargo/bin/"
+      - "/home/olabode/go/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/home/olabode/repos/Shapes/build/openblas-install/bin/"
+      - "/home/olabode/repos/Shapes/build/openblas-install/sbin/"
+      - "/home/olabode/repos/Shapes/build/openblas-install/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+    searched_directories:
+      - "/home/olabode/Downloads/c3-linux-static/c3/nproc"
+      - "/home/olabode/Odin/nproc"
+      - "/opt/cuda/bin/nproc"
+      - "/home/olabode/zig/nproc"
+      - "/home/olabode/.amp/bin/nproc"
+      - "/home/olabode/.opencode/bin/nproc"
+      - "/home/olabode/.local/bin/nproc"
+      - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin/nproc"
+      - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin/nproc"
+      - "/home/olabode/.local/share/omarchy/bin/nproc"
+      - "/home/olabode/.local/share/mise/shims/nproc"
+      - "/usr/local/sbin/nproc"
+      - "/usr/local/bin/nproc"
+    found: "/usr/bin/nproc"
+    search_context:
+      ENV{PATH}:
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.local/share/mise/installs/java/25.0.1/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/opt/cuda/bin"
+        - "/home/olabode/.amp/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.local/share/mise/shims"
+        - "/home/olabode/.local/share/omarchy/bin"
+        - "/home/olabode/.amp/bin"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/opt/cuda/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.local/bin"
+        - "/home/olabode/.local/share/nvim/mason/bin"
+        - "/home/olabode/Downloads/c3-linux-static/c3"
+        - "/home/olabode/Odin"
+        - "/home/olabode/zig"
+        - "/home/olabode/.opencode/bin"
+        - "/home/olabode/miniconda3/bin"
+        - "/home/olabode/miniconda3/condabin"
+        - "/home/olabode/.config/nvm/versions/node/v22.20.0/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+        - "/home/olabode/.lmstudio/bin"
+        - "/home/olabode/.cargo/bin"
+        - "/home/olabode/go/bin"
+      CMAKE_INSTALL_PREFIX: "/home/olabode/repos/Shapes/build/openblas-install"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/home/olabode/repos/Shapes/build/openblas-install"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CheckLanguage.cmake:164 (message)"
+      - "cmake/f_check.cmake:24 (check_language)"
+      - "cmake/prebuild.cmake:120 (include)"
+      - "cmake/system.cmake:204 (include)"
+      - "CMakeLists.txt:125 (include)"
+    checks:
+      - "Looking for a Fortran compiler"
+    message: |
+      Looking for a Fortran compiler failed with the following output:
+      -- The Fortran compiler identification is unknown
+      \x1b[31mCMake Error at CMakeLists.txt:13 (project):
+        No CMAKE_Fortran_COMPILER could be found.
+      
+        Tell CMake where to find the compiler by setting either the environment
+        variable "FC" or the CMake cache entry CMAKE_Fortran_COMPILER to the full
+        path to the compiler, or to the compiler name if it is in the PATH.
+      
+      \x1b[0m
+      -- Configuring incomplete, errors occurred!
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "cmake/prebuild.cmake:1616 (try_compile)"
+      - "cmake/system.cmake:204 (include)"
+      - "CMakeLists.txt:125 (include)"
+    directories:
+      source: "/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp"
+      binary: "/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "GETARCH_RESULT"
+      cached: true
+      stdout: |
+        Change Dir: '/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_65d4c/fast
+        make[3]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp'
+        /usr/bin/make  -f CMakeFiles/cmTC_65d4c.dir/build.make CMakeFiles/cmTC_65d4c.dir/build
+        make[4]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp'
+        Building C object CMakeFiles/cmTC_65d4c.dir/getarch.c.o
+        /usr/bin/cc   -march=native -DGEMM_MULTITHREAD_THRESHOLD=4 -DNO_PARALLEL_MAKE=0 -I"/home/olabode/repos/Shapes/build/openblas-build/getarch_build" -I"/home/olabode/repos/Shapes/deps/OpenBLAS" -I"/home/olabode/repos/Shapes/build/openblas-build" -o CMakeFiles/cmTC_65d4c.dir/getarch.c.o -c /home/olabode/repos/Shapes/deps/OpenBLAS/getarch.c
+        Linking C executable cmTC_65d4c
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_65d4c.dir/link.txt --verbose=1
+        /usr/bin/cc CMakeFiles/cmTC_65d4c.dir/getarch.c.o -o cmTC_65d4c
+        make[4]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp'
+        make[3]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/getarch_build/CMakeFiles/CMakeTmp'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "cmake/prebuild.cmake:1661 (try_compile)"
+      - "cmake/system.cmake:204 (include)"
+      - "CMakeLists.txt:125 (include)"
+    directories:
+      source: "/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp"
+      binary: "/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "GETARCH2_RESULT"
+      cached: true
+      stdout: |
+        Change Dir: '/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_81d8b/fast
+        make[3]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp'
+        /usr/bin/make  -f CMakeFiles/cmTC_81d8b.dir/build.make CMakeFiles/cmTC_81d8b.dir/build
+        make[4]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp'
+        Building C object CMakeFiles/cmTC_81d8b.dir/getarch_2nd.c.o
+        /usr/bin/cc   -march=native -DGEMM_MULTITHREAD_THRESHOLD=4 -DNO_PARALLEL_MAKE=0 -I"/home/olabode/repos/Shapes/build/openblas-build/getarch2_build" -I"/home/olabode/repos/Shapes/deps/OpenBLAS" -I"/home/olabode/repos/Shapes/build/openblas-build" -o CMakeFiles/cmTC_81d8b.dir/getarch_2nd.c.o -c /home/olabode/repos/Shapes/deps/OpenBLAS/getarch_2nd.c
+        Linking C executable cmTC_81d8b
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_81d8b.dir/link.txt --verbose=1
+        /usr/bin/cc CMakeFiles/cmTC_81d8b.dir/getarch_2nd.c.o -o cmTC_81d8b
+        make[4]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp'
+        make[3]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/getarch2_build/CMakeFiles/CMakeTmp'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/usr/share/cmake/Modules/CheckCSourceCompiles.cmake:103 (cmake_check_source_compiles)"
+      - "/usr/share/cmake/Modules/FindThreads.cmake:160 (check_c_source_compiles)"
+      - "/usr/share/cmake/Modules/FindThreads.cmake:226 (_threads_check_libc)"
+      - "CMakeLists.txt:378 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd"
+      binary: "/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "  -DHAVE_C11 -Wall -m64 -mavx2 -mavx -msse -msse2 -msse3 -mssse3 -msse4.1 -fPIC -DSMALL_MATRIX_OPT -DSMP_SERVER -DNO_WARMUP -DMAX_CPU_NUMBER=12 -DMAX_PARALLEL_NUMBER=1 -DMAX_STACK_ALLOC=2048 -DNO_AFFINITY -DVERSION=\"\\\"0.3.31.dev\\\"\" -DBUILD_SINGLE -DBUILD_DOUBLE -DBUILD_COMPLEX -DBUILD_COMPLEX16"
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_de9b9/fast
+        make[3]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd'
+        /usr/bin/make  -f CMakeFiles/cmTC_de9b9.dir/build.make CMakeFiles/cmTC_de9b9.dir/build
+        make[4]: Entering directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd'
+        Building C object CMakeFiles/cmTC_de9b9.dir/src.c.o
+        /usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD  -DHAVE_C11 -Wall -m64 -mavx2 -mavx -msse -msse2 -msse3 -mssse3 -msse4.1 -fPIC -DSMALL_MATRIX_OPT -DSMP_SERVER -DNO_WARMUP -DMAX_CPU_NUMBER=12 -DMAX_PARALLEL_NUMBER=1 -DMAX_STACK_ALLOC=2048 -DNO_AFFINITY -DVERSION="\\"0.3.31.dev\\"" -DBUILD_SINGLE -DBUILD_DOUBLE -DBUILD_COMPLEX -DBUILD_COMPLEX16  -o CMakeFiles/cmTC_de9b9.dir/src.c.o -c /home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd/src.c
+        Linking C executable cmTC_de9b9
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_de9b9.dir/link.txt --verbose=1
+        /usr/bin/cc   -DHAVE_C11 -Wall -m64 -mavx2 -mavx -msse -msse2 -msse3 -mssse3 -msse4.1 -fPIC -DSMALL_MATRIX_OPT -DSMP_SERVER -DNO_WARMUP -DMAX_CPU_NUMBER=12 -DMAX_PARALLEL_NUMBER=1 -DMAX_STACK_ALLOC=2048 -DNO_AFFINITY -DVERSION="\\"0.3.31.dev\\"" -DBUILD_SINGLE -DBUILD_DOUBLE -DBUILD_COMPLEX -DBUILD_COMPLEX16  CMakeFiles/cmTC_de9b9.dir/src.c.o -o cmTC_de9b9
+        make[4]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd'
+        make[3]: Leaving directory '/home/olabode/repos/Shapes/build/openblas-build/CMakeFiles/CMakeScratch/TryCompile-gskoSd'
+        
+      exitCode: 0
+...

@@ -8,44 +8,44 @@ denseLayer :: struct {}
 
 Dense :: proc(inputSize: uint, outputSize: uint, withBias: bool) -> LayerWithState {
 	initVal := (5.0 / 3.0) / math.pow(f32(inputSize), 0.5)
+	weights := new(shapes.Tensor)
+	weights^ = shapes.MakeRandomTensor(-initVal, initVal, shapes.Shape2D(outputSize, inputSize))
+
 	layer := LayerWithState {
-		weights = shapes.MakeRandomTensor(
-			-initVal,
-			initVal,
-			shapes.Shape2D(outputSize, inputSize),
-		),
+		weights = weights,
 	}
 
 	if withBias {
-		layer.bias = shapes.MakeRandomTensor(-0.1, 0.1, shapes.Shape1D(outputSize))
+		layer.bias = new(shapes.Tensor)
+		layer.bias^ = shapes.MakeRandomTensor(-0.1, 0.1, shapes.Shape1D(outputSize))
 	}
 
 	return layer
 }
 
-denseForward :: proc(layer: ^LayerWithState, x: Tensor) -> Tensor {
+denseForward :: proc(layer: ^LayerWithState, x: ^shapes.Tensor) -> shapes.Tensor {
 	if layer == nil {
-		return Tensor{}
+		return shapes.Tensor{}
 	}
 
-	out: Tensor = doDenseOp(x, layer.weights, layer.bias, layer.withBias)
+	out := shapes.DenseForward(x, layer.weights, layer.bias, layer.withBias)
 
 	arrSize := 4 if layer.withBias else 3
-	out.inputs = shapes.MakeTensorArray(uint(arrSize))
+	out.inputs = make([]^shapes.Tensor, arrSize)
 
-	shapes.ArrayAppendTensor(out.inputs, x)
-	shapes.ArrayAppendTensor(out.inputs, &layer.weights)
+	out.inputs[0] = x
+	out.inputs[1] = layer.weights
 
 	if layer.withBias != true {
-		shapes.ArrayAppendTensor(out.inputs, &layer.bias)
+		out.inputs[1] = layer.bias
 	}
 
-	out.opMetadata = rawptr(layer)
+	out.opMetadata = layer
 	out.opType = .OP_DENSE
 	return out
 }
 
-denseBackward :: proc(tensor: ^Tensor) {
+denseBackward :: proc(tensor: ^shapes.Tensor) {
 	ctx := cast(^shapes.Context)context.user_ptr
 
 	if ctx == nil || tensor.inputs == nil || tensor.grad == nil {
@@ -58,9 +58,9 @@ denseBackward :: proc(tensor: ^Tensor) {
 
 	input := tensor.inputs[0]
 	weights := tensor.inputs[1]
-	bias: shapes.Tensor
+	bias: ^shapes.Tensor
 
-	layerData := tensor.opMetadata.(LayerWithState)
+	layerData := tensor.opMetadata.(^LayerWithState)
 
 	if layerData.withBias && len(tensor.inputs) == 3 {
 		bias = tensor.inputs[2]

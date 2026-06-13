@@ -159,8 +159,11 @@ Tensor :: struct {
 	isView:          bool,
 	isContigous:     bool,
 	isContigousCopy: bool,
-	grad:            ^Tensor,
+	grad:            rawptr,
 	nodeId:          u64,
+	inputs:          []^Tensor,
+	opType:          Optype,
+	opMetadata:      any,
 }
 
 Raw_Tensor :: struct {
@@ -984,6 +987,37 @@ ArgMax :: proc(t: ^Raw_Tensor, dim: uint) -> Raw_Tensor {
 
 // Layer ops
 
+DenseForward :: proc(x: ^Tensor, w: ^Tensor, bias: ^Tensor, withBias: bool) -> Tensor {
+	ctx := cast(^Context)context.user_ptr
+	_x := ToRawTensor(x^)
+	_w := ToRawTensor(w^)
+	_bias: Raw_Tensor
+	if withBias {
+		_bias = ToRawTensor(bias^)
+	}
+	result := _DenseLinear(ctx, &_x, &_w, &_bias, withBias)
+	return FromRawTensor(result)
+}
+
+DenseBackward :: proc(
+	x: ^Tensor,
+	w: ^Tensor,
+	gradOut: ^Tensor,
+	dX: ^Tensor,
+	dW: ^Tensor,
+	dB: ^Tensor,
+) -> Result {
+	ctx := cast(^Context)context.user_ptr
+	_x := ToRawTensor(x^)
+	_w := ToRawTensor(w^)
+	_gradOut := ToRawTensor(gradOut^)
+	_dX := ToRawTensor(dX^)
+	_dW := ToRawTensor(dW^)
+	_dB := ToRawTensor(dB^)
+
+	result := _DenseBackward(ctx, &_x, &_w, &_gradOut, &_dX, &_dW, &_dB)
+	return result
+}
 
 BatchNormForwardTraining :: proc(
 	x2d: ^Raw_Tensor,

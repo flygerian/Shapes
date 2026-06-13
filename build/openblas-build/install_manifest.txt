@@ -1,0 +1,15 @@
+/home/olabode/repos/Shapes/build/openblas-install/lib/libopenblas.a
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/openblas_config.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/cblas.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapacke_example_aux.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapack.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapacke.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapacke_config.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapacke_mangling.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapacke_utils.h
+/home/olabode/repos/Shapes/build/openblas-install/include/openblas/lapacke_mangling.h
+/home/olabode/repos/Shapes/build/openblas-install/lib/pkgconfig/openblas.pc
+/home/olabode/repos/Shapes/build/openblas-install/lib/cmake/OpenBLAS/OpenBLASConfig.cmake
+/home/olabode/repos/Shapes/build/openblas-install/lib/cmake/OpenBLAS/OpenBLASConfigVersion.cmake
+/home/olabode/repos/Shapes/build/openblas-install/lib/cmake/OpenBLAS/OpenBLASTargets.cmake
+/home/olabode/repos/Shapes/build/openblas-install/lib/cmake/OpenBLAS/OpenBLASTargets-noconfig.cmake

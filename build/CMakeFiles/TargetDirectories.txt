@@ -1,0 +1,14 @@
+/home/olabode/repos/Shapes/build/CMakeFiles/openblas_ext.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/copy_compile_commands.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/olib.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/shapes.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/shapesnn.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/makemore.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/vgg10.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/transformer.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/format.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/check-format.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/lint.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/test.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/edit_cache.dir
+/home/olabode/repos/Shapes/build/CMakeFiles/rebuild_cache.dir

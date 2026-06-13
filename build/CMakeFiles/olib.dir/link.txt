@@ -1,0 +1,2 @@
+/usr/bin/ar qc libolib.a CMakeFiles/olib.dir/olib/memory.c.o CMakeFiles/olib.dir/olib/array.c.o CMakeFiles/olib.dir/olib/map.c.o CMakeFiles/olib.dir/olib/bitset.c.o CMakeFiles/olib.dir/olib/file.c.o
+/usr/bin/ranlib libolib.a

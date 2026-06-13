@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/olabode/repos/Shapes/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

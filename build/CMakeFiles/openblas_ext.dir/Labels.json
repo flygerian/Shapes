@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/olabode/repos/Shapes/build/CMakeFiles/openblas_ext"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/CMakeFiles/openblas_ext.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/CMakeFiles/openblas_ext-complete.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-build.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-configure.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-download.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-install.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-mkdir.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-patch.rule"
+		},
+		{
+			"file" : "/home/olabode/repos/Shapes/build/openblas_ext-prefix/src/openblas_ext-stamp/openblas_ext-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"openblas_ext"
+		],
+		"name" : "openblas_ext"
+	}
+}

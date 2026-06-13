@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/makemore.dir/link.d CMakeFiles/makemore.dir/examples/makemore.c.o -o makemore  libshapes.a libshapesnn.a openblas-install/lib/libopenblas.a -lm libshapes.a openblas-install/lib/libopenblas.a -lstdc++ libolib.a
